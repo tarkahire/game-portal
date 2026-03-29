@@ -5,62 +5,58 @@
 }
 
 body {
-    background-color: #0a0a1a;
-    color: #ffffff;
+    background-color: #ffffff;
+    color: #333333;
     font-family: 'Segoe UI', Arial, sans-serif;
     min-height: 100vh;
 }
 
 .portal-header {
     text-align: center;
-    padding: 40px 20px 20px;
+    padding: 50px 20px 30px;
 }
 
 .portal-header h1 {
-    font-size: 48px;
+    font-size: 42px;
     font-weight: bold;
-    background: linear-gradient(135deg, #4CAF50, #2196F3, #9C27B0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 10px;
+    color: #222;
+    margin-bottom: 8px;
 }
 
 .portal-header p {
-    font-size: 18px;
+    font-size: 16px;
     color: #888;
 }
 
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 30px;
-    max-width: 1200px;
-    margin: 40px auto;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1000px;
+    margin: 20px auto;
     padding: 0 30px;
 }
 
 .game-card {
-    background: #1a1a2e;
-    border-radius: 12px;
+    background: #f7f7f7;
+    border-radius: 10px;
     overflow: hidden;
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
     text-decoration: none;
     color: inherit;
-    border: 1px solid #2a2a3e;
+    border: 1px solid #e0e0e0;
 }
 
 .game-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border-color: #4CAF50;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
 .game-card .thumbnail {
     width: 100%;
-    height: 200px;
-    background-color: #2a2a3e;
+    height: 180px;
+    background-color: #eee;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -75,54 +71,47 @@ body {
 
 .game-card .thumbnail .placeholder {
     font-size: 48px;
-    color: #555;
 }
 
 .game-card .info {
-    padding: 20px;
+    padding: 18px;
 }
 
 .game-card .info h2 {
-    font-size: 22px;
-    margin-bottom: 8px;
-    color: #ffffff;
+    font-size: 20px;
+    margin-bottom: 6px;
+    color: #222;
 }
 
 .game-card .info p {
     font-size: 14px;
-    color: #999;
+    color: #666;
     line-height: 1.5;
 }
 
 .game-card .info .tags {
-    margin-top: 12px;
+    margin-top: 10px;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
 }
 
 .game-card .info .tag {
-    background: #2a2a3e;
-    color: #aaa;
+    background: #e8e8e8;
+    color: #555;
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 12px;
 }
 
 .coming-soon {
-    opacity: 0.5;
+    opacity: 0.4;
     pointer-events: none;
-}
-
-.coming-soon .info h2::after {
-    content: ' (Coming Soon)';
-    color: #666;
-    font-size: 14px;
 }
 
 .portal-footer {
     text-align: center;
     padding: 40px 20px;
-    color: #444;
+    color: #bbb;
     font-size: 14px;
 }
