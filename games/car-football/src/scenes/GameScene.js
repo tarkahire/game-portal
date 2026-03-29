@@ -25,7 +25,7 @@ export default class GameScene extends Phaser.Scene {
         this.carSizeLabel = data.carSize ?? GAME_CONFIG.DEFAULT_CAR_SIZE;
         this.ballSizeLabel = data.ballSize ?? GAME_CONFIG.DEFAULT_BALL_SIZE;
         this.gameMode = data.gameMode ?? 'ai'; // 'ai' or '2player'
-        this.carStyle = data.carStyle ?? GAME_CONFIG.DEFAULT_CAR_STYLE;
+        this.carChoice = data.carChoice ?? GAME_CONFIG.DEFAULT_CAR_CHOICE;
         this.goalExplosion = data.goalExplosion ?? GAME_CONFIG.DEFAULT_GOAL_EXPLOSION;
     }
 
@@ -83,6 +83,11 @@ export default class GameScene extends Phaser.Scene {
         // Apply map-specific ball drag
         this.ball.body.setDrag(mc.ballDrag, 0);
 
+        // Resolve car textures from car choice
+        const carConfig = GAME_CONFIG.CAR_OPTIONS.find(o => o.label === this.carChoice) ?? GAME_CONFIG.CAR_OPTIONS[0];
+        const blueTexture = carConfig.blue;
+        const redTexture = carConfig.red;
+
         // Create player car (blue, left side) — always uses WASD in 2-player mode,
         // or arrow keys (legacy default) in vs AI mode
         const playerStartX = GAME_CONFIG.GAME_WIDTH * GAME_CONFIG.BLUE_START_X_RATIO;
@@ -91,7 +96,7 @@ export default class GameScene extends Phaser.Scene {
         if (is2Player) {
             // 2-player: Player 1 uses WASD
             this.playerCar = new PlayerCar(this, playerStartX, groundY, carTargetHeight, {
-                textureKey: 'blue-car',
+                textureKey: blueTexture,
                 facingRight: false,
                 keys: { up: 'W', down: 'S', left: 'A', right: 'D' },
                 particleKey: 'boost-particle-p1'
@@ -99,17 +104,11 @@ export default class GameScene extends Phaser.Scene {
         } else {
             // vs AI: Player 1 uses arrow keys (backward compatible)
             this.playerCar = new PlayerCar(this, playerStartX, groundY, carTargetHeight, {
-                textureKey: 'blue-car',
+                textureKey: blueTexture,
                 facingRight: false,
                 keys: { up: 'UP', down: 'DOWN', left: 'LEFT', right: 'RIGHT' },
                 particleKey: 'boost-particle'
             });
-        }
-
-        // Apply car style tint to player car
-        const styleConfig = GAME_CONFIG.CAR_STYLE_OPTIONS.find(o => o.label === this.carStyle);
-        if (styleConfig && styleConfig.tint) {
-            this.playerCar.setTint(styleConfig.tint);
         }
 
         // Create opponent car (red, right side)
@@ -118,7 +117,7 @@ export default class GameScene extends Phaser.Scene {
         if (is2Player) {
             // 2-player: Player 2 uses arrow keys, red car
             this.player2Car = new PlayerCar(this, aiStartX, groundY, carTargetHeight, {
-                textureKey: 'red-car',
+                textureKey: redTexture,
                 facingRight: false,   // red car faces left (toward blue goal)
                 keys: { up: 'UP', down: 'DOWN', left: 'LEFT', right: 'RIGHT' },
                 particleKey: 'boost-particle-p2'
@@ -126,7 +125,7 @@ export default class GameScene extends Phaser.Scene {
             this.redCar = this.player2Car; // unified reference for collisions
         } else {
             // vs AI: AI controls the red car
-            this.aiCar = new AICar(this, aiStartX, groundY, this.difficulty, carTargetHeight, mc.wallThickness);
+            this.aiCar = new AICar(this, aiStartX, groundY, this.difficulty, carTargetHeight, mc.wallThickness, redTexture);
             this.redCar = this.aiCar; // unified reference for collisions
         }
 

@@ -17,6 +17,10 @@ export default class BootScene extends Phaser.Scene {
         // Load car sprites (JPGs - white backgrounds will be removed in create())
         this.load.image('blue-car-raw', 'assets/images/blue car.jpg');
         this.load.image('red-car-raw', 'assets/images/red car.jpg');
+        this.load.image('blue-car2-raw', 'assets/images/blue car 2.jpg');
+        this.load.image('red-car2-raw', 'assets/images/red car2.jpg');
+        this.load.image('blue-car3-raw', 'assets/images/blue car 3.jpg');
+        this.load.image('red-car3-raw', 'assets/images/red car 3.jpg');
     }
 
     /**
@@ -57,6 +61,10 @@ export default class BootScene extends Phaser.Scene {
         // Remove white backgrounds from car JPGs and create clean textures
         this.removeWhiteBackground('blue-car-raw', 'blue-car');
         this.removeWhiteBackground('red-car-raw', 'red-car');
+        this.removeWhiteBackground('blue-car2-raw', 'blue-car2');
+        this.removeWhiteBackground('red-car2-raw', 'red-car2');
+        this.removeWhiteBackground('blue-car3-raw', 'blue-car3');
+        this.removeWhiteBackground('red-car3-raw', 'red-car3');
 
         // Generate ball texture programmatically
         const r = GAME_CONFIG.BALL_RADIUS;

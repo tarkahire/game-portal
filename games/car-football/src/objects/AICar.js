@@ -2,8 +2,8 @@ import GAME_CONFIG from '../config/gameConfig.js';
 import Car from './Car.js';
 
 export default class AICar extends Car {
-    constructor(scene, x, y, difficulty, targetHeight, wallThickness) {
-        super(scene, x, y, 'red-car', false, targetHeight); // faces left
+    constructor(scene, x, y, difficulty, targetHeight, wallThickness, textureKey) {
+        super(scene, x, y, textureKey ?? 'red-car', false, targetHeight); // faces left
 
         this.difficulty = difficulty;
         this.aiConfig = GAME_CONFIG.AI[difficulty];

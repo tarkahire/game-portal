@@ -23,7 +23,7 @@ export default class SettingsScene extends Phaser.Scene {
         this.carSize = GAME_CONFIG.DEFAULT_CAR_SIZE;
         this.ballSize = GAME_CONFIG.DEFAULT_BALL_SIZE;
         this.gameMode = 'ai'; // 'ai' or '2player'
-        this.carStyle = GAME_CONFIG.DEFAULT_CAR_STYLE;
+        this.carChoice = GAME_CONFIG.DEFAULT_CAR_CHOICE;
         this.goalExplosion = GAME_CONFIG.DEFAULT_GOAL_EXPLOSION;
 
         // ---- FIXED ELEMENTS (not scrolled) ----
@@ -84,8 +84,8 @@ export default class SettingsScene extends Phaser.Scene {
         // 9. Ball Size
         rowY = this.createBallSizeSelector(centerX, rowY);
 
-        // 10. Car Style
-        rowY = this.createCarStyleSelector(centerX, rowY);
+        // 10. Car Choice
+        rowY = this.createCarChoiceSelector(centerX, rowY);
 
         // 11. Goal Explosion
         rowY = this.createGoalExplosionSelector(centerX, rowY);
@@ -582,44 +582,47 @@ export default class SettingsScene extends Phaser.Scene {
     }
 
     // ==========================================================
-    // CAR STYLE SELECTOR
+    // CAR CHOICE SELECTOR
     // ==========================================================
-    createCarStyleSelector(x, y) {
-        const label = this.add.text(x, y, 'Car Style', {
+    createCarChoiceSelector(x, y) {
+        const label = this.add.text(x, y, 'Car', {
             fontSize: '20px', fill: '#cccccc', fontFamily: 'Arial'
         }).setOrigin(0.5);
         this.addToContainer(label);
 
-        const options = GAME_CONFIG.CAR_STYLE_OPTIONS;
-        const totalWidth = (options.length - 1) * 95;
+        const options = GAME_CONFIG.CAR_OPTIONS;
+        const totalWidth = (options.length - 1) * 160;
         const startX = x - totalWidth / 2;
 
-        this.carStyleBtns = [];
+        this.carChoiceBtns = [];
+        this.carPreviewImages = [];
         options.forEach((opt, i) => {
-            const bx = startX + i * 95;
-            const isSelected = opt.label === this.carStyle;
-            const btnColor = opt.tint ? opt.tint : 0x888888;
-            const btn = this.add.rectangle(bx, y + 30, 82, 34, isSelected ? btnColor : 0x444444)
+            const bx = startX + i * 160;
+            const isSelected = opt.label === this.carChoice;
+            const btn = this.add.rectangle(bx, y + 45, 140, 70, isSelected ? 0xE91E63 : 0x444444)
                 .setInteractive({ useHandCursor: true });
-            const txt = this.add.text(bx, y + 30, opt.label, {
-                fontSize: '13px', fill: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold'
+
+            // Show car preview image inside the button
+            const preview = this.add.image(bx, y + 40, opt.blue).setScale(0.08);
+            const txt = this.add.text(bx, y + 70, opt.label, {
+                fontSize: '12px', fill: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold'
             }).setOrigin(0.5);
 
             btn.on('pointerdown', () => {
-                this.carStyle = opt.label;
-                this.updateCarStyleButtons();
+                this.carChoice = opt.label;
+                this.updateCarChoiceButtons();
             });
 
-            this.carStyleBtns.push({ btn, txt, label: opt.label, color: btnColor });
-            this.addToContainer(btn, txt);
+            this.carChoiceBtns.push({ btn, txt, label: opt.label });
+            this.addToContainer(btn, preview, txt);
         });
 
-        return y + 75;
+        return y + 95;
     }
 
-    updateCarStyleButtons() {
-        this.carStyleBtns.forEach(({ btn, label, color }) => {
-            btn.setFillStyle(label === this.carStyle ? color : 0x444444);
+    updateCarChoiceButtons() {
+        this.carChoiceBtns.forEach(({ btn, label }) => {
+            btn.setFillStyle(label === this.carChoice ? 0xE91E63 : 0x444444);
         });
     }
 
@@ -689,7 +692,7 @@ export default class SettingsScene extends Phaser.Scene {
                 carSize: this.carSize,
                 ballSize: this.ballSize,
                 gameMode: this.gameMode,
-                carStyle: this.carStyle,
+                carChoice: this.carChoice,
                 goalExplosion: this.goalExplosion
             });
         });
