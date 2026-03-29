@@ -197,6 +197,14 @@ export default class GameScene extends Phaser.Scene {
         this.ballWarningActive = false;
         this.ballWarningTween = null;
         this.launchText = null;
+
+        // Fireball attack (blue team ability)
+        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        this.fireball = null;
+        this.fireballEmitter = null;
+        this.fireballCooldown = 0;
+        this.redCarDisabled = false;
+        this.redCarRespawnTimer = 0;
     }
 
     setupCollisions() {
@@ -544,6 +552,18 @@ export default class GameScene extends Phaser.Scene {
     }
 
     resetAfterGoal() {
+        // Clean up fireball if active
+        this.cleanupFireball();
+
+        // Re-enable red car if disabled
+        if (this.redCarDisabled) {
+            this.redCarDisabled = false;
+            this.redCarRespawnTimer = 0;
+            this.redCar.body.setEnable(true);
+            this.redCar.setVisible(true);
+            this.redCar.setAlpha(1);
+        }
+
         this.ball.resetPosition();
         this.playerCar.resetPosition();
         this.playerCar.angle = 0;
@@ -847,6 +867,184 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
+    // --- Fireball attack ---
+
+    launchFireball() {
+        const mc = this.mapConfig;
+        const goalTop = GAME_CONFIG.GAME_HEIGHT - mc.wallThickness - mc.goalHeight;
+        const goalCenterY = goalTop + mc.goalHeight / 2;
+        const startX = mc.wallThickness + 10;
+
+        // Create fireball texture if needed
+        if (!this.textures.exists('fireball')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0xff4400, 0.5);
+            gfx.fillCircle(20, 20, 20);
+            gfx.fillStyle(0xffaa00, 1);
+            gfx.fillCircle(20, 20, 12);
+            gfx.fillStyle(0xffff00, 1);
+            gfx.fillCircle(20, 20, 6);
+            gfx.generateTexture('fireball', 40, 40);
+            gfx.destroy();
+        }
+
+        this.fireball = this.physics.add.sprite(startX, goalCenterY, 'fireball');
+        this.fireball.setDepth(80);
+        this.fireball.body.setAllowGravity(false);
+        this.fireball.body.setCollideWorldBounds(false);
+
+        // Fire particle trail
+        if (!this.textures.exists('fire-particle')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillCircle(4, 4, 4);
+            gfx.generateTexture('fire-particle', 8, 8);
+            gfx.destroy();
+        }
+
+        this.fireballEmitter = this.add.particles(startX, goalCenterY, 'fire-particle', {
+            speed: { min: 30, max: 80 },
+            scale: { start: 1.5, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 400,
+            frequency: 15,
+            tint: [0xff4400, 0xff8800, 0xffcc00, 0xffff00],
+            blendMode: 'ADD',
+            emitting: true
+        }).setDepth(79);
+
+        // Pulsing glow
+        this.tweens.add({
+            targets: this.fireball,
+            scaleX: 1.3,
+            scaleY: 1.3,
+            duration: 200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        this.fireballCooldown = 15000;
+    }
+
+    updateFireball(delta) {
+        if (!this.fireball || !this.fireball.active) return;
+
+        const target = this.redCar;
+        const speed = 350;
+
+        const dx = target.x - this.fireball.x;
+        const dy = target.y - this.fireball.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 30) {
+            this.fireballHit();
+            return;
+        }
+
+        const nx = dx / dist;
+        const ny = dy / dist;
+        this.fireball.body.setVelocity(nx * speed, ny * speed);
+
+        // Update trail position
+        if (this.fireballEmitter) {
+            this.fireballEmitter.setPosition(this.fireball.x, this.fireball.y);
+        }
+
+        // Rotate to face direction of travel
+        this.fireball.setRotation(Math.atan2(dy, dx));
+    }
+
+    fireballHit() {
+        const hitX = this.redCar.x;
+        const hitY = this.redCar.y;
+
+        // Big fire explosion
+        if (!this.textures.exists('fire-explosion')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillCircle(6, 6, 6);
+            gfx.generateTexture('fire-explosion', 12, 12);
+            gfx.destroy();
+        }
+
+        const explosion = this.add.particles(hitX, hitY, 'fire-explosion', {
+            speed: { min: 150, max: 500 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 2, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 1000,
+            quantity: 50,
+            tint: [0xff0000, 0xff4400, 0xff8800, 0xffcc00, 0xffff00],
+            blendMode: 'ADD',
+            emitting: false
+        }).setDepth(90);
+        explosion.explode(50);
+
+        // Screen flash
+        const flash = this.add.rectangle(
+            GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2,
+            GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
+            0xff4400, 0.4
+        ).setDepth(89);
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 800,
+            onComplete: () => flash.destroy()
+        });
+
+        // Clean up fireball
+        this.cleanupFireball();
+
+        // Disable red car
+        this.redCar.setVisible(false);
+        this.redCar.body.setEnable(false);
+        this.redCar.body.setVelocity(0, 0);
+        this.redCarDisabled = true;
+        this.redCarRespawnTimer = 5000;
+
+        // Clean up explosion
+        this.time.delayedCall(1500, () => {
+            if (explosion && explosion.active) explosion.destroy();
+        });
+    }
+
+    respawnRedCar() {
+        this.redCarDisabled = false;
+
+        const mc = this.mapConfig;
+        const respawnX = GAME_CONFIG.GAME_WIDTH * GAME_CONFIG.RED_START_X_RATIO;
+        const respawnY = GAME_CONFIG.GAME_HEIGHT - mc.wallThickness - 30;
+
+        this.redCar.setPosition(respawnX, respawnY);
+        this.redCar.body.setVelocity(0, 0);
+        this.redCar.body.setAcceleration(0, 0);
+        this.redCar.body.setEnable(true);
+        this.redCar.setVisible(true);
+        this.redCar.setAlpha(0);
+        if (this.redCar.angle !== undefined) this.redCar.angle = 0;
+
+        // Fade in
+        this.tweens.add({
+            targets: this.redCar,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+    }
+
+    cleanupFireball() {
+        if (this.fireball) {
+            this.fireball.destroy();
+            this.fireball = null;
+        }
+        if (this.fireballEmitter) {
+            this.fireballEmitter.destroy();
+            this.fireballEmitter = null;
+        }
+    }
+
     update(time, delta) {
         if (this.isGoalPause || this.scoreManager.matchOver) return;
 
@@ -886,5 +1084,22 @@ export default class GameScene extends Phaser.Scene {
 
         // Ball ground-stuck detection & auto-launch
         this.updateBallGroundStuck(delta);
+
+        // Fireball attack
+        if (Phaser.Input.Keyboard.JustDown(this.enterKey) && !this.fireball && this.fireballCooldown <= 0 && !this.redCarDisabled) {
+            this.launchFireball();
+        }
+        if (this.fireball && this.fireball.active) {
+            this.updateFireball(delta);
+        }
+        if (this.fireballCooldown > 0) {
+            this.fireballCooldown -= delta;
+        }
+        if (this.redCarDisabled) {
+            this.redCarRespawnTimer -= delta;
+            if (this.redCarRespawnTimer <= 0) {
+                this.respawnRedCar();
+            }
+        }
     }
 }
