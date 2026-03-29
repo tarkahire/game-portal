@@ -161,13 +161,6 @@ export default class PlayerCar extends Car {
             this.canFlip = true;
             this.isFlipping = false;
 
-            // Face driving direction
-            if (this.body.velocity.x > 10) {
-                this.setFlipX(true);
-            } else if (this.body.velocity.x < -10) {
-                this.setFlipX(false);
-            }
-
             // Horizontal movement
             if (keys.left.isDown) {
                 this.body.setAccelerationX(-accel);

@@ -23,13 +23,6 @@ export default class AICar extends Car {
         }
 
         this.executeDecision();
-
-        // Face driving direction
-        if (this.body.velocity.x > 10) {
-            this.setFlipX(true);
-        } else if (this.body.velocity.x < -10) {
-            this.setFlipX(false);
-        }
     }
 
     makeDecision(ball) {
