@@ -924,7 +924,7 @@ export default class GameScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        this.fireballCooldown = 15000;
+        this.fireballCooldown = 0;
     }
 
     updateFireball(delta) {
@@ -1086,7 +1086,7 @@ export default class GameScene extends Phaser.Scene {
         this.updateBallGroundStuck(delta);
 
         // Fireball attack
-        if (Phaser.Input.Keyboard.JustDown(this.enterKey) && !this.fireball && this.fireballCooldown <= 0 && !this.redCarDisabled) {
+        if (Phaser.Input.Keyboard.JustDown(this.enterKey) && !this.fireball && !this.redCarDisabled) {
             this.launchFireball();
         }
         if (this.fireball && this.fireball.active) {
