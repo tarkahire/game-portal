@@ -32,6 +32,13 @@ export default class PlayerCar extends Car {
         this.boostRechargeRate = GAME_CONFIG.BOOST_RECHARGE_RATE;
         this.isBoosting = false;
 
+        // Flip state (double-jump flip)
+        this.canFlip = true;
+        this.isFlipping = false;
+        this.flipSpeed = 720; // degrees per second (full 360 in 0.5s)
+        this.flipRemaining = 0;
+        this.flipDir = 0;
+
         // Create flame particle emitter for boost trail
         this.particleKey = options.particleKey ?? 'boost-particle';
         this.createBoostTrail(scene);
@@ -72,11 +79,35 @@ export default class PlayerCar extends Car {
         if (inAir) {
             // --- AIR CONTROLS ---
 
-            // Left/right rotates the car
-            if (keys.left.isDown) {
-                this.angle -= GAME_CONFIG.CAR_AIR_ROTATION_SPEED * dt;
-            } else if (keys.right.isDown) {
-                this.angle += GAME_CONFIG.CAR_AIR_ROTATION_SPEED * dt;
+            // Flip: press jump while holding a direction in air
+            if (Phaser.Input.Keyboard.JustDown(keys.up) && this.canFlip && !this.isFlipping) {
+                if (keys.left.isDown) {
+                    this.isFlipping = true;
+                    this.flipDir = -1;
+                    this.flipRemaining = 360;
+                    this.canFlip = false;
+                } else if (keys.right.isDown) {
+                    this.isFlipping = true;
+                    this.flipDir = 1;
+                    this.flipRemaining = 360;
+                    this.canFlip = false;
+                }
+            }
+
+            // During flip, auto-rotate; otherwise manual rotation
+            if (this.isFlipping) {
+                const flipAmount = this.flipSpeed * dt;
+                this.angle += this.flipDir * flipAmount;
+                this.flipRemaining -= flipAmount;
+                if (this.flipRemaining <= 0) {
+                    this.isFlipping = false;
+                }
+            } else {
+                if (keys.left.isDown) {
+                    this.angle -= GAME_CONFIG.CAR_AIR_ROTATION_SPEED * dt;
+                } else if (keys.right.isDown) {
+                    this.angle += GAME_CONFIG.CAR_AIR_ROTATION_SPEED * dt;
+                }
             }
 
             // Boost (down key while in air)
@@ -126,6 +157,17 @@ export default class PlayerCar extends Car {
                 }
             }
 
+            // Reset flip for next jump
+            this.canFlip = true;
+            this.isFlipping = false;
+
+            // Face driving direction
+            if (this.body.velocity.x > 10) {
+                this.setFlipX(true);
+            } else if (this.body.velocity.x < -10) {
+                this.setFlipX(false);
+            }
+
             // Horizontal movement
             if (keys.left.isDown) {
                 this.body.setAccelerationX(-accel);
@@ -159,6 +201,8 @@ export default class PlayerCar extends Car {
         this.angle = 0;
         this.boostFuel = (this.boostRechargeRate === -1) ? GAME_CONFIG.BOOST_MAX_FUEL : GAME_CONFIG.BOOST_MAX_FUEL;
         this.isBoosting = false;
+        this.canFlip = true;
+        this.isFlipping = false;
         if (this.boostEmitter) this.boostEmitter.emitting = false;
     }
 }
