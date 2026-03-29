@@ -62,6 +62,27 @@ const GAME_CONFIG = {
     ],
     DEFAULT_BALL_SIZE: 'Normal',
 
+    // Car style presets (tint applied to player car sprite)
+    CAR_STYLE_OPTIONS: [
+        { label: 'Default', tint: null },
+        { label: 'Flame', tint: 0xff6600 },
+        { label: 'Ice', tint: 0x00ccff },
+        { label: 'Toxic', tint: 0x00ff66 },
+        { label: 'Royal', tint: 0xaa00ff },
+        { label: 'Gold', tint: 0xffcc00 }
+    ],
+    DEFAULT_CAR_STYLE: 'Default',
+
+    // Goal explosion presets
+    GOAL_EXPLOSION_OPTIONS: [
+        { label: 'Classic' },
+        { label: 'Fireworks' },
+        { label: 'Confetti' },
+        { label: 'Shockwave' },
+        { label: 'Minimal' }
+    ],
+    DEFAULT_GOAL_EXPLOSION: 'Classic',
+
     // Ball
     BALL_RADIUS: 12,
     BALL_COLOR: 0xffffff,

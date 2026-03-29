@@ -23,6 +23,8 @@ export default class SettingsScene extends Phaser.Scene {
         this.carSize = GAME_CONFIG.DEFAULT_CAR_SIZE;
         this.ballSize = GAME_CONFIG.DEFAULT_BALL_SIZE;
         this.gameMode = 'ai'; // 'ai' or '2player'
+        this.carStyle = GAME_CONFIG.DEFAULT_CAR_STYLE;
+        this.goalExplosion = GAME_CONFIG.DEFAULT_GOAL_EXPLOSION;
 
         // ---- FIXED ELEMENTS (not scrolled) ----
 
@@ -81,6 +83,12 @@ export default class SettingsScene extends Phaser.Scene {
 
         // 9. Ball Size
         rowY = this.createBallSizeSelector(centerX, rowY);
+
+        // 10. Car Style
+        rowY = this.createCarStyleSelector(centerX, rowY);
+
+        // 11. Goal Explosion
+        rowY = this.createGoalExplosionSelector(centerX, rowY);
 
         // Store total content height for scroll clamping
         this.contentHeight = rowY;
@@ -574,6 +582,89 @@ export default class SettingsScene extends Phaser.Scene {
     }
 
     // ==========================================================
+    // CAR STYLE SELECTOR
+    // ==========================================================
+    createCarStyleSelector(x, y) {
+        const label = this.add.text(x, y, 'Car Style', {
+            fontSize: '20px', fill: '#cccccc', fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        this.addToContainer(label);
+
+        const options = GAME_CONFIG.CAR_STYLE_OPTIONS;
+        const totalWidth = (options.length - 1) * 95;
+        const startX = x - totalWidth / 2;
+
+        this.carStyleBtns = [];
+        options.forEach((opt, i) => {
+            const bx = startX + i * 95;
+            const isSelected = opt.label === this.carStyle;
+            const btnColor = opt.tint ? opt.tint : 0x888888;
+            const btn = this.add.rectangle(bx, y + 30, 82, 34, isSelected ? btnColor : 0x444444)
+                .setInteractive({ useHandCursor: true });
+            const txt = this.add.text(bx, y + 30, opt.label, {
+                fontSize: '13px', fill: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            btn.on('pointerdown', () => {
+                this.carStyle = opt.label;
+                this.updateCarStyleButtons();
+            });
+
+            this.carStyleBtns.push({ btn, txt, label: opt.label, color: btnColor });
+            this.addToContainer(btn, txt);
+        });
+
+        return y + 75;
+    }
+
+    updateCarStyleButtons() {
+        this.carStyleBtns.forEach(({ btn, label, color }) => {
+            btn.setFillStyle(label === this.carStyle ? color : 0x444444);
+        });
+    }
+
+    // ==========================================================
+    // GOAL EXPLOSION SELECTOR
+    // ==========================================================
+    createGoalExplosionSelector(x, y) {
+        const label = this.add.text(x, y, 'Goal Explosion', {
+            fontSize: '20px', fill: '#cccccc', fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        this.addToContainer(label);
+
+        const options = GAME_CONFIG.GOAL_EXPLOSION_OPTIONS;
+        const totalWidth = (options.length - 1) * 110;
+        const startX = x - totalWidth / 2;
+
+        this.explosionBtns = [];
+        options.forEach((opt, i) => {
+            const bx = startX + i * 110;
+            const isSelected = opt.label === this.goalExplosion;
+            const btn = this.add.rectangle(bx, y + 30, 95, 34, isSelected ? 0xF44336 : 0x444444)
+                .setInteractive({ useHandCursor: true });
+            const txt = this.add.text(bx, y + 30, opt.label, {
+                fontSize: '13px', fill: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            btn.on('pointerdown', () => {
+                this.goalExplosion = opt.label;
+                this.updateExplosionButtons();
+            });
+
+            this.explosionBtns.push({ btn, txt, label: opt.label });
+            this.addToContainer(btn, txt);
+        });
+
+        return y + 75;
+    }
+
+    updateExplosionButtons() {
+        this.explosionBtns.forEach(({ btn, label }) => {
+            btn.setFillStyle(label === this.goalExplosion ? 0xF44336 : 0x444444);
+        });
+    }
+
+    // ==========================================================
     // START BUTTON (fixed at bottom)
     // ==========================================================
     createStartButton(x, y) {
@@ -597,7 +688,9 @@ export default class SettingsScene extends Phaser.Scene {
                 boostRegen: this.boostRegen,
                 carSize: this.carSize,
                 ballSize: this.ballSize,
-                gameMode: this.gameMode
+                gameMode: this.gameMode,
+                carStyle: this.carStyle,
+                goalExplosion: this.goalExplosion
             });
         });
     }

@@ -25,6 +25,8 @@ export default class GameScene extends Phaser.Scene {
         this.carSizeLabel = data.carSize ?? GAME_CONFIG.DEFAULT_CAR_SIZE;
         this.ballSizeLabel = data.ballSize ?? GAME_CONFIG.DEFAULT_BALL_SIZE;
         this.gameMode = data.gameMode ?? 'ai'; // 'ai' or '2player'
+        this.carStyle = data.carStyle ?? GAME_CONFIG.DEFAULT_CAR_STYLE;
+        this.goalExplosion = data.goalExplosion ?? GAME_CONFIG.DEFAULT_GOAL_EXPLOSION;
     }
 
     create() {
@@ -102,6 +104,12 @@ export default class GameScene extends Phaser.Scene {
                 keys: { up: 'UP', down: 'DOWN', left: 'LEFT', right: 'RIGHT' },
                 particleKey: 'boost-particle'
             });
+        }
+
+        // Apply car style tint to player car
+        const styleConfig = GAME_CONFIG.CAR_STYLE_OPTIONS.find(o => o.label === this.carStyle);
+        if (styleConfig && styleConfig.tint) {
+            this.playerCar.setTint(styleConfig.tint);
         }
 
         // Create opponent car (red, right side)
@@ -315,29 +323,8 @@ export default class GameScene extends Phaser.Scene {
             explosionX = mc.wallThickness;
         }
 
-        // Generate explosion particle texture if not already created
-        if (!this.textures.exists('explosion-particle')) {
-            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-            gfx.fillStyle(0xffffff, 1);
-            gfx.fillCircle(5, 5, 5);
-            gfx.generateTexture('explosion-particle', 10, 10);
-            gfx.destroy();
-        }
-
-        // Create explosion emitter
-        const explosion = this.add.particles(explosionX, goalCenterY, 'explosion-particle', {
-            speed: { min: 150, max: 500 },
-            angle: { min: 0, max: 360 },
-            scale: { start: 1.5, end: 0 },
-            alpha: { start: 1, end: 0 },
-            lifespan: 800,
-            quantity: 40,
-            tint: [teamColor, 0xffff00, 0xff8800, 0xffffff],
-            blendMode: 'ADD',
-            emitting: false
-        }).setDepth(95);
-
-        explosion.explode(40);
+        // Create goal explosion effect
+        this.goalEffects = this.createGoalExplosionEffect(explosionX, goalCenterY, teamColor);
 
         // --- SEND CARS FLYING BACK from the explosion ---
         // Blue car gets blasted to the left, red car gets blasted to the right
@@ -400,7 +387,10 @@ export default class GameScene extends Phaser.Scene {
                 this.goalFlash.destroy();
                 this.goalFlash = null;
             }
-            explosion.destroy();
+            if (this.goalEffects) {
+                this.goalEffects.forEach(e => { try { e.destroy(); } catch(ex) {} });
+                this.goalEffects = null;
+            }
 
             if (result.over) {
                 this.endMatch(result.winner);
@@ -408,6 +398,150 @@ export default class GameScene extends Phaser.Scene {
                 this.resetAfterGoal();
             }
         });
+    }
+
+    createGoalExplosionEffect(explosionX, goalCenterY, teamColor) {
+        const effects = [];
+
+        // Ensure particle texture exists
+        if (!this.textures.exists('explosion-particle')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillCircle(5, 5, 5);
+            gfx.generateTexture('explosion-particle', 10, 10);
+            gfx.destroy();
+        }
+
+        switch (this.goalExplosion) {
+            case 'Fireworks': {
+                const offsets = [
+                    { x: 0, y: 0, delay: 0 },
+                    { x: -30, y: -50, delay: 200 },
+                    { x: 20, y: -80, delay: 400 }
+                ];
+                offsets.forEach(({ x: ox, y: oy, delay }) => {
+                    this.time.delayedCall(delay, () => {
+                        const burst = this.add.particles(explosionX + ox, goalCenterY + oy, 'explosion-particle', {
+                            speed: { min: 100, max: 350 },
+                            angle: { min: 0, max: 360 },
+                            scale: { start: 1, end: 0 },
+                            alpha: { start: 1, end: 0 },
+                            lifespan: 1000,
+                            quantity: 25,
+                            tint: [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff],
+                            blendMode: 'ADD',
+                            emitting: false
+                        }).setDepth(95);
+                        burst.explode(25);
+                        effects.push(burst);
+                    });
+                });
+                break;
+            }
+            case 'Confetti': {
+                const confetti = this.add.particles(explosionX, goalCenterY - 40, 'explosion-particle', {
+                    speedX: { min: -200, max: 200 },
+                    speedY: { min: -100, max: 50 },
+                    scale: { start: 0.8, end: 0.3 },
+                    alpha: { start: 1, end: 0.6 },
+                    lifespan: 1800,
+                    quantity: 80,
+                    gravityY: 300,
+                    tint: [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0xff8800, 0x00ffff, 0xffffff],
+                    emitting: false
+                }).setDepth(95);
+                confetti.explode(80);
+                effects.push(confetti);
+                break;
+            }
+            case 'Shockwave': {
+                // Expanding ring
+                const ring = this.add.graphics().setDepth(95);
+                const ringData = { radius: 10, alpha: 1 };
+                this.tweens.add({
+                    targets: ringData,
+                    radius: 150,
+                    alpha: 0,
+                    duration: 600,
+                    ease: 'Power2',
+                    onUpdate: () => {
+                        ring.clear();
+                        ring.lineStyle(3, teamColor, ringData.alpha);
+                        ring.strokeCircle(explosionX, goalCenterY, ringData.radius);
+                    }
+                });
+                effects.push(ring);
+
+                // Second ring with delay
+                const ring2 = this.add.graphics().setDepth(95);
+                const ringData2 = { radius: 10, alpha: 1 };
+                this.time.delayedCall(200, () => {
+                    this.tweens.add({
+                        targets: ringData2,
+                        radius: 120,
+                        alpha: 0,
+                        duration: 500,
+                        ease: 'Power2',
+                        onUpdate: () => {
+                            ring2.clear();
+                            ring2.lineStyle(2, 0xffffff, ringData2.alpha);
+                            ring2.strokeCircle(explosionX, goalCenterY, ringData2.radius);
+                        }
+                    });
+                });
+                effects.push(ring2);
+
+                // Small particle burst
+                const burst = this.add.particles(explosionX, goalCenterY, 'explosion-particle', {
+                    speed: { min: 80, max: 200 },
+                    angle: { min: 0, max: 360 },
+                    scale: { start: 0.8, end: 0 },
+                    alpha: { start: 1, end: 0 },
+                    lifespan: 400,
+                    quantity: 12,
+                    tint: [teamColor, 0xffffff],
+                    blendMode: 'ADD',
+                    emitting: false
+                }).setDepth(95);
+                burst.explode(12);
+                effects.push(burst);
+                break;
+            }
+            case 'Minimal': {
+                const puff = this.add.particles(explosionX, goalCenterY, 'explosion-particle', {
+                    speed: { min: 40, max: 120 },
+                    angle: { min: 0, max: 360 },
+                    scale: { start: 0.6, end: 0 },
+                    alpha: { start: 0.7, end: 0 },
+                    lifespan: 350,
+                    quantity: 8,
+                    tint: [teamColor, 0xffffff],
+                    blendMode: 'ADD',
+                    emitting: false
+                }).setDepth(95);
+                puff.explode(8);
+                effects.push(puff);
+                break;
+            }
+            default: { // Classic
+                const explosion = this.add.particles(explosionX, goalCenterY, 'explosion-particle', {
+                    speed: { min: 150, max: 500 },
+                    angle: { min: 0, max: 360 },
+                    scale: { start: 1.5, end: 0 },
+                    alpha: { start: 1, end: 0 },
+                    lifespan: 800,
+                    quantity: 40,
+                    tint: [teamColor, 0xffff00, 0xff8800, 0xffffff],
+                    blendMode: 'ADD',
+                    emitting: false
+                }).setDepth(95);
+                explosion.explode(40);
+                effects.push(explosion);
+                break;
+            }
+        }
+
+        return effects;
     }
 
     resetAfterGoal() {
