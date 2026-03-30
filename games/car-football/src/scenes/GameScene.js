@@ -875,55 +875,116 @@ export default class GameScene extends Phaser.Scene {
         const goalCenterY = goalTop + mc.goalHeight / 2;
         const startX = mc.wallThickness + 10;
 
-        // Create fireball texture if needed
+        // Create Slenderman texture if needed
         if (!this.textures.exists('fireball')) {
-            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-            gfx.fillStyle(0xff4400, 0.3);
-            gfx.fillCircle(110, 110, 110);
-            gfx.fillStyle(0xff6600, 0.5);
-            gfx.fillCircle(110, 110, 85);
-            gfx.fillStyle(0xffaa00, 0.8);
-            gfx.fillCircle(110, 110, 55);
-            gfx.fillStyle(0xffcc00, 1);
-            gfx.fillCircle(110, 110, 30);
-            gfx.fillStyle(0xffff00, 1);
-            gfx.fillCircle(110, 110, 14);
-            gfx.generateTexture('fireball', 220, 220);
-            gfx.destroy();
+            const w = 120, h = 220;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            // Tentacles behind body
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 3;
+            const tentacles = [
+                { sx: 60, sy: 90, cp1x: 10, cp1y: 60, cp2x: 0, cp2y: 30, ex: -5, ey: 10 },
+                { sx: 60, sy: 90, cp1x: 110, cp1y: 60, cp2x: 120, cp2y: 30, ex: 125, ey: 10 },
+                { sx: 60, sy: 100, cp1x: 15, cp1y: 110, cp2x: 5, cp2y: 140, ex: 0, ey: 160 },
+                { sx: 60, sy: 100, cp1x: 105, cp1y: 110, cp2x: 115, cp2y: 140, ex: 120, ey: 160 },
+            ];
+            tentacles.forEach(t => {
+                ctx.beginPath();
+                ctx.moveTo(t.sx, t.sy);
+                ctx.bezierCurveTo(t.cp1x, t.cp1y, t.cp2x, t.cp2y, t.ex, t.ey);
+                ctx.stroke();
+            });
+
+            // Long legs
+            ctx.strokeStyle = '#111111';
+            ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(52, 150); ctx.lineTo(40, 220); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(68, 150); ctx.lineTo(80, 220); ctx.stroke();
+
+            // Tall thin body (black suit)
+            ctx.fillStyle = '#111111';
+            ctx.beginPath();
+            ctx.ellipse(60, 120, 18, 55, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Suit jacket lapels
+            ctx.strokeStyle = '#222222';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(60, 75); ctx.lineTo(50, 110); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(60, 75); ctx.lineTo(70, 110); ctx.stroke();
+
+            // Tie
+            ctx.fillStyle = '#880000';
+            ctx.beginPath();
+            ctx.moveTo(60, 78);
+            ctx.lineTo(55, 120);
+            ctx.lineTo(60, 130);
+            ctx.lineTo(65, 120);
+            ctx.closePath();
+            ctx.fill();
+
+            // Long thin arms
+            ctx.strokeStyle = '#111111';
+            ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(44, 85); ctx.lineTo(15, 155); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(76, 85); ctx.lineTo(105, 155); ctx.stroke();
+            // Fingers
+            ctx.lineWidth = 2;
+            for (let i = -2; i <= 2; i++) {
+                ctx.beginPath(); ctx.moveTo(15, 155); ctx.lineTo(8 + i * 3, 170); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(105, 155); ctx.lineTo(112 + i * 3, 170); ctx.stroke();
+            }
+
+            // White featureless face (oval)
+            ctx.fillStyle = '#e8e0d8';
+            ctx.beginPath();
+            ctx.ellipse(60, 48, 16, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Subtle face shadow (no features - just Slenderman blank)
+            ctx.fillStyle = 'rgba(0,0,0,0.05)';
+            ctx.beginPath();
+            ctx.ellipse(60, 52, 12, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            this.textures.addCanvas('fireball', canvas);
         }
 
         this.fireball = this.physics.add.sprite(startX, goalCenterY, 'fireball');
-        this.fireball.setScale(1.5);
+        this.fireball.setScale(0.8);
         this.fireball.setDepth(80);
         this.fireball.body.setAllowGravity(false);
         this.fireball.body.setCollideWorldBounds(false);
 
-        // Fire particle trail
+        // Dark smoke particle trail
         if (!this.textures.exists('fire-particle')) {
             const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-            gfx.fillStyle(0xffffff, 1);
+            gfx.fillStyle(0x222222, 1);
             gfx.fillCircle(4, 4, 4);
             gfx.generateTexture('fire-particle', 8, 8);
             gfx.destroy();
         }
 
         this.fireballEmitter = this.add.particles(startX, goalCenterY, 'fire-particle', {
-            speed: { min: 50, max: 150 },
-            scale: { start: 4, end: 0 },
-            alpha: { start: 1, end: 0 },
-            lifespan: 600,
-            frequency: 8,
-            tint: [0xff4400, 0xff8800, 0xffcc00, 0xffff00],
-            blendMode: 'ADD',
+            speed: { min: 20, max: 80 },
+            scale: { start: 3, end: 0 },
+            alpha: { start: 0.5, end: 0 },
+            lifespan: 800,
+            frequency: 12,
+            tint: [0x111111, 0x222222, 0x333333, 0x000000],
+            blendMode: 'NORMAL',
             emitting: true
         }).setDepth(79);
 
-        // Pulsing glow
+        // Eerie flickering effect
         this.tweens.add({
             targets: this.fireball,
-            scaleX: 1.8,
-            scaleY: 1.8,
-            duration: 200,
+            alpha: 0.6,
+            duration: 100,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -980,8 +1041,8 @@ export default class GameScene extends Phaser.Scene {
             alpha: { start: 1, end: 0 },
             lifespan: 1000,
             quantity: 50,
-            tint: [0xff0000, 0xff4400, 0xff8800, 0xffcc00, 0xffff00],
-            blendMode: 'ADD',
+            tint: [0x000000, 0x111111, 0x222222, 0x440000, 0x660000],
+            blendMode: 'NORMAL',
             emitting: false
         }).setDepth(90);
         explosion.explode(50);
@@ -990,7 +1051,7 @@ export default class GameScene extends Phaser.Scene {
         const flash = this.add.rectangle(
             GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2,
             GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
-            0xff4400, 0.4
+            0x000000, 0.6
         ).setDepth(89);
         this.tweens.add({
             targets: flash,
