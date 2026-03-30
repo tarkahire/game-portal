@@ -936,7 +936,7 @@ export default class GameScene extends Phaser.Scene {
         if (!this.fireball || !this.fireball.active) return;
 
         const target = this.redCar;
-        const speed = 700;
+        const speed = 3000;
 
         const dx = target.x - this.fireball.x;
         const dy = target.y - this.fireball.y;
