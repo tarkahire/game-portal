@@ -1857,9 +1857,15 @@ export default class GameScene extends Phaser.Scene {
         this.redCarDisabled = true;
         this.redCarRespawnTimer = 5000;
 
-        // Blast the ball
-        const ballDx = this.ball.x - hitX;
-        this.ball.body.setVelocity(ballDx > 0 ? 600 : -600, -400);
+        // Launch the ball into the red goal
+        const mc = this.mapConfig;
+        const redGoalX = GAME_CONFIG.GAME_WIDTH - mc.wallThickness;
+        const goalTop = GAME_CONFIG.GAME_HEIGHT - mc.wallThickness - mc.goalHeight;
+        const goalCenterY = goalTop + mc.goalHeight / 2;
+        const ballDx = redGoalX - this.ball.x;
+        const ballDy = goalCenterY - this.ball.y;
+        const ballDist = Math.sqrt(ballDx * ballDx + ballDy * ballDy) || 1;
+        this.ball.body.setVelocity((ballDx / ballDist) * 800, (ballDy / ballDist) * 800);
 
         this.time.delayedCall(1500, () => {
             if (voidExplosion && voidExplosion.active) voidExplosion.destroy();
