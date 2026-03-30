@@ -1585,8 +1585,12 @@ export default class GameScene extends Phaser.Scene {
         if (this.hollowPurpleActive || this.redCarDisabled) return;
         this.hollowPurpleActive = true;
 
-        const carX = this.playerCar.x;
-        const carY = this.playerCar.y;
+        // Pause the game physics for the full cutscene
+        this.physics.pause();
+        if (this.matchTimer) this.matchTimer.pause();
+
+        const centerX = GAME_CONFIG.GAME_WIDTH / 2;
+        const centerY = GAME_CONFIG.GAME_HEIGHT / 2;
 
         // Ensure particle texture
         if (!this.textures.exists('jjk-particle')) {
@@ -1597,278 +1601,340 @@ export default class GameScene extends Phaser.Scene {
             gfx.destroy();
         }
 
-        // Darken the screen for dramatic effect
-        const darken = this.add.rectangle(
-            GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2,
+        // === FULL SCREEN BLACKOUT ===
+        const blackout = this.add.rectangle(
+            centerX, centerY,
             GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
-            0x000000, 0.5
-        ).setDepth(88);
-
-        // "Cursed Technique" text
-        const ctText = this.add.text(
-            GAME_CONFIG.GAME_WIDTH / 2, 50,
-            'Cursed Technique Reversal:',
-            { fontSize: '16px', fill: '#ff4444', fontFamily: 'Arial', fontStyle: 'bold', stroke: '#000000', strokeThickness: 3 }
-        ).setOrigin(0.5).setDepth(100);
-
-        // Phase 1: Blue sphere (attraction) - appears to the left
-        const blueOrb = this.add.circle(carX + 50, carY - 30, 18, 0x0044ff, 0.9).setDepth(92);
-        const blueGlow = this.add.circle(carX + 50, carY - 30, 30, 0x0066ff, 0.3).setDepth(91);
-
-        // Blue attraction particles swirling inward
-        const blueEmitter = this.add.particles(carX + 50, carY - 30, 'jjk-particle', {
-            speed: { min: 60, max: 150 },
-            scale: { start: 0.8, end: 0 },
-            alpha: { start: 0.8, end: 0 },
-            lifespan: 400,
-            frequency: 30,
-            tint: [0x0044ff, 0x0088ff, 0x00aaff],
-            blendMode: 'ADD',
-            emitting: true
-        }).setDepth(91);
-
-        // Pulse blue orb
+            0x000000, 0
+        ).setDepth(85);
         this.tweens.add({
-            targets: [blueOrb, blueGlow],
-            scaleX: 1.3, scaleY: 1.3,
-            duration: 300,
-            yoyo: true,
-            repeat: 2
+            targets: blackout,
+            alpha: 0.8,
+            duration: 600,
+            ease: 'Power2'
         });
 
-        // Phase 2: Red sphere (repulsion) - appears after 800ms
-        this.time.delayedCall(800, () => {
-            ctText.setText('Red');
-            ctText.setFill('#ff0000');
+        // Cinematic letterbox bars
+        const topBar = this.add.rectangle(centerX, 0, GAME_CONFIG.GAME_WIDTH, 60, 0x000000, 1)
+            .setOrigin(0.5, 0).setDepth(110).setAlpha(0);
+        const botBar = this.add.rectangle(centerX, GAME_CONFIG.GAME_HEIGHT, GAME_CONFIG.GAME_WIDTH, 60, 0x000000, 1)
+            .setOrigin(0.5, 1).setDepth(110).setAlpha(0);
+        this.tweens.add({ targets: [topBar, botBar], alpha: 1, duration: 400 });
 
-            const redOrb = this.add.circle(carX + 50, carY + 30, 18, 0xff0000, 0.9).setDepth(92);
-            const redGlow = this.add.circle(carX + 50, carY + 30, 30, 0xff2200, 0.3).setDepth(91);
+        // === PHASE 1: BLUE (Attraction) - 1.5s ===
+        this.time.delayedCall(600, () => {
+            // Title text
+            const titleText = this.add.text(centerX, 80, 'Cursed Technique Lapse:', {
+                fontSize: '22px', fill: '#4488ff', fontFamily: 'Arial', fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 4
+            }).setOrigin(0.5).setDepth(120).setAlpha(0);
+            this.tweens.add({ targets: titleText, alpha: 1, duration: 300 });
 
-            // Red repulsion particles bursting outward
-            const redEmitter = this.add.particles(carX + 50, carY + 30, 'jjk-particle', {
-                speed: { min: 80, max: 180 },
-                scale: { start: 0.8, end: 0 },
-                alpha: { start: 0.8, end: 0 },
-                lifespan: 400,
-                frequency: 30,
-                tint: [0xff0000, 0xff4400, 0xff2200],
+            const blueLabel = this.add.text(centerX, 115, 'BLUE', {
+                fontSize: '48px', fill: '#0066ff', fontFamily: 'Arial', fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 6
+            }).setOrigin(0.5).setDepth(120).setAlpha(0);
+            this.tweens.add({ targets: blueLabel, alpha: 1, duration: 300, delay: 200 });
+
+            // Giant blue orb at left-center
+            const blueX = centerX - 180;
+            const blueOrb = this.add.circle(blueX, centerY, 50, 0x0044ff, 0.95).setDepth(100);
+            const blueGlow1 = this.add.circle(blueX, centerY, 80, 0x0066ff, 0.4).setDepth(99);
+            const blueGlow2 = this.add.circle(blueX, centerY, 120, 0x0088ff, 0.15).setDepth(98);
+
+            // Scale in dramatically
+            [blueOrb, blueGlow1, blueGlow2].forEach(o => o.setScale(0));
+            this.tweens.add({
+                targets: [blueOrb, blueGlow1, blueGlow2],
+                scaleX: 1, scaleY: 1,
+                duration: 500,
+                ease: 'Back.easeOut'
+            });
+
+            // Blue swirling particles (sucking inward)
+            const blueEmitter = this.add.particles(blueX, centerY, 'jjk-particle', {
+                speed: { min: 100, max: 250 },
+                scale: { start: 1.5, end: 0 },
+                alpha: { start: 0.9, end: 0 },
+                lifespan: 600,
+                frequency: 15,
+                tint: [0x0044ff, 0x0088ff, 0x00aaff, 0x0066ff],
                 blendMode: 'ADD',
                 emitting: true
-            }).setDepth(91);
+            }).setDepth(99);
 
+            // Pulsing
             this.tweens.add({
-                targets: [redOrb, redGlow],
-                scaleX: 1.3, scaleY: 1.3,
-                duration: 300,
+                targets: [blueOrb, blueGlow1, blueGlow2],
+                scaleX: 1.2, scaleY: 1.2,
+                duration: 400,
                 yoyo: true,
-                repeat: 2
+                repeat: -1
             });
 
-            // Phase 3: Merge into Purple - after another 800ms
-            this.time.delayedCall(800, () => {
-                ctText.setText('Hollow Purple');
-                ctText.setFill('#9900ff');
-                ctText.setFontSize('28px');
+            this.cameras.main.shake(300, 0.005);
 
-                // Move blue and red toward each other and merge
+            // === PHASE 2: RED (Repulsion) - after 1.5s ===
+            this.time.delayedCall(1500, () => {
+                titleText.setText('Cursed Technique Reversal:');
+                titleText.setFill('#ff4444');
+                blueLabel.setText('RED');
+                blueLabel.setFill('#ff0000');
+
+                // Giant red orb at right-center
+                const redX = centerX + 180;
+                const redOrb = this.add.circle(redX, centerY, 50, 0xff0000, 0.95).setDepth(100);
+                const redGlow1 = this.add.circle(redX, centerY, 80, 0xff2200, 0.4).setDepth(99);
+                const redGlow2 = this.add.circle(redX, centerY, 120, 0xff4400, 0.15).setDepth(98);
+
+                [redOrb, redGlow1, redGlow2].forEach(o => o.setScale(0));
                 this.tweens.add({
-                    targets: [blueOrb, blueGlow],
-                    x: carX + 50, y: carY,
-                    duration: 400,
-                    ease: 'Power2'
+                    targets: [redOrb, redGlow1, redGlow2],
+                    scaleX: 1, scaleY: 1,
+                    duration: 500,
+                    ease: 'Back.easeOut'
                 });
+
+                // Red bursting particles
+                const redEmitter = this.add.particles(redX, centerY, 'jjk-particle', {
+                    speed: { min: 120, max: 300 },
+                    scale: { start: 1.5, end: 0 },
+                    alpha: { start: 0.9, end: 0 },
+                    lifespan: 600,
+                    frequency: 15,
+                    tint: [0xff0000, 0xff4400, 0xff2200, 0xff6600],
+                    blendMode: 'ADD',
+                    emitting: true
+                }).setDepth(99);
+
                 this.tweens.add({
-                    targets: [redOrb, redGlow],
-                    x: carX + 50, y: carY,
+                    targets: [redOrb, redGlow1, redGlow2],
+                    scaleX: 1.2, scaleY: 1.2,
                     duration: 400,
-                    ease: 'Power2',
-                    onComplete: () => {
-                        // Destroy the individual orbs
-                        blueOrb.destroy(); blueGlow.destroy();
-                        redOrb.destroy(); redGlow.destroy();
-                        blueEmitter.destroy(); redEmitter.destroy();
+                    yoyo: true,
+                    repeat: -1
+                });
 
-                        // Create the merged Hollow Purple sphere
-                        const purpleOrb = this.add.circle(carX + 50, carY, 25, 0x7700cc, 0.9).setDepth(92);
-                        const purpleGlow1 = this.add.circle(carX + 50, carY, 45, 0x9900ff, 0.4).setDepth(91);
-                        const purpleGlow2 = this.add.circle(carX + 50, carY, 65, 0xaa44ff, 0.2).setDepth(90);
+                this.cameras.main.shake(300, 0.008);
 
-                        // Intense purple particle aura
-                        const purpleEmitter = this.add.particles(carX + 50, carY, 'jjk-particle', {
-                            speed: { min: 30, max: 100 },
-                            scale: { start: 1.2, end: 0 },
-                            alpha: { start: 0.9, end: 0 },
-                            lifespan: 500,
-                            frequency: 10,
-                            tint: [0x7700cc, 0x9900ff, 0xaa44ff, 0xcc66ff, 0x5500aa],
-                            blendMode: 'ADD',
-                            emitting: true
-                        }).setDepth(91);
+                // === PHASE 3: MERGE - after 1.5s ===
+                this.time.delayedCall(1500, () => {
+                    titleText.setText('Imaginary Technique:');
+                    titleText.setFill('#cc66ff');
+                    blueLabel.setText('HOLLOW PURPLE');
+                    blueLabel.setFill('#9900ff');
+                    blueLabel.setFontSize('56px');
 
-                        // Screen shake on merge
-                        this.cameras.main.shake(200, 0.01);
+                    // Flash text
+                    this.tweens.add({
+                        targets: blueLabel,
+                        alpha: 0.3, duration: 150, yoyo: true, repeat: 3
+                    });
 
-                        // Flash of purple light
-                        const mergeFlash = this.add.rectangle(
-                            GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2,
-                            GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
-                            0x7700cc, 0.4
-                        ).setDepth(89);
-                        this.tweens.add({
-                            targets: mergeFlash,
-                            alpha: 0,
-                            duration: 500,
-                            onComplete: () => mergeFlash.destroy()
-                        });
+                    // Slam both orbs to center
+                    this.tweens.add({
+                        targets: [blueOrb, blueGlow1, blueGlow2],
+                        x: centerX, duration: 600, ease: 'Power3'
+                    });
+                    this.tweens.add({
+                        targets: [redOrb, redGlow1, redGlow2],
+                        x: centerX, duration: 600, ease: 'Power3',
+                        onComplete: () => {
+                            // Destroy individual orbs
+                            blueOrb.destroy(); blueGlow1.destroy(); blueGlow2.destroy();
+                            redOrb.destroy(); redGlow1.destroy(); redGlow2.destroy();
+                            blueEmitter.destroy(); redEmitter.destroy();
 
-                        // Phase 4: Fire Hollow Purple across the screen after 500ms
-                        this.time.delayedCall(500, () => {
-                            ctText.destroy();
-                            darken.destroy();
-
-                            // The purple orb fires to the right at extreme speed
-                            const fireSpeed = 2000;
-                            const targetX = GAME_CONFIG.GAME_WIDTH + 100;
-                            const duration = ((targetX - purpleOrb.x) / fireSpeed) * 1000;
-
-                            // Create the beam trail behind the orb
-                            const beamTrail = this.add.rectangle(
-                                purpleOrb.x, carY, 0, 40, 0x9900ff, 0.6
-                            ).setOrigin(0, 0.5).setDepth(89);
-
-                            const beamGlow = this.add.rectangle(
-                                purpleOrb.x, carY, 0, 80, 0x7700cc, 0.2
-                            ).setOrigin(0, 0.5).setDepth(88);
-
-                            const beamStartX = purpleOrb.x;
-
-                            // Animate the orb flying across
+                            // MASSIVE merge explosion flash
+                            const mergeFlash = this.add.rectangle(
+                                centerX, centerY,
+                                GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
+                                0xffffff, 0.9
+                            ).setDepth(105);
                             this.tweens.add({
-                                targets: [purpleOrb, purpleGlow1, purpleGlow2],
-                                x: targetX,
-                                duration: duration,
-                                ease: 'Linear',
-                                onUpdate: () => {
-                                    purpleEmitter.setPosition(purpleOrb.x, purpleOrb.y);
-                                    // Grow the trail beam behind the orb
-                                    beamTrail.width = purpleOrb.x - beamStartX;
-                                    beamGlow.width = purpleOrb.x - beamStartX;
-                                },
-                                onComplete: () => {
-                                    purpleOrb.destroy();
-                                    purpleGlow1.destroy();
-                                    purpleGlow2.destroy();
-                                    purpleEmitter.destroy();
+                                targets: mergeFlash, alpha: 0, duration: 800,
+                                onComplete: () => mergeFlash.destroy()
+                            });
 
-                                    // Fade out beam trail
+                            this.cameras.main.shake(500, 0.03);
+
+                            // Merge explosion particles
+                            const mergeExplosion = this.add.particles(centerX, centerY, 'jjk-particle', {
+                                speed: { min: 200, max: 600 },
+                                angle: { min: 0, max: 360 },
+                                scale: { start: 3, end: 0 },
+                                alpha: { start: 1, end: 0 },
+                                lifespan: 1000,
+                                quantity: 80,
+                                tint: [0x7700cc, 0x9900ff, 0x0044ff, 0xff0000, 0xffffff],
+                                blendMode: 'ADD',
+                                emitting: false
+                            }).setDepth(102);
+                            mergeExplosion.explode(80);
+
+                            // Create HUGE purple sphere
+                            const purpleOrb = this.add.circle(centerX, centerY, 70, 0x7700cc, 0.95).setDepth(100);
+                            const pGlow1 = this.add.circle(centerX, centerY, 110, 0x9900ff, 0.5).setDepth(99);
+                            const pGlow2 = this.add.circle(centerX, centerY, 160, 0xaa44ff, 0.25).setDepth(98);
+                            const pGlow3 = this.add.circle(centerX, centerY, 200, 0xcc66ff, 0.1).setDepth(97);
+
+                            // Purple aura particles
+                            const purpleEmitter = this.add.particles(centerX, centerY, 'jjk-particle', {
+                                speed: { min: 50, max: 180 },
+                                scale: { start: 2.5, end: 0 },
+                                alpha: { start: 1, end: 0 },
+                                lifespan: 800,
+                                frequency: 5,
+                                tint: [0x7700cc, 0x9900ff, 0xaa44ff, 0xcc66ff, 0x5500aa],
+                                blendMode: 'ADD',
+                                emitting: true
+                            }).setDepth(99);
+
+                            // Ominous pulse
+                            this.tweens.add({
+                                targets: [purpleOrb, pGlow1, pGlow2, pGlow3],
+                                scaleX: 1.15, scaleY: 1.15,
+                                duration: 300,
+                                yoyo: true,
+                                repeat: -1
+                            });
+
+                            // === PHASE 4: CUTSCENE - Ball grab and slam ===
+                            this.time.delayedCall(1000, () => {
+                                titleText.destroy();
+                                blueLabel.destroy();
+                                this.time.delayedCall(200, () => {
+                                    if (mergeExplosion && mergeExplosion.active) mergeExplosion.destroy();
+                                });
+
+                                // Teleport ball to center (inside the purple orb)
+                                this.ball.setPosition(centerX, centerY);
+                                this.ball.body.setVelocity(0, 0);
+                                this.ball.setDepth(101);
+
+                                // Ball gets engulfed - purple tint effect
+                                this.tweens.add({
+                                    targets: this.ball,
+                                    alpha: 0.5, duration: 200, yoyo: true, repeat: 2
+                                });
+
+                                // Disable red car
+                                this.redCar.setVisible(false);
+                                this.redCar.body.setEnable(false);
+                                this.redCar.body.setVelocity(0, 0);
+                                this.redCarDisabled = true;
+                                this.redCarRespawnTimer = 5000;
+
+                                // Target: red goal center
+                                const mc = this.mapConfig;
+                                const redGoalX = GAME_CONFIG.GAME_WIDTH - mc.wallThickness + mc.goalWidth / 2;
+                                const goalTop = GAME_CONFIG.GAME_HEIGHT - mc.wallThickness - mc.goalHeight;
+                                const goalCenterY = goalTop + mc.goalHeight / 2;
+
+                                // After 800ms, FIRE everything at the goal
+                                this.time.delayedCall(800, () => {
+                                    // Resume physics so the ball can score
+                                    this.physics.resume();
+
+                                    // Launch ball at the red goal at insane speed
+                                    const bDx = redGoalX - this.ball.x;
+                                    const bDy = goalCenterY - this.ball.y;
+                                    const bDist = Math.sqrt(bDx * bDx + bDy * bDy) || 1;
+                                    this.ball.body.setVelocity((bDx / bDist) * 1500, (bDy / bDist) * 1500);
+                                    this.ball.setDepth(10);
+
+                                    // Fire the purple orb along with the ball
+                                    const fireSpeed = 1500;
                                     this.tweens.add({
-                                        targets: [beamTrail, beamGlow],
-                                        alpha: 0,
-                                        duration: 600,
+                                        targets: [purpleOrb, pGlow1, pGlow2, pGlow3],
+                                        x: redGoalX, y: goalCenterY,
+                                        duration: 400,
+                                        ease: 'Power2',
+                                        onUpdate: () => {
+                                            purpleEmitter.setPosition(purpleOrb.x, purpleOrb.y);
+                                        },
                                         onComplete: () => {
-                                            beamTrail.destroy();
-                                            beamGlow.destroy();
+                                            // GOAL IMPACT EXPLOSION
+                                            const goalExplosion = this.add.particles(redGoalX, goalCenterY, 'jjk-particle', {
+                                                speed: { min: 300, max: 900 },
+                                                angle: { min: 0, max: 360 },
+                                                scale: { start: 4, end: 0 },
+                                                alpha: { start: 1, end: 0 },
+                                                lifespan: 1500,
+                                                quantity: 120,
+                                                tint: [0x7700cc, 0x9900ff, 0xaa44ff, 0xffffff, 0x000000],
+                                                blendMode: 'ADD',
+                                                emitting: false
+                                            }).setDepth(95);
+                                            goalExplosion.explode(120);
+
+                                            // Expanding void rings at goal
+                                            for (let r = 0; r < 3; r++) {
+                                                const ring = this.add.graphics().setDepth(94);
+                                                const ringData = { radius: 10, alpha: 1 };
+                                                this.time.delayedCall(r * 150, () => {
+                                                    this.tweens.add({
+                                                        targets: ringData,
+                                                        radius: 180 + r * 40,
+                                                        alpha: 0,
+                                                        duration: 700,
+                                                        ease: 'Power2',
+                                                        onUpdate: () => {
+                                                            ring.clear();
+                                                            ring.lineStyle(4 - r, 0x9900ff, ringData.alpha);
+                                                            ring.strokeCircle(redGoalX, goalCenterY, ringData.radius);
+                                                        },
+                                                        onComplete: () => ring.destroy()
+                                                    });
+                                                });
+                                            }
+
+                                            // Giant screen flash
+                                            const impactFlash = this.add.rectangle(
+                                                centerX, centerY,
+                                                GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
+                                                0x9900ff, 0.7
+                                            ).setDepth(93);
+                                            this.tweens.add({
+                                                targets: impactFlash, alpha: 0, duration: 1200,
+                                                onComplete: () => impactFlash.destroy()
+                                            });
+
+                                            this.cameras.main.shake(800, 0.04);
+
+                                            // Clean up purple orb
+                                            purpleOrb.destroy(); pGlow1.destroy();
+                                            pGlow2.destroy(); pGlow3.destroy();
+                                            purpleEmitter.destroy();
+
+                                            // Blast player car away
+                                            this.playerCar.body.setVelocity(-400, -300);
+
+                                            // Clean up cutscene elements
+                                            this.tweens.add({
+                                                targets: [blackout, topBar, botBar],
+                                                alpha: 0,
+                                                duration: 800,
+                                                onComplete: () => {
+                                                    blackout.destroy();
+                                                    topBar.destroy();
+                                                    botBar.destroy();
+                                                }
+                                            });
+
+                                            if (this.matchTimer) this.matchTimer.resume();
+                                            this.time.delayedCall(2000, () => {
+                                                if (goalExplosion && goalExplosion.active) goalExplosion.destroy();
+                                                this.hollowPurpleActive = false;
+                                            });
                                         }
                                     });
-                                }
+                                });
                             });
-
-                            // Check if red car is in the beam path (same Y range)
-                            const redY = this.redCar.y;
-                            const beamHalfHeight = 50;
-                            if (Math.abs(redY - carY) < beamHalfHeight + 30) {
-                                // Red car is in the path - calculate when the beam reaches it
-                                const redDist = this.redCar.x - purpleOrb.x;
-                                if (redDist > 0) {
-                                    const hitDelay = (redDist / fireSpeed) * 1000;
-                                    this.time.delayedCall(hitDelay, () => {
-                                        this.hollowPurpleHit();
-                                    });
-                                }
-                            }
-
-                            // End ability after beam passes
-                            this.time.delayedCall(duration + 800, () => {
-                                this.hollowPurpleActive = false;
-                            });
-                        });
-                    }
+                        }
+                    });
                 });
             });
-        });
-    }
-
-    hollowPurpleHit() {
-        const hitX = this.redCar.x;
-        const hitY = this.redCar.y;
-
-        // Massive purple void explosion - everything gets erased
-        const voidExplosion = this.add.particles(hitX, hitY, 'jjk-particle', {
-            speed: { min: 200, max: 800 },
-            angle: { min: 0, max: 360 },
-            scale: { start: 3, end: 0 },
-            alpha: { start: 1, end: 0 },
-            lifespan: 1200,
-            quantity: 100,
-            tint: [0x7700cc, 0x9900ff, 0xaa44ff, 0xcc66ff, 0x000000],
-            blendMode: 'ADD',
-            emitting: false
-        }).setDepth(95);
-        voidExplosion.explode(100);
-
-        // Expanding void circle (black hole effect)
-        const voidCircle = this.add.graphics().setDepth(94);
-        const voidData = { radius: 5, alpha: 1 };
-        this.tweens.add({
-            targets: voidData,
-            radius: 120,
-            alpha: 0,
-            duration: 800,
-            ease: 'Power2',
-            onUpdate: () => {
-                voidCircle.clear();
-                voidCircle.fillStyle(0x220044, voidData.alpha * 0.6);
-                voidCircle.fillCircle(hitX, hitY, voidData.radius);
-                voidCircle.lineStyle(3, 0x9900ff, voidData.alpha);
-                voidCircle.strokeCircle(hitX, hitY, voidData.radius);
-            },
-            onComplete: () => voidCircle.destroy()
-        });
-
-        // White screen flash
-        const flash = this.add.rectangle(
-            GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2,
-            GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
-            0xcc88ff, 0.6
-        ).setDepth(93);
-        this.tweens.add({
-            targets: flash,
-            alpha: 0,
-            duration: 1000,
-            onComplete: () => flash.destroy()
-        });
-
-        this.cameras.main.shake(600, 0.025);
-
-        // Disable red car
-        this.redCar.setVisible(false);
-        this.redCar.body.setEnable(false);
-        this.redCar.body.setVelocity(0, 0);
-        this.redCarDisabled = true;
-        this.redCarRespawnTimer = 5000;
-
-        // Launch the ball into the red goal
-        const mc = this.mapConfig;
-        const redGoalX = GAME_CONFIG.GAME_WIDTH - mc.wallThickness;
-        const goalTop = GAME_CONFIG.GAME_HEIGHT - mc.wallThickness - mc.goalHeight;
-        const goalCenterY = goalTop + mc.goalHeight / 2;
-        const ballDx = redGoalX - this.ball.x;
-        const ballDy = goalCenterY - this.ball.y;
-        const ballDist = Math.sqrt(ballDx * ballDx + ballDy * ballDy) || 1;
-        this.ball.body.setVelocity((ballDx / ballDist) * 800, (ballDy / ballDist) * 800);
-
-        this.time.delayedCall(1500, () => {
-            if (voidExplosion && voidExplosion.active) voidExplosion.destroy();
         });
     }
 
