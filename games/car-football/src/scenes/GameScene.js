@@ -942,7 +942,7 @@ export default class GameScene extends Phaser.Scene {
         const dy = target.y - this.fireball.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 30) {
+        if (dist < 100) {
             this.fireballHit();
             return;
         }
