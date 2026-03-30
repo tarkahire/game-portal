@@ -199,7 +199,7 @@ export default class GameScene extends Phaser.Scene {
         this.launchText = null;
 
         // Fireball attack (blue team ability)
-        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+        this.zKey = this.input.keyboard.addKey('Z');
         this.fireball = null;
         this.fireballEmitter = null;
         this.fireballCooldown = 0;
@@ -207,11 +207,11 @@ export default class GameScene extends Phaser.Scene {
         this.redCarRespawnTimer = 0;
 
         // Orbital strike (X key)
-        this.xKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+        this.xKey = this.input.keyboard.addKey('X');
         this.orbitalActive = false;
 
         // Worm attack (C key)
-        this.cKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
+        this.cKey = this.input.keyboard.addKey('C');
         this.worm = null;
         this.wormSegments = [];
         this.wormEmitter = null;
@@ -1615,7 +1615,7 @@ export default class GameScene extends Phaser.Scene {
         this.updateBallGroundStuck(delta);
 
         // Fireball attack
-        if (Phaser.Input.Keyboard.JustDown(this.enterKey) && !this.fireball && !this.redCarDisabled) {
+        if (Phaser.Input.Keyboard.JustDown(this.zKey) && !this.fireball && !this.redCarDisabled) {
             this.launchFireball();
         }
         if (this.fireball && this.fireball.active) {
