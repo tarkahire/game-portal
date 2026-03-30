@@ -199,7 +199,7 @@ export default class GameScene extends Phaser.Scene {
         this.launchText = null;
 
         // Fireball attack (blue team ability)
-        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
         this.fireball = null;
         this.fireballEmitter = null;
         this.fireballCooldown = 0;
