@@ -879,16 +879,16 @@ export default class GameScene extends Phaser.Scene {
         if (!this.textures.exists('fireball')) {
             const gfx = this.make.graphics({ x: 0, y: 0, add: false });
             gfx.fillStyle(0xff4400, 0.3);
-            gfx.fillCircle(60, 60, 60);
+            gfx.fillCircle(110, 110, 110);
             gfx.fillStyle(0xff6600, 0.5);
-            gfx.fillCircle(60, 60, 45);
+            gfx.fillCircle(110, 110, 85);
             gfx.fillStyle(0xffaa00, 0.8);
-            gfx.fillCircle(60, 60, 30);
+            gfx.fillCircle(110, 110, 55);
             gfx.fillStyle(0xffcc00, 1);
-            gfx.fillCircle(60, 60, 18);
+            gfx.fillCircle(110, 110, 30);
             gfx.fillStyle(0xffff00, 1);
-            gfx.fillCircle(60, 60, 8);
-            gfx.generateTexture('fireball', 120, 120);
+            gfx.fillCircle(110, 110, 14);
+            gfx.generateTexture('fireball', 220, 220);
             gfx.destroy();
         }
 
@@ -936,7 +936,7 @@ export default class GameScene extends Phaser.Scene {
         if (!this.fireball || !this.fireball.active) return;
 
         const target = this.redCar;
-        const speed = 150;
+        const speed = 700;
 
         const dx = target.x - this.fireball.x;
         const dy = target.y - this.fireball.y;
