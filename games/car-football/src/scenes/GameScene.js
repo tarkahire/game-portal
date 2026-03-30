@@ -205,6 +205,16 @@ export default class GameScene extends Phaser.Scene {
         this.fireballCooldown = 0;
         this.redCarDisabled = false;
         this.redCarRespawnTimer = 0;
+
+        // Orbital strike (X key)
+        this.xKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+        this.orbitalActive = false;
+
+        // Worm attack (C key)
+        this.cKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
+        this.worm = null;
+        this.wormSegments = [];
+        this.wormEmitter = null;
     }
 
     setupCollisions() {
@@ -554,6 +564,8 @@ export default class GameScene extends Phaser.Scene {
     resetAfterGoal() {
         // Clean up fireball if active
         this.cleanupFireball();
+        this.cleanupWorm();
+        this.orbitalActive = false;
 
         // Re-enable red car if disabled
         if (this.redCarDisabled) {
@@ -1111,6 +1123,457 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
+    // --- Orbital Strike Cannon (X key) ---
+
+    launchOrbitalStrike() {
+        if (this.orbitalActive || this.redCarDisabled) return;
+        this.orbitalActive = true;
+
+        const targetX = this.redCar.x;
+        const targetY = this.redCar.y;
+
+        // Red targeting reticle on the red car
+        const reticle = this.add.graphics().setDepth(85);
+        const reticleData = { radius: 80, alpha: 1, rotation: 0 };
+
+        const reticleTween = this.tweens.add({
+            targets: reticleData,
+            radius: 20,
+            rotation: Math.PI * 2,
+            duration: 1000,
+            ease: 'Power2',
+            onUpdate: () => {
+                reticle.clear();
+                // Outer circle
+                reticle.lineStyle(3, 0xff0000, reticleData.alpha);
+                reticle.strokeCircle(targetX, targetY, reticleData.radius);
+                // Inner circle
+                reticle.lineStyle(2, 0xff0000, reticleData.alpha);
+                reticle.strokeCircle(targetX, targetY, reticleData.radius * 0.4);
+                // Crosshairs
+                const r = reticleData.radius;
+                const cos = Math.cos(reticleData.rotation);
+                const sin = Math.sin(reticleData.rotation);
+                reticle.lineBetween(targetX + cos * r, targetY + sin * r, targetX - cos * r, targetY - sin * r);
+                reticle.lineBetween(targetX - sin * r, targetY + cos * r, targetX + sin * r, targetY - cos * r);
+            }
+        });
+
+        // Warning text
+        const warningText = this.add.text(
+            GAME_CONFIG.GAME_WIDTH / 2, 40,
+            'ORBITAL STRIKE INCOMING',
+            { fontSize: '20px', fill: '#ff0000', fontFamily: 'Arial', fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }
+        ).setOrigin(0.5).setDepth(100);
+
+        this.tweens.add({
+            targets: warningText,
+            alpha: 0.3,
+            duration: 200,
+            yoyo: true,
+            repeat: 4
+        });
+
+        // After targeting, fire the beam
+        this.time.delayedCall(1200, () => {
+            reticle.destroy();
+            warningText.destroy();
+
+            const beamX = targetX;
+
+            // Giant beam from top of screen
+            const beam = this.add.rectangle(beamX, 0, 60, GAME_CONFIG.GAME_HEIGHT * 2, 0xffffff, 0.9)
+                .setOrigin(0.5, 0).setDepth(95);
+
+            // Inner beam glow
+            const innerBeam = this.add.rectangle(beamX, 0, 30, GAME_CONFIG.GAME_HEIGHT * 2, 0x00ccff, 0.8)
+                .setOrigin(0.5, 0).setDepth(96);
+
+            // Outer glow
+            const outerBeam = this.add.rectangle(beamX, 0, 120, GAME_CONFIG.GAME_HEIGHT * 2, 0x0066ff, 0.3)
+                .setOrigin(0.5, 0).setDepth(94);
+
+            // Screen flash white
+            const flash = this.add.rectangle(
+                GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2,
+                GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
+                0xffffff, 0.7
+            ).setDepth(93);
+
+            // Camera shake
+            this.cameras.main.shake(500, 0.02);
+
+            // Massive explosion at impact point
+            if (!this.textures.exists('orbital-particle')) {
+                const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+                gfx.fillStyle(0xffffff, 1);
+                gfx.fillCircle(6, 6, 6);
+                gfx.generateTexture('orbital-particle', 12, 12);
+                gfx.destroy();
+            }
+
+            const explosion = this.add.particles(beamX, targetY, 'orbital-particle', {
+                speed: { min: 200, max: 700 },
+                angle: { min: 0, max: 360 },
+                scale: { start: 3, end: 0 },
+                alpha: { start: 1, end: 0 },
+                lifespan: 1200,
+                quantity: 80,
+                tint: [0x00ccff, 0x0066ff, 0xffffff, 0x00ffff, 0xff4400],
+                blendMode: 'ADD',
+                emitting: false
+            }).setDepth(97);
+            explosion.explode(80);
+
+            // Disable red car
+            this.redCar.setVisible(false);
+            this.redCar.body.setEnable(false);
+            this.redCar.body.setVelocity(0, 0);
+            this.redCarDisabled = true;
+            this.redCarRespawnTimer = 5000;
+
+            // Blast the ball away from impact
+            const ballDx = this.ball.x - beamX;
+            this.ball.body.setVelocity(ballDx > 0 ? 500 : -500, -400);
+
+            // Blast player car away too
+            const playerDx = this.playerCar.x - beamX;
+            this.playerCar.body.setVelocity(playerDx > 0 ? 400 : -400, -300);
+
+            // Fade out beam
+            this.tweens.add({
+                targets: [beam, innerBeam, outerBeam],
+                alpha: 0,
+                duration: 400,
+                onComplete: () => {
+                    beam.destroy();
+                    innerBeam.destroy();
+                    outerBeam.destroy();
+                }
+            });
+
+            this.tweens.add({
+                targets: flash,
+                alpha: 0,
+                duration: 600,
+                onComplete: () => {
+                    flash.destroy();
+                    this.orbitalActive = false;
+                }
+            });
+
+            this.time.delayedCall(1500, () => {
+                if (explosion && explosion.active) explosion.destroy();
+            });
+        });
+    }
+
+    // --- Scary Worm Attack (C key) ---
+
+    launchWorm() {
+        if (this.worm || this.redCarDisabled) return;
+
+        // Create worm head texture
+        if (!this.textures.exists('worm-head')) {
+            const w = 80, h = 60;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            // Main head shape (dark fleshy)
+            ctx.fillStyle = '#4a1a2a';
+            ctx.beginPath();
+            ctx.ellipse(40, 30, 38, 28, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Darker underside
+            ctx.fillStyle = '#2a0a1a';
+            ctx.beginPath();
+            ctx.ellipse(40, 38, 32, 18, 0, 0.2, Math.PI);
+            ctx.fill();
+
+            // Mouth opening - wide gaping maw
+            ctx.fillStyle = '#1a0000';
+            ctx.beginPath();
+            ctx.ellipse(70, 30, 18, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inside of mouth (dark red)
+            ctx.fillStyle = '#3a0000';
+            ctx.beginPath();
+            ctx.ellipse(68, 30, 14, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Rows of sharp teeth - top row
+            ctx.fillStyle = '#eeeecc';
+            for (let i = 0; i < 7; i++) {
+                const angle = -0.8 + i * 0.27;
+                const tx = 70 + Math.cos(angle) * 16;
+                const ty = 30 + Math.sin(angle) * 20;
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(tx + 3, ty + (ty < 30 ? 8 : -8));
+                ctx.lineTo(tx - 3, ty + (ty < 30 ? 8 : -8));
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Inner teeth row
+            ctx.fillStyle = '#ddddbb';
+            for (let i = 0; i < 5; i++) {
+                const angle = -0.6 + i * 0.3;
+                const tx = 68 + Math.cos(angle) * 11;
+                const ty = 30 + Math.sin(angle) * 15;
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(tx + 2, ty + (ty < 30 ? 6 : -6));
+                ctx.lineTo(tx - 2, ty + (ty < 30 ? 6 : -6));
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Eyes - bloodshot and menacing
+            // Left eye
+            ctx.fillStyle = '#ffee00';
+            ctx.beginPath();
+            ctx.ellipse(30, 18, 9, 7, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            // Blood veins in eye
+            ctx.strokeStyle = '#cc0000';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 4; i++) {
+                const a = i * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(30, 18);
+                ctx.lineTo(30 + Math.cos(a) * 8, 18 + Math.sin(a) * 6);
+                ctx.stroke();
+            }
+            // Pupil - slit like a snake
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.ellipse(30, 18, 3, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Right eye
+            ctx.fillStyle = '#ffee00';
+            ctx.beginPath();
+            ctx.ellipse(30, 42, 9, 7, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#cc0000';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 4; i++) {
+                const a = i * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(30, 42);
+                ctx.lineTo(30 + Math.cos(a) * 8, 42 + Math.sin(a) * 6);
+                ctx.stroke();
+            }
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.ellipse(30, 42, 3, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Brow ridges
+            ctx.strokeStyle = '#2a0a1a';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(30, 18, 12, -2.5, -0.5);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(30, 42, 12, 0.5, 2.5);
+            ctx.stroke();
+
+            this.textures.addCanvas('worm-head', canvas);
+        }
+
+        // Create worm segment texture
+        if (!this.textures.exists('worm-segment')) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 30;
+            canvas.height = 30;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#4a1a2a';
+            ctx.beginPath();
+            ctx.arc(15, 15, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#3a0a1a';
+            ctx.beginPath();
+            ctx.arc(15, 18, 10, 0, Math.PI);
+            ctx.fill();
+            // Segment ridges
+            ctx.strokeStyle = '#5a2a3a';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(15, 15, 12, -0.5, 0.5);
+            ctx.stroke();
+
+            this.textures.addCanvas('worm-segment', canvas);
+        }
+
+        const startX = this.playerCar.x;
+        const startY = GAME_CONFIG.GAME_HEIGHT - this.mapConfig.wallThickness - 20;
+
+        // Create body segments (trail behind head)
+        this.wormSegments = [];
+        for (let i = 0; i < 12; i++) {
+            const seg = this.add.image(startX - i * 18, startY, 'worm-segment')
+                .setScale(1.2 - i * 0.05)
+                .setDepth(74);
+            this.wormSegments.push({ sprite: seg, x: startX - i * 18, y: startY });
+        }
+
+        // Create worm head
+        this.worm = this.physics.add.sprite(startX, startY, 'worm-head');
+        this.worm.setScale(1.3);
+        this.worm.setDepth(80);
+        this.worm.body.setAllowGravity(false);
+        this.worm.body.setCollideWorldBounds(false);
+
+        // Slime trail particles
+        if (!this.textures.exists('slime-particle')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0x44aa22, 1);
+            gfx.fillCircle(4, 4, 4);
+            gfx.generateTexture('slime-particle', 8, 8);
+            gfx.destroy();
+        }
+
+        this.wormEmitter = this.add.particles(startX, startY, 'slime-particle', {
+            speed: { min: 10, max: 40 },
+            scale: { start: 2.5, end: 0 },
+            alpha: { start: 0.7, end: 0 },
+            lifespan: 1000,
+            frequency: 20,
+            tint: [0x33aa11, 0x44cc22, 0x227711, 0x55dd33],
+            blendMode: 'NORMAL',
+            emitting: true
+        }).setDepth(73);
+    }
+
+    updateWorm(delta) {
+        if (!this.worm || !this.worm.active) return;
+
+        const target = this.redCar;
+        const speed = 250;
+
+        const dx = target.x - this.worm.x;
+        const dy = target.y - this.worm.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 50) {
+            this.wormHit();
+            return;
+        }
+
+        const nx = dx / dist;
+        const ny = dy / dist;
+        this.worm.body.setVelocity(nx * speed, ny * speed);
+
+        // Rotate head to face direction of travel
+        this.worm.setRotation(Math.atan2(dy, dx));
+
+        // Update trail emitter
+        if (this.wormEmitter) {
+            this.wormEmitter.setPosition(this.worm.x, this.worm.y);
+        }
+
+        // Slither body segments - each follows the one ahead with delay
+        if (this.wormSegments.length > 0) {
+            // First segment follows the head
+            const head = { x: this.worm.x, y: this.worm.y };
+            for (let i = 0; i < this.wormSegments.length; i++) {
+                const seg = this.wormSegments[i];
+                const leader = i === 0 ? head : this.wormSegments[i - 1];
+                const sdx = leader.x - seg.x;
+                const sdy = leader.y - seg.y;
+                const followDist = 18;
+                const sDist = Math.sqrt(sdx * sdx + sdy * sdy);
+                if (sDist > followDist) {
+                    seg.x += (sdx / sDist) * (sDist - followDist);
+                    seg.y += (sdy / sDist) * (sDist - followDist);
+                }
+                // Add sinusoidal slither
+                const slither = Math.sin(Date.now() * 0.008 + i * 0.8) * 6;
+                const perpX = -ny;
+                const perpY = nx;
+                seg.sprite.setPosition(seg.x + perpX * slither, seg.y + perpY * slither);
+                seg.sprite.setRotation(Math.atan2(sdy, sdx));
+            }
+        }
+    }
+
+    wormHit() {
+        const hitX = this.redCar.x;
+        const hitY = this.redCar.y;
+
+        // Green slimy explosion
+        if (!this.textures.exists('worm-explosion')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillCircle(6, 6, 6);
+            gfx.generateTexture('worm-explosion', 12, 12);
+            gfx.destroy();
+        }
+
+        const explosion = this.add.particles(hitX, hitY, 'worm-explosion', {
+            speed: { min: 150, max: 600 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 2.5, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 1000,
+            quantity: 60,
+            tint: [0x33aa11, 0x44cc22, 0x88ff44, 0xaaff66, 0x116600],
+            blendMode: 'NORMAL',
+            emitting: false
+        }).setDepth(90);
+        explosion.explode(60);
+
+        // Screen flash green
+        const flash = this.add.rectangle(
+            GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2,
+            GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
+            0x33aa11, 0.4
+        ).setDepth(89);
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 800,
+            onComplete: () => flash.destroy()
+        });
+
+        this.cameras.main.shake(400, 0.015);
+
+        // Clean up worm
+        this.cleanupWorm();
+
+        // Disable red car
+        this.redCar.setVisible(false);
+        this.redCar.body.setEnable(false);
+        this.redCar.body.setVelocity(0, 0);
+        this.redCarDisabled = true;
+        this.redCarRespawnTimer = 5000;
+
+        this.time.delayedCall(1500, () => {
+            if (explosion && explosion.active) explosion.destroy();
+        });
+    }
+
+    cleanupWorm() {
+        if (this.worm) {
+            this.worm.destroy();
+            this.worm = null;
+        }
+        if (this.wormSegments) {
+            this.wormSegments.forEach(s => s.sprite.destroy());
+            this.wormSegments = [];
+        }
+        if (this.wormEmitter) {
+            this.wormEmitter.destroy();
+            this.wormEmitter = null;
+        }
+    }
+
     update(time, delta) {
         if (this.isGoalPause || this.scoreManager.matchOver) return;
 
@@ -1161,6 +1624,19 @@ export default class GameScene extends Phaser.Scene {
         if (this.fireballCooldown > 0) {
             this.fireballCooldown -= delta;
         }
+        // Orbital strike
+        if (Phaser.Input.Keyboard.JustDown(this.xKey) && !this.orbitalActive && !this.redCarDisabled) {
+            this.launchOrbitalStrike();
+        }
+
+        // Worm attack
+        if (Phaser.Input.Keyboard.JustDown(this.cKey) && !this.worm && !this.redCarDisabled) {
+            this.launchWorm();
+        }
+        if (this.worm && this.worm.active) {
+            this.updateWorm(delta);
+        }
+
         if (this.redCarDisabled) {
             this.redCarRespawnTimer -= delta;
             if (this.redCarRespawnTimer <= 0) {
