@@ -1418,14 +1418,14 @@ export default class GameScene extends Phaser.Scene {
         this.wormSegments = [];
         for (let i = 0; i < 12; i++) {
             const seg = this.add.image(startX - i * 18, startY, 'worm-segment')
-                .setScale(1.2 - i * 0.05)
+                .setScale(2.8 - i * 0.1)
                 .setDepth(74);
             this.wormSegments.push({ sprite: seg, x: startX - i * 18, y: startY });
         }
 
         // Create worm head
         this.worm = this.physics.add.sprite(startX, startY, 'worm-head');
-        this.worm.setScale(1.3);
+        this.worm.setScale(3);
         this.worm.setDepth(80);
         this.worm.body.setAllowGravity(false);
         this.worm.body.setCollideWorldBounds(false);
