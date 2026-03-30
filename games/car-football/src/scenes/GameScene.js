@@ -878,17 +878,22 @@ export default class GameScene extends Phaser.Scene {
         // Create fireball texture if needed
         if (!this.textures.exists('fireball')) {
             const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-            gfx.fillStyle(0xff4400, 0.5);
-            gfx.fillCircle(20, 20, 20);
-            gfx.fillStyle(0xffaa00, 1);
-            gfx.fillCircle(20, 20, 12);
+            gfx.fillStyle(0xff4400, 0.3);
+            gfx.fillCircle(60, 60, 60);
+            gfx.fillStyle(0xff6600, 0.5);
+            gfx.fillCircle(60, 60, 45);
+            gfx.fillStyle(0xffaa00, 0.8);
+            gfx.fillCircle(60, 60, 30);
+            gfx.fillStyle(0xffcc00, 1);
+            gfx.fillCircle(60, 60, 18);
             gfx.fillStyle(0xffff00, 1);
-            gfx.fillCircle(20, 20, 6);
-            gfx.generateTexture('fireball', 40, 40);
+            gfx.fillCircle(60, 60, 8);
+            gfx.generateTexture('fireball', 120, 120);
             gfx.destroy();
         }
 
         this.fireball = this.physics.add.sprite(startX, goalCenterY, 'fireball');
+        this.fireball.setScale(1.5);
         this.fireball.setDepth(80);
         this.fireball.body.setAllowGravity(false);
         this.fireball.body.setCollideWorldBounds(false);
@@ -903,11 +908,11 @@ export default class GameScene extends Phaser.Scene {
         }
 
         this.fireballEmitter = this.add.particles(startX, goalCenterY, 'fire-particle', {
-            speed: { min: 30, max: 80 },
-            scale: { start: 1.5, end: 0 },
+            speed: { min: 50, max: 150 },
+            scale: { start: 4, end: 0 },
             alpha: { start: 1, end: 0 },
-            lifespan: 400,
-            frequency: 15,
+            lifespan: 600,
+            frequency: 8,
             tint: [0xff4400, 0xff8800, 0xffcc00, 0xffff00],
             blendMode: 'ADD',
             emitting: true
@@ -916,8 +921,8 @@ export default class GameScene extends Phaser.Scene {
         // Pulsing glow
         this.tweens.add({
             targets: this.fireball,
-            scaleX: 1.3,
-            scaleY: 1.3,
+            scaleX: 1.8,
+            scaleY: 1.8,
             duration: 200,
             yoyo: true,
             repeat: -1,
@@ -931,7 +936,7 @@ export default class GameScene extends Phaser.Scene {
         if (!this.fireball || !this.fireball.active) return;
 
         const target = this.redCar;
-        const speed = 350;
+        const speed = 150;
 
         const dx = target.x - this.fireball.x;
         const dy = target.y - this.fireball.y;
