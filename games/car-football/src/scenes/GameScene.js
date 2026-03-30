@@ -207,6 +207,15 @@ export default class GameScene extends Phaser.Scene {
         // Hollow Purple (V key)
         this.vKey = this.input.keyboard.addKey('V');
         this.hollowPurpleActive = false;
+
+        // Malevolent Shrine (T key)
+        this.tKey = this.input.keyboard.addKey('T');
+        this.shrineActive = false;
+
+        // Shrek with sword (R key)
+        this.rKey = this.input.keyboard.addKey('R');
+        this.shrek = null;
+        this.shrekEmitter = null;
     }
 
     setupCollisions() {
@@ -556,6 +565,8 @@ export default class GameScene extends Phaser.Scene {
     resetAfterGoal() {
         this.orbitalActive = false;
         this.hollowPurpleActive = false;
+        this.shrineActive = false;
+        this.cleanupShrek();
 
         // Re-enable red car if disabled
         if (this.redCarDisabled) {
@@ -1397,6 +1408,591 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
+    // --- Malevolent Shrine Domain Expansion (T key) ---
+
+    launchMalevolentShrine() {
+        if (this.shrineActive || this.redCarDisabled) return;
+        this.shrineActive = true;
+
+        this.physics.pause();
+        if (this.matchTimer) this.matchTimer.pause();
+
+        const centerX = GAME_CONFIG.GAME_WIDTH / 2;
+        const centerY = GAME_CONFIG.GAME_HEIGHT / 2;
+
+        if (!this.textures.exists('shrine-particle')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillCircle(5, 5, 5);
+            gfx.generateTexture('shrine-particle', 10, 10);
+            gfx.destroy();
+        }
+
+        // === PHASE 1: Hands clap - Domain declaration ===
+        const blackout = this.add.rectangle(centerX, centerY,
+            GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT, 0x000000, 0
+        ).setDepth(85);
+        this.tweens.add({ targets: blackout, alpha: 0.9, duration: 500 });
+
+        // Cinematic bars
+        const topBar = this.add.rectangle(centerX, 0, GAME_CONFIG.GAME_WIDTH, 70, 0x000000, 1)
+            .setOrigin(0.5, 0).setDepth(110).setAlpha(0);
+        const botBar = this.add.rectangle(centerX, GAME_CONFIG.GAME_HEIGHT, GAME_CONFIG.GAME_WIDTH, 70, 0x000000, 1)
+            .setOrigin(0.5, 1).setDepth(110).setAlpha(0);
+        this.tweens.add({ targets: [topBar, botBar], alpha: 1, duration: 400 });
+
+        this.time.delayedCall(500, () => {
+            // Domain Expansion text
+            const domainText = this.add.text(centerX, 85, 'Domain Expansion:', {
+                fontSize: '24px', fill: '#ff2222', fontFamily: 'Arial', fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 5
+            }).setOrigin(0.5).setDepth(120).setAlpha(0);
+            this.tweens.add({ targets: domainText, alpha: 1, duration: 400 });
+
+            const shrineText = this.add.text(centerX, 125, 'MALEVOLENT SHRINE', {
+                fontSize: '52px', fill: '#ff4444', fontFamily: 'Arial', fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 6
+            }).setOrigin(0.5).setDepth(120).setAlpha(0);
+            this.tweens.add({ targets: shrineText, alpha: 1, duration: 400, delay: 300 });
+
+            // Flash text
+            this.tweens.add({
+                targets: shrineText, alpha: 0.3, duration: 100, yoyo: true, repeat: 5, delay: 700
+            });
+
+            this.cameras.main.shake(400, 0.01);
+
+            // === PHASE 2: Shrine appears - red/dark environment ===
+            this.time.delayedCall(1200, () => {
+                // Red domain background
+                blackout.setFillStyle(0x1a0000);
+                this.tweens.add({ targets: blackout, alpha: 0.85, duration: 300 });
+
+                // Draw shrine structure (horns/skulls pattern)
+                const shrineGfx = this.add.graphics().setDepth(95);
+
+                // Shrine base - dark temple floor
+                shrineGfx.fillStyle(0x330000, 0.8);
+                shrineGfx.fillRect(centerX - 300, centerY + 50, 600, 150);
+
+                // Bull skull/horns in center
+                shrineGfx.lineStyle(4, 0xaa0000, 1);
+                // Left horn
+                shrineGfx.beginPath();
+                shrineGfx.moveTo(centerX - 20, centerY - 20);
+                shrineGfx.lineTo(centerX - 80, centerY - 100);
+                shrineGfx.lineTo(centerX - 100, centerY - 130);
+                shrineGfx.stroke();
+                // Right horn
+                shrineGfx.beginPath();
+                shrineGfx.moveTo(centerX + 20, centerY - 20);
+                shrineGfx.lineTo(centerX + 80, centerY - 100);
+                shrineGfx.lineTo(centerX + 100, centerY - 130);
+                shrineGfx.stroke();
+
+                // Skull shape
+                shrineGfx.fillStyle(0x880000, 0.9);
+                shrineGfx.fillCircle(centerX, centerY - 20, 35);
+                // Eye sockets
+                shrineGfx.fillStyle(0x000000, 1);
+                shrineGfx.fillCircle(centerX - 12, centerY - 28, 8);
+                shrineGfx.fillCircle(centerX + 12, centerY - 28, 8);
+                // Glowing eyes
+                shrineGfx.fillStyle(0xff0000, 1);
+                shrineGfx.fillCircle(centerX - 12, centerY - 28, 4);
+                shrineGfx.fillCircle(centerX + 12, centerY - 28, 4);
+                // Nose
+                shrineGfx.fillStyle(0x000000, 1);
+                shrineGfx.fillTriangle(centerX - 5, centerY - 15, centerX + 5, centerY - 15, centerX, centerY - 8);
+                // Teeth
+                shrineGfx.fillStyle(0xcccccc, 1);
+                for (let i = -4; i <= 4; i++) {
+                    shrineGfx.fillRect(centerX + i * 6 - 2, centerY - 2, 4, 8);
+                }
+
+                // Side pillars with small skulls
+                for (let side = -1; side <= 1; side += 2) {
+                    const px = centerX + side * 200;
+                    shrineGfx.fillStyle(0x440000, 0.9);
+                    shrineGfx.fillRect(px - 15, centerY - 100, 30, 250);
+                    // Small skulls on pillars
+                    for (let j = 0; j < 3; j++) {
+                        const sy = centerY - 70 + j * 60;
+                        shrineGfx.fillStyle(0x660000, 1);
+                        shrineGfx.fillCircle(px, sy, 10);
+                        shrineGfx.fillStyle(0xff0000, 1);
+                        shrineGfx.fillCircle(px - 3, sy - 2, 2);
+                        shrineGfx.fillCircle(px + 3, sy - 2, 2);
+                    }
+                }
+
+                // Floating cursed energy particles throughout
+                const shrineEmitter = this.add.particles(centerX, centerY, 'shrine-particle', {
+                    x: { min: -400, max: 400 },
+                    y: { min: -200, max: 200 },
+                    speed: { min: 20, max: 80 },
+                    angle: { min: 250, max: 290 },
+                    scale: { start: 1.5, end: 0 },
+                    alpha: { start: 0.7, end: 0 },
+                    lifespan: 1500,
+                    frequency: 30,
+                    tint: [0xff0000, 0xff4400, 0xaa0000, 0x660000],
+                    blendMode: 'ADD',
+                    emitting: true
+                }).setDepth(94);
+
+                // === PHASE 3: Cleave & Dismantle slashes ===
+                this.time.delayedCall(1500, () => {
+                    domainText.setText('Cleave');
+                    shrineText.setText('& Dismantle');
+                    shrineText.setFontSize('40px');
+
+                    // Slash effects across the screen
+                    for (let i = 0; i < 12; i++) {
+                        this.time.delayedCall(i * 100, () => {
+                            const slashGfx = this.add.graphics().setDepth(100);
+                            const sx = Math.random() * GAME_CONFIG.GAME_WIDTH;
+                            const sy = Math.random() * GAME_CONFIG.GAME_HEIGHT;
+                            const angle = Math.random() * Math.PI;
+                            const len = 80 + Math.random() * 120;
+
+                            slashGfx.lineStyle(3, 0xff2222, 1);
+                            slashGfx.beginPath();
+                            slashGfx.moveTo(sx - Math.cos(angle) * len / 2, sy - Math.sin(angle) * len / 2);
+                            slashGfx.lineTo(sx + Math.cos(angle) * len / 2, sy + Math.sin(angle) * len / 2);
+                            slashGfx.stroke();
+
+                            // White flash on slash
+                            slashGfx.lineStyle(1, 0xffffff, 0.8);
+                            slashGfx.beginPath();
+                            slashGfx.moveTo(sx - Math.cos(angle) * len / 2, sy - Math.sin(angle) * len / 2);
+                            slashGfx.lineTo(sx + Math.cos(angle) * len / 2, sy + Math.sin(angle) * len / 2);
+                            slashGfx.stroke();
+
+                            this.tweens.add({
+                                targets: slashGfx, alpha: 0, duration: 400,
+                                onComplete: () => slashGfx.destroy()
+                            });
+
+                            this.cameras.main.shake(80, 0.008);
+                        });
+                    }
+
+                    // === PHASE 4: Red car gets dismantled ===
+                    this.time.delayedCall(1500, () => {
+                        // Final massive slash across the red car
+                        const redX = this.redCar.x;
+                        const redY = this.redCar.y;
+
+                        // Giant X slash on the red car
+                        const finalSlash = this.add.graphics().setDepth(105);
+                        finalSlash.lineStyle(5, 0xff0000, 1);
+                        finalSlash.beginPath();
+                        finalSlash.moveTo(redX - 60, redY - 60);
+                        finalSlash.lineTo(redX + 60, redY + 60);
+                        finalSlash.stroke();
+                        finalSlash.beginPath();
+                        finalSlash.moveTo(redX + 60, redY - 60);
+                        finalSlash.lineTo(redX - 60, redY + 60);
+                        finalSlash.stroke();
+
+                        // White flash
+                        const flash = this.add.rectangle(centerX, centerY,
+                            GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
+                            0xff0000, 0.6
+                        ).setDepth(104);
+                        this.tweens.add({
+                            targets: flash, alpha: 0, duration: 800,
+                            onComplete: () => flash.destroy()
+                        });
+
+                        this.cameras.main.shake(600, 0.04);
+
+                        // Dismantle explosion on red car
+                        const dismantleExplosion = this.add.particles(redX, redY, 'shrine-particle', {
+                            speed: { min: 200, max: 700 },
+                            angle: { min: 0, max: 360 },
+                            scale: { start: 3, end: 0 },
+                            alpha: { start: 1, end: 0 },
+                            lifespan: 1000,
+                            quantity: 80,
+                            tint: [0xff0000, 0xff4400, 0xaa0000, 0xffffff, 0x000000],
+                            blendMode: 'ADD',
+                            emitting: false
+                        }).setDepth(103);
+                        dismantleExplosion.explode(80);
+
+                        // Disable red car
+                        this.redCar.setVisible(false);
+                        this.redCar.body.setEnable(false);
+                        this.redCar.body.setVelocity(0, 0);
+                        this.redCarDisabled = true;
+                        this.redCarRespawnTimer = 5000;
+
+                        // Launch ball at red goal
+                        const mc = this.mapConfig;
+                        const redGoalX = GAME_CONFIG.GAME_WIDTH - mc.wallThickness + mc.goalWidth / 2;
+                        const goalTop = GAME_CONFIG.GAME_HEIGHT - mc.wallThickness - mc.goalHeight;
+                        const goalCenterY = goalTop + mc.goalHeight / 2;
+                        this.ball.setPosition(centerX, centerY);
+                        this.ball.body.setVelocity(0, 0);
+
+                        // Clean up after 1s
+                        this.time.delayedCall(1000, () => {
+                            domainText.destroy();
+                            shrineText.destroy();
+                            finalSlash.destroy();
+                            shrineGfx.destroy();
+                            shrineEmitter.destroy();
+                            if (dismantleExplosion && dismantleExplosion.active) dismantleExplosion.destroy();
+
+                            // Resume and fire ball
+                            this.physics.resume();
+                            if (this.matchTimer) this.matchTimer.resume();
+
+                            const bDx = redGoalX - this.ball.x;
+                            const bDy = goalCenterY - this.ball.y;
+                            const bDist = Math.sqrt(bDx * bDx + bDy * bDy) || 1;
+                            this.ball.body.setVelocity((bDx / bDist) * 1500, (bDy / bDist) * 1500);
+
+                            this.tweens.add({
+                                targets: [blackout, topBar, botBar],
+                                alpha: 0, duration: 800,
+                                onComplete: () => {
+                                    blackout.destroy(); topBar.destroy(); botBar.destroy();
+                                    this.shrineActive = false;
+                                }
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    // --- Shrek with Sword (R key) ---
+
+    launchShrek() {
+        if (this.shrek || this.redCarDisabled) return;
+
+        // Create Shrek texture
+        if (!this.textures.exists('shrek-sprite')) {
+            const w = 100, h = 140;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            // Legs
+            ctx.fillStyle = '#5a3a1a';
+            ctx.fillRect(32, 110, 14, 30);
+            ctx.fillRect(54, 110, 14, 30);
+
+            // Body (big green belly)
+            ctx.fillStyle = '#4a8c28';
+            ctx.beginPath();
+            ctx.ellipse(50, 80, 28, 38, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Vest/shirt
+            ctx.fillStyle = '#6b5030';
+            ctx.beginPath();
+            ctx.moveTo(30, 55);
+            ctx.lineTo(22, 95);
+            ctx.lineTo(50, 105);
+            ctx.lineTo(78, 95);
+            ctx.lineTo(70, 55);
+            ctx.closePath();
+            ctx.fill();
+            // Vest opening showing belly
+            ctx.fillStyle = '#4a8c28';
+            ctx.beginPath();
+            ctx.moveTo(40, 60);
+            ctx.lineTo(38, 95);
+            ctx.lineTo(62, 95);
+            ctx.lineTo(60, 60);
+            ctx.closePath();
+            ctx.fill();
+
+            // Arms
+            ctx.fillStyle = '#4a8c28';
+            // Left arm (holding sword up)
+            ctx.save();
+            ctx.translate(25, 65);
+            ctx.rotate(-0.8);
+            ctx.fillRect(-6, -30, 12, 35);
+            ctx.restore();
+            // Right arm
+            ctx.fillRect(68, 60, 12, 30);
+
+            // Head
+            ctx.fillStyle = '#4a8c28';
+            ctx.beginPath();
+            ctx.ellipse(50, 30, 22, 25, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ears (trumpet shaped ogre ears)
+            ctx.fillStyle = '#3a7a1a';
+            ctx.beginPath();
+            ctx.ellipse(25, 18, 10, 7, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(75, 18, 10, 7, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            // Inner ear
+            ctx.fillStyle = '#5a9a38';
+            ctx.beginPath();
+            ctx.ellipse(25, 18, 6, 4, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(75, 18, 6, 4, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyebrows (thick, angry)
+            ctx.strokeStyle = '#2a5a10';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(35, 18);
+            ctx.lineTo(45, 22);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(65, 18);
+            ctx.lineTo(55, 22);
+            ctx.stroke();
+
+            // Eyes
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(42, 26, 6, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(58, 26, 6, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Pupils
+            ctx.fillStyle = '#3a2a00';
+            ctx.beginPath();
+            ctx.arc(43, 26, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(59, 26, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nose
+            ctx.fillStyle = '#3a7a1a';
+            ctx.beginPath();
+            ctx.ellipse(50, 34, 5, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mouth (wide grin)
+            ctx.strokeStyle = '#2a5a10';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(50, 38, 12, 0.2, Math.PI - 0.2);
+            ctx.stroke();
+
+            // HUGE SWORD (held above head by left arm)
+            // Blade
+            ctx.fillStyle = '#cccccc';
+            ctx.beginPath();
+            ctx.moveTo(5, 5);
+            ctx.lineTo(12, 0);
+            ctx.lineTo(18, 45);
+            ctx.lineTo(8, 45);
+            ctx.closePath();
+            ctx.fill();
+            // Blade edge highlight
+            ctx.fillStyle = '#eeeeee';
+            ctx.beginPath();
+            ctx.moveTo(8, 5);
+            ctx.lineTo(12, 0);
+            ctx.lineTo(15, 45);
+            ctx.lineTo(10, 45);
+            ctx.closePath();
+            ctx.fill();
+            // Sword hilt/guard
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(4, 45, 20, 6);
+            // Grip
+            ctx.fillStyle = '#5a3010';
+            ctx.fillRect(10, 51, 8, 15);
+            // Pommel
+            ctx.fillStyle = '#ffd700';
+            ctx.fillCircle && ctx.beginPath();
+            ctx.arc(14, 68, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffd700';
+            ctx.fill();
+
+            this.textures.addCanvas('shrek-sprite', canvas);
+        }
+
+        const startX = -50;
+        const startY = GAME_CONFIG.GAME_HEIGHT - this.mapConfig.wallThickness - 50;
+
+        this.shrek = this.physics.add.sprite(startX, startY, 'shrek-sprite');
+        this.shrek.setScale(1.5);
+        this.shrek.setDepth(80);
+        this.shrek.body.setAllowGravity(false);
+        this.shrek.body.setCollideWorldBounds(false);
+
+        // Shrek particles (green sparkles)
+        if (!this.textures.exists('shrek-particle')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0x4a8c28, 1);
+            gfx.fillCircle(4, 4, 4);
+            gfx.generateTexture('shrek-particle', 8, 8);
+            gfx.destroy();
+        }
+
+        this.shrekEmitter = this.add.particles(startX, startY, 'shrek-particle', {
+            speed: { min: 20, max: 60 },
+            scale: { start: 2, end: 0 },
+            alpha: { start: 0.6, end: 0 },
+            lifespan: 600,
+            frequency: 25,
+            tint: [0x4a8c28, 0x66aa44, 0x88cc55, 0xaadd77],
+            blendMode: 'NORMAL',
+            emitting: true
+        }).setDepth(79);
+
+        // Bouncy dance movement (sinusoidal Y)
+        this.shrekDanceTime = 0;
+    }
+
+    updateShrek(delta) {
+        if (!this.shrek || !this.shrek.active) return;
+
+        const target = this.redCar;
+        const speed = 200;
+        this.shrekDanceTime += delta;
+
+        const dx = target.x - this.shrek.x;
+        const dy = target.y - this.shrek.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 60) {
+            this.shrekHit();
+            return;
+        }
+
+        const nx = dx / dist;
+        const ny = dy / dist;
+
+        // Move toward red car with a bouncy dance (oscillating Y)
+        const danceY = Math.sin(this.shrekDanceTime * 0.008) * 100;
+        this.shrek.body.setVelocity(nx * speed, ny * speed + Math.cos(this.shrekDanceTime * 0.01) * 150);
+
+        // Flip to face direction
+        if (dx < 0) {
+            this.shrek.setFlipX(true);
+        } else {
+            this.shrek.setFlipX(false);
+        }
+
+        // Bounce scale for dance effect
+        const bounce = 1.5 + Math.sin(this.shrekDanceTime * 0.012) * 0.15;
+        this.shrek.setScale(bounce);
+
+        // Update emitter
+        if (this.shrekEmitter) {
+            this.shrekEmitter.setPosition(this.shrek.x, this.shrek.y);
+        }
+    }
+
+    shrekHit() {
+        const hitX = this.redCar.x;
+        const hitY = this.redCar.y;
+
+        // Sword slash effect
+        const slashGfx = this.add.graphics().setDepth(100);
+        slashGfx.lineStyle(6, 0xffd700, 1);
+        slashGfx.beginPath();
+        slashGfx.moveTo(hitX - 80, hitY - 80);
+        slashGfx.lineTo(hitX + 80, hitY + 80);
+        slashGfx.stroke();
+        slashGfx.lineStyle(6, 0xffd700, 1);
+        slashGfx.beginPath();
+        slashGfx.moveTo(hitX + 80, hitY - 80);
+        slashGfx.lineTo(hitX - 80, hitY + 80);
+        slashGfx.stroke();
+
+        this.tweens.add({
+            targets: slashGfx, alpha: 0, duration: 500,
+            onComplete: () => slashGfx.destroy()
+        });
+
+        // Green explosion
+        if (!this.textures.exists('shrek-explosion')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillCircle(6, 6, 6);
+            gfx.generateTexture('shrek-explosion', 12, 12);
+            gfx.destroy();
+        }
+
+        const explosion = this.add.particles(hitX, hitY, 'shrek-explosion', {
+            speed: { min: 150, max: 500 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 2.5, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 1000,
+            quantity: 60,
+            tint: [0x4a8c28, 0x66aa44, 0xffd700, 0xffaa00, 0xffffff],
+            blendMode: 'ADD',
+            emitting: false
+        }).setDepth(95);
+        explosion.explode(60);
+
+        // "GET OUT OF MY SWAMP!" text
+        const swampText = this.add.text(
+            GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2 - 30,
+            'GET OUT OF MY SWAMP!',
+            { fontSize: '36px', fill: '#4a8c28', fontFamily: 'Arial', fontStyle: 'bold',
+              stroke: '#000000', strokeThickness: 5 }
+        ).setOrigin(0.5).setDepth(105);
+
+        this.tweens.add({
+            targets: swampText, y: swampText.y - 50, alpha: 0, duration: 1500,
+            onComplete: () => swampText.destroy()
+        });
+
+        // Screen flash green
+        const flash = this.add.rectangle(
+            GAME_CONFIG.GAME_WIDTH / 2, GAME_CONFIG.GAME_HEIGHT / 2,
+            GAME_CONFIG.GAME_WIDTH, GAME_CONFIG.GAME_HEIGHT,
+            0x4a8c28, 0.4
+        ).setDepth(93);
+        this.tweens.add({
+            targets: flash, alpha: 0, duration: 800,
+            onComplete: () => flash.destroy()
+        });
+
+        this.cameras.main.shake(500, 0.02);
+
+        this.cleanupShrek();
+
+        // Disable red car
+        this.redCar.setVisible(false);
+        this.redCar.body.setEnable(false);
+        this.redCar.body.setVelocity(0, 0);
+        this.redCarDisabled = true;
+        this.redCarRespawnTimer = 5000;
+
+        this.time.delayedCall(1500, () => {
+            if (explosion && explosion.active) explosion.destroy();
+        });
+    }
+
+    cleanupShrek() {
+        if (this.shrek) {
+            this.shrek.destroy();
+            this.shrek = null;
+        }
+        if (this.shrekEmitter) {
+            this.shrekEmitter.destroy();
+            this.shrekEmitter = null;
+        }
+    }
+
     update(time, delta) {
         if (this.isGoalPause || this.scoreManager.matchOver) return;
 
@@ -1446,6 +2042,20 @@ export default class GameScene extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.vKey) && !this.hollowPurpleActive && !this.redCarDisabled) {
             this.launchHollowPurple();
         }
+
+        // Malevolent Shrine
+        if (Phaser.Input.Keyboard.JustDown(this.tKey) && !this.shrineActive && !this.redCarDisabled) {
+            this.launchMalevolentShrine();
+        }
+
+        // Shrek
+        if (Phaser.Input.Keyboard.JustDown(this.rKey) && !this.shrek && !this.redCarDisabled) {
+            this.launchShrek();
+        }
+        if (this.shrek && this.shrek.active) {
+            this.updateShrek(delta);
+        }
+
         if (this.redCarDisabled) {
             this.redCarRespawnTimer -= delta;
             if (this.redCarRespawnTimer <= 0) {
