@@ -11,14 +11,14 @@
     <div id="ui-overlay">
         <div id="health-bars">
             <div class="health-container left">
-                <span class="player-name">Player 1</span>
+                <span class="player-name" id="p1-name">Player 1</span>
                 <div class="health-bar">
                     <div class="health-fill" id="p1-health"></div>
                 </div>
             </div>
             <div id="timer">60</div>
             <div class="health-container right">
-                <span class="player-name">Player 2</span>
+                <span class="player-name" id="p2-name">Player 2</span>
                 <div class="health-bar">
                     <div class="health-fill" id="p2-health"></div>
                 </div>
@@ -26,42 +26,84 @@
         </div>
         <div id="round-info">Round 1</div>
     </div>
+
+    <!-- Start Screen -->
     <div id="start-screen">
         <h1>Stickman Fighter</h1>
         <p>2D Stickman Fighting Game</p>
-        <div class="controls-info">
-            <div class="control-column">
-                <h3>Player 1 (Red)</h3>
-                <p>Move: <kbd>A</kbd> / <kbd>D</kbd></p>
-                <p>Jump: <kbd>W</kbd></p>
-                <p>Block: <kbd>S</kbd></p>
-                <p class="ability-label">Lightning: <kbd>Z</kbd></p>
-                <p class="ability-label">Water: <kbd>X</kbd></p>
-                <p class="ability-label">Fire: <kbd>C</kbd></p>
-                <p class="ability-label">Wind: <kbd>V</kbd></p>
-            </div>
-            <div class="control-column">
-                <h3>Player 2 (Blue)</h3>
-                <p>Move: <kbd>&#8592;</kbd> / <kbd>&#8594;</kbd></p>
-                <p>Jump: <kbd>&#8593;</kbd></p>
-                <p>Block: <kbd>&#8595;</kbd></p>
-                <p class="ability-label">Lightning: <kbd>\</kbd></p>
-                <p class="ability-label">Water: <kbd>/</kbd></p>
-                <p class="ability-label">Fire: <kbd>.</kbd></p>
-                <p class="ability-label">Wind: <kbd>,</kbd></p>
-            </div>
-        </div>
         <div class="mode-buttons">
             <button id="start-2p-btn">2 PLAYER</button>
             <button id="start-ai-btn">VS AI</button>
         </div>
         <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
     </div>
+
+    <!-- Style Select Screen -->
+    <div id="select-screen" class="hidden">
+        <h2>Choose Your Element</h2>
+        <div class="select-columns">
+            <div class="select-side" id="p1-select">
+                <h3>Player 1 (Red)</h3>
+                <p class="controls-hint">Move: WASD | Block: S</p>
+                <div class="style-grid">
+                    <button class="style-btn" data-style="lightning" data-player="1">
+                        <span class="style-icon">&#9889;</span>
+                        <span class="style-name">Lightning</span>
+                    </button>
+                    <button class="style-btn" data-style="fire" data-player="1">
+                        <span class="style-icon">&#128293;</span>
+                        <span class="style-name">Fire</span>
+                    </button>
+                    <button class="style-btn" data-style="water" data-player="1">
+                        <span class="style-icon">&#128167;</span>
+                        <span class="style-name">Water</span>
+                    </button>
+                    <button class="style-btn" data-style="wind" data-player="1">
+                        <span class="style-icon">&#127744;</span>
+                        <span class="style-name">Wind</span>
+                    </button>
+                </div>
+                <div class="attack-preview" id="p1-preview"></div>
+                <p class="key-hint">Attacks: <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd></p>
+            </div>
+            <div class="select-divider"></div>
+            <div class="select-side" id="p2-select">
+                <h3 id="p2-select-title">Player 2 (Blue)</h3>
+                <p class="controls-hint">Move: Arrows | Block: Down</p>
+                <div class="style-grid">
+                    <button class="style-btn" data-style="lightning" data-player="2">
+                        <span class="style-icon">&#9889;</span>
+                        <span class="style-name">Lightning</span>
+                    </button>
+                    <button class="style-btn" data-style="fire" data-player="2">
+                        <span class="style-icon">&#128293;</span>
+                        <span class="style-name">Fire</span>
+                    </button>
+                    <button class="style-btn" data-style="water" data-player="2">
+                        <span class="style-icon">&#128167;</span>
+                        <span class="style-name">Water</span>
+                    </button>
+                    <button class="style-btn" data-style="wind" data-player="2">
+                        <span class="style-icon">&#127744;</span>
+                        <span class="style-name">Wind</span>
+                    </button>
+                </div>
+                <div class="attack-preview" id="p2-preview"></div>
+                <p class="key-hint">Attacks: <kbd>\</kbd> <kbd>/</kbd> <kbd>.</kbd> <kbd>,</kbd></p>
+            </div>
+        </div>
+        <button id="fight-btn" class="hidden">FIGHT!</button>
+        <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+    </div>
+
+    <!-- Result Screen -->
     <div id="result-screen" class="hidden">
         <h1 id="result-text"></h1>
         <button id="rematch-btn">Rematch</button>
+        <button id="reselect-btn">Change Style</button>
         <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
     </div>
+
     <script src="game.js"></script>
 </body>
 </html>
