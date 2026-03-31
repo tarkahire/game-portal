@@ -18,7 +18,7 @@ const ATTACKS = {
 // ── Hollow Purple ──
 const HOLLOW_PURPLE_SPEED = 8;
 const HOLLOW_PURPLE_RADIUS = 18;
-const HOLLOW_PURPLE_COOLDOWN = 300; // ~5 seconds at 60fps
+const HOLLOW_PURPLE_COOLDOWN = 600; // 10 seconds at 60fps
 
 // ── State ──
 let groundY, gameState, timer, timerInterval;
@@ -480,6 +480,7 @@ function handleInput() {
     }
     if (keys['f']) player1.startAttack('punch');
     if (keys['g']) player1.startAttack('kick');
+    if (keys['r']) { player1.fireHollowPurple(player2); keys['r'] = false; }
 
     // Player 2: Arrows + . /
     player2.vx = 0;
@@ -495,7 +496,7 @@ function handleInput() {
     }
     if (keys['.']) player2.startAttack('punch');
     if (keys['/']) player2.startAttack('kick');
-    if (keys['r']) { player2.fireHollowPurple(player1); keys['r'] = false; }
+    if (keys[',']) { player2.fireHollowPurple(player1); keys[','] = false; }
 }
 
 // ── AI ──
@@ -633,6 +634,66 @@ function updateUI() {
     document.getElementById('round-info').textContent = `Round ${currentRound}  |  ${p1Wins} - ${p2Wins}`;
 }
 
+function drawCooldowns() {
+    const barWidth = 120;
+    const barHeight = 10;
+    const y = 90;
+
+    // Player 1 cooldown (left side)
+    const p1Ratio = player1.hollowPurpleCooldown / HOLLOW_PURPLE_COOLDOWN;
+    const p1Ready = player1.hollowPurpleCooldown <= 0;
+    const p1X = 32;
+    drawCooldownBar(p1X, y, barWidth, barHeight, p1Ratio, p1Ready);
+
+    // Player 2 cooldown (right side)
+    const p2Ratio = player2.hollowPurpleCooldown / HOLLOW_PURPLE_COOLDOWN;
+    const p2Ready = player2.hollowPurpleCooldown <= 0;
+    const p2X = canvas.width - 32 - barWidth;
+    drawCooldownBar(p2X, y, barWidth, barHeight, p2Ratio, p2Ready);
+}
+
+function drawCooldownBar(x, y, w, h, cooldownRatio, ready) {
+    // Label
+    ctx.font = '12px "Segoe UI", Arial, sans-serif';
+    ctx.fillStyle = ready ? '#d580ff' : '#666';
+    ctx.fillText('Hollow Purple', x, y - 4);
+
+    // Seconds remaining
+    if (!ready) {
+        const secsLeft = Math.ceil(cooldownRatio * 10);
+        ctx.fillStyle = '#999';
+        ctx.textAlign = 'right';
+        ctx.fillText(secsLeft + 's', x + w, y - 4);
+        ctx.textAlign = 'left';
+    } else {
+        ctx.fillStyle = '#d580ff';
+        ctx.textAlign = 'right';
+        ctx.fillText('READY', x + w, y - 4);
+        ctx.textAlign = 'left';
+    }
+
+    // Background
+    ctx.fillStyle = '#222';
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+
+    // Fill
+    const fillWidth = (1 - cooldownRatio) * w;
+    if (ready) {
+        // Pulsing purple glow when ready
+        const pulse = 0.7 + Math.sin(Date.now() * 0.005) * 0.3;
+        ctx.fillStyle = `rgba(142, 68, 173, ${pulse})`;
+        ctx.shadowColor = '#8e44ad';
+        ctx.shadowBlur = 8;
+    } else {
+        ctx.fillStyle = '#6c3483';
+    }
+    ctx.fillRect(x, y, fillWidth, h);
+    ctx.shadowBlur = 0;
+}
+
 // ── Round / Game Logic ──
 function startTimer() {
     timer = ROUND_TIME;
@@ -719,6 +780,7 @@ function gameLoop() {
     drawHollowPurple();
     drawParticles();
 
+    drawCooldowns();
     updateUI();
     checkRoundEnd();
 }
