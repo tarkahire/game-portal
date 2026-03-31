@@ -496,7 +496,7 @@ function handleInput() {
     }
     if (keys['.']) player2.startAttack('punch');
     if (keys['/']) player2.startAttack('kick');
-    if (keys[',']) { player2.fireHollowPurple(player1); keys[','] = false; }
+    if (keys['0']) { player2.fireHollowPurple(player1); keys['0'] = false; }
 }
 
 // ── AI ──
