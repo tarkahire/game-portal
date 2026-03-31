@@ -152,6 +152,11 @@ kbd {
     font-size: 14px;
 }
 
+.mode-buttons {
+    display: flex;
+    gap: 20px;
+}
+
 button {
     padding: 16px 48px;
     font-size: 24px;
@@ -169,6 +174,14 @@ button {
 button:hover {
     transform: scale(1.05);
     box-shadow: 0 0 30px rgba(231, 76, 60, 0.5);
+}
+
+#start-ai-btn {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+#start-ai-btn:hover {
+    box-shadow: 0 0 30px rgba(52, 152, 219, 0.5);
 }
 
 .back-link {

@@ -15,11 +15,18 @@ const ATTACKS = {
     kick:  { damage: 12, range: 65, duration: 18, cooldown: 30, knockback: 7, hitFrame: 10 },
 };
 
+// ── Hollow Purple ──
+const HOLLOW_PURPLE_SPEED = 8;
+const HOLLOW_PURPLE_RADIUS = 18;
+const HOLLOW_PURPLE_COOLDOWN = 300; // ~5 seconds at 60fps
+
 // ── State ──
 let groundY, gameState, timer, timerInterval;
 let p1Wins = 0, p2Wins = 0, currentRound = 1;
+let aiMode = false;
 
 const keys = {};
+const hollowPurpleProjectiles = [];
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -56,6 +63,7 @@ class Fighter {
         this.hit = false;
         this.hitTimer = 0;
         this.hasHitThisAttack = false;
+        this.hollowPurpleCooldown = 0;
         // Animation
         this.walkFrame = 0;
         this.walkTimer = 0;
@@ -73,6 +81,7 @@ class Fighter {
 
         // Cooldown
         if (this.cooldown > 0) this.cooldown--;
+        if (this.hollowPurpleCooldown > 0) this.hollowPurpleCooldown--;
 
         // Attack
         if (this.attacking) {
@@ -278,6 +287,123 @@ class Fighter {
 
         ctx.restore();
     }
+
+    fireHollowPurple(opponent) {
+        if (this.hollowPurpleCooldown > 0 || this.attacking || this.hit) return;
+        this.hollowPurpleCooldown = HOLLOW_PURPLE_COOLDOWN;
+        const dir = this.x < opponent.x ? 1 : -1;
+        hollowPurpleProjectiles.push({
+            x: this.x + dir * 30,
+            y: this.y - this.height * 0.55,
+            vx: dir * HOLLOW_PURPLE_SPEED,
+            radius: HOLLOW_PURPLE_RADIUS,
+            owner: this,
+            target: opponent,
+            life: 180,
+            trail: [],
+        });
+    }
+}
+
+// ── Hollow Purple Projectile System ──
+function updateHollowPurple() {
+    for (let i = hollowPurpleProjectiles.length - 1; i >= 0; i--) {
+        const hp = hollowPurpleProjectiles[i];
+        hp.x += hp.vx;
+        hp.life--;
+
+        // Trail
+        hp.trail.push({ x: hp.x, y: hp.y, alpha: 1 });
+        if (hp.trail.length > 20) hp.trail.shift();
+        for (const t of hp.trail) t.alpha *= 0.9;
+
+        // Hit detection against target
+        const dx = hp.x - hp.target.x;
+        const dy = hp.y - (hp.target.y - hp.target.height * 0.5);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < hp.radius + 30) {
+            // 50% of max health damage, blocking only reduces by 20%
+            let damage = MAX_HEALTH * 0.5;
+            if (hp.target.blocking) {
+                damage = Math.floor(damage * 0.8);
+            }
+            hp.target.health = Math.max(0, hp.target.health - damage);
+            hp.target.hitTimer = 20;
+            hp.target.hit = true;
+            hp.target.x += hp.vx > 0 ? 20 : -20;
+
+            // Big purple explosion
+            spawnHollowPurpleExplosion(hp.x, hp.y);
+            hollowPurpleProjectiles.splice(i, 1);
+            continue;
+        }
+
+        // Remove if off screen or expired
+        if (hp.life <= 0 || hp.x < -50 || hp.x > canvas.width + 50) {
+            hollowPurpleProjectiles.splice(i, 1);
+        }
+    }
+}
+
+function drawHollowPurple() {
+    for (const hp of hollowPurpleProjectiles) {
+        // Trail
+        for (const t of hp.trail) {
+            ctx.globalAlpha = t.alpha * 0.4;
+            ctx.fillStyle = '#8e44ad';
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, hp.radius * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+
+        // Outer glow
+        const glowGrad = ctx.createRadialGradient(hp.x, hp.y, 0, hp.x, hp.y, hp.radius * 2.5);
+        glowGrad.addColorStop(0, 'rgba(142, 68, 173, 0.4)');
+        glowGrad.addColorStop(0.5, 'rgba(100, 30, 150, 0.15)');
+        glowGrad.addColorStop(1, 'rgba(100, 30, 150, 0)');
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath();
+        ctx.arc(hp.x, hp.y, hp.radius * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core ball — red + blue merging into purple
+        const coreGrad = ctx.createRadialGradient(hp.x - 4, hp.y, 2, hp.x, hp.y, hp.radius);
+        coreGrad.addColorStop(0, '#fff');
+        coreGrad.addColorStop(0.2, '#d580ff');
+        coreGrad.addColorStop(0.5, '#8e44ad');
+        coreGrad.addColorStop(0.8, '#6c3483');
+        coreGrad.addColorStop(1, 'rgba(108, 52, 131, 0)');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(hp.x, hp.y, hp.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Flickering energy ring
+        ctx.strokeStyle = `rgba(200, 150, 255, ${0.5 + Math.sin(Date.now() * 0.02) * 0.3})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(hp.x, hp.y, hp.radius + 3 + Math.sin(Date.now() * 0.03) * 2, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+}
+
+function spawnHollowPurpleExplosion(x, y) {
+    for (let i = 0; i < 25; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 8;
+        particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 25 + Math.random() * 20,
+            maxLife: 45,
+            color: `hsl(${270 + Math.random() * 40}, 80%, ${40 + Math.random() * 40}%)`,
+        });
+    }
 }
 
 // ── Particles ──
@@ -324,6 +450,7 @@ function resetPositions() {
     player2.spawnX = canvas.width * 0.7;
     player1.reset();
     player2.reset();
+    hollowPurpleProjectiles.length = 0;
 }
 
 // ── Input ──
@@ -368,6 +495,111 @@ function handleInput() {
     }
     if (keys['.']) player2.startAttack('punch');
     if (keys['/']) player2.startAttack('kick');
+    if (keys['r']) { player2.fireHollowPurple(player1); keys['r'] = false; }
+}
+
+// ── AI ──
+let aiActionTimer = 0;
+let aiAction = 'idle';
+
+function handleAI() {
+    if (!aiMode) return;
+
+    const dist = Math.abs(player2.x - player1.x);
+    const facingPlayer = (player2.x > player1.x) ? -1 : 1;
+
+    // Reset P2 movement each frame
+    player2.vx = 0;
+    player2.blocking = false;
+
+    aiActionTimer--;
+    if (aiActionTimer <= 0) {
+        // Decide next action based on distance
+        const roll = Math.random();
+        if (dist > 200) {
+            // Far away — approach or use Hollow Purple
+            if (roll < 0.15 && player2.hollowPurpleCooldown <= 0) {
+                aiAction = 'hollowPurple';
+                aiActionTimer = 30;
+            } else {
+                aiAction = 'approach';
+                aiActionTimer = 20 + Math.random() * 30;
+            }
+        } else if (dist > 60) {
+            // Medium range — approach, attack, or block
+            if (roll < 0.4) {
+                aiAction = 'approach';
+                aiActionTimer = 10 + Math.random() * 15;
+            } else if (roll < 0.7) {
+                aiAction = 'attack';
+                aiActionTimer = 15;
+            } else if (roll < 0.85) {
+                aiAction = 'block';
+                aiActionTimer = 20 + Math.random() * 20;
+            } else {
+                aiAction = 'jump';
+                aiActionTimer = 10;
+            }
+        } else {
+            // Close range — attack, block, or retreat
+            if (roll < 0.5) {
+                aiAction = 'attack';
+                aiActionTimer = 10;
+            } else if (roll < 0.75) {
+                aiAction = 'block';
+                aiActionTimer = 15 + Math.random() * 15;
+            } else {
+                aiAction = 'retreat';
+                aiActionTimer = 15 + Math.random() * 10;
+            }
+        }
+    }
+
+    // Execute current action
+    if (player2.hit) return;
+
+    switch (aiAction) {
+        case 'approach':
+            if (!player2.attacking) {
+                player2.vx = facingPlayer * MOVE_SPEED;
+            }
+            break;
+        case 'retreat':
+            if (!player2.attacking) {
+                player2.vx = -facingPlayer * MOVE_SPEED;
+            }
+            break;
+        case 'attack':
+            if (dist < 80) {
+                if (Math.random() < 0.5) {
+                    player2.startAttack('punch');
+                } else {
+                    player2.startAttack('kick');
+                }
+            } else {
+                player2.vx = facingPlayer * MOVE_SPEED;
+            }
+            break;
+        case 'block':
+            player2.blocking = true;
+            break;
+        case 'jump':
+            if (player2.onGround) {
+                player2.vy = JUMP_FORCE;
+                player2.onGround = false;
+            }
+            player2.vx = facingPlayer * MOVE_SPEED;
+            break;
+        case 'hollowPurple':
+            player2.fireHollowPurple(player1);
+            aiAction = 'idle';
+            break;
+    }
+
+    // React to incoming Hollow Purple / being low health
+    if (player1.attacking && dist < 80 && Math.random() < 0.4) {
+        player2.blocking = true;
+    }
 }
 
 // ── Drawing ──
@@ -476,12 +708,15 @@ function gameLoop() {
     if (gameState !== 'playing') return;
 
     handleInput();
+    if (aiMode) handleAI();
     player1.update(player2);
     player2.update(player1);
     updateParticles();
+    updateHollowPurple();
 
     player1.draw();
     player2.draw();
+    drawHollowPurple();
     drawParticles();
 
     updateUI();
@@ -489,12 +724,14 @@ function gameLoop() {
 }
 
 // ── Start / Restart ──
-function startGame() {
+function startGame(useAI) {
+    aiMode = useAI;
     gameState = 'playing';
     p1Wins = 0;
     p2Wins = 0;
     currentRound = 1;
     particles.length = 0;
+    hollowPurpleProjectiles.length = 0;
     resetPositions();
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.add('hidden');
@@ -502,8 +739,9 @@ function startGame() {
     startTimer();
 }
 
-document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('rematch-btn').addEventListener('click', startGame);
+document.getElementById('start-2p-btn').addEventListener('click', () => startGame(false));
+document.getElementById('start-ai-btn').addEventListener('click', () => startGame(true));
+document.getElementById('rematch-btn').addEventListener('click', () => startGame(aiMode));
 
 gameState = 'menu';
 gameLoop();
