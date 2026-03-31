@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stickman Fighter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-overlay">
+        <div id="health-bars">
+            <div class="health-container left">
+                <span class="player-name">Player 1</span>
+                <div class="health-bar">
+                    <div class="health-fill" id="p1-health"></div>
+                </div>
+            </div>
+            <div id="timer">60</div>
+            <div class="health-container right">
+                <span class="player-name">Player 2</span>
+                <div class="health-bar">
+                    <div class="health-fill" id="p2-health"></div>
+                </div>
+            </div>
+        </div>
+        <div id="round-info">Round 1</div>
+    </div>
+    <div id="start-screen">
+        <h1>Stickman Fighter</h1>
+        <p>Local 2-Player Fighting Game</p>
+        <div class="controls-info">
+            <div class="control-column">
+                <h3>Player 1</h3>
+                <p>Move: <kbd>A</kbd> / <kbd>D</kbd></p>
+                <p>Jump: <kbd>W</kbd></p>
+                <p>Punch: <kbd>F</kbd></p>
+                <p>Kick: <kbd>G</kbd></p>
+                <p>Block: <kbd>S</kbd></p>
+            </div>
+            <div class="control-column">
+                <h3>Player 2</h3>
+                <p>Move: <kbd>&#8592;</kbd> / <kbd>&#8594;</kbd></p>
+                <p>Jump: <kbd>&#8593;</kbd></p>
+                <p>Punch: <kbd>.</kbd></p>
+                <p>Kick: <kbd>/</kbd></p>
+                <p>Block: <kbd>&#8595;</kbd></p>
+            </div>
+        </div>
+        <button id="start-btn">FIGHT!</button>
+        <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+    </div>
+    <div id="result-screen" class="hidden">
+        <h1 id="result-text"></h1>
+        <button id="rematch-btn">Rematch</button>
+        <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
