@@ -19,6 +19,7 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 | `assets/thumbnails/` | Game thumbnail images |
 | `games/` | Each subfolder is a self-contained game |
 | `games/car-football/` | 2D Car Football game (Phaser.js) |
+| `games/stickman-fighter/` | 2D Stickman Fighter game (vanilla JS Canvas) |
 | `vercel.json` | Vercel deployment config |
 
 ## Games
@@ -28,6 +29,12 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 - **Tech**: Phaser.js v3.60, HTML5 Canvas, vanilla JS (ES modules)
 - **Features**: vs AI and 2-player local multiplayer, 6 maps, boost mechanics, air rotation, configurable match settings
 - **Full docs**: See `games/car-football/docs/` for detailed documentation
+
+### Stickman Fighter
+- **Path**: `games/stickman-fighter/`
+- **Tech**: HTML5 Canvas, vanilla JS, CSS
+- **Features**: 5 elemental fighting styles (Lightning, Fire, Water, Wind, Earth) selectable at a style select screen, each with 4 unique attacks and custom visuals; 2-player local and VS AI modes; health bars, round timer, cooldown displays; dramatic visual effects (screen shake, particles, hell background for meteor, cinematic boulder crush)
+- **Controls**: Player 1: WASD + ZXCV attacks, Player 2: Arrows + \/., attacks
 
 ## Adding a New Game
 
