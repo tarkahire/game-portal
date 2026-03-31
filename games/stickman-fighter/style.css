@@ -142,6 +142,11 @@ canvas {
     opacity: 0.8;
 }
 
+.control-column .ability-label {
+    opacity: 1;
+    color: #f39c12;
+}
+
 kbd {
     display: inline-block;
     padding: 2px 8px;
