@@ -31,7 +31,7 @@ const STYLES = {
             { name: 'Fireball',    type: 'projectile', damage: 12, cooldown: 150,  speed: 9,  radius: 16, knockback: 5,  blockReduction: 0.5, draw: 'fireball' },
             { name: 'Flame Burst', type: 'instant',    damage: 20, cooldown: 300,  range: 150, knockback: 8,  blockReduction: 0.4, vfx: 'burst' },
             { name: 'Fire Pillar', type: 'instant',    damage: 25, cooldown: 420,  range: 350, knockback: 6,  blockReduction: 0.3, vfx: 'pillar' },
-            { name: 'Meteor',      type: 'projectile', damage: 40, cooldown: 660,  speed: 7,  radius: 30, knockback: 15, blockReduction: 0.2, draw: 'meteor', special: 'meteor' },
+            { name: 'Meteor',      type: 'projectile', damage: 40, cooldown: 660,  speed: 7,  radius: 55, knockback: 15, blockReduction: 0.2, draw: 'meteor', special: 'meteor' },
         ],
     },
     water: {
@@ -664,33 +664,49 @@ function drawProjectiles() {
 
         // ─── FIRE: Meteor ───
         else if (draw === 'meteor') {
-            // Flame trail going up
+            // Massive flame trail
             for (const t of p.trail) {
-                ctx.globalAlpha = t.alpha * 0.5;
-                ctx.fillStyle = `hsl(${20 + (1 - t.alpha) * 15}, 100%, ${45 + (1 - t.alpha) * 30}%)`;
-                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * t.alpha * 0.7, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = t.alpha * 0.6;
+                const tr = p.radius * t.alpha * 0.8;
+                ctx.fillStyle = `hsl(${15 + (1 - t.alpha) * 20}, 100%, ${40 + (1 - t.alpha) * 35}%)`;
+                ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 40;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 60;
+            // Outer fire glow
+            const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
+            og.addColorStop(0, 'rgba(255,100,0,0.5)');
+            og.addColorStop(0.5, 'rgba(231,76,60,0.2)');
+            og.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = og;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 2, 0, Math.PI * 2); ctx.fill();
             // Rock body
-            ctx.fillStyle = '#8B4513';
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#5a2d0c';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.65, 0, Math.PI * 2); ctx.fill();
+            // Dark cracks on rock
+            ctx.strokeStyle = '#2a1500'; ctx.lineWidth = 2;
+            for (let j = 0; j < 4; j++) {
+                const ca = (j / 4) * Math.PI * 2 + 0.3;
+                ctx.beginPath(); ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + Math.cos(ca) * p.radius * 0.5, p.y + Math.sin(ca) * p.radius * 0.5);
+                ctx.stroke();
+            }
             // Fire envelope
-            const mg = ctx.createRadialGradient(p.x, p.y - 5, 0, p.x, p.y, p.radius * 1.5);
-            mg.addColorStop(0, 'rgba(255,255,255,0.8)');
-            mg.addColorStop(0.2, '#f39c12');
-            mg.addColorStop(0.5, '#e67e22');
-            mg.addColorStop(0.8, 'rgba(231,76,60,0.5)');
+            const mg = ctx.createRadialGradient(p.x, p.y - 5, p.radius * 0.2, p.x, p.y, p.radius * 1.5);
+            mg.addColorStop(0, 'rgba(255,255,255,0.9)');
+            mg.addColorStop(0.15, '#f39c12');
+            mg.addColorStop(0.4, '#e67e22');
+            mg.addColorStop(0.7, 'rgba(231,76,60,0.5)');
             mg.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = mg;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.5, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
-            // Lots of embers
-            if (Math.random() < 0.8) {
-                particles.push({ x: p.x + (Math.random() - 0.5) * 20, y: p.y + (Math.random() - 0.5) * 20,
-                    vx: (Math.random() - 0.5) * 5, vy: -2 - Math.random() * 4,
-                    life: 10 + Math.random() * 10, maxLife: 20,
-                    color: `hsl(${10 + Math.random() * 30}, 100%, ${50 + Math.random() * 40}%)` });
+            // Lots of embers streaming off
+            for (let e = 0; e < 3; e++) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * p.radius, y: p.y + (Math.random() - 0.5) * p.radius,
+                    vx: (Math.random() - 0.5) * 6, vy: -2 - Math.random() * 5,
+                    life: 12 + Math.random() * 12, maxLife: 24,
+                    color: `hsl(${8 + Math.random() * 30}, 100%, ${45 + Math.random() * 40}%)` });
             }
         }
 
@@ -1041,7 +1057,28 @@ function handleAI() {
 }
 
 // ── Drawing ──
+let hellFade = 0; // 0 = normal, 1 = full hell
+
 function drawBackground() {
+    const meteorActive = projectiles.some(p => p.isMeteor);
+    // Also keep hell bg briefly after impact
+    const meteorImpactActive = visualEffects.some(v => v.type === 'meteorImpact');
+
+    // Smoothly transition hell fade
+    const target = (meteorActive || meteorImpactActive) ? 1 : 0;
+    hellFade += (target - hellFade) * 0.08;
+    if (hellFade < 0.01) hellFade = 0;
+
+    if (hellFade > 0) {
+        drawHellBackground(hellFade);
+    }
+    if (hellFade < 1) {
+        drawNormalBackground(1 - hellFade);
+    }
+}
+
+function drawNormalBackground(alpha) {
+    ctx.globalAlpha = alpha;
     const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
     g.addColorStop(0, '#1a1a2e'); g.addColorStop(1, '#16213e');
     ctx.fillStyle = g;
@@ -1051,6 +1088,73 @@ function drawBackground() {
     ctx.strokeStyle = '#3498db'; ctx.lineWidth = 2;
     ctx.shadowColor = '#3498db'; ctx.shadowBlur = 10;
     ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+}
+
+function drawHellBackground(alpha) {
+    ctx.globalAlpha = alpha;
+    const t = Date.now() * 0.001;
+
+    // Fiery sky gradient
+    const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    sky.addColorStop(0, '#1a0000');
+    sky.addColorStop(0.3, '#4a0000');
+    sky.addColorStop(0.6, '#8b1a00');
+    sky.addColorStop(1, '#2d0000');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Lava cracks on the ground
+    ctx.fillStyle = '#1a0800';
+    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+    // Glowing lava veins in the ground
+    ctx.strokeStyle = '#ff4500';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#ff4500';
+    ctx.shadowBlur = 12;
+    for (let i = 0; i < 8; i++) {
+        const sx = (i / 8) * canvas.width + Math.sin(t + i) * 30;
+        ctx.beginPath();
+        ctx.moveTo(sx, groundY + 5);
+        ctx.quadraticCurveTo(
+            sx + 40 + Math.sin(t * 1.3 + i * 2) * 20,
+            groundY + 15 + Math.sin(t + i) * 8,
+            sx + 80 + Math.cos(t + i) * 25,
+            groundY + (canvas.height - groundY)
+        );
+        ctx.stroke();
+    }
+
+    // Ground line — fiery
+    ctx.strokeStyle = '#ff6600';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#ff4400';
+    ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Floating embers in the sky
+    for (let i = 0; i < 12; i++) {
+        const ex = (i * 137 + t * 30) % canvas.width;
+        const ey = ((i * 89 + t * 20) % (groundY * 0.9));
+        const er = 1.5 + Math.sin(t * 2 + i) * 1;
+        ctx.globalAlpha = alpha * (0.3 + Math.sin(t * 3 + i * 0.7) * 0.25);
+        ctx.fillStyle = '#ff6633';
+        ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Distant fire glow on horizon
+    ctx.globalAlpha = alpha * (0.15 + Math.sin(t * 0.8) * 0.08);
+    const hg = ctx.createRadialGradient(canvas.width * 0.5, groundY, 0, canvas.width * 0.5, groundY, canvas.width * 0.5);
+    hg.addColorStop(0, 'rgba(255, 80, 0, 0.4)');
+    hg.addColorStop(0.5, 'rgba(180, 30, 0, 0.15)');
+    hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, 0, canvas.width, groundY);
+
+    ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
 }
 
