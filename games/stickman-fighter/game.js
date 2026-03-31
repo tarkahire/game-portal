@@ -157,13 +157,19 @@ class Fighter {
         const dir = this.facing;
 
         if (atk.type === 'projectile') {
-            // Meteor spawns from the sky and smashes directly into the opponent
+            // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
+                const spawnX = this.x - dir * 120;
+                const spawnY = -60;
+                const dx = opponent.x - spawnX;
+                const dy = (opponent.y - opponent.height * 0.5) - spawnY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const speed = atk.speed + 4;
                 projectiles.push({
-                    x: opponent.x,
-                    y: -60,
-                    vx: 0,
-                    vy: atk.speed + 4,
+                    x: spawnX,
+                    y: spawnY,
+                    vx: (dx / dist) * speed,
+                    vy: (dy / dist) * speed,
                     radius: atk.radius,
                     owner: this,
                     target: opponent,
