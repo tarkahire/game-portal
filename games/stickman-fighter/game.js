@@ -58,6 +58,29 @@ const STYLES = {
     },
 };
 
+// ── Screen Shake ──
+let shakeIntensity = 0;
+let shakeDuration = 0;
+let shakeOffsetX = 0;
+let shakeOffsetY = 0;
+
+function triggerScreenShake(intensity, duration) {
+    shakeIntensity = intensity;
+    shakeDuration = duration;
+}
+
+function updateScreenShake() {
+    if (shakeDuration > 0) {
+        shakeDuration--;
+        const decay = shakeDuration / 20;
+        shakeOffsetX = (Math.random() - 0.5) * shakeIntensity * 2 * decay;
+        shakeOffsetY = (Math.random() - 0.5) * shakeIntensity * 2 * decay;
+    } else {
+        shakeOffsetX = 0;
+        shakeOffsetY = 0;
+    }
+}
+
 // ── State ──
 let groundY, gameState, timer, timerInterval;
 let p1Wins = 0, p2Wins = 0, currentRound = 1;
@@ -134,13 +157,13 @@ class Fighter {
         const dir = this.facing;
 
         if (atk.type === 'projectile') {
-            // Meteor spawns from the sky above the opponent
+            // Meteor spawns from the sky and smashes directly into the opponent
             if (atk.special === 'meteor') {
                 projectiles.push({
-                    x: opponent.x + (Math.random() - 0.5) * 60,
-                    y: -40,
-                    vx: dir * 2,
-                    vy: atk.speed,
+                    x: opponent.x,
+                    y: -60,
+                    vx: 0,
+                    vy: atk.speed + 4,
                     radius: atk.radius,
                     owner: this,
                     target: opponent,
@@ -260,6 +283,28 @@ function spawnLightningBolt(x, top, bottom, width) {
     visualEffects.push({ type: 'lightning', segments, life: 18, maxLife: 18, width });
 }
 
+function spawnMeteorImpact(x, y) {
+    // Giant explosion ring
+    visualEffects.push({ type: 'meteorImpact', x, y, life: 35, maxLife: 35 });
+    // Massive particle burst
+    for (let i = 0; i < 50; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 3 + Math.random() * 12;
+        particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - Math.random() * 5,
+            life: 20 + Math.random() * 25, maxLife: 45,
+            color: `hsl(${10 + Math.random() * 30}, 100%, ${40 + Math.random() * 45}%)` });
+    }
+    // Debris chunks flying up
+    for (let i = 0; i < 12; i++) {
+        const a = -Math.PI * 0.1 - Math.random() * Math.PI * 0.8;
+        const s = 4 + Math.random() * 8;
+        particles.push({ x: x + (Math.random() - 0.5) * 30, y,
+            vx: Math.cos(a) * s * (Math.random() > 0.5 ? 1 : -1), vy: -3 - Math.random() * 10,
+            life: 25 + Math.random() * 20, maxLife: 45,
+            color: `hsl(25, 60%, ${25 + Math.random() * 20}%)` });
+    }
+}
+
 function spawnFlameBurst(x, y) {
     visualEffects.push({ type: 'flameBurst', x, y, life: 22, maxLife: 22 });
     for (let i = 0; i < 20; i++) {
@@ -319,6 +364,42 @@ function drawVisualEffects() {
             ctx.beginPath(); ctx.moveTo(vfx.segments[0].x, vfx.segments[0].y);
             for (let j = 1; j < vfx.segments.length; j++) ctx.lineTo(vfx.segments[j].x, vfx.segments[j].y);
             ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        if (vfx.type === 'meteorImpact') {
+            const prog = 1 - a;
+            // Massive expanding shockwave ring
+            const r1 = prog * 200;
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 8;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 40;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r1, 0, Math.PI * 2); ctx.stroke();
+            // Inner orange ring
+            ctx.strokeStyle = '#f39c12'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r1 * 0.65, 0, Math.PI * 2); ctx.stroke();
+            // Bright white flash at center (fades fast)
+            if (prog < 0.3) {
+                const flashAlpha = (0.3 - prog) / 0.3;
+                ctx.globalAlpha = flashAlpha * 0.8;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 120);
+                fg.addColorStop(0, '#fff');
+                fg.addColorStop(0.3, 'rgba(243,156,18,0.6)');
+                fg.addColorStop(1, 'rgba(231,76,60,0)');
+                ctx.fillStyle = fg;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 120, 0, Math.PI * 2); ctx.fill();
+            }
+            // Ground crack lines
+            ctx.globalAlpha = a * 0.5;
+            ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 2;
+            for (let j = 0; j < 8; j++) {
+                const ca = (j / 8) * Math.PI * 2;
+                const cr = 20 + prog * 80;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x, vfx.y);
+                ctx.lineTo(vfx.x + Math.cos(ca) * cr, vfx.y + Math.sin(ca) * cr * 0.3);
+                ctx.stroke();
+            }
             ctx.shadowBlur = 0;
         }
 
@@ -452,16 +533,19 @@ function updateProjectiles() {
             p.target.x += (p.vx > 0 ? 1 : p.vx < 0 ? -1 : p.owner.facing) * kb;
 
             spawnElementParticles(p.x, p.y, p.styleData, 20);
-            // Meteor ground explosion
-            if (p.isMeteor) spawnFlameBurst(p.x, p.y);
+            // Meteor smash — massive explosion and screen shake
+            if (p.isMeteor) {
+                triggerScreenShake(25, 30);
+                spawnMeteorImpact(p.x, p.y);
+            }
             projectiles.splice(i, 1);
             continue;
         }
 
-        // Meteor hits ground
+        // Meteor hits ground (missed)
         if (p.isMeteor && p.y >= groundY) {
-            spawnFlameBurst(p.x, groundY);
-            spawnElementParticles(p.x, groundY - 20, p.styleData, 15);
+            triggerScreenShake(15, 20);
+            spawnMeteorImpact(p.x, groundY);
             projectiles.splice(i, 1);
             continue;
         }
@@ -1029,14 +1113,28 @@ function checkRoundEnd() {
 // ── Game Loop ──
 function gameLoop() {
     requestAnimationFrame(gameLoop);
-    drawBackground();
-    if (gameState !== 'playing') return;
+
+    if (gameState !== 'playing') {
+        drawBackground();
+        return;
+    }
+
     handleInput();
     if (aiMode) handleAI();
     player1.update(player2); player2.update(player1);
     updateParticles(); updateProjectiles(); updateVisualEffects();
+    updateScreenShake();
+
+    // Apply screen shake
+    ctx.save();
+    ctx.translate(shakeOffsetX, shakeOffsetY);
+
+    drawBackground();
     player1.draw(); player2.draw();
     drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns();
+
+    ctx.restore();
+
     updateUI(); checkRoundEnd();
 }
 
