@@ -202,7 +202,7 @@ button:hover {
 }
 
 .select-side {
-    width: 340px;
+    width: 360px;
     text-align: center;
 }
 
@@ -278,6 +278,11 @@ button:hover {
 .style-btn[data-style="wind"].selected {
     border-color: #1abc9c;
     box-shadow: 0 0 20px rgba(26, 188, 156, 0.4);
+}
+
+.style-btn[data-style="earth"].selected {
+    border-color: #a0522d;
+    box-shadow: 0 0 20px rgba(160, 82, 45, 0.4);
 }
 
 .style-icon {

@@ -56,6 +56,17 @@ const STYLES = {
             { name: 'Cyclone Burst', type: 'instant',    damage: 28, cooldown: 540,  range: 200, knockback: 20, blockReduction: 0.2, vfx: 'cyclone' },
         ],
     },
+    earth: {
+        name: 'Earth',
+        color: '#a0522d',
+        hue: 30,
+        attacks: [
+            { name: 'Rock Shot',     type: 'projectile', damage: 11, cooldown: 110,  speed: 11, radius: 14, knockback: 5,  blockReduction: 0.5, draw: 'rockShot' },
+            { name: 'Earth Pillar',  type: 'instant',    damage: 20, cooldown: 300,  range: 300, knockback: 10, blockReduction: 0.3, vfx: 'earthPillar' },
+            { name: 'Seismic Wave',  type: 'projectile', damage: 18, cooldown: 360,  speed: 6,  radius: 30, knockback: 12, blockReduction: 0.3, draw: 'seismicWave' },
+            { name: 'Boulder Crush', type: 'projectile', damage: 38, cooldown: 600,  speed: 8,  radius: 45, knockback: 18, blockReduction: 0.2, draw: 'boulderCrush' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -222,6 +233,7 @@ class Fighter {
         else if (vfx === 'pillar') spawnFirePillar(opponent.x, groundY);
         else if (vfx === 'gust') spawnWindGust(this.x, this.y - this.height * 0.5, dir);
         else if (vfx === 'cyclone') spawnCyclone(this.x, this.y - this.height * 0.3);
+        else if (vfx === 'earthPillar') spawnEarthPillar(opponent.x, groundY);
     }
 
     draw() {
@@ -332,6 +344,20 @@ function spawnWindGust(x, y, dir) {
 
 function spawnCyclone(x, y) {
     visualEffects.push({ type: 'cyclone', x, y, life: 35, maxLife: 35 });
+}
+
+function spawnEarthPillar(x, y) {
+    visualEffects.push({ type: 'earthPillar', x, y, life: 35, maxLife: 35 });
+    triggerScreenShake(8, 12);
+    // Dirt/debris burst
+    for (let i = 0; i < 15; i++) {
+        const a = -Math.PI * 0.2 - Math.random() * Math.PI * 0.6;
+        const s = 2 + Math.random() * 6;
+        particles.push({ x: x + (Math.random() - 0.5) * 30, y,
+            vx: Math.cos(a) * s * (Math.random() > 0.5 ? 1 : -1), vy: -2 - Math.random() * 7,
+            life: 15 + Math.random() * 15, maxLife: 30,
+            color: `hsl(${25 + Math.random() * 15}, ${40 + Math.random() * 20}%, ${30 + Math.random() * 25}%)` });
+    }
 }
 
 function spawnElementParticles(x, y, styleData, count) {
@@ -500,6 +526,47 @@ function drawVisualEffects() {
             }
             ctx.shadowBlur = 0;
         }
+
+        if (vfx.type === 'earthPillar') {
+            const prog = 1 - a;
+            const pillarH = Math.min(prog * 5, 1) * 180;
+            const pillarW = 40;
+            ctx.globalAlpha = a * 0.9;
+            // Stone pillar body
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(vfx.x - pillarW / 2, vfx.y - pillarH, pillarW, pillarH);
+            // Lighter front face
+            ctx.fillStyle = '#8b5e3c';
+            ctx.fillRect(vfx.x - pillarW / 2 + 5, vfx.y - pillarH, pillarW / 2 - 5, pillarH);
+            // Top cap
+            ctx.fillStyle = '#9b7653';
+            ctx.fillRect(vfx.x - pillarW / 2 - 4, vfx.y - pillarH - 6, pillarW + 8, 10);
+            // Crack lines
+            ctx.strokeStyle = '#3d2010'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(vfx.x - 5, vfx.y - pillarH);
+            ctx.lineTo(vfx.x - 8, vfx.y - pillarH * 0.5);
+            ctx.lineTo(vfx.x + 3, vfx.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(vfx.x + 10, vfx.y - pillarH * 0.8);
+            ctx.lineTo(vfx.x + 5, vfx.y - pillarH * 0.3);
+            ctx.stroke();
+            // Shadow at base
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(vfx.x, vfx.y + 2, pillarW * 0.7, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Dust at base during rise
+            if (prog < 0.4 && vfx.life % 2 === 0) {
+                for (let d = 0; d < 2; d++) {
+                    particles.push({ x: vfx.x + (Math.random() - 0.5) * 50, y: vfx.y,
+                        vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 2,
+                        life: 8 + Math.random() * 6, maxLife: 14,
+                        color: `hsl(30, 30%, ${50 + Math.random() * 20}%)` });
+                }
+            }
+        }
     }
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
@@ -543,6 +610,11 @@ function updateProjectiles() {
             if (p.isMeteor) {
                 triggerScreenShake(25, 30);
                 spawnMeteorImpact(p.x, p.y);
+            }
+            // Boulder crush impact
+            if (p.atk.draw === 'boulderCrush') {
+                triggerScreenShake(15, 20);
+                spawnEarthPillar(p.x, groundY);
             }
             projectiles.splice(i, 1);
             continue;
@@ -921,6 +993,141 @@ function drawProjectiles() {
                     vx: Math.sin(Date.now() * 0.01) * 4, vy: -1 - Math.random() * 2,
                     life: 8 + Math.random() * 6, maxLife: 14,
                     color: `hsl(170, 40%, ${45 + Math.random() * 30}%)` });
+            }
+        }
+
+        // ─── EARTH: Rock Shot ───
+        else if (draw === 'rockShot') {
+            const dir = p.vx > 0 ? 1 : -1;
+            // Dust trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.3;
+                ctx.fillStyle = '#8b6b47';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.35, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            // Jagged rock shape
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(Date.now() * 0.008 * dir);
+            ctx.fillStyle = '#6b4423';
+            ctx.beginPath();
+            ctx.moveTo(0, -p.radius);
+            ctx.lineTo(p.radius * 0.7, -p.radius * 0.4);
+            ctx.lineTo(p.radius, p.radius * 0.2);
+            ctx.lineTo(p.radius * 0.5, p.radius);
+            ctx.lineTo(-p.radius * 0.3, p.radius * 0.8);
+            ctx.lineTo(-p.radius, p.radius * 0.1);
+            ctx.lineTo(-p.radius * 0.6, -p.radius * 0.6);
+            ctx.closePath();
+            ctx.fill();
+            // Lighter highlight
+            ctx.fillStyle = '#9b7653';
+            ctx.beginPath();
+            ctx.moveTo(0, -p.radius * 0.8);
+            ctx.lineTo(p.radius * 0.5, -p.radius * 0.2);
+            ctx.lineTo(p.radius * 0.2, p.radius * 0.3);
+            ctx.lineTo(-p.radius * 0.3, -p.radius * 0.1);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            // Dust puffs
+            if (Math.random() < 0.4) {
+                particles.push({ x: p.x - dir * 8, y: p.y + (Math.random() - 0.5) * 10,
+                    vx: -dir * (1 + Math.random() * 2), vy: (Math.random() - 0.5) * 2,
+                    life: 6 + Math.random() * 5, maxLife: 11,
+                    color: `hsl(30, 30%, ${45 + Math.random() * 20}%)` });
+            }
+        }
+
+        // ─── EARTH: Seismic Wave ───
+        else if (draw === 'seismicWave') {
+            const dir = p.vx > 0 ? 1 : -1;
+            ctx.save();
+            ctx.translate(p.x, groundY);
+            ctx.globalAlpha = 0.9;
+            // Ground chunks rising up in a wave pattern
+            for (let j = 0; j < 6; j++) {
+                const offset = (j - 2.5) * 18 * dir;
+                const chunkH = 20 + Math.sin(Date.now() * 0.01 + j) * 10 + (3 - Math.abs(j - 2.5)) * 12;
+                const chunkW = 14;
+                ctx.fillStyle = j % 2 === 0 ? '#6b4423' : '#8b5e3c';
+                ctx.fillRect(offset - chunkW / 2, -chunkH, chunkW, chunkH);
+                // Crack on chunk
+                ctx.strokeStyle = '#3d2010'; ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(offset - 2, -chunkH);
+                ctx.lineTo(offset + 3, -chunkH * 0.5);
+                ctx.stroke();
+            }
+            // Ground crack line
+            ctx.strokeStyle = '#4a3020'; ctx.lineWidth = 3;
+            ctx.shadowColor = '#a0522d'; ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.moveTo(-50 * dir, 0);
+            ctx.lineTo(50 * dir, 0);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+            // Dust clouds
+            if (Math.random() < 0.6) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 40, y: groundY - Math.random() * 15,
+                    vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 3,
+                    life: 8 + Math.random() * 8, maxLife: 16,
+                    color: `hsl(28, 35%, ${40 + Math.random() * 25}%)` });
+            }
+        }
+
+        // ─── EARTH: Boulder Crush ───
+        else if (draw === 'boulderCrush') {
+            const dir = p.vx > 0 ? 1 : -1;
+            // Dust trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.4;
+                ctx.fillStyle = '#8b6b47';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * t.alpha * 0.4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#4a2800'; ctx.shadowBlur = 20;
+            // Massive boulder — irregular circle with facets
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(Date.now() * 0.005 * dir);
+            // Main rock body
+            ctx.fillStyle = '#5a3a1a';
+            ctx.beginPath();
+            const r = p.radius;
+            for (let j = 0; j < 10; j++) {
+                const a = (j / 10) * Math.PI * 2;
+                const rr = r * (0.85 + Math.sin(j * 3.7) * 0.15);
+                if (j === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+                else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+            }
+            ctx.closePath();
+            ctx.fill();
+            // Lighter face
+            ctx.fillStyle = '#7a5a3a';
+            ctx.beginPath();
+            ctx.moveTo(-r * 0.3, -r * 0.7);
+            ctx.lineTo(r * 0.4, -r * 0.5);
+            ctx.lineTo(r * 0.5, r * 0.1);
+            ctx.lineTo(-r * 0.1, r * 0.4);
+            ctx.lineTo(-r * 0.5, 0);
+            ctx.closePath();
+            ctx.fill();
+            // Dark cracks
+            ctx.strokeStyle = '#2a1500'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(-r * 0.6, -r * 0.2); ctx.lineTo(r * 0.1, r * 0.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(r * 0.2, -r * 0.6); ctx.lineTo(-r * 0.2, r * 0.1); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-r * 0.1, -r * 0.8); ctx.lineTo(r * 0.4, 0); ctx.stroke();
+            ctx.restore();
+            ctx.shadowBlur = 0;
+            // Heavy dust stream
+            for (let e = 0; e < 2; e++) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * r, y: p.y + (Math.random() - 0.5) * r,
+                    vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5,
+                    life: 10 + Math.random() * 10, maxLife: 20,
+                    color: `hsl(${25 + Math.random() * 15}, ${35 + Math.random() * 20}%, ${35 + Math.random() * 25}%)` });
             }
         }
 
