@@ -92,6 +92,24 @@ function updateScreenShake() {
     }
 }
 
+// ── Hitstop (freeze frames on impact) ──
+let hitstopTimer = 0;
+function triggerHitstop(frames) { hitstopTimer = Math.max(hitstopTimer, frames); }
+
+// ── Screen Flash ──
+let screenFlashAlpha = 0;
+let screenFlashColor = '#fff';
+function triggerScreenFlash(color, alpha) { screenFlashColor = color || '#fff'; screenFlashAlpha = Math.max(screenFlashAlpha, alpha || 0.5); }
+function drawScreenFlash() {
+    if (screenFlashAlpha > 0.01) {
+        ctx.globalAlpha = screenFlashAlpha;
+        ctx.fillStyle = screenFlashColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1;
+        screenFlashAlpha *= 0.82;
+    }
+}
+
 // ── State ──
 let groundY, gameState, timer, timerInterval;
 let p1Wins = 0, p2Wins = 0, currentRound = 1;
@@ -165,6 +183,7 @@ class Fighter {
         this.cooldowns[index] = atk.cooldown;
         this.casting = true;
         this.castTimer = 15;
+        spawnElementParticles(this.x + this.facing * 20, this.y - this.height * 0.5, styleData, 12);
         const dir = this.facing;
 
         if (atk.type === 'projectile') {
@@ -239,7 +258,11 @@ class Fighter {
                 opponent.hit = true;
                 opponent.x += dir * kb;
                 this.spawnInstantVFX(atk, styleData, opponent, dir);
-                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 18);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 35);
+                triggerScreenShake(Math.min(atk.damage * 0.7, 18), Math.min(atk.damage * 0.6, 22));
+                triggerHitstop(Math.floor(atk.damage / 10));
+                if (atk.damage >= 18) triggerScreenFlash(styleData.color, Math.min(atk.damage / 70, 0.45));
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 20, maxLife: 20, color: styleData.color });
             }
         }
     }
@@ -316,18 +339,19 @@ function spawnLightningBolt(x, top, bottom, width) {
     const segments = [];
     let cy = top;
     while (cy < bottom) {
-        segments.push({ x: x + (Math.random() - 0.5) * 40 * width, y: cy });
-        cy += 12 + Math.random() * 18;
+        segments.push({ x: x + (Math.random() - 0.5) * 50 * width, y: cy });
+        cy += 10 + Math.random() * 14;
     }
     segments.push({ x, y: bottom });
-    visualEffects.push({ type: 'lightning', segments, life: 18, maxLife: 18, width });
+    visualEffects.push({ type: 'lightning', segments, life: 24, maxLife: 24, width: width * 1.3 });
+    triggerScreenFlash('#f1c40f', 0.15);
 }
 
 function spawnMeteorImpact(x, y) {
     // Giant explosion ring
-    visualEffects.push({ type: 'meteorImpact', x, y, life: 35, maxLife: 35 });
+    visualEffects.push({ type: 'meteorImpact', x, y, life: 45, maxLife: 45 });
     // Massive particle burst
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 80; i++) {
         const a = Math.random() * Math.PI * 2;
         const s = 3 + Math.random() * 12;
         particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - Math.random() * 5,
@@ -335,7 +359,7 @@ function spawnMeteorImpact(x, y) {
             color: `hsl(${10 + Math.random() * 30}, 100%, ${40 + Math.random() * 45}%)` });
     }
     // Debris chunks flying up
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 22; i++) {
         const a = -Math.PI * 0.1 - Math.random() * Math.PI * 0.8;
         const s = 4 + Math.random() * 8;
         particles.push({ x: x + (Math.random() - 0.5) * 30, y,
@@ -346,8 +370,9 @@ function spawnMeteorImpact(x, y) {
 }
 
 function spawnFlameBurst(x, y) {
-    visualEffects.push({ type: 'flameBurst', x, y, life: 22, maxLife: 22 });
-    for (let i = 0; i < 20; i++) {
+    visualEffects.push({ type: 'flameBurst', x, y, life: 28, maxLife: 28 });
+    triggerScreenShake(6, 10);
+    for (let i = 0; i < 35; i++) {
         const a = Math.random() * Math.PI * 2;
         const s = 3 + Math.random() * 8;
         particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
@@ -357,21 +382,27 @@ function spawnFlameBurst(x, y) {
 }
 
 function spawnFirePillar(x, y) {
-    visualEffects.push({ type: 'firePillar', x, y, life: 35, maxLife: 35 });
+    visualEffects.push({ type: 'firePillar', x, y, life: 45, maxLife: 45 });
+    triggerScreenShake(10, 15);
+    triggerScreenFlash('#e67e22', 0.3);
 }
 
 function spawnWindGust(x, y, dir) {
-    visualEffects.push({ type: 'windGust', x, y, dir, life: 25, maxLife: 25 });
+    visualEffects.push({ type: 'windGust', x, y, dir, life: 30, maxLife: 30 });
+    triggerScreenShake(4, 8);
 }
 
 function spawnCyclone(x, y) {
-    visualEffects.push({ type: 'cyclone', x, y, life: 35, maxLife: 35 });
+    visualEffects.push({ type: 'cyclone', x, y, life: 45, maxLife: 45 });
+    triggerScreenShake(8, 12);
+    triggerScreenFlash('#1abc9c', 0.25);
 }
 
 function spawnBoulderImpact(x, y) {
-    visualEffects.push({ type: 'boulderImpact', x, y, life: 30, maxLife: 30 });
+    visualEffects.push({ type: 'boulderImpact', x, y, life: 40, maxLife: 40 });
+    triggerScreenFlash('#a0522d', 0.5);
     // Massive dirt/rock burst
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 65; i++) {
         const a = Math.random() * Math.PI * 2;
         const s = 3 + Math.random() * 10;
         particles.push({ x, y,
@@ -380,19 +411,20 @@ function spawnBoulderImpact(x, y) {
             color: `hsl(${25 + Math.random() * 15}, ${35 + Math.random() * 25}%, ${25 + Math.random() * 30}%)` });
     }
     // Rock chunks flying up
-    for (let i = 0; i < 8; i++) {
-        particles.push({ x: x + (Math.random() - 0.5) * 40, y,
-            vx: (Math.random() - 0.5) * 8, vy: -5 - Math.random() * 10,
+    for (let i = 0; i < 16; i++) {
+        particles.push({ x: x + (Math.random() - 0.5) * 60, y,
+            vx: (Math.random() - 0.5) * 12, vy: -6 - Math.random() * 14,
             life: 25 + Math.random() * 15, maxLife: 40,
             color: `hsl(25, 50%, ${20 + Math.random() * 15}%)` });
     }
 }
 
 function spawnEarthPillar(x, y) {
-    visualEffects.push({ type: 'earthPillar', x, y, life: 35, maxLife: 35 });
-    triggerScreenShake(8, 12);
+    visualEffects.push({ type: 'earthPillar', x, y, life: 42, maxLife: 42 });
+    triggerScreenShake(12, 18);
+    triggerScreenFlash('#a0522d', 0.2);
     // Dirt/debris burst
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 28; i++) {
         const a = -Math.PI * 0.2 - Math.random() * Math.PI * 0.6;
         const s = 2 + Math.random() * 6;
         particles.push({ x: x + (Math.random() - 0.5) * 30, y,
@@ -429,8 +461,8 @@ function drawVisualEffects() {
 
         if (vfx.type === 'lightning') {
             ctx.globalAlpha = a;
-            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 20;
-            ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2 + (vfx.width || 3);
+            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 35;
+            ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 3 + (vfx.width || 3);
             ctx.beginPath(); ctx.moveTo(vfx.segments[0].x, vfx.segments[0].y);
             for (let j = 1; j < vfx.segments.length; j++) ctx.lineTo(vfx.segments[j].x, vfx.segments[j].y);
             ctx.stroke();
@@ -444,31 +476,35 @@ function drawVisualEffects() {
         if (vfx.type === 'meteorImpact') {
             const prog = 1 - a;
             // Massive expanding shockwave ring
-            const r1 = prog * 200;
-            ctx.globalAlpha = a * 0.7;
-            ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 8;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 40;
+            const r1 = prog * 300;
+            ctx.globalAlpha = a * 0.8;
+            ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 10;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 60;
             ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r1, 0, Math.PI * 2); ctx.stroke();
             // Inner orange ring
-            ctx.strokeStyle = '#f39c12'; ctx.lineWidth = 5;
+            ctx.strokeStyle = '#f39c12'; ctx.lineWidth = 7;
             ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r1 * 0.65, 0, Math.PI * 2); ctx.stroke();
+            // Second shockwave ring
+            ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r1 * 0.35, 0, Math.PI * 2); ctx.stroke();
             // Bright white flash at center (fades fast)
-            if (prog < 0.3) {
-                const flashAlpha = (0.3 - prog) / 0.3;
-                ctx.globalAlpha = flashAlpha * 0.8;
-                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 120);
+            if (prog < 0.4) {
+                const flashAlpha = (0.4 - prog) / 0.4;
+                ctx.globalAlpha = flashAlpha * 0.9;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 180);
                 fg.addColorStop(0, '#fff');
-                fg.addColorStop(0.3, 'rgba(243,156,18,0.6)');
+                fg.addColorStop(0.2, 'rgba(255,200,50,0.8)');
+                fg.addColorStop(0.5, 'rgba(243,156,18,0.4)');
                 fg.addColorStop(1, 'rgba(231,76,60,0)');
                 ctx.fillStyle = fg;
-                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 120, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 180, 0, Math.PI * 2); ctx.fill();
             }
             // Ground crack lines
-            ctx.globalAlpha = a * 0.5;
-            ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 2;
-            for (let j = 0; j < 8; j++) {
-                const ca = (j / 8) * Math.PI * 2;
-                const cr = 20 + prog * 80;
+            ctx.globalAlpha = a * 0.6;
+            ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 3;
+            for (let j = 0; j < 12; j++) {
+                const ca = (j / 12) * Math.PI * 2;
+                const cr = 30 + prog * 130;
                 ctx.beginPath();
                 ctx.moveTo(vfx.x, vfx.y);
                 ctx.lineTo(vfx.x + Math.cos(ca) * cr, vfx.y + Math.sin(ca) * cr * 0.3);
@@ -479,19 +515,30 @@ function drawVisualEffects() {
 
         if (vfx.type === 'flameBurst') {
             const prog = 1 - a;
-            const r = 30 + prog * 80;
-            ctx.globalAlpha = a * 0.6;
-            ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 6;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 25;
+            const r = 40 + prog * 120;
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 8;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 40;
             ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
-            ctx.strokeStyle = '#f39c12'; ctx.lineWidth = 3;
+            ctx.strokeStyle = '#f39c12'; ctx.lineWidth = 5;
             ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+            // Inner white-hot core
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.3, 0, Math.PI * 2); ctx.stroke();
+            if (prog < 0.3) {
+                const grd = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, r * 0.5);
+                grd.addColorStop(0, 'rgba(255,255,255,0.6)');
+                grd.addColorStop(1, 'rgba(255,100,0,0)');
+                ctx.globalAlpha = (0.3 - prog) / 0.3;
+                ctx.fillStyle = grd;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.5, 0, Math.PI * 2); ctx.fill();
+            }
             ctx.shadowBlur = 0;
         }
 
         if (vfx.type === 'firePillar') {
             const prog = 1 - a;
-            const pillarH = Math.min(prog * 4, 1) * 250;
+            const pillarH = Math.min(prog * 4, 1) * 350;
             const fadeH = a;
             ctx.globalAlpha = fadeH * 0.8;
             // Wide fiery pillar
@@ -501,20 +548,20 @@ function drawVisualEffects() {
             grd.addColorStop(0.7, '#f39c12');
             grd.addColorStop(1, 'rgba(241,196,15,0)');
             ctx.fillStyle = grd;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 30;
-            ctx.fillRect(vfx.x - 25, vfx.y - pillarH, 50, pillarH);
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 50;
+            ctx.fillRect(vfx.x - 35, vfx.y - pillarH, 70, pillarH);
             // Inner bright core
             const grd2 = ctx.createLinearGradient(vfx.x, vfx.y, vfx.x, vfx.y - pillarH);
             grd2.addColorStop(0, '#fff');
             grd2.addColorStop(0.5, '#f1c40f');
             grd2.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = grd2;
-            ctx.fillRect(vfx.x - 10, vfx.y - pillarH, 20, pillarH);
+            ctx.fillRect(vfx.x - 14, vfx.y - pillarH, 28, pillarH);
             ctx.shadowBlur = 0;
             // Fire particles shooting up
             if (vfx.life % 2 === 0) {
-                for (let i = 0; i < 3; i++) {
-                    particles.push({ x: vfx.x + (Math.random() - 0.5) * 40, y: vfx.y - Math.random() * pillarH,
+                for (let i = 0; i < 6; i++) {
+                    particles.push({ x: vfx.x + (Math.random() - 0.5) * 60, y: vfx.y - Math.random() * pillarH,
                         vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 4,
                         life: 10 + Math.random() * 10, maxLife: 20,
                         color: `hsl(${15 + Math.random() * 30}, 100%, ${50 + Math.random() * 40}%)` });
@@ -524,8 +571,8 @@ function drawVisualEffects() {
 
         if (vfx.type === 'windGust') {
             const prog = 1 - a;
-            ctx.globalAlpha = a * 0.7;
-            const sweep = prog * 300;
+            ctx.globalAlpha = a * 0.85;
+            const sweep = prog * 400;
             for (let j = 0; j < 8; j++) {
                 const offset = j * 18 - 63;
                 ctx.strokeStyle = `hsla(170, 60%, ${55 + j * 5}%, ${0.4 + Math.random() * 0.3})`;
@@ -545,9 +592,9 @@ function drawVisualEffects() {
 
         if (vfx.type === 'cyclone') {
             const prog = 1 - a;
-            const r = 50 + prog * 100;
-            ctx.globalAlpha = a * 0.6;
-            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = 15;
+            const r = 60 + prog * 140;
+            ctx.globalAlpha = a * 0.75;
+            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = 25;
             for (let j = 0; j < 12; j++) {
                 const angle = (j / 12) * Math.PI * 2 + Date.now() * 0.015;
                 const rx = r * (0.3 + Math.sin(angle * 2) * 0.15);
@@ -571,8 +618,8 @@ function drawVisualEffects() {
 
         if (vfx.type === 'earthPillar') {
             const prog = 1 - a;
-            const pillarH = Math.min(prog * 5, 1) * 240;
-            const pillarW = 55;
+            const pillarH = Math.min(prog * 5, 1) * 320;
+            const pillarW = 65;
             ctx.globalAlpha = a * 0.9;
             // Stone pillar body
             ctx.fillStyle = '#6b4423';
@@ -620,24 +667,24 @@ function drawVisualEffects() {
 
         if (vfx.type === 'boulderImpact') {
             const prog = 1 - a;
-            ctx.globalAlpha = a * 0.8;
+            ctx.globalAlpha = a * 0.9;
             // Ground crater
-            const craterW = 60 + prog * 100;
+            const craterW = 80 + prog * 140;
             ctx.fillStyle = '#3d2010';
             ctx.beginPath();
             ctx.ellipse(vfx.x, vfx.y, craterW, 12, 0, 0, Math.PI * 2);
             ctx.fill();
             // Shockwave ring
-            const ringR = prog * 180;
-            ctx.strokeStyle = '#8b5e3c'; ctx.lineWidth = 6;
-            ctx.shadowColor = '#a0522d'; ctx.shadowBlur = 15;
+            const ringR = prog * 250;
+            ctx.strokeStyle = '#8b5e3c'; ctx.lineWidth = 8;
+            ctx.shadowColor = '#a0522d'; ctx.shadowBlur = 30;
             ctx.beginPath(); ctx.arc(vfx.x, vfx.y, ringR, 0, Math.PI * 2); ctx.stroke();
             ctx.shadowBlur = 0;
             // Ground crack lines radiating out
-            ctx.strokeStyle = '#4a2800'; ctx.lineWidth = 2.5;
-            for (let j = 0; j < 10; j++) {
-                const ca = (j / 10) * Math.PI * 2;
-                const cr = 30 + prog * 100;
+            ctx.strokeStyle = '#4a2800'; ctx.lineWidth = 3;
+            for (let j = 0; j < 14; j++) {
+                const ca = (j / 14) * Math.PI * 2;
+                const cr = 40 + prog * 150;
                 ctx.beginPath();
                 ctx.moveTo(vfx.x, vfx.y);
                 ctx.lineTo(vfx.x + Math.cos(ca) * cr, vfx.y + Math.sin(ca) * cr * 0.3);
@@ -652,6 +699,31 @@ function drawVisualEffects() {
                         color: `hsl(28, 30%, ${40 + Math.random() * 25}%)` });
                 }
             }
+        }
+        if (vfx.type === 'impactRing') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.9;
+            ctx.shadowColor = vfx.color; ctx.shadowBlur = 30;
+            // Outer expanding ring
+            const r1 = prog * 130;
+            ctx.strokeStyle = vfx.color; ctx.lineWidth = 5 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r1, 0, Math.PI * 2); ctx.stroke();
+            // Inner bright ring
+            const r2 = prog * 80;
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r2, 0, Math.PI * 2); ctx.stroke();
+            // Center flash
+            if (prog < 0.3) {
+                const fa = (0.3 - prog) / 0.3;
+                ctx.globalAlpha = fa * 0.7;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 60);
+                fg.addColorStop(0, '#fff');
+                fg.addColorStop(0.5, vfx.color);
+                fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 60, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
         }
     }
     ctx.globalAlpha = 1;
@@ -711,7 +783,8 @@ function updateProjectiles() {
 
                 if (t >= 1 || p.y >= groundY - 5) {
                     // SLAM — massive impact
-                    triggerScreenShake(22, 28);
+                    triggerScreenShake(30, 35);
+                    triggerHitstop(8);
                     spawnBoulderImpact(p.x, groundY);
                     // Check if close enough to hit
                     const hitDist = Math.abs(p.x - p.target.x);
@@ -723,9 +796,10 @@ function updateProjectiles() {
                             kb *= (1 - p.atk.blockReduction);
                         }
                         p.target.health = Math.max(0, p.target.health - damage);
-                        p.target.hitTimer = 20;
+                        p.target.hitTimer = 25;
                         p.target.hit = true;
                         p.target.x += p.dir * kb;
+                        visualEffects.push({ type: 'impactRing', x: p.x, y: groundY - 30, life: 22, maxLife: 22, color: '#a0522d' });
                     }
                     projectiles.splice(i, 1);
                     continue;
@@ -744,7 +818,7 @@ function updateProjectiles() {
         }
 
         p.trail.push({ x: p.x, y: p.y, alpha: 1 });
-        if (p.trail.length > 20) p.trail.shift();
+        if (p.trail.length > 35) p.trail.shift();
         for (const t of p.trail) t.alpha *= 0.87;
 
         // Hit detection
@@ -765,9 +839,17 @@ function updateProjectiles() {
             p.target.hit = true;
             p.target.x += (p.vx > 0 ? 1 : p.vx < 0 ? -1 : p.owner.facing) * kb;
 
-            spawnElementParticles(p.x, p.y, p.styleData, 20);
+            spawnElementParticles(p.x, p.y, p.styleData, 40);
+            // Impact effects scale with damage
+            const impactPow = p.atk.damage;
+            triggerScreenShake(Math.min(impactPow * 0.7, 18), Math.min(impactPow * 0.8, 22));
+            triggerHitstop(Math.max(2, Math.floor(impactPow / 8)));
+            if (impactPow >= 15) triggerScreenFlash(p.styleData.color, Math.min(impactPow / 55, 0.45));
+            visualEffects.push({ type: 'impactRing', x: p.x, y: p.y, life: 20, maxLife: 20, color: p.styleData.color });
             if (p.isMeteor) {
-                triggerScreenShake(25, 30);
+                triggerScreenShake(30, 35);
+                triggerHitstop(10);
+                triggerScreenFlash('#ff4400', 0.7);
                 spawnMeteorImpact(p.x, p.y);
             }
             projectiles.splice(i, 1);
@@ -776,7 +858,9 @@ function updateProjectiles() {
 
         // Meteor hits ground (missed)
         if (p.isMeteor && p.y >= groundY) {
-            triggerScreenShake(15, 20);
+            triggerScreenShake(20, 25);
+            triggerHitstop(5);
+            triggerScreenFlash('#ff4400', 0.4);
             spawnMeteorImpact(p.x, groundY);
             projectiles.splice(i, 1);
             continue;
@@ -804,10 +888,10 @@ function drawProjectiles() {
                 ctx.stroke();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 20;
+            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 35;
             // Core bolt shape
             ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#f1c40f';
             ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
             // Electric arcs
@@ -825,7 +909,7 @@ function drawProjectiles() {
         // ─── LIGHTNING: Ball Lightning ───
         else if (draw === 'ballLightning') {
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 35;
+            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 50;
             // Outer glow
             const g1 = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
             g1.addColorStop(0, 'rgba(241,196,15,0.4)');
@@ -868,19 +952,19 @@ function drawProjectiles() {
                 ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 25;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 40;
             // Outer fire
-            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.3);
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.6);
             g.addColorStop(0, '#fff');
             g.addColorStop(0.2, '#f39c12');
             g.addColorStop(0.5, '#e67e22');
             g.addColorStop(0.8, '#e74c3c');
             g.addColorStop(1, 'rgba(231,76,60,0)');
             ctx.fillStyle = g;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.6, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
             // Fire particles
-            if (Math.random() < 0.7) {
+            if (Math.random() < 0.85) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * 12, y: p.y + (Math.random() - 0.5) * 12,
                     vx: (Math.random() - 0.5) * 3 - p.vx * 0.2, vy: -1 - Math.random() * 3,
                     life: 8 + Math.random() * 8, maxLife: 16,
@@ -898,9 +982,9 @@ function drawProjectiles() {
                 ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 60;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 80;
             // Outer fire glow
-            const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
+            const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2.5);
             og.addColorStop(0, 'rgba(255,100,0,0.5)');
             og.addColorStop(0.5, 'rgba(231,76,60,0.2)');
             og.addColorStop(1, 'rgba(0,0,0,0)');
@@ -964,8 +1048,8 @@ function drawProjectiles() {
         // ─── WATER: Tidal Wave ───
         else if (draw === 'tidalWave') {
             const dir = p.vx > 0 ? 1 : -1;
-            const waveH = 70;
-            const waveW = 60;
+            const waveH = 95;
+            const waveW = 75;
             ctx.save();
             ctx.translate(p.x, groundY);
             ctx.globalAlpha = 0.85;
@@ -1048,8 +1132,8 @@ function drawProjectiles() {
         // ─── WATER: Tsunami ───
         else if (draw === 'tsunami') {
             const dir = p.vx > 0 ? 1 : -1;
-            const waveH = 140;
-            const waveW = 90;
+            const waveH = 180;
+            const waveW = 110;
             ctx.save();
             ctx.translate(p.x, groundY);
             ctx.globalAlpha = 0.8;
@@ -1121,7 +1205,7 @@ function drawProjectiles() {
 
         // ─── WIND: Tornado ───
         else if (draw === 'tornado') {
-            const h = 100;
+            const h = 140;
             ctx.save();
             ctx.translate(p.x, groundY);
             ctx.globalAlpha = 0.7;
@@ -1385,11 +1469,18 @@ function updateParticles() {
 
 function drawParticles() {
     for (const p of particles) {
-        ctx.globalAlpha = p.life / p.maxLife;
+        const a = p.life / p.maxLife;
+        ctx.globalAlpha = a;
         ctx.fillStyle = p.color;
-        ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 10;
+        const size = 2 + a * 5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fill();
     }
     ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 }
 
 // ── Players ──
@@ -1659,6 +1750,20 @@ function gameLoop() {
         return;
     }
 
+    // Hitstop — freeze game logic, keep rendering for dramatic pause
+    if (hitstopTimer > 0) {
+        hitstopTimer--;
+        ctx.save();
+        ctx.translate(shakeOffsetX, shakeOffsetY);
+        drawBackground();
+        player1.draw(); player2.draw();
+        drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns();
+        ctx.restore();
+        drawScreenFlash();
+        updateUI();
+        return;
+    }
+
     handleInput();
     if (aiMode) handleAI();
     player1.update(player2); player2.update(player1);
@@ -1675,6 +1780,7 @@ function gameLoop() {
 
     ctx.restore();
 
+    drawScreenFlash();
     updateUI(); checkRoundEnd();
 }
 
