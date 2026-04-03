@@ -328,11 +328,6 @@ button:hover {
     box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
 }
 
-.style-btn[data-style="tarkavan"].selected {
-    border-color: #2e5bff;
-    box-shadow: 0 0 20px rgba(46, 91, 255, 0.4);
-}
-
 .style-btn[data-style="samurai"].selected {
     border-color: #c8d6e5;
     box-shadow: 0 0 20px rgba(200, 214, 229, 0.4);
