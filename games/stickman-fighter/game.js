@@ -150,6 +150,17 @@ const STYLES = {
             { name: 'Total Corruption',  type: 'instant',    damage: 18, cooldown: 580,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'totalCorruption' },
         ],
     },
+    samurai: {
+        name: 'Samurai',
+        color: '#c8d6e5',
+        hue: 215,
+        attacks: [
+            { name: 'Oni Giri',       type: 'projectile', damage: 8,  cooldown: 120,  speed: 14, radius: 30, knockback: 8,  blockReduction: 0.4, draw: 'oniGiri' },
+            { name: 'Shishi Sonson',  type: 'instant',    damage: 14, cooldown: 300,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'shishiSonson' },
+            { name: 'Dragon Twister', type: 'projectile', damage: 10, cooldown: 340,  speed: 4,  radius: 45, knockback: 12, blockReduction: 0.3, draw: 'dragonTwister' },
+            { name: 'Ashura',         type: 'instant',    damage: 22, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'ashura' },
+        ],
+    },
     selfie: {
         name: 'Face',
         color: '#ffaa88',
@@ -1004,6 +1015,52 @@ class Fighter {
             }
         }
 
+        // ── Samurai Rage Upgrades ──
+        if (this.rageActive && this.style === 'samurai') {
+            if (index === 0) {
+                // NINE SWORD STYLE — 9 slash projectiles in a fan
+                for (let b = -4; b <= 4; b++) {
+                    projectiles.push({
+                        x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 8,
+                        vx: dir * (atk.speed + Math.random() * 2), vy: b * 1.2,
+                        radius: atk.radius * 0.8, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
+                        life: 200, trail: [], rageVfx: null,
+                    });
+                }
+                triggerScreenFlash('#c8d6e5', 0.3);
+                return;
+            }
+            if (index === 1) {
+                // 1080 POUND PHOENIX — massive horizontal slash across entire screen
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#c8d6e5');
+                this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2; opponent.vy = -8; opponent.onGround = false;
+                // Multiple slashes across the screen
+                for (let s = 0; s < 3; s++) {
+                    visualEffects.push({ type: 'shishiSonson', x1: this.x, y1: this.y - this.height * 0.5 + (s - 1) * 30, x2: dir > 0 ? canvas.width : 0, y2: this.y - this.height * 0.5 + (s - 1) * 30 + (s - 1) * 20, dir, life: 25, maxLife: 25 });
+                }
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#fff', 0.6);
+                return;
+            }
+            if (index === 2) {
+                // BLACK ROPE DRAGON TWISTER — massive dark slash tornado
+                projectiles.push({
+                    x: this.x + dir * 40, y: groundY,
+                    vx: dir * 3, vy: 0,
+                    radius: 80, owner: this, target: opponent,
+                    atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
+                    life: 360, trail: [], rageVfx: null,
+                    isDragonTwisterRage: true,
+                });
+                triggerScreenShake(8, 10);
+                return;
+            }
+        }
+
         // ── Face Rage Upgrades ──
         if (this.rageActive && this.style === 'selfie') {
             if (index === 0) {
@@ -1283,6 +1340,8 @@ class Fighter {
         else if (vfx === 'floodRinse') { visualEffects.push({ type: 'floodRinse', life: 45, maxLife: 45 }); triggerScreenFlash('#87ceeb', 0.4); }
         else if (vfx === 'decayPulse') { visualEffects.push({ type: 'decayPulse', x: opponent.x, y: groundY, life: 35, maxLife: 35 }); triggerScreenFlash('#ff0055', 0.25); }
         else if (vfx === 'totalCorruption') { visualEffects.push({ type: 'totalCorruption', life: 50, maxLife: 50 }); triggerScreenFlash('#ff0055', 0.5); }
+        else if (vfx === 'shishiSonson') { visualEffects.push({ type: 'shishiSonson', x1: this.x, y1: this.y - this.height * 0.5, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 22, maxLife: 22 }); triggerScreenFlash('#fff', 0.4); }
+        else if (vfx === 'ashura') { visualEffects.push({ type: 'ashura', x: opponent.x, y: opponent.y - opponent.height * 0.5, casterX: this.x, casterY: this.y, life: 50, maxLife: 50 }); triggerScreenFlash('#c8d6e5', 0.6); }
         else if (vfx === 'grinBeam') { visualEffects.push({ type: 'grinBeam', x1: this.x, y1: this.y - this.height * 0.8, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 28, maxLife: 28 }); triggerScreenFlash('#ffaa88', 0.3); }
         else if (vfx === 'theFace') { visualEffects.push({ type: 'theFace', x: opponent.x, y: canvas.height * 0.4, life: 60, maxLife: 60 }); triggerScreenFlash('#ffaa88', 0.5); }
     }
@@ -1669,6 +1728,7 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'portal') { visualEffects.push({ type: 'screenPortal', x, y, life: 55, maxLife: 55 }); triggerScreenFlash('#e056de', 0.6); }
     else if (style === 'washingmachine') { visualEffects.push({ type: 'screenFlood', life: 55, maxLife: 55 }); triggerScreenFlash('#87ceeb', 0.5); }
     else if (style === 'corruption') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff0055', 0.7); }
+    else if (style === 'samurai') { visualEffects.push({ type: 'screenAshura', life: 55, maxLife: 55 }); triggerScreenFlash('#fff', 0.8); }
     else if (style === 'selfie') { visualEffects.push({ type: 'screenViral', life: 60, maxLife: 60 }); triggerScreenFlash('#fff', 0.8); }
 }
 
@@ -2836,6 +2896,113 @@ function drawVisualEffects() {
                     life: 6 + Math.random() * 8, maxLife: 14,
                     color: Math.random() > 0.5 ? '#ff0055' : '#00ffcc' });
             }}
+        }
+
+        // ── Samurai VFX ──
+        if (vfx.type === 'shishiSonson') {
+            const prog = 1 - a; const reveal = Math.min(prog * 6, 1);
+            // Ultra-fast horizontal slash line
+            const sx = vfx.x1; const sy = vfx.y1;
+            const ex = sx + (vfx.x2 - sx) * reveal; const ey = sy + (vfx.y2 - sy) * reveal;
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 20;
+            // Outer slash glow
+            ctx.globalAlpha = a * 0.4; ctx.strokeStyle = '#c8d6e5'; ctx.lineWidth = 16 * a;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+            // Main slash
+            ctx.globalAlpha = a * 0.8; ctx.strokeStyle = '#e8eef4'; ctx.lineWidth = 6 * a;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+            // White core
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * a;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+            // Slash spark at the tip
+            if (reveal > 0.5) {
+                ctx.globalAlpha = a * 0.7; ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(ex, ey, 6 * a, 0, Math.PI * 2); ctx.fill();
+            }
+            // Speed lines behind the slash
+            ctx.globalAlpha = a * 0.3; ctx.strokeStyle = '#aab7c4'; ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                const ly = sy + (Math.random() - 0.5) * 30;
+                ctx.beginPath(); ctx.moveTo(sx - vfx.dir * 20, ly); ctx.lineTo(sx - vfx.dir * (40 + Math.random() * 40), ly); ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'ashura') {
+            const prog = 1 - a;
+            const scaleIn = Math.min(prog * 5, 1);
+            // Darken screen
+            ctx.globalAlpha = a * 0.4; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Three-headed demon silhouette behind the caster
+            if (prog < 0.6) {
+                ctx.globalAlpha = a * 0.5; ctx.shadowColor = '#c8d6e5'; ctx.shadowBlur = 30;
+                // 6 arm silhouettes (3 on each side)
+                ctx.strokeStyle = '#8899aa'; ctx.lineWidth = 4;
+                for (let arm = 0; arm < 6; arm++) {
+                    const angle = -Math.PI * 0.8 + (arm / 5) * Math.PI * 1.6;
+                    const armLen = 60 + Math.sin(arm * 1.7) * 15;
+                    ctx.beginPath(); ctx.moveTo(vfx.casterX, vfx.casterY - 50);
+                    ctx.lineTo(vfx.casterX + Math.cos(angle) * armLen, vfx.casterY - 50 + Math.sin(angle) * armLen); ctx.stroke();
+                    // Sword at end of each arm
+                    const sx = vfx.casterX + Math.cos(angle) * armLen;
+                    const sy = vfx.casterY - 50 + Math.sin(angle) * armLen;
+                    ctx.strokeStyle = '#dde4ec'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.cos(angle) * 35, sy + Math.sin(angle) * 35); ctx.stroke();
+                }
+                // 3 head silhouettes
+                ctx.fillStyle = '#667788';
+                for (let h = -1; h <= 1; h++) {
+                    ctx.beginPath(); ctx.arc(vfx.casterX + h * 25, vfx.casterY - 90 - Math.abs(h) * 10, 14, 0, Math.PI * 2); ctx.fill();
+                    // Glowing eyes
+                    ctx.fillStyle = '#ff4444';
+                    ctx.beginPath(); ctx.arc(vfx.casterX + h * 25 - 4, vfx.casterY - 92 - Math.abs(h) * 10, 2, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(vfx.casterX + h * 25 + 4, vfx.casterY - 92 - Math.abs(h) * 10, 2, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#667788';
+                }
+                ctx.shadowBlur = 0;
+            }
+            // MASSIVE crossing slashes across the screen
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 15;
+            const slashAngles = [-0.3, 0, 0.3, -0.6, 0.6, -Math.PI * 0.4, Math.PI * 0.4, -0.15, 0.15];
+            for (let s = 0; s < 9; s++) {
+                const slashReveal = Math.min((prog - s * 0.03) * 8, 1);
+                if (slashReveal <= 0) continue;
+                const sa = slashAngles[s];
+                const len = canvas.width * 0.8 * slashReveal;
+                ctx.globalAlpha = a * (0.6 - s * 0.04);
+                ctx.strokeStyle = s < 3 ? '#fff' : '#c8d6e5'; ctx.lineWidth = (5 - s * 0.3) * a;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x - Math.cos(sa) * len * 0.5, vfx.y - Math.sin(sa) * len * 0.5);
+                ctx.lineTo(vfx.x + Math.cos(sa) * len * 0.5, vfx.y + Math.sin(sa) * len * 0.5);
+                ctx.stroke();
+            }
+            // Slash particles
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 6; i++) {
+                const pa = Math.random() * Math.PI * 2; const ps = 3 + Math.random() * 6;
+                particles.push({ x: vfx.x + (Math.random() - 0.5) * 200, y: vfx.y + (Math.random() - 0.5) * 100,
+                    vx: Math.cos(pa) * ps, vy: Math.sin(pa) * ps,
+                    life: 8 + Math.random() * 8, maxLife: 16, color: '#c8d6e5' });
+            }}
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'screenAshura') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.5; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Many slashes crossing the screen
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 10;
+            for (let s = 0; s < 15; s++) {
+                const sa = (s / 15) * Math.PI - Math.PI * 0.5;
+                const reveal = Math.min((prog - s * 0.02) * 6, 1);
+                if (reveal <= 0) continue;
+                const cx = canvas.width / 2, cy = canvas.height * 0.4;
+                const len = Math.max(canvas.width, canvas.height) * reveal;
+                ctx.globalAlpha = a * 0.5;
+                ctx.strokeStyle = s % 3 === 0 ? '#fff' : '#aab7c4'; ctx.lineWidth = (3 - (s % 3)) * a;
+                ctx.beginPath();
+                ctx.moveTo(cx - Math.cos(sa) * len * 0.5, cy - Math.sin(sa) * len * 0.5);
+                ctx.lineTo(cx + Math.cos(sa) * len * 0.5, cy + Math.sin(sa) * len * 0.5);
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
         }
 
         // ── Face VFX ──
@@ -4649,6 +4816,81 @@ function drawProjectiles() {
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
             }
         }
+        // ─── SAMURAI: Oni Giri (three crossing slashes) ───
+        else if (draw === 'oniGiri') {
+            const dir = p.vx > 0 ? 1 : -1;
+            // Slash trail
+            for (const t of p.trail) {
+                if (t.alpha < 0.2) continue;
+                ctx.globalAlpha = t.alpha * 0.3; ctx.strokeStyle = '#c8d6e5'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(t.x - 8, t.y - 8); ctx.lineTo(t.x + 8, t.y + 8); ctx.stroke();
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#fff'; ctx.shadowBlur = 15;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015 * dir);
+            // Three crossing slash lines
+            ctx.strokeStyle = '#e8eef4'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            for (let s = 0; s < 3; s++) {
+                const sa = (s / 3) * Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(sa) * -p.radius, Math.sin(sa) * -p.radius);
+                ctx.lineTo(Math.cos(sa) * p.radius, Math.sin(sa) * p.radius);
+                ctx.stroke();
+            }
+            // White core
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+            for (let s = 0; s < 3; s++) {
+                const sa = (s / 3) * Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(sa) * -p.radius * 0.6, Math.sin(sa) * -p.radius * 0.6);
+                ctx.lineTo(Math.cos(sa) * p.radius * 0.6, Math.sin(sa) * p.radius * 0.6);
+                ctx.stroke();
+            }
+            ctx.restore(); ctx.shadowBlur = 0;
+            // Slash sparks
+            if (Math.random() < 0.5) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 15, y: p.y + (Math.random() - 0.5) * 15,
+                    vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+                    life: 5 + Math.random() * 4, maxLife: 9, color: '#dde4ec' });
+            }
+        }
+        // ─── SAMURAI: Dragon Twister (slash tornado) ───
+        else if (draw === 'dragonTwister') {
+            const isRage = p.isDragonTwisterRage;
+            const h = isRage ? 260 : 160;
+            const baseW = isRage ? 55 : 35;
+            ctx.save(); ctx.translate(p.x, groundY);
+            ctx.globalAlpha = 0.8; ctx.shadowColor = '#c8d6e5'; ctx.shadowBlur = 20;
+            // Spinning slash tornado
+            for (let j = 0; j < 12; j++) {
+                const t = j / 12;
+                const y = -t * h;
+                const w = (1 - t * 0.5) * baseW;
+                const offset = Math.sin(Date.now() * 0.015 + j * 0.7) * w * 0.4;
+                // Slash arcs instead of normal tornado rings
+                ctx.strokeStyle = j % 2 === 0 ? '#e8eef4' : '#aab7c4';
+                ctx.lineWidth = isRage ? 4 : 2.5;
+                ctx.beginPath();
+                ctx.arc(offset, y, w, Date.now() * 0.02 + j * 0.5, Date.now() * 0.02 + j * 0.5 + 2);
+                ctx.stroke();
+                // Sword shapes at some levels
+                if (j % 3 === 0) {
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                    const sAngle = Date.now() * 0.01 + j;
+                    ctx.beginPath();
+                    ctx.moveTo(offset + Math.cos(sAngle) * w * 0.3, y + Math.sin(sAngle) * 8);
+                    ctx.lineTo(offset + Math.cos(sAngle) * w * 1.2, y + Math.sin(sAngle) * 8);
+                    ctx.stroke();
+                }
+            }
+            ctx.shadowBlur = 0; ctx.restore();
+            // Wind/slash particles
+            if (Math.random() < 0.6) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * baseW * 2, y: groundY - Math.random() * h,
+                    vx: Math.sin(Date.now() * 0.01) * (isRage ? 6 : 4), vy: -1 - Math.random() * 2,
+                    life: 6 + Math.random() * 5, maxLife: 11, color: '#c8d6e5' });
+            }
+        }
+
         // ─── FACE: Face Shot (flying face — actual photo) ───
         else if (draw === 'faceShot') {
             // Trail of smaller faces
