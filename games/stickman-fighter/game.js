@@ -78,6 +78,61 @@ const STYLES = {
             { name: 'Acid Monster', type: 'projectile', damage: 15, cooldown: 660,  speed: 0,  radius: 90, knockback: 22, blockReduction: 0.2, draw: 'acidMonster', special: 'acidMonster' },
         ],
     },
+    light: {
+        name: 'Light',
+        color: '#ffd700',
+        hue: 45,
+        attacks: [
+            { name: 'Holy Bolt',     type: 'projectile', damage: 6,  cooldown: 110,  speed: 14, radius: 18, knockback: 5,  blockReduction: 0.5, draw: 'holyBolt' },
+            { name: 'Radiant Burst', type: 'instant',    damage: 10, cooldown: 280,  range: 280, knockback: 10, blockReduction: 0.4, vfx: 'radiantBurst' },
+            { name: 'Divine Ray',    type: 'projectile', damage: 13, cooldown: 380,  speed: 8,  radius: 35, knockback: 12, blockReduction: 0.3, draw: 'divineRay' },
+            { name: 'Judgment',      type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'judgment' },
+        ],
+    },
+    dark: {
+        name: 'Dark',
+        color: '#8e44ad',
+        hue: 280,
+        attacks: [
+            { name: 'Shadow Bolt',  type: 'projectile', damage: 7,  cooldown: 120,  speed: 11, radius: 22, knockback: 6,  blockReduction: 0.5, draw: 'shadowBolt' },
+            { name: 'Void Grip',    type: 'instant',    damage: 11, cooldown: 300,  range: 320, knockback: 8,  blockReduction: 0.4, vfx: 'voidGrip' },
+            { name: 'Dark Orb',     type: 'projectile', damage: 12, cooldown: 360,  speed: 4,  radius: 45, knockback: 14, blockReduction: 0.3, draw: 'darkOrb' },
+            { name: 'Abyss',        type: 'instant',    damage: 18, cooldown: 580,  range: 380, knockback: 16, blockReduction: 0.2, vfx: 'abyss' },
+        ],
+    },
+    shadow: {
+        name: 'Shadow',
+        color: '#708090',
+        hue: 210,
+        attacks: [
+            { name: 'Shadow Strike', type: 'projectile', damage: 5,  cooldown: 80,   speed: 17, radius: 16, knockback: 4,  blockReduction: 0.6, draw: 'shadowStrike' },
+            { name: 'Phantom Step',  type: 'instant',    damage: 9,  cooldown: 240,  range: 300, knockback: 10, blockReduction: 0.4, vfx: 'phantomStep' },
+            { name: 'Shadow Clone',  type: 'projectile', damage: 11, cooldown: 340,  speed: 6,  radius: 40, knockback: 12, blockReduction: 0.3, draw: 'shadowClone' },
+            { name: 'Eclipse',       type: 'instant',    damage: 17, cooldown: 560,  range: 350, knockback: 20, blockReduction: 0.2, vfx: 'eclipse' },
+        ],
+    },
+    portal: {
+        name: 'Portal',
+        color: '#e056de',
+        hue: 300,
+        attacks: [
+            { name: 'Rift Shot',        type: 'projectile', damage: 6,  cooldown: 100,  speed: 12, radius: 20, knockback: 5,  blockReduction: 0.5, draw: 'riftShot' },
+            { name: 'Warp Strike',      type: 'instant',    damage: 10, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'warpStrike' },
+            { name: 'Dimensional Rift', type: 'projectile', damage: 13, cooldown: 360,  speed: 3,  radius: 55, knockback: 14, blockReduction: 0.3, draw: 'dimensionalRift' },
+            { name: 'Void Gate',        type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'voidGate' },
+        ],
+    },
+    washingmachine: {
+        name: 'Washer',
+        color: '#87ceeb',
+        hue: 197,
+        attacks: [
+            { name: 'Soap Blast',      type: 'projectile', damage: 5,  cooldown: 100,  speed: 10, radius: 22, knockback: 5,  blockReduction: 0.5, draw: 'soapBlast', special: 'soapBlast' },
+            { name: 'Spin Cycle',      type: 'instant',    damage: 9,  cooldown: 260,  range: 220, knockback: 14, blockReduction: 0.4, vfx: 'spinCycle' },
+            { name: 'Bubble Barrage',  type: 'projectile', damage: 3,  cooldown: 90,   speed: 7,  radius: 14, knockback: 3,  blockReduction: 0.5, draw: 'bubbleBarrage', special: 'bubbleBarrage' },
+            { name: 'Flood Rinse',     type: 'instant',    damage: 16, cooldown: 560,  range: 380, knockback: 20, blockReduction: 0.2, vfx: 'floodRinse' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -771,6 +826,29 @@ class Fighter {
                     dir: dir,
                     rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
+            }
+            // Soap Blast — leaves soapy puddle on expire
+            else if (atk.special === 'soapBlast') {
+                projectiles.push({
+                    x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                    vx: dir * atk.speed, vy: 0,
+                    radius: atk.radius, owner: this, target: opponent,
+                    atk, styleData, life: 250, trail: [],
+                    isSoapBlast: true,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null,
+                });
+            }
+            // Bubble Barrage — 5 bubbles in a spread
+            else if (atk.special === 'bubbleBarrage') {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({
+                        x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 12,
+                        vx: dir * (atk.speed + Math.random() * 3), vy: b * 1.2 + (Math.random() - 0.5) * 2,
+                        radius: atk.radius + Math.random() * 6, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null,
+                    });
+                }
             } else {
                 projectiles.push({
                     x: this.x + dir * 30,
@@ -833,6 +911,16 @@ class Fighter {
         else if (vfx === 'earthPillar') spawnEarthPillar(opponent.x, groundY);
         else if (vfx === 'acidRain') spawnAcidRain(opponent.x, groundY);
         else if (vfx === 'acidSlash') spawnAcidSlash(this.x, this.y - this.height * 0.5, opponent.x, opponent.y - opponent.height * 0.5, dir);
+        else if (vfx === 'radiantBurst') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#ffd700', 0.3); }
+        else if (vfx === 'judgment') { spawnLightningBolt(opponent.x, 0, groundY, 10); visualEffects.push({ type: 'judgmentPillar', x: opponent.x, life: 40, maxLife: 40 }); triggerScreenFlash('#ffd700', 0.5); }
+        else if (vfx === 'voidGrip') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); }
+        else if (vfx === 'abyss') { visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenFlash('#8e44ad', 0.4); }
+        else if (vfx === 'phantomStep') { visualEffects.push({ type: 'phantomSlash', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, life: 18, maxLife: 18 }); }
+        else if (vfx === 'eclipse') { visualEffects.push({ type: 'eclipse', life: 45, maxLife: 45 }); triggerScreenFlash('#000', 0.6); }
+        else if (vfx === 'warpStrike') { visualEffects.push({ type: 'warpPortal', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 28, maxLife: 28 }); triggerScreenFlash('#e056de', 0.3); }
+        else if (vfx === 'voidGate') { visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 }); triggerScreenFlash('#e056de', 0.5); }
+        else if (vfx === 'spinCycle') { visualEffects.push({ type: 'spinCycle', x: this.x, y: this.y - this.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#87ceeb', 0.2); }
+        else if (vfx === 'floodRinse') { visualEffects.push({ type: 'floodRinse', life: 45, maxLife: 45 }); triggerScreenFlash('#87ceeb', 0.4); }
     }
 
     draw() {
@@ -858,6 +946,53 @@ class Fighter {
             ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 55, 0, Math.PI * 2); ctx.stroke();
             ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
+        }
+
+        // ── Washing Machine Rage: draw washing machine instead of stickman ──
+        if (this.rageActive && this.style === 'washingmachine') {
+            const wobble = Math.sin(Date.now() * 0.02) * 3;
+            const drumAngle = Date.now() * 0.015;
+            ctx.translate(wobble, 0);
+            // Machine body
+            ctx.fillStyle = '#ddd'; ctx.strokeStyle = '#999'; ctx.lineWidth = 3;
+            ctx.fillRect(-30, -90, 60, 85);
+            ctx.strokeRect(-30, -90, 60, 85);
+            // Control panel top
+            ctx.fillStyle = '#bbb';
+            ctx.fillRect(-30, -90, 60, 18);
+            ctx.strokeRect(-30, -90, 60, 18);
+            // Buttons
+            ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(-15, -81, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#2ecc71'; ctx.beginPath(); ctx.arc(0, -81, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.arc(15, -81, 4, 0, Math.PI * 2); ctx.fill();
+            // Drum window
+            ctx.fillStyle = '#1a3a5c';
+            ctx.beginPath(); ctx.arc(0, -48, 24, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, -48, 24, 0, Math.PI * 2); ctx.stroke();
+            // Spinning clothes inside drum
+            const clothes = ['#e74c3c', '#3498db', '#f39c12', '#2ecc71', '#9b59b6'];
+            for (let c = 0; c < clothes.length; c++) {
+                const ca = drumAngle + (c / clothes.length) * Math.PI * 2;
+                ctx.fillStyle = clothes[c];
+                ctx.beginPath(); ctx.arc(Math.cos(ca) * 14, -48 + Math.sin(ca) * 14, 5, 0, Math.PI * 2); ctx.fill();
+            }
+            // Glass reflection
+            ctx.globalAlpha = 0.2; ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(-6, -54, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            // Legs
+            ctx.fillStyle = '#999';
+            ctx.fillRect(-25, -5, 8, 5);
+            ctx.fillRect(17, -5, 8, 5);
+            // Soap suds floating around
+            if (Math.random() < 0.5) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 60, y: this.y - 20 - Math.random() * 70,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 12 + Math.random() * 10, maxLife: 22, color: '#e8f4f8' });
+            }
+            ctx.shadowBlur = 0; ctx.restore();
+            return;
         }
 
         // ── Phoenix Dive: draw fireball instead of stickman ──
@@ -1146,6 +1281,11 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'wind') spawnScreenTear(x, y, dir);
     else if (style === 'earth') spawnScreenShatter(x, y);
     else if (style === 'acid') spawnScreenMeltdown(x, y);
+    else if (style === 'light') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#ffd700', 0.8); }
+    else if (style === 'dark') { visualEffects.push({ type: 'screenDarkness', life: 55, maxLife: 55 }); triggerScreenFlash('#000', 0.7); }
+    else if (style === 'shadow') { visualEffects.push({ type: 'screenShadow', life: 55, maxLife: 55 }); triggerScreenFlash('#000', 0.5); }
+    else if (style === 'portal') { visualEffects.push({ type: 'screenPortal', x, y, life: 55, maxLife: 55 }); triggerScreenFlash('#e056de', 0.6); }
+    else if (style === 'washingmachine') { visualEffects.push({ type: 'screenFlood', life: 55, maxLife: 55 }); triggerScreenFlash('#87ceeb', 0.5); }
 }
 
 function spawnScreenMeltdown(x, y) {
@@ -1812,6 +1952,201 @@ function drawVisualEffects() {
             }
         }
 
+        // ── Light VFX ──
+        if (vfx.type === 'radiantBurst') {
+            const prog = 1 - a; const r = 40 + prog * 120;
+            ctx.globalAlpha = a * 0.7; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 30;
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 6 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.5, 0, Math.PI * 2); ctx.stroke();
+            // Rays
+            for (let i = 0; i < 8; i++) { const ra = (i / 8) * Math.PI * 2;
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(vfx.x + Math.cos(ra) * r * 0.3, vfx.y + Math.sin(ra) * r * 0.3);
+                ctx.lineTo(vfx.x + Math.cos(ra) * r, vfx.y + Math.sin(ra) * r); ctx.stroke();
+            } ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'judgmentPillar') {
+            const pillarW = 70 * a; ctx.globalAlpha = a * 0.6;
+            const pg = ctx.createLinearGradient(vfx.x, 0, vfx.x, groundY);
+            pg.addColorStop(0, 'rgba(255,215,0,0)'); pg.addColorStop(0.3, 'rgba(255,215,0,0.5)');
+            pg.addColorStop(0.7, 'rgba(255,255,255,0.7)'); pg.addColorStop(1, '#ffd700');
+            ctx.fillStyle = pg; ctx.fillRect(vfx.x - pillarW / 2, 0, pillarW, groundY);
+            ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillRect(vfx.x - pillarW / 4, 0, pillarW / 2, groundY);
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'screenRadiance') {
+            ctx.globalAlpha = a * 0.25; ctx.fillStyle = '#ffd700'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Light rays from center
+            ctx.globalAlpha = a * 0.15;
+            for (let i = 0; i < 12; i++) { const ra = (i / 12) * Math.PI * 2 + Date.now() * 0.001;
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 8;
+                ctx.beginPath(); ctx.moveTo(canvas.width / 2, canvas.height / 2);
+                ctx.lineTo(canvas.width / 2 + Math.cos(ra) * canvas.width, canvas.height / 2 + Math.sin(ra) * canvas.height); ctx.stroke();
+            }
+        }
+
+        // ── Dark VFX ──
+        if (vfx.type === 'voidGrip') {
+            const prog = 1 - a; ctx.globalAlpha = a * 0.8; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 20;
+            // Dark tendrils reaching toward center
+            for (let i = 0; i < 6; i++) { const ta = (i / 6) * Math.PI * 2 + Date.now() * 0.005;
+                const tr = 80 * a; ctx.strokeStyle = '#6c3483'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(vfx.x + Math.cos(ta) * tr, vfx.y + Math.sin(ta) * tr);
+                ctx.quadraticCurveTo(vfx.x + Math.cos(ta + 0.5) * tr * 0.4, vfx.y + Math.sin(ta + 0.5) * tr * 0.4, vfx.x, vfx.y);
+                ctx.stroke();
+            }
+            ctx.fillStyle = '#1a0a2e'; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 25 * a, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'abyss') {
+            const prog = 1 - a; const r = Math.min(prog * 3, 1) * 120;
+            ctx.globalAlpha = a * 0.7; ctx.fillStyle = '#0a0014';
+            ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 3; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 20;
+            ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r, r * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+            // Purple mist rising
+            if (vfx.life % 3 === 0) { for (let i = 0; i < 3; i++) {
+                particles.push({ x: vfx.x + (Math.random() - 0.5) * r * 2, y: vfx.y,
+                    vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 4,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#8e44ad' });
+            }} ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'screenDarkness') {
+            ctx.globalAlpha = a * 0.5; ctx.fillStyle = '#0a001e'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Purple lightning
+            if (vfx.life % 5 === 0) { ctx.globalAlpha = a * 0.6; ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 2;
+                ctx.beginPath(); let bx = Math.random() * canvas.width, by = 0; ctx.moveTo(bx, by);
+                while (by < canvas.height) { bx += (Math.random() - 0.5) * 60; by += 30 + Math.random() * 50; ctx.lineTo(bx, by); }
+                ctx.stroke();
+            }
+        }
+
+        // ── Shadow VFX ──
+        if (vfx.type === 'phantomSlash') {
+            const prog = 1 - a; ctx.globalAlpha = a * 0.8; ctx.shadowColor = '#708090'; ctx.shadowBlur = 15;
+            const slashAngle = vfx.dir > 0 ? -0.5 : 2.6;
+            ctx.strokeStyle = '#708090'; ctx.lineWidth = 8 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 55, slashAngle, slashAngle + Math.min(prog * 4, 1) * 1.5); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 45, slashAngle, slashAngle + Math.min(prog * 4, 1) * 1.5); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'eclipse') {
+            ctx.globalAlpha = a * 0.5; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Dark circle in center with faint rim
+            ctx.globalAlpha = a * 0.8;
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height * 0.35, 80, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#708090'; ctx.lineWidth = 3; ctx.shadowColor = '#708090'; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height * 0.35, 82, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'screenShadow') {
+            ctx.globalAlpha = a * 0.45; ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Shadow tendrils from edges
+            ctx.globalAlpha = a * 0.4;
+            for (let i = 0; i < 8; i++) { const sx = (i / 8) * canvas.width;
+                ctx.fillStyle = '#000'; ctx.beginPath();
+                ctx.moveTo(sx, canvas.height); ctx.quadraticCurveTo(sx + 30, canvas.height - 200 * a, sx + 60, canvas.height);
+                ctx.fill();
+            }
+        }
+
+        // ── Portal VFX ──
+        if (vfx.type === 'warpPortal') {
+            const prog = 1 - a; const r = Math.min(prog * 4, 1) * 50;
+            ctx.globalAlpha = a * 0.8; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 25;
+            // Swirling portal ring
+            for (let i = 0; i < 3; i++) { const ra = Date.now() * 0.01 + i * 2.1;
+                ctx.strokeStyle = i === 0 ? '#e056de' : i === 1 ? '#bb6bd9' : '#fff'; ctx.lineWidth = (3 - i) * a;
+                ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r * (1 - i * 0.15), r * 0.4 * (1 - i * 0.15), ra, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.fillStyle = '#1a0020'; ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r * 0.5, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'voidGate') {
+            const prog = 1 - a; const r = Math.min(prog * 3, 1) * 120;
+            ctx.globalAlpha = a * 0.7; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 40;
+            // Massive portal
+            for (let i = 0; i < 4; i++) { const ra = Date.now() * 0.008 + i * 1.57;
+                ctx.strokeStyle = `hsla(300, 70%, ${50 + i * 10}%, ${0.6 - i * 0.1})`;
+                ctx.lineWidth = (5 - i) * a;
+                ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r * (1 - i * 0.1), r * 0.35 * (1 - i * 0.1), ra, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.fillStyle = '#0a0010'; ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r * 0.6, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+            // Particles being sucked in
+            if (vfx.life % 3 === 0) { const pa = Math.random() * Math.PI * 2;
+                particles.push({ x: vfx.x + Math.cos(pa) * r, y: vfx.y + Math.sin(pa) * r * 0.35,
+                    vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 2,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
+            } ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'screenPortal') {
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#1a0020'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Multiple small portals across screen
+            ctx.globalAlpha = a * 0.5;
+            for (let i = 0; i < 6; i++) { const px = ((i * 173 + 50) % canvas.width); const py = ((i * 97 + 80) % (groundY * 0.8));
+                ctx.strokeStyle = '#e056de'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.ellipse(px, py, 25 + Math.sin(Date.now() * 0.005 + i) * 8, 10, Date.now() * 0.003 + i, 0, Math.PI * 2); ctx.stroke();
+            }
+        }
+
+        // ── Washing Machine VFX ──
+        if (vfx.type === 'spinCycle') {
+            const prog = 1 - a; const r = 50 + prog * 80;
+            ctx.globalAlpha = a * 0.6; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 15;
+            // Spinning water ring
+            for (let i = 0; i < 8; i++) { const sa = (i / 8) * Math.PI * 2 + Date.now() * 0.02;
+                ctx.strokeStyle = `hsla(197, 60%, ${60 + i * 4}%, ${0.5})`;
+                ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(vfx.x + Math.cos(sa) * r * 0.3, vfx.y + Math.sin(sa) * r * 0.3, r * 0.4, sa, sa + 1.2); ctx.stroke();
+            }
+            // Soap bubbles
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            for (let b = 0; b < 5; b++) { const ba = Date.now() * 0.01 + b * 1.2;
+                ctx.beginPath(); ctx.arc(vfx.x + Math.cos(ba) * r * 0.6, vfx.y + Math.sin(ba) * r * 0.6, 4 + Math.random() * 4, 0, Math.PI * 2); ctx.fill();
+            } ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'floodRinse') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#87ceeb'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Water rising from bottom
+            const waterH = prog * 200 * a;
+            ctx.globalAlpha = a * 0.5; ctx.fillStyle = 'rgba(135,206,235,0.4)';
+            ctx.fillRect(0, groundY - waterH, canvas.width, waterH + canvas.height - groundY);
+            // Bubbles
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 5; i++) {
+                particles.push({ x: Math.random() * canvas.width, y: groundY - Math.random() * waterH,
+                    vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 3,
+                    life: 8 + Math.random() * 8, maxLife: 16, color: '#e8f4f8' });
+            }}
+        }
+        if (vfx.type === 'soapPuddle') {
+            ctx.globalAlpha = a * 0.35; ctx.fillStyle = '#b0e0e6';
+            ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, 40, 8, 0, 0, Math.PI * 2); ctx.fill();
+            // Bubbles on puddle
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            for (let b = 0; b < 3; b++) { const bx = vfx.x + (Math.random() - 0.5) * 50;
+                ctx.beginPath(); ctx.arc(bx, vfx.y - Math.random() * 5, 2 + Math.random() * 3, 0, Math.PI * 2); ctx.fill();
+            } ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'screenFlood') {
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#87ceeb'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Bubbles everywhere
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 8; i++) {
+                particles.push({ x: Math.random() * canvas.width, y: canvas.height,
+                    vx: (Math.random() - 0.5) * 3, vy: -4 - Math.random() * 8,
+                    life: 12 + Math.random() * 12, maxLife: 24, color: '#e8f4f8' });
+            }}
+            // Soap suds from top
+            ctx.globalAlpha = a * 0.4;
+            for (let i = 0; i < 12; i++) { const sx = (i / 12) * canvas.width;
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath(); ctx.arc(sx, Math.sin(Date.now() * 0.003 + i) * 15, 12 + Math.sin(i) * 5, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
         // ── Acid Rain ──
         if (vfx.type === 'acidRain') {
             const prog = 1 - a;
@@ -2433,6 +2768,10 @@ function updateProjectiles() {
         }
 
         if (p.life <= 0 || p.x < -80 || p.x > canvas.width + 80 || p.y > canvas.height + 50) {
+            // Soap blast leaves a puddle on the ground
+            if (p.isSoapBlast) {
+                visualEffects.push({ type: 'soapPuddle', x: p.x, y: groundY, life: 180, maxLife: 180 });
+            }
             projectiles.splice(i, 1);
         }
     }
@@ -3285,6 +3624,134 @@ function drawProjectiles() {
 
             ctx.shadowBlur = 0;
             ctx.restore();
+        }
+
+        // ─── LIGHT: Holy Bolt ───
+        else if (draw === 'holyBolt') {
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ffd700';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 25;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.4, '#ffd700'); g.addColorStop(1, 'rgba(255,215,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── LIGHT: Divine Ray ───
+        else if (draw === 'divineRay') {
+            const dir = p.vx > 0 ? 1 : -1;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#ffd700';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.6, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 35;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.4);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.2, '#fffacd'); g.addColorStop(0.5, '#ffd700'); g.addColorStop(1, 'rgba(255,215,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.4, 0, Math.PI * 2); ctx.fill();
+            // Light rays
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.5;
+            for (let i = 0; i < 4; i++) { const ra = Date.now() * 0.008 + i * 1.57;
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + Math.cos(ra) * p.radius * 2, p.y + Math.sin(ra) * p.radius * 2); ctx.stroke();
+            } ctx.shadowBlur = 0;
+        }
+        // ─── DARK: Shadow Bolt ───
+        else if (draw === 'shadowBolt') {
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#6c3483';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 20;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#1a0a2e'); g.addColorStop(0.5, '#6c3483'); g.addColorStop(1, 'rgba(142,68,173,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── DARK: Dark Orb ───
+        else if (draw === 'darkOrb') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 40;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#0a0014'); g.addColorStop(0.4, '#1a0a2e'); g.addColorStop(0.8, '#6c3483'); g.addColorStop(1, 'rgba(142,68,173,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            // Dark tendrils
+            ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) { const ta = Date.now() * 0.008 + i * 1.57;
+                ctx.beginPath(); ctx.moveTo(p.x + Math.cos(ta) * p.radius * 0.5, p.y + Math.sin(ta) * p.radius * 0.5);
+                ctx.lineTo(p.x + Math.cos(ta) * p.radius * 1.3, p.y + Math.sin(ta) * p.radius * 1.3); ctx.stroke();
+            } ctx.shadowBlur = 0;
+        }
+        // ─── SHADOW: Shadow Strike ───
+        else if (draw === 'shadowStrike') {
+            const dir = p.vx > 0 ? 1 : -1;
+            ctx.globalAlpha = 0.8; ctx.shadowColor = '#708090'; ctx.shadowBlur = 10;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(dir > 0 ? -0.3 : Math.PI + 0.3);
+            ctx.fillStyle = '#555'; ctx.beginPath();
+            ctx.moveTo(18, 0); ctx.lineTo(-6, -5); ctx.lineTo(-10, 0); ctx.lineTo(-6, 5); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#999'; ctx.beginPath();
+            ctx.moveTo(16, 0); ctx.lineTo(-3, -3); ctx.lineTo(-5, 0); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── SHADOW: Shadow Clone ───
+        else if (draw === 'shadowClone') {
+            ctx.globalAlpha = 0.6; ctx.shadowColor = '#708090'; ctx.shadowBlur = 15;
+            // Ghost stickman figure
+            ctx.strokeStyle = '#555'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.save(); ctx.translate(p.x, p.y);
+            ctx.beginPath(); ctx.arc(0, -20, 8, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(-7, 16); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(7, 16); ctx.stroke();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── PORTAL: Rift Shot ───
+        else if (draw === 'riftShot') {
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#e056de';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 20;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#1a0020'); g.addColorStop(0.4, '#e056de'); g.addColorStop(1, 'rgba(224,86,222,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── PORTAL: Dimensional Rift ───
+        else if (draw === 'dimensionalRift') {
+            ctx.globalAlpha = 0.8; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 25;
+            for (let i = 0; i < 3; i++) { const ra = Date.now() * 0.006 + i * 2.1;
+                ctx.strokeStyle = i === 0 ? '#e056de' : i === 1 ? '#bb6bd9' : '#fff'; ctx.lineWidth = (4 - i);
+                ctx.beginPath(); ctx.ellipse(p.x, p.y, p.radius * (1 - i * 0.12), p.radius * 0.35, ra, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.fillStyle = '#0a0014'; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.radius * 0.5, p.radius * 0.15, 0, 0, Math.PI * 2); ctx.fill();
+            if (Math.random() < 0.3) { const pa = Math.random() * Math.PI * 2;
+                particles.push({ x: p.x + Math.cos(pa) * p.radius, y: p.y + Math.sin(pa) * p.radius * 0.35,
+                    vx: -Math.cos(pa) * 3, vy: -Math.sin(pa) * 1.5, life: 6 + Math.random() * 4, maxLife: 10, color: '#e056de' });
+            } ctx.shadowBlur = 0;
+        }
+        // ─── WASHING MACHINE: Soap Blast ───
+        else if (draw === 'soapBlast') {
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#b0e0e6';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 15;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.3, '#e8f4f8'); g.addColorStop(0.6, '#87ceeb'); g.addColorStop(1, 'rgba(135,206,235,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            // Soap bubble sheen
+            ctx.globalAlpha = 0.3; ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(p.x - 4, p.y - 4, p.radius * 0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            // Dripping soap
+            if (Math.random() < 0.3) { particles.push({ x: p.x, y: p.y + p.radius * 0.5,
+                vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
+                life: 8 + Math.random() * 4, maxLife: 12, color: '#e8f4f8' }); }
+        }
+        // ─── WASHING MACHINE: Bubble Barrage ───
+        else if (draw === 'bubbleBarrage') {
+            ctx.globalAlpha = 0.7; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 8;
+            // Rainbow-tinted bubble
+            const hue = (p.x * 0.5 + Date.now() * 0.05) % 360;
+            ctx.strokeStyle = `hsla(${hue}, 60%, 70%, 0.6)`; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            // Shine
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath(); ctx.arc(p.x - p.radius * 0.25, p.y - p.radius * 0.25, p.radius * 0.25, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
         }
 
         // ─── TORNADO DEBRIS (spinning stickmen/cows) ───

@@ -202,7 +202,7 @@ button:hover {
 }
 
 .select-side {
-    width: 360px;
+    width: 420px;
     text-align: center;
 }
 
@@ -228,8 +228,8 @@ button:hover {
 
 .style-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
     margin-bottom: 16px;
 }
 
@@ -288,6 +288,31 @@ button:hover {
 .style-btn[data-style="acid"].selected {
     border-color: #39ff14;
     box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+}
+
+.style-btn[data-style="light"].selected {
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.style-btn[data-style="dark"].selected {
+    border-color: #8e44ad;
+    box-shadow: 0 0 20px rgba(142, 68, 173, 0.4);
+}
+
+.style-btn[data-style="shadow"].selected {
+    border-color: #708090;
+    box-shadow: 0 0 20px rgba(112, 128, 144, 0.4);
+}
+
+.style-btn[data-style="portal"].selected {
+    border-color: #e056de;
+    box-shadow: 0 0 20px rgba(224, 86, 222, 0.4);
+}
+
+.style-btn[data-style="washingmachine"].selected {
+    border-color: #87ceeb;
+    box-shadow: 0 0 20px rgba(135, 206, 235, 0.4);
 }
 
 .style-icon {
