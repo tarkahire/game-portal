@@ -74,7 +74,7 @@ const STYLES = {
         attacks: [
             { name: 'Acid Barrage', type: 'projectile', damage: 7,  cooldown: 100,  speed: 13, radius: 16, knockback: 4,  blockReduction: 0.5, draw: 'acidBarrage', special: 'acidBarrage' },
             { name: 'Acid Rain',    type: 'instant',    damage: 14, cooldown: 270,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'acidRain' },
-            { name: 'Acid Slash',   type: 'instant',    damage: 20, cooldown: 360,  range: 160, knockback: 14, blockReduction: 0.3, vfx: 'acidSlash' },
+            { name: 'Acid Slash',   type: 'instant',    damage: 20, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'acidSlash' },
             { name: 'Acid Monster', type: 'projectile', damage: 25, cooldown: 660,  speed: 0,  radius: 90, knockback: 22, blockReduction: 0.2, draw: 'acidMonster', special: 'acidMonster' },
         ],
     },
@@ -435,7 +435,7 @@ class Fighter {
         else if (vfx === 'iceSpike') spawnIceSpike(opponent.x, groundY);
         else if (vfx === 'earthPillar') spawnEarthPillar(opponent.x, groundY);
         else if (vfx === 'acidRain') spawnAcidRain(opponent.x, groundY);
-        else if (vfx === 'acidSlash') spawnAcidSlash(this.x + dir * 50, this.y - this.height * 0.4, dir);
+        else if (vfx === 'acidSlash') spawnAcidSlash(this.x, this.y - this.height * 0.5, opponent.x, opponent.y - opponent.height * 0.5, dir);
     }
 
     draw() {
@@ -660,15 +660,26 @@ function spawnAcidRain(x, y) {
     }
 }
 
-function spawnAcidSlash(x, y, dir) {
-    visualEffects.push({ type: 'acidSlash', x, y, dir, life: 22, maxLife: 22 });
-    triggerScreenShake(6, 8);
-    triggerScreenFlash('#39ff14', 0.15);
-    for (let i = 0; i < 15; i++) {
-        const a = (dir > 0 ? -0.5 : 2.5) + Math.random() * 1;
-        const s = 3 + Math.random() * 6;
-        particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
-            life: 10 + Math.random() * 10, maxLife: 20,
+function spawnAcidSlash(x1, y1, x2, y2, dir) {
+    // Curved slash from caster to opponent and beyond
+    const extend = 300;
+    const endX = x2 + dir * extend;
+    const endY = y2 - 40;
+    // Control point for the curve — arcs upward
+    const midX = (x1 + endX) * 0.5;
+    const midY = Math.min(y1, endY) - 180;
+    visualEffects.push({ type: 'acidSlash', x1, y1, x2: endX, y2: endY, cx: midX, cy: midY, dir, life: 30, maxLife: 30 });
+    triggerScreenShake(10, 14);
+    triggerScreenFlash('#39ff14', 0.25);
+    // Particles along the slash path
+    for (let i = 0; i < 25; i++) {
+        const t = Math.random();
+        const px = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * midX + t * t * endX;
+        const py = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * midY + t * t * endY;
+        const s = 2 + Math.random() * 5;
+        const a = Math.random() * Math.PI * 2;
+        particles.push({ x: px, y: py, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+            life: 10 + Math.random() * 12, maxLife: 22,
             color: `hsl(${110 + Math.random() * 15}, 100%, ${45 + Math.random() * 35}%)` });
     }
 }
@@ -1185,25 +1196,46 @@ function drawVisualEffects() {
         // ── Acid Slash ──
         if (vfx.type === 'acidSlash') {
             const prog = 1 - a;
-            ctx.globalAlpha = a * 0.9;
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 25;
-            // Arc slash
-            const startAngle = vfx.dir > 0 ? -Math.PI * 0.7 : Math.PI * 0.3;
-            const sweep = Math.PI * 1.2 * Math.min(prog * 3, 1);
-            ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 8 * a;
-            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 60, startAngle, startAngle + sweep); ctx.stroke();
-            ctx.strokeStyle = '#7fff00'; ctx.lineWidth = 4 * a;
-            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 50, startAngle, startAngle + sweep); ctx.stroke();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * a;
-            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 40, startAngle, startAngle + sweep); ctx.stroke();
-            // Acid drips from the slash
+            const reveal = Math.min(prog * 4, 1); // slash sweeps across fast
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 30;
+
+            // Draw the curved slash line using quadratic bezier
+            // Outer glow
+            ctx.globalAlpha = a * 0.5;
+            ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 22 * a;
+            ctx.beginPath();
+            ctx.moveTo(vfx.x1, vfx.y1);
+            const partCx = vfx.x1 + (vfx.cx - vfx.x1) * reveal;
+            const partCy = vfx.y1 + (vfx.cy - vfx.y1) * reveal;
+            const partEx = vfx.x1 + (vfx.x2 - vfx.x1) * reveal;
+            const partEy = vfx.y1 + (vfx.y2 - vfx.y1) * reveal;
+            ctx.quadraticCurveTo(partCx, partCy, partEx, partEy);
+            ctx.stroke();
+
+            // Main bright slash
+            ctx.globalAlpha = a * 0.85;
+            ctx.strokeStyle = '#7fff00'; ctx.lineWidth = 10 * a;
+            ctx.beginPath();
+            ctx.moveTo(vfx.x1, vfx.y1);
+            ctx.quadraticCurveTo(partCx, partCy, partEx, partEy);
+            ctx.stroke();
+
+            // White-hot core
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4 * a;
+            ctx.beginPath();
+            ctx.moveTo(vfx.x1, vfx.y1);
+            ctx.quadraticCurveTo(partCx, partCy, partEx, partEy);
+            ctx.stroke();
+
+            // Acid drips falling from the slash curve
             if (vfx.life % 2 === 0) {
-                const da = startAngle + Math.random() * sweep;
-                const dr = 50 + Math.random() * 15;
-                particles.push({ x: vfx.x + Math.cos(da) * dr, y: vfx.y + Math.sin(da) * dr,
-                    vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 3,
-                    life: 8 + Math.random() * 6, maxLife: 14,
-                    color: '#39ff14' });
+                const t = Math.random() * reveal;
+                const dx = (1 - t) * (1 - t) * vfx.x1 + 2 * (1 - t) * t * vfx.cx + t * t * vfx.x2;
+                const dy = (1 - t) * (1 - t) * vfx.y1 + 2 * (1 - t) * t * vfx.cy + t * t * vfx.y2;
+                particles.push({ x: dx, y: dy,
+                    vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 4,
+                    life: 10 + Math.random() * 8, maxLife: 18,
+                    color: `hsl(${110 + Math.random() * 15}, 100%, ${45 + Math.random() * 30}%)` });
             }
             ctx.shadowBlur = 0;
         }
