@@ -211,7 +211,7 @@ function drawScreenFlash() {
         ctx.fillStyle = screenFlashColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = 1;
-        screenFlashAlpha *= 0.82;
+        screenFlashAlpha *= 0.78;
     }
 }
 
@@ -1809,9 +1809,10 @@ function spawnAcidMonsterImpact(x, y) {
 }
 
 function spawnElementParticles(x, y, styleData, count) {
+    count = Math.floor((count || 12) * 1.3);
     for (let i = 0; i < (count || 12); i++) {
         const a = Math.random() * Math.PI * 2;
-        const s = 2 + Math.random() * 7;
+        const s = 3 + Math.random() * 9;
         particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
             life: 20 + Math.random() * 18, maxLife: 38,
             color: `hsl(${styleData.hue + (Math.random() - 0.5) * 30}, 90%, ${45 + Math.random() * 35}%)` });
@@ -3833,7 +3834,7 @@ function drawProjectiles() {
                 ctx.stroke();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 35;
+            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 53;
             // Core bolt shape
             ctx.fillStyle = '#fff';
             ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
@@ -3854,7 +3855,7 @@ function drawProjectiles() {
         // ─── LIGHTNING: Ball Lightning ───
         else if (draw === 'ballLightning') {
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 50;
+            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 75;
             // Outer glow
             const g1 = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
             g1.addColorStop(0, 'rgba(241,196,15,0.4)');
@@ -3880,7 +3881,7 @@ function drawProjectiles() {
             }
             ctx.shadowBlur = 0;
             // Ambient sparks
-            if (Math.random() < 0.6) {
+            if (Math.random() < 0.8) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * p.radius * 2, y: p.y + (Math.random() - 0.5) * p.radius * 2,
                     vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
                     life: 6 + Math.random() * 6, maxLife: 12, color: '#f1c40f' });
@@ -3897,7 +3898,7 @@ function drawProjectiles() {
                 ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 40;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 60;
             // Outer fire
             const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.6);
             g.addColorStop(0, '#fff');
@@ -3927,7 +3928,7 @@ function drawProjectiles() {
                 ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 80;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 120;
             // Outer fire glow
             const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2.5);
             og.addColorStop(0, 'rgba(255,100,0,0.5)');
@@ -3973,7 +3974,7 @@ function drawProjectiles() {
                 ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#3498db'; ctx.shadowBlur = 15;
+            ctx.shadowColor = '#3498db'; ctx.shadowBlur = 22;
             const wg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
             wg.addColorStop(0, '#fff');
             wg.addColorStop(0.3, '#85c1e9');
@@ -3983,7 +3984,7 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
             // Drips
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.6) {
                 particles.push({ x: p.x, y: p.y + p.radius * 0.5,
                     vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
                     life: 8 + Math.random() * 5, maxLife: 13, color: '#5dade2' });
@@ -3998,7 +3999,7 @@ function drawProjectiles() {
             ctx.save();
             ctx.translate(p.x, groundY);
             ctx.globalAlpha = 0.85;
-            ctx.shadowColor = '#2980b9'; ctx.shadowBlur = 20;
+            ctx.shadowColor = '#2980b9'; ctx.shadowBlur = 30;
             // Wave body — filled curve
             ctx.fillStyle = 'rgba(52, 152, 219, 0.6)';
             ctx.beginPath();
@@ -4028,7 +4029,7 @@ function drawProjectiles() {
             ctx.shadowBlur = 0;
             ctx.restore();
             // Spray particles
-            if (Math.random() < 0.5) {
+            if (Math.random() < 0.7) {
                 particles.push({ x: p.x + dir * 20, y: groundY - waveH + Math.random() * 20,
                     vx: dir * (2 + Math.random() * 3), vy: -1 - Math.random() * 3,
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#aed6f1' });
@@ -4042,7 +4043,7 @@ function drawProjectiles() {
             ctx.translate(p.x, p.y);
             ctx.rotate(dir > 0 ? 0 : Math.PI);
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#85c1e9'; ctx.shadowBlur = 15;
+            ctx.shadowColor = '#85c1e9'; ctx.shadowBlur = 22;
             // Sharp crystalline shard
             ctx.fillStyle = '#aed6f1';
             ctx.beginPath();
@@ -4067,7 +4068,7 @@ function drawProjectiles() {
             ctx.shadowBlur = 0;
             ctx.restore();
             // Ice sparkle particles
-            if (Math.random() < 0.3) {
+            if (Math.random() < 0.5) {
                 particles.push({ x: p.x, y: p.y + (Math.random() - 0.5) * 8,
                     vx: -dir * Math.random() * 2, vy: (Math.random() - 0.5) * 2,
                     life: 6 + Math.random() * 4, maxLife: 10, color: '#d4efdf' });
@@ -4082,7 +4083,7 @@ function drawProjectiles() {
             ctx.save();
             ctx.translate(p.x, groundY);
             ctx.globalAlpha = 0.8;
-            ctx.shadowColor = '#1a5276'; ctx.shadowBlur = 30;
+            ctx.shadowColor = '#1a5276'; ctx.shadowBlur = 45;
             // Massive wave body
             ctx.fillStyle = 'rgba(41, 128, 185, 0.65)';
             ctx.beginPath();
@@ -4115,7 +4116,7 @@ function drawProjectiles() {
             ctx.shadowBlur = 0;
             ctx.restore();
             // Heavy spray
-            if (Math.random() < 0.7) {
+            if (Math.random() < 0.9) {
                 for (let s = 0; s < 2; s++) {
                     particles.push({ x: p.x + dir * (Math.random() * 30), y: groundY - waveH * 0.5 - Math.random() * waveH * 0.5,
                         vx: dir * (1 + Math.random() * 4), vy: -2 - Math.random() * 4,
@@ -4130,7 +4131,7 @@ function drawProjectiles() {
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.globalAlpha = 0.8;
-            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = 12;
+            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = 18;
             // Crescent blade shape
             ctx.strokeStyle = '#1abc9c'; ctx.lineWidth = 3;
             ctx.beginPath();
@@ -4157,7 +4158,7 @@ function drawProjectiles() {
             ctx.save();
             ctx.translate(p.x, groundY);
             ctx.globalAlpha = isRage ? 0.85 : 0.7;
-            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = isRage ? 35 : 15;
+            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = isRage ? 53 : 22;
             // Funnel shape — wider at bottom, narrow at top, spinning lines
             for (let j = 0; j < rings; j++) {
                 const t = j / rings;
@@ -4231,7 +4232,7 @@ function drawProjectiles() {
             ctx.globalAlpha = 1;
             ctx.restore();
             // Debris particles
-            if (Math.random() < (isRage ? 0.8 : 0.5)) {
+            if (Math.random() < (isRage ? 1.0 : 0.7)) {
                 const dy = Math.random() * h;
                 particles.push({ x: p.x + (Math.random() - 0.5) * (isRage ? 90 : 40), y: groundY - dy,
                     vx: Math.sin(Date.now() * 0.01) * (isRage ? 7 : 4), vy: -1 - Math.random() * (isRage ? 4 : 2),
@@ -4276,7 +4277,7 @@ function drawProjectiles() {
             ctx.fill();
             ctx.restore();
             // Dust puffs
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.6) {
                 particles.push({ x: p.x - dir * 8, y: p.y + (Math.random() - 0.5) * 10,
                     vx: -dir * (1 + Math.random() * 2), vy: (Math.random() - 0.5) * 2,
                     life: 6 + Math.random() * 5, maxLife: 11,
@@ -4319,7 +4320,7 @@ function drawProjectiles() {
             }
             // Ground crack line
             ctx.strokeStyle = '#4a3020'; ctx.lineWidth = 4;
-            ctx.shadowColor = '#a0522d'; ctx.shadowBlur = 12;
+            ctx.shadowColor = '#a0522d'; ctx.shadowBlur = 18;
             ctx.beginPath();
             ctx.moveTo(-80 * dir, 2);
             ctx.lineTo(80 * dir, 2);
@@ -4374,7 +4375,7 @@ function drawProjectiles() {
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(rot);
-            ctx.shadowColor = '#4a2800'; ctx.shadowBlur = 25;
+            ctx.shadowColor = '#4a2800'; ctx.shadowBlur = 38;
 
             // Main rock body — big jagged shape
             ctx.fillStyle = '#4a2a10';
@@ -4419,7 +4420,7 @@ function drawProjectiles() {
             ctx.restore();
 
             // Dust falling off during all phases
-            if (Math.random() < 0.7) {
+            if (Math.random() < 0.9) {
                 for (let e = 0; e < 2; e++) {
                     particles.push({ x: p.x + (Math.random() - 0.5) * r, y: p.y + (Math.random() - 0.5) * r,
                         vx: (Math.random() - 0.5) * 3, vy: 1 + Math.random() * 3,
@@ -4452,7 +4453,7 @@ function drawProjectiles() {
                 ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1;
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 20;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 30;
             const ag = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.3);
             ag.addColorStop(0, '#fff'); ag.addColorStop(0.25, '#7fff00');
             ag.addColorStop(0.6, '#39ff14'); ag.addColorStop(1, 'rgba(57,255,20,0)');
@@ -4460,7 +4461,7 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.3, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
             // Acid drips
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.6) {
                 particles.push({ x: p.x, y: p.y + p.radius * 0.5,
                     vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
                     life: 6 + Math.random() * 4, maxLife: 10, color: '#39ff14' });
@@ -4479,7 +4480,7 @@ function drawProjectiles() {
 
             // Massive toxic acid pool spreading on ground
             ctx.fillStyle = 'rgba(57, 255, 20, 0.35)';
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 25;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 38;
             ctx.beginPath();
             ctx.ellipse(0, groundY - p.y + 3, 160 + breathe, 18, 0, 0, Math.PI * 2);
             ctx.fill();
@@ -4502,7 +4503,7 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.arc(0, -bodyH * 0.4, bodyW * 1.5, 0, Math.PI * 2); ctx.fill();
 
             // Monster body — massive hulking shape
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 40;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 60;
             const bg = ctx.createLinearGradient(0, 0, 0, -bodyH);
             bg.addColorStop(0, '#0a3a02');
             bg.addColorStop(0.3, '#0d5e05');
@@ -4541,7 +4542,7 @@ function drawProjectiles() {
 
             // Multiple glowing eyes — 6 eyes in two rows
             const eyeCY = -bodyH * 0.85;
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 20;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 30;
             // Top row — 2 big main eyes
             ctx.fillStyle = '#39ff14';
             ctx.beginPath(); ctx.ellipse(-22, eyeCY, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
@@ -4593,7 +4594,7 @@ function drawProjectiles() {
             }
             // Acid drool from mouth
             ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 3; ctx.globalAlpha = 0.6;
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 8;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 12;
             for (let d = 0; d < 3; d++) {
                 const dx = -15 + d * 15;
                 const droolLen = 15 + Math.sin(Date.now() * 0.008 + d) * 10;
@@ -4612,7 +4613,7 @@ function drawProjectiles() {
                 const shoulderY = -bodyH * 0.45;
                 // Thick arm
                 ctx.strokeStyle = '#0d5e05'; ctx.lineWidth = 28;
-                ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 15;
+                ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 22;
                 ctx.beginPath(); ctx.moveTo(shoulderX, shoulderY);
                 ctx.quadraticCurveTo(shoulderX + p.dir * 40, fistY - 20, fistX, fistY);
                 ctx.stroke();
@@ -4655,7 +4656,7 @@ function drawProjectiles() {
                 }
             }
             // Toxic mist rising around the monster
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.6) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * 200, y: groundY - Math.random() * 30,
                     vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
                     life: 15 + Math.random() * 10, maxLife: 25,
@@ -4675,7 +4676,7 @@ function drawProjectiles() {
                 ctx.fillStyle = `hsl(45, 100%, ${60 + (1 - t.alpha) * 30}%)`;
                 ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
             }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 35;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 53;
             // Outer glow
             const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
             og.addColorStop(0, 'rgba(255,215,0,0.4)'); og.addColorStop(1, 'rgba(255,215,0,0)');
@@ -4693,7 +4694,7 @@ function drawProjectiles() {
             }
             ctx.shadowBlur = 0;
             // Sparkle particles
-            if (Math.random() < 0.6) {
+            if (Math.random() < 0.8) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * 15, y: p.y + (Math.random() - 0.5) * 15,
                     vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3,
                     life: 6 + Math.random() * 5, maxLife: 11, color: '#ffd700' });
@@ -4708,7 +4709,7 @@ function drawProjectiles() {
                 ctx.fillStyle = `hsl(45, 100%, ${55 + (1 - t.alpha) * 35}%)`;
                 ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
             }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 60;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 90;
             // Massive outer glow
             const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2.5);
             og.addColorStop(0, 'rgba(255,250,205,0.5)'); og.addColorStop(0.4, 'rgba(255,215,0,0.2)'); og.addColorStop(1, 'rgba(0,0,0,0)');
@@ -4743,7 +4744,7 @@ function drawProjectiles() {
                 ctx.fillStyle = `rgba(108,52,131,${t.alpha * 0.6})`;
                 ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * (0.3 + t.alpha * 0.4), 0, Math.PI * 2); ctx.fill();
             }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 30;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 45;
             // Void center
             const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.5);
             g.addColorStop(0, '#000'); g.addColorStop(0.2, '#1a0a2e'); g.addColorStop(0.5, '#6c3483');
@@ -4759,7 +4760,7 @@ function drawProjectiles() {
             }
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
             // Dark wisps
-            if (Math.random() < 0.5) {
+            if (Math.random() < 0.7) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * 15, y: p.y + (Math.random() - 0.5) * 15,
                     vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2,
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#6c3483' });
@@ -4767,7 +4768,7 @@ function drawProjectiles() {
         }
         // ─── DARK: Dark Orb ───
         else if (draw === 'darkOrb') {
-            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 50;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 75;
             // Massive dark aura
             const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
             og.addColorStop(0, 'rgba(10,0,20,0.5)'); og.addColorStop(0.5, 'rgba(108,52,131,0.2)'); og.addColorStop(1, 'rgba(0,0,0,0)');
@@ -4788,7 +4789,7 @@ function drawProjectiles() {
             }
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
             // Particles being pulled in
-            if (Math.random() < 0.6) {
+            if (Math.random() < 0.8) {
                 const pa = Math.random() * Math.PI * 2;
                 particles.push({ x: p.x + Math.cos(pa) * p.radius * 1.8, y: p.y + Math.sin(pa) * p.radius * 1.8,
                     vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 4,
@@ -4806,7 +4807,7 @@ function drawProjectiles() {
                 ctx.moveTo(22, 0); ctx.lineTo(-8, -7); ctx.lineTo(-14, 0); ctx.lineTo(-8, 7); ctx.closePath(); ctx.fill();
                 ctx.restore();
             }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#aaa'; ctx.shadowBlur = 15;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#aaa'; ctx.shadowBlur = 22;
             ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(dir > 0 ? -0.3 : Math.PI + 0.3);
             // Blade body
             ctx.fillStyle = '#444'; ctx.beginPath();
@@ -4818,7 +4819,7 @@ function drawProjectiles() {
             ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.arc(20, 0, 3, 0, Math.PI * 2); ctx.fill();
             ctx.restore(); ctx.shadowBlur = 0;
             // Shadow wisps
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.6) {
                 particles.push({ x: p.x - dir * 10, y: p.y + (Math.random() - 0.5) * 10,
                     vx: -dir * (1 + Math.random() * 2), vy: (Math.random() - 0.5) * 2,
                     life: 5 + Math.random() * 4, maxLife: 9, color: '#555' });
@@ -4836,7 +4837,7 @@ function drawProjectiles() {
                 ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 6); ctx.stroke();
                 ctx.restore();
             }
-            ctx.globalAlpha = 0.75; ctx.shadowColor = '#708090'; ctx.shadowBlur = 20;
+            ctx.globalAlpha = 0.75; ctx.shadowColor = '#708090'; ctx.shadowBlur = 30;
             ctx.save(); ctx.translate(p.x, p.y);
             // Dark aura around clone
             const cg = ctx.createRadialGradient(0, -10, 5, 0, -10, 35);
@@ -4852,12 +4853,12 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(-8, 18); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(8, 18); ctx.stroke();
             // Glowing eyes
-            ctx.fillStyle = '#b0b0b0'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
+            ctx.fillStyle = '#b0b0b0'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 12;
             ctx.beginPath(); ctx.arc(-4, -23, 2, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(4, -23, 2, 0, Math.PI * 2); ctx.fill();
             ctx.restore(); ctx.shadowBlur = 0;
             // Shadow particles
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.6) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * 20, y: p.y + (Math.random() - 0.5) * 30,
                     vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random(), life: 8 + Math.random() * 5, maxLife: 13, color: '#555' });
             }
@@ -4870,7 +4871,7 @@ function drawProjectiles() {
                 ctx.strokeStyle = '#e056de'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.5 * t.alpha, 0, Math.PI * 2); ctx.stroke();
             }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 30;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 45;
             // Swirling portal ball
             const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.3);
             g.addColorStop(0, '#0a0014'); g.addColorStop(0.3, '#6a1b6a'); g.addColorStop(0.6, '#e056de');
@@ -4884,7 +4885,7 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.ellipse(p.x, p.y, p.radius * 0.8, p.radius * 0.3, ringAngle + 1.5, 0, Math.PI * 2); ctx.stroke();
             ctx.shadowBlur = 0;
             // Dimensional particles
-            if (Math.random() < 0.5) {
+            if (Math.random() < 0.7) {
                 const pa = Math.random() * Math.PI * 2;
                 particles.push({ x: p.x + Math.cos(pa) * p.radius, y: p.y + Math.sin(pa) * p.radius,
                     vx: -Math.cos(pa) * 3, vy: -Math.sin(pa) * 3,
@@ -4893,7 +4894,7 @@ function drawProjectiles() {
         }
         // ─── PORTAL: Dimensional Rift ───
         else if (draw === 'dimensionalRift') {
-            ctx.globalAlpha = 0.9; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 40;
+            ctx.globalAlpha = 0.9; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 60;
             // Dark void center
             const vg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 0.6);
             vg.addColorStop(0, '#000'); vg.addColorStop(0.5, '#1a0020'); vg.addColorStop(1, 'rgba(0,0,0,0)');
@@ -4918,7 +4919,7 @@ function drawProjectiles() {
             }
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
             // Particles spiraling in
-            if (Math.random() < 0.6) {
+            if (Math.random() < 0.8) {
                 const pa = Math.random() * Math.PI * 2;
                 particles.push({ x: p.x + Math.cos(pa) * p.radius * 1.5, y: p.y + Math.sin(pa) * p.radius * 0.5,
                     vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 2,
@@ -4934,7 +4935,7 @@ function drawProjectiles() {
                 ctx.globalAlpha = t.alpha * 0.3; ctx.strokeStyle = '#c8d6e5'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.moveTo(t.x - 8, t.y - 8); ctx.lineTo(t.x + 8, t.y + 8); ctx.stroke();
             }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#fff'; ctx.shadowBlur = 15;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#fff'; ctx.shadowBlur = 22;
             ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015 * dir);
             // Three crossing slash lines
             ctx.strokeStyle = '#e8eef4'; ctx.lineWidth = 4; ctx.lineCap = 'round';
@@ -4956,7 +4957,7 @@ function drawProjectiles() {
             }
             ctx.restore(); ctx.shadowBlur = 0;
             // Slash sparks
-            if (Math.random() < 0.5) {
+            if (Math.random() < 0.7) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * 15, y: p.y + (Math.random() - 0.5) * 15,
                     vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
                     life: 5 + Math.random() * 4, maxLife: 9, color: '#dde4ec' });
@@ -4968,7 +4969,7 @@ function drawProjectiles() {
             const h = isRage ? 260 : 160;
             const baseW = isRage ? 55 : 35;
             ctx.save(); ctx.translate(p.x, groundY);
-            ctx.globalAlpha = 0.8; ctx.shadowColor = '#c8d6e5'; ctx.shadowBlur = 20;
+            ctx.globalAlpha = 0.8; ctx.shadowColor = '#c8d6e5'; ctx.shadowBlur = 30;
             // Spinning slash tornado
             for (let j = 0; j < 12; j++) {
                 const t = j / 12;
@@ -4993,7 +4994,7 @@ function drawProjectiles() {
             }
             ctx.shadowBlur = 0; ctx.restore();
             // Wind/slash particles
-            if (Math.random() < 0.6) {
+            if (Math.random() < 0.8) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * baseW * 2, y: groundY - Math.random() * h,
                     vx: Math.sin(Date.now() * 0.01) * (isRage ? 6 : 4), vy: -1 - Math.random() * 2,
                     life: 6 + Math.random() * 5, maxLife: 11, color: '#c8d6e5' });
@@ -5013,7 +5014,7 @@ function drawProjectiles() {
                     ctx.restore();
                 }
             }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 15;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 22;
             const r = p.radius;
             if (faceImgLoaded) {
                 ctx.save(); ctx.translate(p.x, p.y);
@@ -5032,7 +5033,7 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.ellipse(p.x, groundY + 3, r * 0.7, 10, 0, 0, Math.PI * 2); ctx.fill();
             // Giant face photo
             if (faceImgLoaded) {
-                ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 30;
+                ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 45;
                 ctx.save(); ctx.translate(p.x, p.y);
                 ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
                 ctx.drawImage(faceImg, -r, -r, r * 2, r * 2);
@@ -5057,7 +5058,7 @@ function drawProjectiles() {
                 ctx.fillStyle = Math.random() > 0.5 ? '#ff0055' : '#00ffcc';
                 ctx.fillRect(t.x - s / 2 + (Math.random() - 0.5) * 4, t.y - s / 2 + (Math.random() - 0.5) * 4, s, s);
             }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 25;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 38;
             // Core — flickering between positions
             const gx = p.x + Math.sin(Date.now() * 0.08) * 3;
             const gy = p.y + Math.cos(Date.now() * 0.06) * 3;
@@ -5070,7 +5071,7 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.arc(gx + 4, gy - 2, p.radius * 0.7, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
             // Corrupted pixel particles
-            if (Math.random() < 0.6) {
+            if (Math.random() < 0.8) {
                 particles.push({ x: p.x + (Math.random() - 0.5) * 12, y: p.y + (Math.random() - 0.5) * 12,
                     vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
                     life: 6 + Math.random() * 5, maxLife: 11, color: Math.random() > 0.5 ? '#ff0055' : '#00ffcc' });
@@ -5082,7 +5083,7 @@ function drawProjectiles() {
             const gx = p.x + Math.sin(Date.now() * 0.1 + (p.glitchOffset || 0)) * 5;
             const gy = p.y + Math.cos(Date.now() * 0.08 + (p.glitchOffset || 0)) * 5;
             // Flickering square shape
-            ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 12;
+            ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 18;
             ctx.fillStyle = '#ff0055';
             const s = p.radius * 1.5;
             ctx.save(); ctx.translate(gx, gy); ctx.rotate(Date.now() * 0.015 + (p.glitchOffset || 0));
@@ -5097,7 +5098,7 @@ function drawProjectiles() {
         else if (draw === 'soapBlast') {
             for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#b0e0e6';
                 ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill(); }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 15;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 22;
             const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
             g.addColorStop(0, '#fff'); g.addColorStop(0.3, '#e8f4f8'); g.addColorStop(0.6, '#87ceeb'); g.addColorStop(1, 'rgba(135,206,235,0)');
             ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
@@ -5106,13 +5107,13 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.arc(p.x - 4, p.y - 4, p.radius * 0.3, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
             // Dripping soap
-            if (Math.random() < 0.3) { particles.push({ x: p.x, y: p.y + p.radius * 0.5,
+            if (Math.random() < 0.5) { particles.push({ x: p.x, y: p.y + p.radius * 0.5,
                 vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
                 life: 8 + Math.random() * 4, maxLife: 12, color: '#e8f4f8' }); }
         }
         // ─── WASHING MACHINE: Bubble Barrage ───
         else if (draw === 'bubbleBarrage') {
-            ctx.globalAlpha = 0.7; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 8;
+            ctx.globalAlpha = 0.7; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 12;
             // Rainbow-tinted bubble
             const hue = (p.x * 0.5 + Date.now() * 0.05) % 360;
             ctx.strokeStyle = `hsla(${hue}, 60%, 70%, 0.6)`; ctx.lineWidth = 1.5;
@@ -5194,8 +5195,8 @@ function drawParticles() {
         ctx.globalAlpha = a;
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;
-        ctx.shadowBlur = 10;
-        const size = 2 + a * 5;
+        ctx.shadowBlur = 15;
+        const size = 3 + a * 7;
         ctx.beginPath();
         ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
         ctx.fill();
