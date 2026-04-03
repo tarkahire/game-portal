@@ -166,10 +166,10 @@ const STYLES = {
         color: '#ffaa88',
         hue: 20,
         attacks: [
-            { name: 'Face Shot',   type: 'projectile', damage: 6,  cooldown: 100,  speed: 12, radius: 22, knockback: 6,  blockReduction: 0.5, draw: 'faceShot' },
-            { name: 'Grin Beam',   type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'grinBeam' },
-            { name: 'Head Slam',   type: 'projectile', damage: 14, cooldown: 360,  speed: 0,  radius: 55, knockback: 16, blockReduction: 0.3, draw: 'headSlam', special: 'headSlam' },
-            { name: 'THE FACE',    type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'theFace' },
+            { name: 'Face Shot',   type: 'projectile', damage: 6,  cooldown: 180,  speed: 12, radius: 22, knockback: 6,  blockReduction: 0.5, draw: 'faceShot' },
+            { name: 'Grin Beam',   type: 'instant',    damage: 11, cooldown: 420,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'grinBeam' },
+            { name: 'Head Slam',   type: 'projectile', damage: 14, cooldown: 540,  speed: 0,  radius: 55, knockback: 16, blockReduction: 0.3, draw: 'headSlam', special: 'headSlam' },
+            { name: 'THE FACE',    type: 'instant',    damage: 20, cooldown: 900,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'theFace' },
         ],
     },
 };
