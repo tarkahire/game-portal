@@ -161,6 +161,72 @@ const STYLES = {
             { name: 'Ashura',         type: 'instant',    damage: 22, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'ashura' },
         ],
     },
+    crystal: {
+        name: 'Crystal',
+        color: '#00e5ff',
+        hue: 187,
+        attacks: [
+            { name: 'Crystal Shard', type: 'projectile', damage: 7,  cooldown: 100,  speed: 15, radius: 18, knockback: 6,  blockReduction: 0.5, draw: 'crystalShard' },
+            { name: 'Prism Beam',    type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'prismBeam' },
+            { name: 'Crystal Cage',  type: 'projectile', damage: 13, cooldown: 350,  speed: 0,  radius: 45, knockback: 8,  blockReduction: 0.3, draw: 'crystalCage', special: 'crystalCage' },
+            { name: 'Diamond Storm', type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'diamondStorm' },
+        ],
+    },
+    rubberduck: {
+        name: 'Duck',
+        color: '#ffeb3b',
+        hue: 54,
+        attacks: [
+            { name: 'Duck Shot',    type: 'projectile', damage: 5,  cooldown: 90,   speed: 11, radius: 20, knockback: 6,  blockReduction: 0.5, draw: 'duckShot' },
+            { name: 'Squeak Blast', type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'squeakBlast' },
+            { name: 'Bath Bomb',    type: 'projectile', damage: 12, cooldown: 340,  speed: 8,  radius: 30, knockback: 12, blockReduction: 0.3, draw: 'bathBomb' },
+            { name: 'Duck Army',    type: 'instant',    damage: 18, cooldown: 580,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'duckArmy' },
+        ],
+    },
+    keyboard: {
+        name: 'Keyboard',
+        color: '#607d8b',
+        hue: 200,
+        attacks: [
+            { name: 'Key Throw',   type: 'projectile', damage: 6,  cooldown: 90,   speed: 13, radius: 16, knockback: 5,  blockReduction: 0.5, draw: 'keyThrow' },
+            { name: 'Caps Lock',   type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'capsLock' },
+            { name: 'Ctrl+C Ctrl+V', type: 'projectile', damage: 4, cooldown: 100, speed: 12, radius: 14, knockback: 4, blockReduction: 0.5, draw: 'keyThrow', special: 'ctrlCV' },
+            { name: 'Blue Screen', type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'blueScreen' },
+        ],
+    },
+    chef: {
+        name: 'Chef',
+        color: '#ff5722',
+        hue: 14,
+        attacks: [
+            { name: 'Pan Toss',         type: 'projectile', damage: 7,  cooldown: 110,  speed: 10, radius: 22, knockback: 10, blockReduction: 0.4, draw: 'panToss' },
+            { name: 'Flamb\u00e9',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'flambe' },
+            { name: 'Knife Throw',      type: 'projectile', damage: 8,  cooldown: 80,   speed: 18, radius: 14, knockback: 4,  blockReduction: 0.5, draw: 'knifeThrow' },
+            { name: 'Kitchen Nightmare', type: 'instant',   damage: 19, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'kitchenNightmare' },
+        ],
+    },
+    dj: {
+        name: 'DJ',
+        color: '#e040fb',
+        hue: 291,
+        attacks: [
+            { name: 'Vinyl Disc',    type: 'projectile', damage: 6,  cooldown: 100,  speed: 12, radius: 20, knockback: 6,  blockReduction: 0.5, draw: 'vinylDisc' },
+            { name: 'Bass Drop',     type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 18, blockReduction: 0.4, vfx: 'bassDrop' },
+            { name: 'Speaker Blast', type: 'projectile', damage: 10, cooldown: 320,  speed: 6,  radius: 40, knockback: 14, blockReduction: 0.3, draw: 'speakerBlast' },
+            { name: 'Drop the Beat', type: 'instant',    damage: 19, cooldown: 580,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'dropTheBeat' },
+        ],
+    },
+    pigeon: {
+        name: 'Pigeon',
+        color: '#9e9e9e',
+        hue: 0,
+        attacks: [
+            { name: 'Peck Shot',     type: 'projectile', damage: 5,  cooldown: 70,   speed: 16, radius: 14, knockback: 4,  blockReduction: 0.6, draw: 'peckShot' },
+            { name: 'Feather Storm', type: 'instant',    damage: 9,  cooldown: 250,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'featherStorm' },
+            { name: 'Poop Bomb',     type: 'projectile', damage: 14, cooldown: 350,  speed: 0,  radius: 30, knockback: 8,  blockReduction: 0.3, draw: 'poopBomb', special: 'poopBomb' },
+            { name: 'Flock Attack',  type: 'instant',    damage: 18, cooldown: 580,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'flockAttack' },
+        ],
+    },
     selfie: {
         name: 'Face',
         color: '#ffaa88',
@@ -1318,6 +1384,26 @@ class Fighter {
                 };
                 this.casting = false; this.castTimer = 0;
             }
+            // Crystal Cage — erupts from ground at opponent
+            else if (atk.special === 'crystalCage') {
+                projectiles.push({ x: opponent.x, y: groundY + 20, vx: 0, vy: -6,
+                    radius: atk.radius, owner: this, target: opponent, atk, styleData,
+                    life: 180, trail: [], rageVfx: this.rageActive && index === 3 ? this.style : null });
+            }
+            // Ctrl+C Ctrl+V — 5 copied key projectiles
+            else if (atk.special === 'ctrlCV') {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * atk.speed, vy: b * 1.2, radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [], rageVfx: null });
+                }
+            }
+            // Poop Bomb — drops from above onto opponent
+            else if (atk.special === 'poopBomb') {
+                projectiles.push({ x: opponent.x + (Math.random() - 0.5) * 60, y: -50,
+                    vx: 0, vy: 7, radius: atk.radius, owner: this, target: opponent,
+                    atk, styleData, life: 200, trail: [], rageVfx: this.rageActive && index === 3 ? this.style : null });
+            }
             // Head Slam — giant face drops from sky onto opponent
             else if (atk.special === 'headSlam') {
                 const spawnX = opponent.x;
@@ -1471,6 +1557,18 @@ class Fighter {
         else if (vfx === 'shishiSonson') { visualEffects.push({ type: 'shishiSonson', x1: this.x, y1: this.y - this.height * 0.5, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 22, maxLife: 22 }); triggerScreenFlash('#fff', 0.4); }
         else if (vfx === 'ashura') { visualEffects.push({ type: 'ashura', x: opponent.x, y: opponent.y - opponent.height * 0.5, casterX: this.x, casterY: this.y, life: 50, maxLife: 50 }); triggerScreenFlash('#c8d6e5', 0.6); }
         else if (vfx === 'grinBeam') { visualEffects.push({ type: 'grinBeam', x1: this.x, y1: this.y - this.height * 0.8, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 28, maxLife: 28 }); triggerScreenFlash('#ffaa88', 0.3); }
+        else if (vfx === 'prismBeam') { visualEffects.push({ type: 'prismBeam', x1: this.x, y1: this.y - this.height * 0.5, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 28, maxLife: 28 }); triggerScreenFlash('#00e5ff', 0.3); }
+        else if (vfx === 'diamondStorm') { visualEffects.push({ type: 'diamondStorm', life: 50, maxLife: 50 }); triggerScreenFlash('#00e5ff', 0.5); }
+        else if (vfx === 'squeakBlast') { visualEffects.push({ type: 'squeakBlast', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 28, maxLife: 28 }); triggerScreenFlash('#ffeb3b', 0.3); }
+        else if (vfx === 'duckArmy') { visualEffects.push({ type: 'duckArmy', x: opponent.x, life: 55, maxLife: 55 }); triggerScreenFlash('#ffeb3b', 0.5); }
+        else if (vfx === 'capsLock') { visualEffects.push({ type: 'capsLock', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, life: 30, maxLife: 30 }); triggerScreenFlash('#607d8b', 0.3); }
+        else if (vfx === 'blueScreen') { visualEffects.push({ type: 'blueScreen', life: 55, maxLife: 55 }); triggerScreenFlash('#0078d7', 0.6); }
+        else if (vfx === 'flambe') { spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4); triggerScreenFlash('#ff5722', 0.3); }
+        else if (vfx === 'kitchenNightmare') { visualEffects.push({ type: 'kitchenNightmare', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 50, maxLife: 50 }); triggerScreenFlash('#ff5722', 0.5); }
+        else if (vfx === 'bassDrop') { visualEffects.push({ type: 'bassDrop', x: this.x, y: this.y - this.height * 0.4, life: 30, maxLife: 30 }); triggerScreenFlash('#e040fb', 0.3); }
+        else if (vfx === 'dropTheBeat') { visualEffects.push({ type: 'dropTheBeat', life: 55, maxLife: 55 }); triggerScreenFlash('#e040fb', 0.5); }
+        else if (vfx === 'featherStorm') { visualEffects.push({ type: 'featherStorm', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#9e9e9e', 0.2); }
+        else if (vfx === 'flockAttack') { visualEffects.push({ type: 'flockAttack', x: opponent.x, life: 50, maxLife: 50 }); triggerScreenFlash('#9e9e9e', 0.4); }
         else if (vfx === 'theFace') { visualEffects.push({ type: 'theFace', x: opponent.x, y: canvas.height * 0.4, life: 60, maxLife: 60 }); triggerScreenFlash('#ffaa88', 0.5); }
     }
 
@@ -1890,6 +1988,12 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'portal') { visualEffects.push({ type: 'screenPortal', x, y, life: 55, maxLife: 55 }); triggerScreenFlash('#e056de', 0.6); }
     else if (style === 'washingmachine') { visualEffects.push({ type: 'screenFlood', life: 55, maxLife: 55 }); triggerScreenFlash('#87ceeb', 0.5); }
     else if (style === 'corruption') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff0055', 0.7); }
+    else if (style === 'crystal') { visualEffects.push({ type: 'screenCrystal', life: 55, maxLife: 55 }); triggerScreenFlash('#00e5ff', 0.7); }
+    else if (style === 'rubberduck') { visualEffects.push({ type: 'screenDucks', life: 55, maxLife: 55 }); triggerScreenFlash('#ffeb3b', 0.7); }
+    else if (style === 'keyboard') { visualEffects.push({ type: 'blueScreen', life: 60, maxLife: 60 }); triggerScreenFlash('#0078d7', 0.8); }
+    else if (style === 'chef') { visualEffects.push({ type: 'kitchenNightmare', x: x, y: y, life: 60, maxLife: 60 }); triggerScreenFlash('#ff5722', 0.7); }
+    else if (style === 'dj') { visualEffects.push({ type: 'dropTheBeat', life: 60, maxLife: 60 }); triggerScreenFlash('#e040fb', 0.8); }
+    else if (style === 'pigeon') { visualEffects.push({ type: 'flockAttack', x: x, life: 60, maxLife: 60 }); triggerScreenFlash('#9e9e9e', 0.6); }
     else if (style === 'samurai') { visualEffects.push({ type: 'screenAshura', life: 55, maxLife: 55 }); triggerScreenFlash('#fff', 0.8); }
     else if (style === 'selfie') { visualEffects.push({ type: 'screenViral', life: 60, maxLife: 60 }); triggerScreenFlash('#fff', 0.8); }
 }
@@ -3099,6 +3203,150 @@ function drawVisualEffects() {
                     life: 6 + Math.random() * 8, maxLife: 14,
                     color: Math.random() > 0.5 ? '#ff0055' : '#00ffcc' });
             }}
+        }
+
+        // ── Crystal VFX ──
+        if (vfx.type === 'prismBeam') {
+            const prog = 1 - a; const reveal = Math.min(prog * 5, 1);
+            const endX = vfx.x1 + (vfx.x2 - vfx.x1) * reveal;
+            ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 40;
+            // Rainbow beam — multiple colored layers
+            const colors = ['#ff0000', '#ff8800', '#ffff00', '#00ff00', '#00e5ff', '#0044ff', '#8800ff'];
+            for (let c = 0; c < colors.length; c++) {
+                ctx.globalAlpha = a * 0.4; ctx.strokeStyle = colors[c]; ctx.lineWidth = (16 - c * 2) * a;
+                ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1 + (c - 3) * 3); ctx.lineTo(endX, vfx.y1 + (c - 3) * 3); ctx.stroke();
+            }
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a; ctx.globalAlpha = a * 0.8;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'diamondStorm' || vfx.type === 'screenCrystal') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#001a22'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = a * 0.7;
+            for (let i = 0; i < 15; i++) {
+                const cx = (i * 127 + Date.now() * 0.06) % canvas.width;
+                const cy = (i * 89 + Date.now() * 0.04) % (groundY * 0.9);
+                const cr = 8 + Math.sin(i * 2.3) * 4;
+                ctx.save(); ctx.translate(cx, cy); ctx.rotate(Date.now() * 0.005 + i);
+                ctx.fillStyle = `hsl(${187 + i * 5}, 100%, ${60 + i * 2}%)`;
+                ctx.beginPath(); ctx.moveTo(0, -cr); ctx.lineTo(cr * 0.6, 0); ctx.lineTo(0, cr); ctx.lineTo(-cr * 0.6, 0); ctx.closePath(); ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // ── Rubber Duck VFX ──
+        if (vfx.type === 'squeakBlast') {
+            const prog = 1 - a; const r = 40 + prog * 140;
+            ctx.globalAlpha = a * 0.6; ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 25;
+            ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 6 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.5, 0, Math.PI * 2); ctx.stroke();
+            if (prog < 0.4) { ctx.globalAlpha = a; ctx.font = `bold ${30 + prog * 40}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#ffeb3b'; ctx.fillText('SQUEAK!', vfx.x, vfx.y - r * 0.3); }
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'duckArmy' || vfx.type === 'screenDucks') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.2; ctx.fillStyle = '#332200'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = a * 0.8;
+            for (let d = 0; d < 12; d++) {
+                const dx = (d * 143 + Date.now() * 0.08) % (canvas.width + 80) - 40;
+                const dy = groundY - 20 - Math.sin(Date.now() * 0.005 + d) * 15;
+                ctx.save(); ctx.translate(dx, dy);
+                ctx.fillStyle = '#ffeb3b'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ff8f00'; ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(18, 0); ctx.lineTo(10, 2); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-3, -4, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // ── Keyboard Warrior VFX ──
+        if (vfx.type === 'capsLock') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.8; ctx.font = `bold ${20 + prog * 30}px "Segoe UI",Arial,sans-serif`; ctx.textAlign = 'center';
+            const words = ['NOOB!!!', 'GG EZ', 'L + RATIO', 'GET REKT', 'SKILL ISSUE', 'MAD?'];
+            for (let i = 0; i < 4; i++) {
+                const wx = vfx.x + (Math.random() - 0.5) * 150; const wy = vfx.y - prog * 80 - i * 25;
+                ctx.fillStyle = `hsl(${i * 60}, 80%, 60%)`; ctx.fillText(words[(i + Math.floor(Date.now() * 0.002)) % words.length], wx, wy);
+            }
+        }
+        if (vfx.type === 'blueScreen') {
+            ctx.globalAlpha = a * 0.85; ctx.fillStyle = '#0078d7'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = 'bold 40px "Segoe UI",Consolas,monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+            ctx.fillText(':(', canvas.width / 2, canvas.height * 0.3);
+            ctx.font = '18px "Segoe UI",sans-serif';
+            ctx.fillText('Your opponent ran into a problem.', canvas.width / 2, canvas.height * 0.45);
+            ctx.font = '14px "Segoe UI",sans-serif'; ctx.globalAlpha = a * 0.6;
+            ctx.fillText('Error: SKILL_NOT_FOUND', canvas.width / 2, canvas.height * 0.55);
+        }
+
+        // ── Chef VFX ──
+        if (vfx.type === 'kitchenNightmare') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#1a0500'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = a * 0.8; ctx.font = `bold ${30 + prog * 20}px "Segoe UI",sans-serif`; ctx.textAlign = 'center';
+            const shouts = ["IT'S RAW!", 'DONKEY!', 'IDIOT SANDWICH!', 'SHUT IT DOWN!', 'DISGUSTING!'];
+            for (let i = 0; i < 3; i++) {
+                const sx = canvas.width * 0.2 + i * canvas.width * 0.3; const sy = canvas.height * 0.3 + i * 40 + Math.sin(Date.now() * 0.008 + i) * 15;
+                ctx.fillStyle = i % 2 === 0 ? '#ff5722' : '#fff'; ctx.fillText(shouts[(i + Math.floor(Date.now() * 0.001)) % shouts.length], sx, sy);
+            }
+        }
+
+        // ── DJ VFX ──
+        if (vfx.type === 'bassDrop') {
+            const prog = 1 - a;
+            ctx.shadowColor = '#e040fb'; ctx.shadowBlur = 30;
+            for (let i = 0; i < 5; i++) {
+                const r = prog * 200 + i * 30; ctx.globalAlpha = a * (0.5 - i * 0.08);
+                ctx.strokeStyle = `hsl(${291 + i * 20}, 80%, 60%)`; ctx.lineWidth = (6 - i) * a;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            }
+            if (prog < 0.3) { ctx.globalAlpha = a; ctx.font = `bold ${40 + prog * 60}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#e040fb'; ctx.fillText('DROP!', vfx.x, vfx.y - 60); }
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'dropTheBeat') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#0a000f'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Pulsing equalizer bars
+            ctx.globalAlpha = a * 0.7;
+            for (let i = 0; i < 20; i++) {
+                const bx = (i / 20) * canvas.width; const bw = canvas.width / 20 - 4;
+                const bh = (80 + Math.sin(Date.now() * 0.015 + i * 0.8) * 60) * a;
+                ctx.fillStyle = `hsl(${291 + i * 8}, 80%, ${50 + Math.sin(Date.now() * 0.01 + i) * 20}%)`;
+                ctx.fillRect(bx + 2, groundY - bh, bw, bh);
+            }
+        }
+
+        // ── Pigeon VFX ──
+        if (vfx.type === 'featherStorm') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.7;
+            for (let i = 0; i < 12; i++) {
+                const fx = vfx.x + Math.sin(Date.now() * 0.005 + i * 2) * (40 + prog * 60);
+                const fy = vfx.y - prog * 100 + i * 8 + Math.cos(Date.now() * 0.004 + i) * 15;
+                ctx.save(); ctx.translate(fx, fy); ctx.rotate(Date.now() * 0.008 + i);
+                ctx.fillStyle = i % 3 === 0 ? '#bbb' : i % 3 === 1 ? '#888' : '#ddd';
+                ctx.beginPath(); ctx.ellipse(0, 0, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+        }
+        if (vfx.type === 'flockAttack') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.2; ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = a * 0.7;
+            for (let p = 0; p < 15; p++) {
+                const px = (p * 97 + Date.now() * 0.12) % (canvas.width + 100) - 50;
+                const py = 80 + p * 30 + Math.sin(Date.now() * 0.008 + p) * 20;
+                ctx.save(); ctx.translate(px, py);
+                ctx.fillStyle = '#888'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#666'; ctx.beginPath(); ctx.moveTo(6, -2); ctx.lineTo(12, 0); ctx.lineTo(6, 2); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-2, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#777'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(-3, -6); ctx.quadraticCurveTo(-12, -14 + Math.sin(Date.now() * 0.02 + p) * 4, -8, -4); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(3, -6); ctx.quadraticCurveTo(12, -14 + Math.sin(Date.now() * 0.02 + p + 1) * 4, 8, -4); ctx.stroke();
+                ctx.restore();
+            }
         }
 
         // ── Samurai VFX ──
@@ -4982,6 +5230,132 @@ function drawProjectiles() {
                     vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 2,
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
             }
+        }
+        // ─── CRYSTAL: Crystal Shard ───
+        else if (draw === 'crystalShard') {
+            const dir = p.vx > 0 ? 1 : -1;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#00e5ff';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 22;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(dir > 0 ? -0.3 : Math.PI + 0.3);
+            ctx.fillStyle = '#00e5ff'; ctx.beginPath();
+            ctx.moveTo(20, 0); ctx.lineTo(0, -8); ctx.lineTo(-12, 0); ctx.lineTo(0, 8); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#80f0ff'; ctx.beginPath();
+            ctx.moveTo(16, 0); ctx.lineTo(2, -4); ctx.lineTo(-4, 0); ctx.lineTo(2, 4); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(12, 0, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── CRYSTAL: Crystal Cage ───
+        else if (draw === 'crystalCage') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 30;
+            ctx.save(); ctx.translate(p.x, p.y);
+            for (let s = -2; s <= 2; s++) {
+                const sh = 30 + Math.abs(s) * 15; const sx = s * 14;
+                ctx.fillStyle = `hsl(187, 100%, ${55 + Math.abs(s) * 8}%)`;
+                ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx - 6, -sh * 0.4); ctx.lineTo(sx, -sh); ctx.lineTo(sx + 6, -sh * 0.4); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.moveTo(sx + 2, -2); ctx.lineTo(sx + 4, -sh * 0.6); ctx.lineTo(sx + 1, -sh * 0.3); ctx.closePath(); ctx.fill();
+            }
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── RUBBER DUCK: Duck Shot ───
+        else if (draw === 'duckShot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 15;
+            ctx.save(); ctx.translate(p.x, p.y);
+            ctx.fillStyle = '#ffeb3b'; ctx.beginPath(); ctx.arc(0, 0, p.radius * 0.8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff8f00'; ctx.beginPath(); ctx.moveTo(p.radius * 0.6, -2); ctx.lineTo(p.radius * 1.1, 0); ctx.lineTo(p.radius * 0.6, 2); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-3, -4, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-2, -5, 1, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── RUBBER DUCK: Bath Bomb ───
+        else if (draw === 'bathBomb') {
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3;
+                ctx.fillStyle = `hsl(${(Date.now() * 0.1 + t.x) % 360}, 70%, 70%)`;
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 20;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.3, '#ff69b4'); g.addColorStop(0.6, '#da70d6'); g.addColorStop(1, 'rgba(218,112,214,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            if (Math.random() < 0.7) { particles.push({ x: p.x + (Math.random()-0.5)*15, y: p.y + (Math.random()-0.5)*15,
+                vx: (Math.random()-0.5)*3, vy: -1-Math.random()*2, life: 8+Math.random()*6, maxLife: 14,
+                color: `hsl(${Math.random()*360}, 70%, 70%)` }); }
+        }
+        // ─── KEYBOARD: Key Throw ───
+        else if (draw === 'keyThrow') {
+            const dir = p.vx > 0 ? 1 : -1;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#607d8b'; ctx.shadowBlur = 10;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.012 * dir);
+            ctx.fillStyle = '#37474f'; ctx.fillRect(-8, -8, 16, 16);
+            ctx.strokeStyle = '#546e7a'; ctx.lineWidth = 1.5; ctx.strokeRect(-8, -8, 16, 16);
+            ctx.fillStyle = '#eceff1'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+            const keys = ['W','A','S','D','Q','E','R','F','X','Z'];
+            ctx.fillText(keys[Math.floor(p.x * 0.1) % keys.length], 0, 4);
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── CHEF: Pan Toss ───
+        else if (draw === 'panToss') {
+            const dir = p.vx > 0 ? 1 : -1;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff5722'; ctx.shadowBlur = 10;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015 * dir);
+            ctx.fillStyle = '#444'; ctx.beginPath(); ctx.arc(0, 0, p.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(0, 0, p.radius * 0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#666'; ctx.fillRect(p.radius * 0.5, -3, p.radius * 0.6, 6);
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── CHEF: Knife Throw ───
+        else if (draw === 'knifeThrow') {
+            const dir = p.vx > 0 ? 1 : -1;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ccc'; ctx.shadowBlur = 10;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.025 * dir);
+            ctx.fillStyle = '#ccc'; ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(-2, -3); ctx.lineTo(-2, 3); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#5d4037'; ctx.fillRect(-10, -3, 8, 6);
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── DJ: Vinyl Disc ───
+        else if (draw === 'vinylDisc') {
+            const dir = p.vx > 0 ? 1 : -1;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#e040fb'; ctx.shadowBlur = 15;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.02);
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            for (let r = 4; r < p.radius; r += 4) { ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke(); }
+            ctx.fillStyle = '#e040fb'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── DJ: Speaker Blast ───
+        else if (draw === 'speakerBlast') {
+            ctx.globalAlpha = 0.8; ctx.shadowColor = '#e040fb'; ctx.shadowBlur = 20;
+            for (let i = 0; i < 4; i++) {
+                const r = p.radius * (0.5 + i * 0.3) + Math.sin(Date.now() * 0.02 + i) * 5;
+                ctx.strokeStyle = `hsla(291, 80%, ${50 + i * 10}%, ${0.5 - i * 0.1})`;
+                ctx.lineWidth = 3 - i * 0.5; ctx.beginPath(); ctx.arc(p.x, p.y, r, -0.8, 0.8); ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+        // ─── PIGEON: Peck Shot ───
+        else if (draw === 'peckShot') {
+            const dir = p.vx > 0 ? 1 : -1;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#9e9e9e'; ctx.shadowBlur = 8;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.scale(dir, 1);
+            ctx.fillStyle = '#888'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#666'; ctx.beginPath(); ctx.moveTo(5, -1); ctx.lineTo(12, 0); ctx.lineTo(5, 1); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-1, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── PIGEON: Poop Bomb ───
+        else if (draw === 'poopBomb') {
+            ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(p.x, groundY + 3, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1; ctx.shadowColor = '#795548'; ctx.shadowBlur = 8;
+            ctx.fillStyle = '#5d4037'; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#4e342e'; ctx.beginPath(); ctx.arc(p.x, p.y - p.radius * 0.4, p.radius * 0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#3e2723'; ctx.beginPath(); ctx.arc(p.x, p.y - p.radius * 0.7, p.radius * 0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 0.4; ctx.strokeStyle = '#795548'; ctx.lineWidth = 1.5;
+            for (let s = 0; s < 3; s++) { const sx = p.x + (Math.random()-0.5) * 15;
+                ctx.beginPath(); ctx.moveTo(sx, p.y - p.radius); ctx.lineTo(sx, p.y - p.radius - 10 - Math.random() * 10); ctx.stroke(); }
+            ctx.globalAlpha = 1;
         }
         // ─── SAMURAI: Oni Giri (three crossing slashes) ───
         else if (draw === 'oniGiri') {
