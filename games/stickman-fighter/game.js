@@ -2521,7 +2521,7 @@ class Fighter {
         }
 
         // ── Washing Machine Rage: draw washing machine instead of stickman ──
-        if (this.rageActive && this.style === 'washingmachine') {
+        if (this.health < MAX_HEALTH && this.style === 'washingmachine') {
             const wobble = Math.sin(Date.now() * 0.02) * 3;
             const drumAngle = Date.now() * 0.015;
             ctx.translate(wobble, 0);
@@ -2568,7 +2568,7 @@ class Fighter {
         }
 
         // ── Lightning Rage: electric humanoid ──
-        if (this.rageActive && this.style === 'lightning') {
+        if (this.health < MAX_HEALTH && this.style === 'lightning') {
             const t = Date.now() * 0.01;
             ctx.shadowColor = '#00cfff'; ctx.shadowBlur = 25;
             // Electric body outline — jagged lines
@@ -2613,7 +2613,7 @@ class Fighter {
         }
 
         // ── Fire Rage: fire elemental ──
-        if (this.rageActive && this.style === 'fire') {
+        if (this.health < MAX_HEALTH && this.style === 'fire') {
             const t = Date.now() * 0.008;
             ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 30;
             // Flame body — gradient oval
@@ -2645,7 +2645,7 @@ class Fighter {
         }
 
         // ── Water Rage: water elemental ──
-        if (this.rageActive && this.style === 'water') {
+        if (this.health < MAX_HEALTH && this.style === 'water') {
             const t = Date.now() * 0.005;
             ctx.shadowColor = '#00bfff'; ctx.shadowBlur = 20;
             // Flowing water body
@@ -2682,7 +2682,7 @@ class Fighter {
         }
 
         // ── Wind Rage: tornado/wind spirit ──
-        if (this.rageActive && this.style === 'wind') {
+        if (this.health < MAX_HEALTH && this.style === 'wind') {
             const t = Date.now() * 0.006;
             ctx.shadowColor = '#a0f0a0'; ctx.shadowBlur = 15;
             // Tornado funnel — stacked ellipses getting wider toward bottom
@@ -2717,7 +2717,7 @@ class Fighter {
         }
 
         // ── Earth Rage: rock golem ──
-        if (this.rageActive && this.style === 'earth') {
+        if (this.health < MAX_HEALTH && this.style === 'earth') {
             const t = Date.now() * 0.003;
             ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 10;
             // Blocky stone body
@@ -2751,7 +2751,7 @@ class Fighter {
         }
 
         // ── Acid Rage: acid blob monster ──
-        if (this.rageActive && this.style === 'acid') {
+        if (this.health < MAX_HEALTH && this.style === 'acid') {
             const t = Date.now() * 0.006;
             ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 20;
             // Amorphous blob body
@@ -2790,7 +2790,7 @@ class Fighter {
         }
 
         // ── Light Rage: angel form ──
-        if (this.rageActive && this.style === 'light') {
+        if (this.health < MAX_HEALTH && this.style === 'light') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 30;
             // Golden glow aura
@@ -2832,7 +2832,7 @@ class Fighter {
         }
 
         // ── Dark Rage: shadow demon ──
-        if (this.rageActive && this.style === 'dark') {
+        if (this.health < MAX_HEALTH && this.style === 'dark') {
             const t = Date.now() * 0.005;
             ctx.shadowColor = '#8b00ff'; ctx.shadowBlur = 25;
             // Dark aura
@@ -2872,7 +2872,7 @@ class Fighter {
         }
 
         // ── Shadow Rage: shadow ninja ──
-        if (this.rageActive && this.style === 'shadow') {
+        if (this.health < MAX_HEALTH && this.style === 'shadow') {
             const t = Date.now() * 0.006;
             ctx.shadowColor = '#222'; ctx.shadowBlur = 15;
             // Sleek dark silhouette
@@ -2906,7 +2906,7 @@ class Fighter {
         }
 
         // ── Portal Rage: dimensional being ──
-        if (this.rageActive && this.style === 'portal') {
+        if (this.health < MAX_HEALTH && this.style === 'portal') {
             const t = Date.now() * 0.005;
             ctx.shadowColor = '#9b59b6'; ctx.shadowBlur = 20;
             // Body outline — shimmering rift
@@ -2944,7 +2944,7 @@ class Fighter {
         }
 
         // ── Corruption Rage: glitched figure ──
-        if (this.rageActive && this.style === 'corruption') {
+        if (this.health < MAX_HEALTH && this.style === 'corruption') {
             const t = Date.now();
             ctx.shadowColor = '#ff0040'; ctx.shadowBlur = 15;
             // Main body — shifts randomly
@@ -2985,7 +2985,7 @@ class Fighter {
         }
 
         // ── Crystal Rage: crystal golem ──
-        if (this.rageActive && this.style === 'crystal') {
+        if (this.health < MAX_HEALTH && this.style === 'crystal') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 20;
             // Crystal body — faceted polygon shapes
@@ -3028,7 +3028,7 @@ class Fighter {
         }
 
         // ── Samurai Rage: armored samurai ──
-        if (this.rageActive && this.style === 'samurai') {
+        if (this.health < MAX_HEALTH && this.style === 'samurai') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 15;
             // Armor body
@@ -3073,7 +3073,7 @@ class Fighter {
         }
 
         // ── Rubber Duck Rage: giant rubber duck ──
-        if (this.rageActive && this.style === 'rubberduck') {
+        if (this.health < MAX_HEALTH && this.style === 'rubberduck') {
             const t = Date.now() * 0.004;
             const bob = Math.sin(t) * 3;
             ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 15;
@@ -3113,7 +3113,7 @@ class Fighter {
         }
 
         // ── Keyboard Rage: keyboard mech ──
-        if (this.rageActive && this.style === 'keyboard') {
+        if (this.health < MAX_HEALTH && this.style === 'keyboard') {
             const t = Date.now() * 0.005;
             ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15;
             // Body — keyboard-shaped rectangle
@@ -3151,7 +3151,7 @@ class Fighter {
         }
 
         // ── Chef Rage: giant chef ──
-        if (this.rageActive && this.style === 'chef') {
+        if (this.health < MAX_HEALTH && this.style === 'chef') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#fff'; ctx.shadowBlur = 10;
             // Chef hat (toque)
@@ -3202,7 +3202,7 @@ class Fighter {
         }
 
         // ── DJ Rage: DJ booth form ──
-        if (this.rageActive && this.style === 'dj') {
+        if (this.health < MAX_HEALTH && this.style === 'dj') {
             const t = Date.now() * 0.006;
             ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 20;
             // DJ booth base
@@ -3261,7 +3261,7 @@ class Fighter {
         }
 
         // ── Pigeon Rage: actual pigeon ──
-        if (this.rageActive && this.style === 'pigeon') {
+        if (this.health < MAX_HEALTH && this.style === 'pigeon') {
             const t = Date.now() * 0.005;
             const bob = Math.sin(t * 2) * 2;
             ctx.shadowColor = '#aaa'; ctx.shadowBlur = 8;
@@ -3314,7 +3314,7 @@ class Fighter {
         }
 
         // ── Selfie Rage: giant floating face ──
-        if (this.rageActive && this.style === 'selfie') {
+        if (this.health < MAX_HEALTH && this.style === 'selfie') {
             const t = Date.now() * 0.004;
             const bob = Math.sin(t) * 3;
             ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 20;
@@ -3359,7 +3359,7 @@ class Fighter {
         }
 
         // ── Ice Rage: ice giant ──
-        if (this.rageActive && this.style === 'ice') {
+        if (this.health < MAX_HEALTH && this.style === 'ice') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 20;
             // Frozen crystalline body
@@ -3401,7 +3401,7 @@ class Fighter {
         }
 
         // ── Gravity Rage: dark matter sphere with orbiting rings ──
-        if (this.rageActive && this.style === 'gravity') {
+        if (this.health < MAX_HEALTH && this.style === 'gravity') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#6a0dad'; ctx.shadowBlur = 25;
             const cy = -this.height * 0.5;
@@ -3446,7 +3446,7 @@ class Fighter {
         }
 
         // ── Time Rage: clockwork being ──
-        if (this.rageActive && this.style === 'time') {
+        if (this.health < MAX_HEALTH && this.style === 'time') {
             const t = Date.now() * 0.003;
             ctx.shadowColor = '#daa520'; ctx.shadowBlur = 15;
             // Gear body — large central gear
@@ -3511,7 +3511,7 @@ class Fighter {
         }
 
         // ── Vampire Rage: vampire bat form ──
-        if (this.rageActive && this.style === 'vampire') {
+        if (this.health < MAX_HEALTH && this.style === 'vampire') {
             const t = Date.now() * 0.006;
             ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 20;
             const wingFlap = Math.sin(t * 2) * 0.3;
@@ -3562,7 +3562,7 @@ class Fighter {
         }
 
         // ── Dragon Rage: full dragon ──
-        if (this.rageActive && this.style === 'dragon') {
+        if (this.health < MAX_HEALTH && this.style === 'dragon') {
             const t = Date.now() * 0.005;
             ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 25;
             const wingFlap = Math.sin(t * 1.5) * 0.25;
@@ -3645,7 +3645,7 @@ class Fighter {
         }
 
         // ── Necro Rage: lich/skeleton ──
-        if (this.rageActive && this.style === 'necro') {
+        if (this.health < MAX_HEALTH && this.style === 'necro') {
             const t = Date.now() * 0.005;
             ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 15;
             // Robes
@@ -3696,7 +3696,7 @@ class Fighter {
         }
 
         // ── Magnet Rage: metallic humanoid with magnetic field ──
-        if (this.rageActive && this.style === 'magnet') {
+        if (this.health < MAX_HEALTH && this.style === 'magnet') {
             const t = Date.now() * 0.005;
             ctx.shadowColor = '#c0c0c0'; ctx.shadowBlur = 15;
             // Metallic body
@@ -3742,7 +3742,7 @@ class Fighter {
         }
 
         // ── Mech Rage: full mech suit ──
-        if (this.rageActive && this.style === 'mech') {
+        if (this.health < MAX_HEALTH && this.style === 'mech') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#00aaff'; ctx.shadowBlur = 15;
             // Bulky robot body
@@ -3792,7 +3792,7 @@ class Fighter {
         }
 
         // ── Pizza Rage: pizza monster ──
-        if (this.rageActive && this.style === 'pizza') {
+        if (this.health < MAX_HEALTH && this.style === 'pizza') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 12;
             // Circular pizza body
@@ -3848,7 +3848,7 @@ class Fighter {
         }
 
         // ── Cat Rage: giant cat ──
-        if (this.rageActive && this.style === 'cat') {
+        if (this.health < MAX_HEALTH && this.style === 'cat') {
             const t = Date.now() * 0.004;
             const purr = Math.sin(t * 3) * 1.5;
             ctx.shadowColor = '#ffa500'; ctx.shadowBlur = 10;
@@ -3908,7 +3908,7 @@ class Fighter {
         }
 
         // ── Banana Rage: banana person ──
-        if (this.rageActive && this.style === 'banana') {
+        if (this.health < MAX_HEALTH && this.style === 'banana') {
             const t = Date.now() * 0.004;
             const sway = Math.sin(t) * 3;
             ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 12;
@@ -3955,7 +3955,7 @@ class Fighter {
         }
 
         // ── Grandma Rage: super grandma ──
-        if (this.rageActive && this.style === 'grandma') {
+        if (this.health < MAX_HEALTH && this.style === 'grandma') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 15;
             // Cape — flowing behind
@@ -4012,7 +4012,7 @@ class Fighter {
         }
 
         // ── Painter Rage: paint elemental ──
-        if (this.rageActive && this.style === 'painter') {
+        if (this.health < MAX_HEALTH && this.style === 'painter') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#ff6eb4'; ctx.shadowBlur = 15;
             const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#e91e63', '#00bcd4'];
@@ -4057,7 +4057,7 @@ class Fighter {
         }
 
         // ── Bee Rage: giant bee ──
-        if (this.rageActive && this.style === 'bee') {
+        if (this.health < MAX_HEALTH && this.style === 'bee') {
             const t = Date.now() * 0.006;
             const buzz = Math.sin(t * 6) * 2;
             ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 10;
@@ -4122,7 +4122,7 @@ class Fighter {
         }
 
         // ── Teacher Rage: strict teacher form ──
-        if (this.rageActive && this.style === 'teacher') {
+        if (this.health < MAX_HEALTH && this.style === 'teacher') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 10;
             // Body — suit/blazer
@@ -4178,7 +4178,7 @@ class Fighter {
         }
 
         // ── Plumber Rage: plumber mech ──
-        if (this.rageActive && this.style === 'plumber') {
+        if (this.health < MAX_HEALTH && this.style === 'plumber') {
             const t = Date.now() * 0.004;
             ctx.shadowColor = '#3498db'; ctx.shadowBlur = 12;
             // Pipe armor body — chunky cylindrical look
