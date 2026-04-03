@@ -230,6 +230,10 @@ class Fighter {
         this.kickTimer = 0;
         this.meleeCooldown = 0;
         this.phoenixDive = null;
+        this.combo = 0;
+        this.comboTimer = 0;
+        this.maxCombo = 0;
+        this.comboDamageBonus = 0;
     }
 
     update(opponent) {
@@ -239,6 +243,7 @@ class Fighter {
         if (this.punchTimer > 0) this.punchTimer--;
         if (this.kickTimer > 0) this.kickTimer--;
         if (this.meleeCooldown > 0) this.meleeCooldown--;
+        if (this.comboTimer > 0) { this.comboTimer--; if (this.comboTimer <= 0) this.combo = 0; }
         for (let i = 0; i < 4; i++) { if (this.cooldowns[i] > 0) this.cooldowns[i]--; }
 
         // Rage system
@@ -339,6 +344,18 @@ class Fighter {
         } else if (this.onGround) { this.walkFrame = 0; }
     }
 
+    addCombo() {
+        this.combo++;
+        this.comboTimer = 90; // ~1.5 seconds to keep combo alive
+        if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+        // Bonus damage scales with combo: 0% at 1 hit, +5% per additional hit, max +50%
+        this.comboDamageBonus = Math.min((this.combo - 1) * 0.05, 0.5);
+    }
+
+    applyComboBonus(damage) {
+        return Math.floor(damage * (1 + this.comboDamageBonus));
+    }
+
     melee(type, opponent) {
         if (this.meleeCooldown > 0 || this.hit || this.blocking || this.phoenixDive) return;
         const PUNCH_RANGE = 70;
@@ -359,12 +376,14 @@ class Fighter {
         if (dist < range) {
             let damage = dmg;
             if (this.rageActive) damage = Math.floor(damage * 1.5);
+            damage = this.applyComboBonus(damage);
             let knockback = kb;
             if (opponent.blocking) {
                 damage = Math.floor(damage * 0.3);
                 knockback *= 0.3;
             }
             opponent.health = Math.max(0, opponent.health - damage);
+            this.addCombo();
             opponent.hitTimer = 8;
             opponent.hit = true;
             opponent.x += dir * knockback;
@@ -1052,12 +1071,14 @@ class Fighter {
                 if (dist < HIT_RADIUS) {
                     let damage = atk.damage;
                     if (rageActive) damage = Math.floor(damage * 1.5);
+                    damage = owner.applyComboBonus(damage);
                     let kb = atk.knockback;
                     if (opponent.blocking) {
                         damage = Math.floor(damage * (1 - atk.blockReduction));
                         kb *= (1 - atk.blockReduction);
                     }
                     opponent.health = Math.max(0, opponent.health - damage);
+                    owner.addCombo();
                     opponent.hitTimer = 12;
                     opponent.hit = true;
                     opponent.x += dir * kb;
@@ -3106,12 +3127,14 @@ function updateProjectiles() {
         if (dist < p.radius + 30) {
             let damage = p.atk.damage;
             if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
+            damage = p.owner.applyComboBonus(damage);
             let kb = p.atk.knockback;
             if (p.target.blocking) {
                 damage = Math.floor(damage * (1 - p.atk.blockReduction));
                 kb *= (1 - p.atk.blockReduction);
             }
             p.target.health = Math.max(0, p.target.health - damage);
+            p.owner.addCombo();
             p.target.hitTimer = 15;
             p.target.hit = true;
             p.target.x += (p.vx > 0 ? 1 : p.vx < 0 ? -1 : p.owner.facing) * kb;
@@ -4621,6 +4644,57 @@ function drawCooldownBar(x, y, w, h, ratio, name, color, maxCd) {
 }
 
 // ── Rage Bars ──
+// ── Combo Meter ──
+function drawComboMeters() {
+    drawComboMeter(player1, 32, 165);
+    drawComboMeter(player2, canvas.width - 132, 165);
+}
+
+function drawComboMeter(player, x, y) {
+    if (player.combo < 2) return; // Only show at 2+ hits
+    const scale = Math.min(1 + player.combo * 0.05, 1.5);
+    const pulse = Math.sin(Date.now() * 0.01) * 0.1 + 0.9;
+
+    ctx.save();
+    ctx.translate(x + 50, y);
+
+    // Combo count
+    ctx.font = `bold ${Math.floor(22 * scale)}px "Segoe UI",Arial,sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = pulse;
+
+    // Color shifts with combo: white → yellow → orange → red
+    let color;
+    if (player.combo < 5) color = '#fff';
+    else if (player.combo < 8) color = '#f1c40f';
+    else if (player.combo < 12) color = '#e67e22';
+    else color = '#e74c3c';
+
+    ctx.shadowColor = color; ctx.shadowBlur = 12;
+    ctx.fillStyle = color;
+    ctx.fillText(player.combo + ' HIT', 0, 0);
+
+    // Combo bonus text
+    if (player.comboDamageBonus > 0) {
+        ctx.font = '11px "Segoe UI",Arial,sans-serif';
+        ctx.fillStyle = '#aaa'; ctx.shadowBlur = 0;
+        ctx.globalAlpha = 0.7;
+        ctx.fillText('+' + Math.round(player.comboDamageBonus * 100) + '% DMG', 0, 16);
+    }
+
+    // Timer bar showing combo decay
+    const timerW = 60;
+    const timerH = 3;
+    const timerRatio = player.comboTimer / 90;
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#333'; ctx.fillRect(-timerW / 2, 20, timerW, timerH);
+    ctx.fillStyle = color; ctx.globalAlpha = 0.7;
+    ctx.fillRect(-timerW / 2, 20, timerW * timerRatio, timerH);
+
+    ctx.restore();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+
 function drawRageBars() {
     drawRageBar(32, 148, 100, 6, player1, 'E');
     drawRageBar(canvas.width - 132, 148, 100, 6, player2, aiMode ? '' : 'M');
@@ -4705,7 +4779,7 @@ function gameLoop() {
         ctx.translate(shakeOffsetX, shakeOffsetY);
         drawBackground();
         player1.draw(); player2.draw();
-        drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars();
+        drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawComboMeters();
         ctx.restore();
         drawScreenFlash();
         updateUI();
@@ -4724,7 +4798,7 @@ function gameLoop() {
 
     drawBackground();
     player1.draw(); player2.draw();
-    drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars();
+    drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawComboMeters();
 
     ctx.restore();
 
