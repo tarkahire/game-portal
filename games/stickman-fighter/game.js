@@ -509,6 +509,10 @@ class Fighter {
         this.rageActive = false;
         this.rageTimer = 0;
         this.rageUsed = false;
+        this.domainAvailable = false;
+        this.domainActive = false;
+        this.domainTimer = 0;
+        this.domainUsed = false;
         this.punchTimer = 0;
         this.kickTimer = 0;
         this.meleeCooldown = 0;
@@ -544,6 +548,10 @@ class Fighter {
                     life: 10 + Math.random() * 10, maxLife: 20,
                     color: `hsl(0, 100%, ${40 + Math.random() * 30}%)` });
             }
+        }
+        if (this.domainActive) {
+            this.domainTimer--;
+            if (this.domainTimer <= 0) { this.domainActive = false; }
         }
 
         // ── Phoenix Dive (Fire Rage) overrides normal movement ──
@@ -651,6 +659,7 @@ class Fighter {
                     if (hitDist < 100) {
                         let damage = sd.damage;
                         if (this.rageActive) damage = Math.floor(damage * 1.5);
+                        if (this.domainActive) damage = Math.floor(damage * 1.4);
                         damage = this.applyComboBonus(damage);
                         if (sd.opponent.blocking) {
                             damage = Math.floor(damage * (1 - sd.blockReduction));
@@ -725,6 +734,7 @@ class Fighter {
         if (dist < range) {
             let damage = dmg;
             if (this.rageActive) damage = Math.floor(damage * 1.5);
+            if (this.domainActive) damage = Math.floor(damage * 1.4);
             damage = this.applyComboBonus(damage);
             let knockback = kb;
             if (opponent.blocking) {
@@ -773,6 +783,34 @@ class Fighter {
                 color: `hsl(0, 100%, ${40 + Math.random() * 40}%)` });
         }
         visualEffects.push({ type: 'rageActivation', x: this.x, y: this.y - this.height * 0.5, life: 40, maxLife: 40 });
+        // Grant opponent domain expansion
+        const opponent = (this === player1) ? player2 : player1;
+        opponent.domainAvailable = true;
+    }
+
+    activateDomain() {
+        if (!this.domainAvailable || this.domainActive || this.domainUsed) return;
+        this.domainActive = true;
+        this.domainTimer = 25 * 60; // 25 seconds
+        this.domainUsed = true;
+        this.domainAvailable = false;
+        this.cooldowns = [0, 0, 0, 0]; // reset cooldowns
+        triggerScreenShake(25, 30);
+        triggerScreenFlash(STYLES[this.style]?.color || '#fff', 0.8);
+        triggerHitstop(20);
+        // Dramatic activation burst
+        const styleData = STYLES[this.style];
+        for (let i = 0; i < 80; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const s = 4 + Math.random() * 10;
+            particles.push({ x: this.x, y: this.y - this.height * 0.5,
+                vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+                life: 20 + Math.random() * 20, maxLife: 40,
+                color: styleData ? `hsl(${styleData.hue + (Math.random()-0.5)*30}, 90%, ${50+Math.random()*30}%)` : '#fff' });
+        }
+        // Domain expansion visual effect
+        visualEffects.push({ type: 'domainExpansion', x: this.x, y: this.y - this.height * 0.5,
+            style: this.style, life: 60, maxLife: 60, color: styleData?.color || '#fff' });
     }
 
     useAttack(index, opponent) {
@@ -2246,6 +2284,7 @@ class Fighter {
                 if (dist < HIT_RADIUS) {
                     let damage = atk.damage;
                     if (rageActive) damage = Math.floor(damage * 1.5);
+                    if (owner.domainActive) damage = Math.floor(damage * 1.4);
                     damage = owner.applyComboBonus(damage);
                     let kb = atk.knockback;
                     if (opponent.blocking) {
@@ -2410,12 +2449,39 @@ class Fighter {
                 ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
             }
         }
+        // Domain active aura
+        if (this.domainActive) {
+            const pulse = 0.3 + Math.sin(Date.now() * 0.004) * 0.15;
+            const domainColor = STYLES[this.style]?.color || '#0af';
+            ctx.globalAlpha = pulse;
+            const dg = ctx.createRadialGradient(0, -this.height * 0.5, 10, 0, -this.height * 0.5, 80);
+            dg.addColorStop(0, domainColor); dg.addColorStop(0.5, `${domainColor}66`); dg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = dg;
+            ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 80, 0, Math.PI * 2); ctx.fill();
+            // Floating kanji/symbol
+            ctx.font = 'bold 18px serif'; ctx.textAlign = 'center'; ctx.fillStyle = domainColor;
+            ctx.globalAlpha = pulse * 0.7;
+            ctx.fillText('Domain', 0, -this.height - 20);
+            ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
+        }
         // Rage available indicator — subtle pulse
         if (this.rageAvailable && !this.rageActive) {
             const pulse = 0.15 + Math.sin(Date.now() * 0.004) * 0.1;
             ctx.globalAlpha = pulse;
             ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 55, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
+        }
+
+        // Domain available indicator — blue/element pulse
+        if (this.domainAvailable && !this.domainActive) {
+            const pulse = 0.2 + Math.sin(Date.now() * 0.005) * 0.15;
+            const domainColor = STYLES[this.style]?.color || '#0af';
+            ctx.globalAlpha = pulse;
+            ctx.strokeStyle = domainColor; ctx.lineWidth = 3;
+            ctx.setLineDash([8, 4]);
+            ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 60, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
             ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
         }
 
@@ -7092,6 +7158,46 @@ function drawVisualEffects() {
                     color: Math.random() > 0.5 ? '#8b4513' : '#808080' });
             }} ctx.shadowBlur = 0;
         }
+
+        // ── Domain Expansion Activation ──
+        if (vfx.type === 'domainExpansion') {
+            const prog = 1 - a;
+            // Dark overlay expanding outward
+            const expandR = prog * Math.max(canvas.width, canvas.height);
+            ctx.globalAlpha = a * 0.4;
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, expandR, 0, Math.PI * 2); ctx.fill();
+            // Colored ring expanding
+            ctx.globalAlpha = a * 0.8;
+            ctx.strokeStyle = vfx.color; ctx.lineWidth = 8 * a;
+            ctx.shadowColor = vfx.color; ctx.shadowBlur = 40;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, expandR * 0.9, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, expandR * 0.85, 0, Math.PI * 2); ctx.stroke();
+            // Text flash
+            if (prog > 0.2 && prog < 0.6) {
+                const textAlpha = Math.sin((prog - 0.2) / 0.4 * Math.PI);
+                ctx.globalAlpha = textAlpha * a;
+                ctx.font = `bold ${60 + prog * 40}px "Segoe UI",Arial,sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = vfx.color;
+                ctx.shadowColor = vfx.color; ctx.shadowBlur = 30;
+                ctx.fillText('DOMAIN EXPANSION', canvas.width / 2, canvas.height * 0.35);
+                ctx.font = `bold ${30 + prog * 20}px "Segoe UI",Arial,sans-serif`;
+                ctx.fillStyle = '#fff';
+                const styleName = STYLES[vfx.style]?.name || vfx.style;
+                ctx.fillText(styleName.toUpperCase(), canvas.width / 2, canvas.height * 0.35 + 55);
+            }
+            // Border lines
+            ctx.globalAlpha = a * 0.6;
+            ctx.strokeStyle = vfx.color; ctx.lineWidth = 4;
+            const borderGrow = Math.min(prog * 3, 1);
+            const bw = canvas.width * borderGrow; const bh = canvas.height * borderGrow;
+            const bx = (canvas.width - bw) / 2; const by = (canvas.height - bh) / 2;
+            ctx.strokeRect(bx + 10, by + 10, bw - 20, bh - 20);
+            ctx.strokeRect(bx + 20, by + 20, bw - 40, bh - 40);
+            ctx.shadowBlur = 0;
+        }
     }
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
@@ -7158,6 +7264,7 @@ function updateProjectiles() {
                     if (hitDist < p.radius + 40) {
                         let damage = p.atk.damage;
                         if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
+                        if (p.owner.domainActive) damage = Math.floor(damage * 1.4);
                         let kb = p.atk.knockback;
                         if (p.target.blocking) {
                             damage = Math.floor(damage * (1 - p.atk.blockReduction));
@@ -7228,6 +7335,7 @@ function updateProjectiles() {
                     if (hitDist < p.radius + 120) {
                         let damage = p.atk.damage;
                         if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
+                        if (p.owner.domainActive) damage = Math.floor(damage * 1.4);
                         let kb = p.atk.knockback;
                         if (p.target.blocking) {
                             damage = Math.floor(damage * (1 - p.atk.blockReduction));
@@ -7285,6 +7393,7 @@ function updateProjectiles() {
                 const dist = Math.abs(p.x - p.target.x);
                 if (dist < p.radius + 40) {
                     let damage = p.atk.damage;
+                    if (p.owner.domainActive) damage = Math.floor(damage * 1.4);
                     let kb = 8;
                     if (p.target.blocking) { damage = Math.floor(damage * (1 - p.atk.blockReduction)); kb *= 0.5; }
                     p.target.health = Math.max(0, p.target.health - damage);
@@ -7332,6 +7441,7 @@ function updateProjectiles() {
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < p.radius + 30) {
                 let damage = p.atk.damage;
+                if (p.owner.domainActive) damage = Math.floor(damage * 1.4);
                 if (p.target.blocking) damage = Math.floor(damage * (1 - p.atk.blockReduction));
                 p.target.health = Math.max(0, p.target.health - damage);
                 p.target.hitTimer = 10; p.target.hit = true;
@@ -7362,6 +7472,7 @@ function updateProjectiles() {
         if (dist < p.radius + 30) {
             let damage = p.atk.damage;
             if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
+            if (p.owner.domainActive) damage = Math.floor(damage * 1.4);
             damage = p.owner.applyComboBonus(damage);
             let kb = p.atk.knockback;
             if (p.target.blocking) {
@@ -9128,6 +9239,7 @@ function handleInput() {
     if (keys['c']) { player1.useAttack(2, player2); keys['c'] = false; }
     if (keys['v']) { player1.useAttack(3, player2); keys['v'] = false; }
     if (keys['e']) { player1.activateRage(); keys['e'] = false; }
+    if (keys['q']) { player1.activateDomain(); keys['q'] = false; }
     if (keys['f']) { player1.melee('punch', player2); keys['f'] = false; }
     if (keys['g']) { player1.melee('kick', player2); keys['g'] = false; }
 
@@ -9144,6 +9256,7 @@ function handleInput() {
         if (keys['.'])  { player2.useAttack(2, player1); keys['.'] = false; }
         if (keys[','])  { player2.useAttack(3, player1); keys[','] = false; }
         if (keys['m'])  { player2.activateRage(); keys['m'] = false; }
+        if (keys['4'])  { player2.activateDomain(); keys['4'] = false; }
         if (keys['0'])  { player2.melee('punch', player1); keys['0'] = false; }
         if (keys['1'])  { player2.melee('kick', player1); keys['1'] = false; }
     }
@@ -9205,12 +9318,23 @@ function handleAI() {
     if (player2.rageAvailable && !player2.rageActive && player2.health <= MAX_HEALTH * 0.4) {
         player2.activateRage();
     }
+    // AI activates domain when available
+    if (player2.domainAvailable && !player2.domainActive) {
+        player2.activateDomain();
+    }
 }
 
 // ── Drawing ──
 let hellFade = 0; // 0 = normal, 1 = full hell
 
 function drawBackground() {
+    // Check for active domain
+    const domainPlayer = [player1, player2].find(p => p.domainActive);
+    if (domainPlayer) {
+        drawDomainBackground(domainPlayer.style);
+        return;
+    }
+
     const meteorActive = projectiles.some(p => p.isMeteor);
     // Also keep hell bg briefly after impact
     const meteorImpactActive = visualEffects.some(v => v.type === 'meteorImpact');
@@ -9225,6 +9349,606 @@ function drawBackground() {
     }
     if (hellFade < 1) {
         drawNormalBackground(1 - hellFade);
+    }
+}
+
+function drawDomainBackground(style) {
+    const t = Date.now() * 0.001;
+    ctx.globalAlpha = 1;
+    switch (style) {
+        case 'lightning': {
+            // Dark sky with constant lightning bolts
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#0a0a1a'); g.addColorStop(0.5, '#1a0a2e'); g.addColorStop(1, '#0a0a0f');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Lightning bolts
+            ctx.strokeStyle = '#ffff00'; ctx.lineWidth = 2; ctx.shadowColor = '#ffff00'; ctx.shadowBlur = 20;
+            for (let i = 0; i < 5; i++) {
+                const seed = Math.floor(t * 3 + i * 17) % 100;
+                if (seed < 30) {
+                    let bx = ((i * 197 + Math.floor(t * 2)) % canvas.width);
+                    let by = 0;
+                    ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+                    ctx.beginPath(); ctx.moveTo(bx, by);
+                    for (let s = 0; s < 8; s++) {
+                        bx += (Math.random() - 0.5) * 60;
+                        by += canvas.height / 8;
+                        ctx.lineTo(bx, by);
+                    }
+                    ctx.stroke();
+                }
+            }
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+            // Ground
+            ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#ffff44'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'fire': {
+            // Volcanic/hell landscape with lava
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#2a0a00'); g.addColorStop(0.4, '#4a1500'); g.addColorStop(1, '#1a0500');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Lava cracks on ground
+            ctx.fillStyle = '#ff4400';
+            for (let i = 0; i < 8; i++) {
+                const lx = (i * 127 + Math.sin(t + i) * 20) % canvas.width;
+                ctx.globalAlpha = 0.4 + Math.sin(t * 2 + i) * 0.3;
+                ctx.fillRect(lx, groundY - 2, 40 + Math.sin(t + i * 3) * 20, 8);
+            }
+            ctx.globalAlpha = 1;
+            // Ember particles in bg
+            ctx.fillStyle = '#ff6600';
+            for (let i = 0; i < 20; i++) {
+                const ex = (i * 71 + t * 30) % canvas.width;
+                const ey = groundY - ((i * 53 + t * 40) % (groundY * 0.8));
+                ctx.globalAlpha = 0.3 + Math.sin(t * 3 + i) * 0.2;
+                ctx.fillRect(ex, ey, 3, 3);
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#2a0800'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'water': {
+            // Underwater scene with bubbles
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#001a33'); g.addColorStop(0.5, '#003366'); g.addColorStop(1, '#001122');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Light rays from above
+            ctx.globalAlpha = 0.08;
+            for (let i = 0; i < 5; i++) {
+                const rx = canvas.width * (i + 0.5) / 5 + Math.sin(t + i) * 30;
+                ctx.fillStyle = '#66ccff';
+                ctx.beginPath(); ctx.moveTo(rx - 20, 0); ctx.lineTo(rx + 20, 0);
+                ctx.lineTo(rx + 60 + Math.sin(t) * 20, canvas.height); ctx.lineTo(rx - 60 + Math.sin(t) * 20, canvas.height);
+                ctx.fill();
+            }
+            // Bubbles
+            ctx.globalAlpha = 0.4; ctx.strokeStyle = '#88ccff'; ctx.lineWidth = 1;
+            for (let i = 0; i < 15; i++) {
+                const bx = (i * 83 + Math.sin(t * 0.5 + i) * 30) % canvas.width;
+                const by = (groundY - (t * 30 + i * 67) % groundY);
+                const br = 3 + (i % 4) * 2;
+                ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#002244'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#3399cc'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'wind': {
+            // Stormy sky with swirling clouds
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#2a2a3a'); g.addColorStop(0.5, '#3a3a4a'); g.addColorStop(1, '#1a1a2a');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Swirling wind lines
+            ctx.strokeStyle = '#aaccaa'; ctx.lineWidth = 1;
+            for (let i = 0; i < 12; i++) {
+                ctx.globalAlpha = 0.2 + Math.sin(t + i * 0.5) * 0.1;
+                const wy = (i * 50 + Math.sin(t * 2 + i) * 30) % (groundY - 20);
+                ctx.beginPath();
+                ctx.moveTo(-20, wy);
+                for (let s = 0; s < 6; s++) {
+                    ctx.lineTo(canvas.width * s / 5, wy + Math.sin(t * 3 + s + i) * 20);
+                }
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#2a2a2a'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#88aa88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'earth': {
+            // Canyon/cave with stalactites
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#2a1a0a'); g.addColorStop(0.5, '#3a2a1a'); g.addColorStop(1, '#1a0f05');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Stalactites from top
+            ctx.fillStyle = '#4a3a2a';
+            for (let i = 0; i < 10; i++) {
+                const sx = (i + 0.5) * canvas.width / 10;
+                const sh = 30 + Math.sin(i * 1.5) * 20;
+                ctx.beginPath(); ctx.moveTo(sx - 10, 0); ctx.lineTo(sx + 10, 0); ctx.lineTo(sx, sh); ctx.fill();
+            }
+            // Rock texture on ground
+            ctx.fillStyle = '#3a2a1a'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.fillStyle = '#4a3a2a';
+            for (let i = 0; i < 8; i++) {
+                ctx.fillRect((i * 137) % canvas.width, groundY + 2, 50, 10);
+            }
+            ctx.strokeStyle = '#8b7355'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'ice': {
+            // Frozen tundra with aurora borealis
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#0a1a2a'); g.addColorStop(0.3, '#102030'); g.addColorStop(1, '#0a0f1a');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Aurora borealis
+            for (let i = 0; i < 3; i++) {
+                ctx.globalAlpha = 0.15 + Math.sin(t * 0.5 + i) * 0.08;
+                const ay = 40 + i * 30 + Math.sin(t * 0.3 + i * 2) * 20;
+                const aGrd = ctx.createLinearGradient(0, ay - 20, 0, ay + 20);
+                aGrd.addColorStop(0, 'rgba(0,255,128,0)');
+                aGrd.addColorStop(0.5, i % 2 === 0 ? '#00ff88' : '#00aaff');
+                aGrd.addColorStop(1, 'rgba(0,255,128,0)');
+                ctx.fillStyle = aGrd;
+                ctx.beginPath();
+                ctx.moveTo(0, ay);
+                for (let s = 0; s <= 10; s++) {
+                    ctx.lineTo(canvas.width * s / 10, ay + Math.sin(t + s * 0.7 + i) * 15);
+                }
+                ctx.lineTo(canvas.width, ay + 40); ctx.lineTo(0, ay + 40);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            // Icy ground
+            ctx.fillStyle = '#1a2a3a'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#88ddff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'dragon': {
+            // Volcanic sky with dragon silhouettes
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#1a0500'); g.addColorStop(0.4, '#3a1000'); g.addColorStop(1, '#0a0200');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Flying dragon silhouette
+            ctx.fillStyle = '#000'; ctx.globalAlpha = 0.4;
+            const dx = (t * 50) % (canvas.width + 200) - 100;
+            const dy = 60 + Math.sin(t * 2) * 20;
+            ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(dx + 30, dy - 15);
+            ctx.lineTo(dx + 50, dy - 5); ctx.lineTo(dx + 70, dy - 20);
+            ctx.lineTo(dx + 60, dy); ctx.lineTo(dx + 80, dy + 5);
+            ctx.lineTo(dx + 40, dy + 5); ctx.lineTo(dx + 20, dy + 10);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#1a0800'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'vampire': {
+            // Dark castle with blood moon
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#0a0008'); g.addColorStop(0.5, '#1a0010'); g.addColorStop(1, '#0a0005');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Blood moon
+            ctx.fillStyle = '#cc0000'; ctx.globalAlpha = 0.6;
+            ctx.beginPath(); ctx.arc(canvas.width * 0.8, 60, 35, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 0.3; ctx.fillStyle = '#ff0000';
+            ctx.beginPath(); ctx.arc(canvas.width * 0.8, 60, 45, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            // Castle silhouette
+            ctx.fillStyle = '#0a0008';
+            ctx.fillRect(canvas.width * 0.1, groundY - 80, 30, 80);
+            ctx.fillRect(canvas.width * 0.1 - 5, groundY - 90, 40, 15);
+            ctx.fillRect(canvas.width * 0.85, groundY - 100, 35, 100);
+            ctx.fillRect(canvas.width * 0.85 - 5, groundY - 110, 45, 15);
+            ctx.fillStyle = '#0a0005'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#880044'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'dark': {
+            // Void/abyss with floating dark orbs
+            ctx.fillStyle = '#050508'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Dark floating orbs
+            for (let i = 0; i < 8; i++) {
+                const ox = (i * 131 + Math.sin(t * 0.5 + i) * 40) % canvas.width;
+                const oy = (i * 89 + Math.cos(t * 0.3 + i) * 30) % (groundY - 20);
+                const or = 10 + (i % 3) * 5;
+                const og = ctx.createRadialGradient(ox, oy, 0, ox, oy, or);
+                og.addColorStop(0, 'rgba(80,0,120,0.4)'); og.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = og; ctx.beginPath(); ctx.arc(ox, oy, or, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.fillStyle = '#080810'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#440066'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'light': {
+            // Heavenly clouds with golden rays
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#fffbe0'); g.addColorStop(0.3, '#fff5c0'); g.addColorStop(1, '#e0d8a0');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Golden rays
+            ctx.globalAlpha = 0.1;
+            for (let i = 0; i < 8; i++) {
+                const ra = (i / 8) * Math.PI + Math.sin(t * 0.2) * 0.1;
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath(); ctx.moveTo(canvas.width * 0.5, 0);
+                ctx.lineTo(canvas.width * 0.5 + Math.cos(ra) * canvas.width, canvas.height);
+                ctx.lineTo(canvas.width * 0.5 + Math.cos(ra + 0.15) * canvas.width, canvas.height);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            // Clouds
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            for (let i = 0; i < 5; i++) {
+                const cx = (i * 200 + t * 10) % (canvas.width + 100) - 50;
+                const cy = 30 + i * 25;
+                ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx + 20, cy - 5, 20, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx + 35, cy + 3, 18, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.fillStyle = '#e8e0b0'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'shadow': {
+            // Noir black and white scene
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#1a1a1a'); g.addColorStop(0.5, '#2a2a2a'); g.addColorStop(1, '#0a0a0a');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Noir shadow streaks
+            ctx.globalAlpha = 0.15;
+            for (let i = 0; i < 6; i++) {
+                ctx.fillStyle = '#000';
+                const sx = (i * canvas.width / 6) + Math.sin(t + i) * 10;
+                ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx + 40, 0);
+                ctx.lineTo(sx + 80, canvas.height); ctx.lineTo(sx + 40, canvas.height); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#111'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#555'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'necro': {
+            // Graveyard with green fog
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#0a0f0a'); g.addColorStop(0.5, '#0a1a0a'); g.addColorStop(1, '#050a05');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Green fog
+            for (let i = 0; i < 6; i++) {
+                ctx.globalAlpha = 0.1 + Math.sin(t * 0.5 + i) * 0.05;
+                const fg = ctx.createRadialGradient(
+                    (i * 170 + Math.sin(t * 0.3 + i) * 40) % canvas.width, groundY - 30,
+                    0, (i * 170 + Math.sin(t * 0.3 + i) * 40) % canvas.width, groundY - 30, 80);
+                fg.addColorStop(0, '#00ff44'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            ctx.globalAlpha = 1;
+            // Gravestones
+            ctx.fillStyle = '#333';
+            for (let i = 0; i < 4; i++) {
+                const gx = canvas.width * (i + 0.5) / 4;
+                ctx.fillRect(gx - 8, groundY - 25, 16, 25);
+                ctx.beginPath(); ctx.arc(gx, groundY - 25, 8, Math.PI, 0); ctx.fill();
+            }
+            ctx.fillStyle = '#0a0f0a'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#00aa22'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'gravity': {
+            // Space with stars and black hole
+            ctx.fillStyle = '#020208'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Stars
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 50; i++) {
+                const sx = (i * 97 + Math.floor(t * 0.5) * (i % 3)) % canvas.width;
+                const sy = (i * 53) % groundY;
+                ctx.globalAlpha = 0.3 + Math.sin(t * 2 + i) * 0.3;
+                ctx.fillRect(sx, sy, 1.5, 1.5);
+            }
+            // Black hole
+            ctx.globalAlpha = 1;
+            const bhx = canvas.width * 0.5; const bhy = groundY * 0.3;
+            for (let r = 50; r > 5; r -= 5) {
+                ctx.globalAlpha = 0.1;
+                ctx.fillStyle = r > 30 ? '#220044' : '#000';
+                ctx.beginPath(); ctx.arc(bhx, bhy, r, 0, Math.PI * 2); ctx.fill();
+            }
+            // Accretion ring
+            ctx.globalAlpha = 0.4; ctx.strokeStyle = '#8844ff'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.ellipse(bhx, bhy, 55, 15, Math.sin(t * 0.3) * 0.2, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#080810'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#6633cc'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'time': {
+            // Clockwork gears background
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#1a1a10'); g.addColorStop(0.5, '#2a2a18'); g.addColorStop(1, '#0a0a08');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Gears
+            ctx.strokeStyle = '#aa8833'; ctx.lineWidth = 2;
+            const gears = [{x: canvas.width*0.2, y: groundY*0.3, r: 40, s: 1},
+                           {x: canvas.width*0.7, y: groundY*0.5, r: 55, s: -0.7},
+                           {x: canvas.width*0.5, y: groundY*0.15, r: 30, s: 1.2}];
+            for (const gear of gears) {
+                ctx.globalAlpha = 0.25;
+                ctx.save(); ctx.translate(gear.x, gear.y); ctx.rotate(t * gear.s);
+                ctx.beginPath(); ctx.arc(0, 0, gear.r, 0, Math.PI * 2); ctx.stroke();
+                const teeth = Math.floor(gear.r / 5);
+                for (let tt = 0; tt < teeth; tt++) {
+                    const a = (tt / teeth) * Math.PI * 2;
+                    ctx.beginPath(); ctx.moveTo(Math.cos(a) * gear.r, Math.sin(a) * gear.r);
+                    ctx.lineTo(Math.cos(a) * (gear.r + 8), Math.sin(a) * (gear.r + 8)); ctx.stroke();
+                }
+                ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.stroke();
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#1a1a10'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#aa8833'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'acid': {
+            // Toxic wasteland with bubbling pools
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#0a1a00'); g.addColorStop(0.5, '#1a2a00'); g.addColorStop(1, '#0a0f00');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Toxic pools
+            for (let i = 0; i < 4; i++) {
+                const px = (i + 0.5) * canvas.width / 4;
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = '#33ff00';
+                ctx.beginPath(); ctx.ellipse(px, groundY + 10, 35, 8, 0, 0, Math.PI * 2); ctx.fill();
+                // Bubbles
+                const bubY = groundY + 5 - Math.abs(Math.sin(t * 2 + i * 1.5)) * 15;
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath(); ctx.arc(px + Math.sin(t + i) * 10, bubY, 3, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#0a1200'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#44ff00'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'portal': {
+            // Multiverse rifts in space
+            ctx.fillStyle = '#08080f'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Stars
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 30; i++) {
+                ctx.globalAlpha = 0.2 + Math.sin(t + i) * 0.15;
+                ctx.fillRect((i * 97) % canvas.width, (i * 61) % groundY, 1.5, 1.5);
+            }
+            // Portal rifts
+            for (let i = 0; i < 3; i++) {
+                const rx = canvas.width * (i + 0.5) / 3 + Math.sin(t + i * 2) * 20;
+                const ry = groundY * 0.3 + i * 40;
+                ctx.globalAlpha = 0.35;
+                ctx.strokeStyle = i === 0 ? '#ff00ff' : i === 1 ? '#00ffff' : '#ffaa00';
+                ctx.lineWidth = 3;
+                ctx.save(); ctx.translate(rx, ry); ctx.rotate(t * 0.5 + i);
+                ctx.beginPath(); ctx.ellipse(0, 0, 25, 12, 0, 0, Math.PI * 2); ctx.stroke();
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#0a0a12'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#cc44ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'crystal': {
+            // Crystal cave with refracting light
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#1a0a2a'); g.addColorStop(0.5, '#2a1a3a'); g.addColorStop(1, '#0f0518');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Crystals
+            const colors = ['#ff44ff', '#44ffff', '#ffff44', '#ff88ff', '#88ffff'];
+            for (let i = 0; i < 7; i++) {
+                ctx.globalAlpha = 0.3 + Math.sin(t + i * 0.7) * 0.15;
+                ctx.fillStyle = colors[i % colors.length];
+                const cx = (i + 0.3) * canvas.width / 7;
+                const ch = 20 + (i % 3) * 15;
+                ctx.beginPath();
+                ctx.moveTo(cx - 6, groundY); ctx.lineTo(cx, groundY - ch); ctx.lineTo(cx + 6, groundY);
+                ctx.fill();
+                // Top crystals
+                if (i % 2 === 0) {
+                    ctx.beginPath(); ctx.moveTo(cx + 50 - 5, 0); ctx.lineTo(cx + 50, ch * 0.7); ctx.lineTo(cx + 55, 0); ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#1a0a2a'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#cc44ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'mech': {
+            // Industrial factory with sparks
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#1a1a1a'); g.addColorStop(0.5, '#2a2a2a'); g.addColorStop(1, '#0f0f0f');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Steel beams
+            ctx.fillStyle = '#444'; ctx.globalAlpha = 0.4;
+            ctx.fillRect(0, 0, 15, canvas.height); ctx.fillRect(canvas.width - 15, 0, 15, canvas.height);
+            ctx.fillRect(0, 0, canvas.width, 10);
+            // Cross beams
+            for (let i = 0; i < 3; i++) {
+                const bx = canvas.width * (i + 0.5) / 3;
+                ctx.fillRect(bx - 5, 0, 10, groundY);
+            }
+            // Sparks
+            ctx.fillStyle = '#ffaa00';
+            for (let i = 0; i < 6; i++) {
+                if (Math.sin(t * 4 + i * 2) > 0.5) {
+                    ctx.globalAlpha = 0.6;
+                    const sx = (i * 163) % canvas.width;
+                    const sy = 10 + (i * 47) % (groundY * 0.3);
+                    ctx.fillRect(sx, sy, 2, 2);
+                    ctx.fillRect(sx + 3, sy + 4, 1.5, 1.5);
+                }
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#222'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#666'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'cat': {
+            // Moonlit rooftops
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#0a0a1f'); g.addColorStop(0.5, '#151530'); g.addColorStop(1, '#0a0a15');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Moon
+            ctx.fillStyle = '#eee'; ctx.globalAlpha = 0.8;
+            ctx.beginPath(); ctx.arc(canvas.width * 0.75, 50, 30, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 0.2; ctx.fillStyle = '#ddd';
+            ctx.beginPath(); ctx.arc(canvas.width * 0.75, 50, 40, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            // Rooftop silhouettes
+            ctx.fillStyle = '#0a0a15';
+            ctx.fillRect(0, groundY - 20, canvas.width * 0.25, 20);
+            ctx.fillRect(canvas.width * 0.3, groundY - 35, canvas.width * 0.15, 35);
+            ctx.fillRect(canvas.width * 0.55, groundY - 15, canvas.width * 0.2, 15);
+            ctx.fillRect(canvas.width * 0.8, groundY - 30, canvas.width * 0.2, 30);
+            // Stars
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 20; i++) {
+                ctx.globalAlpha = 0.3 + Math.sin(t + i) * 0.2;
+                ctx.fillRect((i * 67) % canvas.width, (i * 31) % (groundY - 60), 1.5, 1.5);
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#334'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'bee': {
+            // Giant honeycomb pattern
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#2a1a00'); g.addColorStop(0.5, '#3a2a00'); g.addColorStop(1, '#1a1000');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Honeycomb
+            ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 2; ctx.globalAlpha = 0.25;
+            const hexR = 30;
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 12; col++) {
+                    const hx = col * hexR * 1.8 + (row % 2) * hexR * 0.9;
+                    const hy = row * hexR * 1.6;
+                    ctx.beginPath();
+                    for (let s = 0; s < 6; s++) {
+                        const a = (s / 6) * Math.PI * 2 - Math.PI / 6;
+                        const px = hx + Math.cos(a) * hexR;
+                        const py = hy + Math.sin(a) * hexR;
+                        if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath(); ctx.stroke();
+                    // Some cells filled with honey
+                    if ((row + col) % 3 === 0) {
+                        ctx.fillStyle = 'rgba(255,170,0,0.1)'; ctx.fill();
+                    }
+                }
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#2a1a00'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'pizza': {
+            // Pizza oven interior
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#2a1500'); g.addColorStop(0.3, '#3a2000'); g.addColorStop(1, '#1a0a00');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Oven arch
+            ctx.strokeStyle = '#aa5500'; ctx.lineWidth = 6; ctx.globalAlpha = 0.4;
+            ctx.beginPath(); ctx.arc(canvas.width / 2, groundY, canvas.width * 0.45, Math.PI, 0); ctx.stroke();
+            ctx.strokeStyle = '#883300'; ctx.lineWidth = 12;
+            ctx.beginPath(); ctx.arc(canvas.width / 2, groundY, canvas.width * 0.48, Math.PI, 0); ctx.stroke();
+            // Fire glow at back
+            ctx.globalAlpha = 0.15;
+            const fg = ctx.createRadialGradient(canvas.width / 2, groundY * 0.5, 10, canvas.width / 2, groundY * 0.5, 120);
+            fg.addColorStop(0, '#ff6600'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = fg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#2a1500'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#cc6600'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'painter': {
+            // Art gallery with paint-splattered walls
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#f5f0e0'); g.addColorStop(0.5, '#e8e0d0'); g.addColorStop(1, '#d0c8b0');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Paint splatters
+            const splatterColors = ['#ff0044', '#0044ff', '#ffcc00', '#00cc44', '#ff6600', '#8800ff'];
+            for (let i = 0; i < 12; i++) {
+                ctx.globalAlpha = 0.2 + Math.sin(t * 0.3 + i) * 0.1;
+                ctx.fillStyle = splatterColors[i % splatterColors.length];
+                const sx = (i * 89) % canvas.width; const sy = (i * 67) % (groundY - 10);
+                ctx.beginPath(); ctx.arc(sx, sy, 8 + (i % 5) * 4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#c8c0a8'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#888'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'teacher': {
+            // Classroom with chalkboard
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#1a3a1a'); g.addColorStop(0.7, '#2a4a2a'); g.addColorStop(1, '#1a2a1a');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Chalkboard border
+            ctx.strokeStyle = '#8b7355'; ctx.lineWidth = 8; ctx.globalAlpha = 0.5;
+            ctx.strokeRect(20, 10, canvas.width - 40, groundY - 30);
+            // Chalk text/equations
+            ctx.globalAlpha = 0.3; ctx.font = '14px serif'; ctx.fillStyle = '#fff';
+            ctx.fillText('E = mc^2', 50, 50); ctx.fillText('a^2 + b^2 = c^2', canvas.width * 0.6, 80);
+            ctx.fillText('FIGHT!', canvas.width * 0.4, 45);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#8b7355'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#aa9060'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        case 'plumber': {
+            // Underground pipes
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#1a1a1a'); g.addColorStop(0.5, '#222'); g.addColorStop(1, '#0f0f0f');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Pipes
+            ctx.strokeStyle = '#44aa44'; ctx.lineWidth = 8; ctx.globalAlpha = 0.4;
+            // Horizontal pipes
+            ctx.beginPath(); ctx.moveTo(0, 30); ctx.lineTo(canvas.width, 30); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, groundY * 0.5); ctx.lineTo(canvas.width * 0.4, groundY * 0.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(canvas.width * 0.6, groundY * 0.5); ctx.lineTo(canvas.width, groundY * 0.5); ctx.stroke();
+            // Vertical pipes
+            ctx.beginPath(); ctx.moveTo(canvas.width * 0.4, groundY * 0.5); ctx.lineTo(canvas.width * 0.4, groundY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(canvas.width * 0.6, 30); ctx.lineTo(canvas.width * 0.6, groundY * 0.5); ctx.stroke();
+            // Joints
+            ctx.fillStyle = '#55bb55';
+            ctx.fillRect(canvas.width * 0.4 - 8, groundY * 0.5 - 8, 16, 16);
+            ctx.fillRect(canvas.width * 0.6 - 8, groundY * 0.5 - 8, 16, 16);
+            // Dripping water
+            ctx.fillStyle = '#4488ff'; ctx.globalAlpha = 0.5;
+            const dripY = (t * 60) % (groundY - 30);
+            ctx.fillRect(canvas.width * 0.4, 30 + dripY, 3, 8);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#44aa44'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            break;
+        }
+        default: {
+            // Generic dark arena with colored ambient glow
+            ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const styleColor = STYLES[style]?.color || '#0af';
+            ctx.globalAlpha = 0.15;
+            const dg = ctx.createRadialGradient(canvas.width / 2, groundY * 0.4, 10, canvas.width / 2, groundY * 0.4, canvas.width * 0.5);
+            dg.addColorStop(0, styleColor); dg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = dg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#0a0a12'; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = styleColor; ctx.globalAlpha = 0.5;
+            ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+            ctx.globalAlpha = 1;
+            break;
+        }
     }
 }
 
@@ -9468,6 +10192,39 @@ function drawRageBar(x, y, w, h, player, key) {
     ctx.textAlign = 'left'; ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
 
+function drawDomainBars() {
+    drawDomainBar(player1, 32, canvas.width * 0.25);
+    drawDomainBar(player2, canvas.width - 32 - canvas.width * 0.25, canvas.width * 0.25);
+}
+
+function drawDomainBar(player, x, w) {
+    if (!player.domainAvailable && !player.domainActive && !player.domainUsed) return;
+    const y = 72; const h = 6;
+    // Background
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(x, y, w, h);
+    if (player.domainActive) {
+        const fill = player.domainTimer / (25 * 60);
+        const domainColor = STYLES[player.style]?.color || '#0af';
+        ctx.fillStyle = domainColor;
+        ctx.fillRect(x, y, w * fill, h);
+        // "DOMAIN" label
+        ctx.font = '9px "Segoe UI",Arial,sans-serif';
+        ctx.fillStyle = domainColor; ctx.textAlign = 'center';
+        ctx.fillText('DOMAIN', x + w / 2, y - 2);
+    } else if (player.domainAvailable) {
+        const pulse = 0.5 + Math.sin(Date.now() * 0.005) * 0.5;
+        const domainColor = STYLES[player.style]?.color || '#0af';
+        ctx.fillStyle = domainColor; ctx.globalAlpha = pulse;
+        ctx.fillRect(x, y, w, h);
+        ctx.globalAlpha = 1;
+        ctx.font = '9px "Segoe UI",Arial,sans-serif';
+        ctx.fillStyle = domainColor; ctx.textAlign = 'center';
+        ctx.fillText('DOMAIN READY [Q/4]', x + w / 2, y - 2);
+    }
+    ctx.textAlign = 'left'; ctx.globalAlpha = 1;
+}
+
 // ── Round / Game Logic ──
 function startTimer() {
     timer = ROUND_TIME;
@@ -9511,7 +10268,7 @@ function gameLoop() {
         ctx.translate(shakeOffsetX, shakeOffsetY);
         drawBackground();
         player1.draw(); player2.draw();
-        drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawComboMeters();
+        drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawDomainBars(); drawComboMeters();
         ctx.restore();
         drawScreenFlash();
         updateUI();
@@ -9542,7 +10299,7 @@ function gameLoop() {
 
     drawBackground();
     player1.draw(); player2.draw();
-    drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawComboMeters();
+    drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawDomainBars(); drawComboMeters();
     drawDamageNumbers();
 
     ctx.restore();
