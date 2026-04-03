@@ -17,10 +17,10 @@ const STYLES = {
         color: '#f1c40f',
         hue: 50,
         attacks: [
-            { name: 'Spark Bolt',      type: 'projectile', damage: 10, cooldown: 120,  speed: 12, radius: 22,  knockback: 6,  blockReduction: 0.5, draw: 'sparkBolt' },
-            { name: 'Thunder Strike',  type: 'instant',    damage: 18, cooldown: 300,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'bolt' },
-            { name: 'Ball Lightning',  type: 'projectile', damage: 22, cooldown: 420,  speed: 4,  radius: 50, knockback: 14, blockReduction: 0.3, draw: 'ballLightning' },
-            { name: 'Lightning Storm', type: 'instant',    damage: 35, cooldown: 600,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'storm' },
+            { name: 'Spark Bolt',      type: 'projectile', damage: 6,  cooldown: 120,  speed: 12, radius: 22,  knockback: 6,  blockReduction: 0.5, draw: 'sparkBolt' },
+            { name: 'Thunder Strike',  type: 'instant',    damage: 10, cooldown: 300,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'bolt' },
+            { name: 'Ball Lightning',  type: 'projectile', damage: 13, cooldown: 420,  speed: 4,  radius: 50, knockback: 14, blockReduction: 0.3, draw: 'ballLightning' },
+            { name: 'Lightning Storm', type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'storm' },
         ],
     },
     fire: {
@@ -28,10 +28,10 @@ const STYLES = {
         color: '#e67e22',
         hue: 25,
         attacks: [
-            { name: 'Fireball',    type: 'projectile', damage: 12, cooldown: 150,  speed: 9,  radius: 28, knockback: 8,  blockReduction: 0.5, draw: 'fireball' },
-            { name: 'Flame Burst', type: 'instant',    damage: 20, cooldown: 300,  range: 200, knockback: 12, blockReduction: 0.4, vfx: 'burst' },
-            { name: 'Fire Pillar', type: 'instant',    damage: 25, cooldown: 420,  range: 400, knockback: 10, blockReduction: 0.3, vfx: 'pillar' },
-            { name: 'Meteor',      type: 'projectile', damage: 40, cooldown: 660,  speed: 7,  radius: 80, knockback: 22, blockReduction: 0.2, draw: 'meteor', special: 'meteor' },
+            { name: 'Fireball',    type: 'projectile', damage: 7,  cooldown: 150,  speed: 9,  radius: 28, knockback: 8,  blockReduction: 0.5, draw: 'fireball' },
+            { name: 'Flame Burst', type: 'instant',    damage: 12, cooldown: 300,  range: 200, knockback: 12, blockReduction: 0.4, vfx: 'burst' },
+            { name: 'Fire Pillar', type: 'instant',    damage: 15, cooldown: 420,  range: 400, knockback: 10, blockReduction: 0.3, vfx: 'pillar' },
+            { name: 'Meteor',      type: 'projectile', damage: 24, cooldown: 660,  speed: 7,  radius: 80, knockback: 22, blockReduction: 0.2, draw: 'meteor', special: 'meteor' },
         ],
     },
     water: {
@@ -39,10 +39,10 @@ const STYLES = {
         color: '#3498db',
         hue: 200,
         attacks: [
-            { name: 'Water Bolt',  type: 'projectile', damage: 8,  cooldown: 100,  speed: 10, radius: 20, knockback: 6,  blockReduction: 0.6, draw: 'waterBolt' },
-            { name: 'Tidal Wave',  type: 'projectile', damage: 14, cooldown: 270,  speed: 5,  radius: 55, knockback: 18, blockReduction: 0.4, draw: 'tidalWave' },
-            { name: 'Ice Spike',   type: 'instant',    damage: 22, cooldown: 360,  range: 350, knockback: 6,  blockReduction: 0.3, vfx: 'iceSpike', launchUp: -20 },
-            { name: 'Tsunami',     type: 'projectile', damage: 30, cooldown: 600,  speed: 3,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'tsunami' },
+            { name: 'Water Bolt',  type: 'projectile', damage: 5,  cooldown: 100,  speed: 10, radius: 20, knockback: 6,  blockReduction: 0.6, draw: 'waterBolt' },
+            { name: 'Tidal Wave',  type: 'projectile', damage: 8,  cooldown: 270,  speed: 5,  radius: 55, knockback: 18, blockReduction: 0.4, draw: 'tidalWave' },
+            { name: 'Ice Spike',   type: 'instant',    damage: 13, cooldown: 360,  range: 350, knockback: 6,  blockReduction: 0.3, vfx: 'iceSpike', launchUp: -20 },
+            { name: 'Tsunami',     type: 'projectile', damage: 18, cooldown: 600,  speed: 3,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'tsunami' },
         ],
     },
     wind: {
@@ -50,10 +50,10 @@ const STYLES = {
         color: '#1abc9c',
         hue: 170,
         attacks: [
-            { name: 'Air Slash',     type: 'projectile', damage: 9,  cooldown: 90,   speed: 14, radius: 24, knockback: 6,  blockReduction: 0.6, draw: 'airSlash' },
-            { name: 'Gust',          type: 'instant',    damage: 5,  cooldown: 180,  range: 300, knockback: 24, blockReduction: 0.5, vfx: 'gust' },
-            { name: 'Tornado',       type: 'projectile', damage: 18, cooldown: 360,  speed: 3,  radius: 50, knockback: 12, blockReduction: 0.3, draw: 'tornado' },
-            { name: 'Cyclone Burst', type: 'instant',    damage: 28, cooldown: 540,  range: 260, knockback: 26, blockReduction: 0.2, vfx: 'cyclone' },
+            { name: 'Air Slash',     type: 'projectile', damage: 5,  cooldown: 90,   speed: 14, radius: 24, knockback: 6,  blockReduction: 0.6, draw: 'airSlash' },
+            { name: 'Gust',          type: 'instant',    damage: 3,  cooldown: 180,  range: 300, knockback: 24, blockReduction: 0.5, vfx: 'gust' },
+            { name: 'Tornado',       type: 'projectile', damage: 10, cooldown: 360,  speed: 3,  radius: 50, knockback: 12, blockReduction: 0.3, draw: 'tornado' },
+            { name: 'Cyclone Burst', type: 'instant',    damage: 16, cooldown: 540,  range: 260, knockback: 26, blockReduction: 0.2, vfx: 'cyclone' },
         ],
     },
     earth: {
@@ -61,10 +61,10 @@ const STYLES = {
         color: '#a0522d',
         hue: 30,
         attacks: [
-            { name: 'Rock Shot',     type: 'projectile', damage: 11, cooldown: 110,  speed: 11, radius: 32, knockback: 8,  blockReduction: 0.5, draw: 'rockShot' },
-            { name: 'Earth Pillar',  type: 'instant',    damage: 20, cooldown: 300,  range: 360, knockback: 14, blockReduction: 0.3, vfx: 'earthPillar' },
-            { name: 'Seismic Wave',  type: 'projectile', damage: 18, cooldown: 360,  speed: 5,  radius: 60, knockback: 16, blockReduction: 0.3, draw: 'seismicWave' },
-            { name: 'Boulder Crush', type: 'projectile', damage: 38, cooldown: 600,  speed: 0,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'boulderCrush', special: 'boulderCrush' },
+            { name: 'Rock Shot',     type: 'projectile', damage: 6,  cooldown: 110,  speed: 11, radius: 32, knockback: 8,  blockReduction: 0.5, draw: 'rockShot' },
+            { name: 'Earth Pillar',  type: 'instant',    damage: 12, cooldown: 300,  range: 360, knockback: 14, blockReduction: 0.3, vfx: 'earthPillar' },
+            { name: 'Seismic Wave',  type: 'projectile', damage: 10, cooldown: 360,  speed: 5,  radius: 60, knockback: 16, blockReduction: 0.3, draw: 'seismicWave' },
+            { name: 'Boulder Crush', type: 'projectile', damage: 22, cooldown: 600,  speed: 0,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'boulderCrush', special: 'boulderCrush' },
         ],
     },
     acid: {
@@ -72,10 +72,10 @@ const STYLES = {
         color: '#39ff14',
         hue: 110,
         attacks: [
-            { name: 'Acid Barrage', type: 'projectile', damage: 7,  cooldown: 100,  speed: 13, radius: 16, knockback: 4,  blockReduction: 0.5, draw: 'acidBarrage', special: 'acidBarrage' },
-            { name: 'Acid Rain',    type: 'instant',    damage: 14, cooldown: 270,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'acidRain' },
-            { name: 'Acid Slash',   type: 'instant',    damage: 20, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'acidSlash' },
-            { name: 'Acid Monster', type: 'projectile', damage: 25, cooldown: 660,  speed: 0,  radius: 90, knockback: 22, blockReduction: 0.2, draw: 'acidMonster', special: 'acidMonster' },
+            { name: 'Acid Barrage', type: 'projectile', damage: 4,  cooldown: 100,  speed: 13, radius: 16, knockback: 4,  blockReduction: 0.5, draw: 'acidBarrage', special: 'acidBarrage' },
+            { name: 'Acid Rain',    type: 'instant',    damage: 8,  cooldown: 270,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'acidRain' },
+            { name: 'Acid Slash',   type: 'instant',    damage: 12, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'acidSlash' },
+            { name: 'Acid Monster', type: 'projectile', damage: 15, cooldown: 660,  speed: 0,  radius: 90, knockback: 22, blockReduction: 0.2, draw: 'acidMonster', special: 'acidMonster' },
         ],
     },
 };
@@ -288,8 +288,8 @@ class Fighter {
         if (this.meleeCooldown > 0 || this.hit || this.blocking || this.phoenixDive) return;
         const PUNCH_RANGE = 70;
         const KICK_RANGE = 85;
-        const PUNCH_DAMAGE = 5;
-        const KICK_DAMAGE = 8;
+        const PUNCH_DAMAGE = 3;
+        const KICK_DAMAGE = 5;
         const PUNCH_KB = 5;
         const KICK_KB = 10;
         const range = type === 'punch' ? PUNCH_RANGE : KICK_RANGE;
