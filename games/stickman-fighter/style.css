@@ -455,6 +455,32 @@ button:hover {
     box-shadow: 0 0 20px rgba(65, 105, 225, 0.4);
 }
 
+.stage-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+    background: #1a1a2e;
+    border: 2px solid #333;
+    border-radius: 8px;
+    color: #ccc;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.1s;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.stage-btn:hover {
+    transform: scale(1.05);
+    border-color: #666;
+    box-shadow: none;
+}
+
+.stage-btn.selected {
+    border-color: #f39c12;
+    box-shadow: 0 0 15px rgba(243, 156, 18, 0.3);
+    background: #252540;
+    color: #fff;
+}
+
 .style-icon {
     font-size: 28px;
 }
