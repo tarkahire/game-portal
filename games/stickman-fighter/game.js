@@ -156,6 +156,10 @@ class Fighter {
         this.cooldowns = [0, 0, 0, 0];
         this.walkFrame = 0;
         this.walkTimer = 0;
+        this.rageAvailable = false;
+        this.rageActive = false;
+        this.rageTimer = 0;
+        this.rageUsed = false;
     }
 
     update(opponent) {
@@ -163,6 +167,22 @@ class Fighter {
         if (this.hitTimer > 0) { this.hitTimer--; this.hit = this.hitTimer > 0; }
         if (this.castTimer > 0) { this.castTimer--; this.casting = this.castTimer > 0; }
         for (let i = 0; i < 4; i++) { if (this.cooldowns[i] > 0) this.cooldowns[i]--; }
+
+        // Rage system
+        if (this.health <= MAX_HEALTH * 0.5 && !this.rageUsed && !this.rageActive) {
+            this.rageAvailable = true;
+        }
+        if (this.rageActive) {
+            this.rageTimer--;
+            if (this.rageTimer <= 0) { this.rageActive = false; }
+            // Rage aura particles
+            if (Math.random() < 0.3) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - Math.random() * this.height,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 3,
+                    life: 10 + Math.random() * 10, maxLife: 20,
+                    color: `hsl(0, 100%, ${40 + Math.random() * 30}%)` });
+            }
+        }
 
         if (!this.hit) this.x += this.vx;
         this.vy += GRAVITY;
@@ -176,14 +196,36 @@ class Fighter {
         } else if (this.onGround) { this.walkFrame = 0; }
     }
 
+    activateRage() {
+        if (!this.rageAvailable || this.rageActive || this.rageUsed) return;
+        this.rageActive = true;
+        this.rageTimer = 30 * 60; // 30 seconds at ~60fps
+        this.rageUsed = true;
+        this.rageAvailable = false;
+        this.cooldowns = [0, 0, 0, 0];
+        triggerScreenShake(20, 25);
+        triggerScreenFlash('#ff0000', 0.6);
+        triggerHitstop(15);
+        // Rage activation burst
+        for (let i = 0; i < 50; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const s = 3 + Math.random() * 8;
+            particles.push({ x: this.x, y: this.y - this.height * 0.5,
+                vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+                life: 15 + Math.random() * 15, maxLife: 30,
+                color: `hsl(0, 100%, ${40 + Math.random() * 40}%)` });
+        }
+        visualEffects.push({ type: 'rageActivation', x: this.x, y: this.y - this.height * 0.5, life: 40, maxLife: 40 });
+    }
+
     useAttack(index, opponent) {
         if (!this.style || this.cooldowns[index] > 0 || this.hit || this.blocking) return;
         const atk = STYLES[this.style].attacks[index];
         const styleData = STYLES[this.style];
-        this.cooldowns[index] = atk.cooldown;
+        this.cooldowns[index] = this.rageActive ? Math.floor(atk.cooldown * 0.5) : atk.cooldown;
         this.casting = true;
         this.castTimer = 15;
-        spawnElementParticles(this.x + this.facing * 20, this.y - this.height * 0.5, styleData, 12);
+        spawnElementParticles(this.x + this.facing * 20, this.y - this.height * 0.5, styleData, this.rageActive ? 25 : 12);
         const dir = this.facing;
 
         if (atk.type === 'projectile') {
@@ -207,6 +249,7 @@ class Fighter {
                     life: 240,
                     trail: [],
                     isMeteor: true,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
             }
             // Boulder Crush — rises from ground at caster, lifts up, then slams down on opponent
@@ -229,6 +272,7 @@ class Fighter {
                     originX: this.x,
                     targetX: opponent.x,
                     dir: dir,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
             } else {
                 projectiles.push({
@@ -242,12 +286,14 @@ class Fighter {
                     atk, styleData,
                     life: 300,
                     trail: [],
+                    rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
             }
         } else if (atk.type === 'instant') {
             const dist = Math.abs(this.x - opponent.x);
             if (dist < atk.range) {
                 let damage = atk.damage;
+                if (this.rageActive) damage = Math.floor(damage * 1.5);
                 let kb = atk.knockback;
                 if (opponent.blocking) {
                     damage = Math.floor(damage * (1 - atk.blockReduction));
@@ -262,11 +308,15 @@ class Fighter {
                     opponent.onGround = false;
                 }
                 this.spawnInstantVFX(atk, styleData, opponent, dir);
-                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 55);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, this.rageActive ? 90 : 55);
                 triggerScreenShake(Math.min(atk.damage * 1.2, 30), Math.min(atk.damage * 1.0, 30));
                 triggerHitstop(Math.max(3, Math.floor(atk.damage / 6)));
                 triggerScreenFlash(styleData.color, Math.min(atk.damage / 40, 0.6));
                 visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: styleData.color });
+                // Rage ultimate VFX for instant attacks
+                if (this.rageActive && index === 3) {
+                    triggerRageUltVFX(this.style, opponent.x, opponent.y - opponent.height * 0.5, dir);
+                }
             }
         }
     }
@@ -292,11 +342,31 @@ class Fighter {
         ctx.scale(this.facing, 1);
         ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
 
+        // Red rage aura
+        if (this.rageActive) {
+            const pulse = 0.4 + Math.sin(Date.now() * 0.006) * 0.2;
+            const auraGrd = ctx.createRadialGradient(0, -this.height * 0.5, 5, 0, -this.height * 0.5, 70);
+            auraGrd.addColorStop(0, `rgba(255, 30, 0, ${pulse * 0.4})`);
+            auraGrd.addColorStop(0.5, `rgba(255, 0, 0, ${pulse * 0.2})`);
+            auraGrd.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            ctx.fillStyle = auraGrd;
+            ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 70, 0, Math.PI * 2); ctx.fill();
+        }
+        // Rage available indicator — subtle pulse
+        if (this.rageAvailable && !this.rageActive) {
+            const pulse = 0.15 + Math.sin(Date.now() * 0.004) * 0.1;
+            ctx.globalAlpha = pulse;
+            ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 55, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
+        }
+
         const headY = -this.height;
         const bodyTopY = -this.height + 25;
         const bodyBottomY = -this.height * 0.4;
 
         ctx.strokeStyle = this.color;
+        if (this.rageActive) { ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 18; }
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -332,6 +402,7 @@ class Fighter {
             ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.arc(10, -this.height * 0.5, 25, -Math.PI / 2, Math.PI / 2); ctx.stroke();
         }
+        ctx.shadowBlur = 0;
         ctx.restore();
     }
 }
@@ -462,6 +533,74 @@ function spawnElementParticles(x, y, styleData, count) {
             life: 20 + Math.random() * 18, maxLife: 38,
             color: `hsl(${styleData.hue + (Math.random() - 0.5) * 30}, 90%, ${45 + Math.random() * 35}%)` });
     }
+}
+
+// ══════════════════════════════════════
+// ══ RAGE VFX SPAWNERS ══
+// ══════════════════════════════════════
+
+function triggerRageUltVFX(style, x, y, dir) {
+    triggerScreenShake(30, 35);
+    triggerHitstop(20);
+    if (style === 'water') spawnScreenFracture(x, y);
+    else if (style === 'lightning') spawnScreenLightningStorm();
+    else if (style === 'fire') spawnScreenInferno();
+    else if (style === 'wind') spawnScreenTear(x, y, dir);
+    else if (style === 'earth') spawnScreenShatter(x, y);
+}
+
+function spawnScreenFracture(x, y) {
+    const cracks = [];
+    for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+        const segments = [{ x, y }];
+        let cx = x, cy = y;
+        const maxDist = Math.max(canvas.width, canvas.height) * 0.8;
+        const steps = 6 + Math.floor(Math.random() * 4);
+        for (let j = 0; j < steps; j++) {
+            cx += Math.cos(angle + (Math.random() - 0.5) * 0.5) * (maxDist / steps);
+            cy += Math.sin(angle + (Math.random() - 0.5) * 0.5) * (maxDist / steps);
+            segments.push({ x: cx, y: cy });
+        }
+        cracks.push(segments);
+    }
+    visualEffects.push({ type: 'screenFracture', x, y, cracks, life: 65, maxLife: 65 });
+    triggerScreenFlash('#85c1e9', 0.7);
+}
+
+function spawnScreenLightningStorm() {
+    visualEffects.push({ type: 'screenLightningStorm', life: 55, maxLife: 55 });
+    triggerScreenFlash('#f1c40f', 0.8);
+}
+
+function spawnScreenInferno() {
+    visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 });
+    triggerScreenFlash('#ff4400', 0.85);
+}
+
+function spawnScreenTear(x, y, dir) {
+    const angle = -Math.PI * 0.15 * dir;
+    const length = Math.max(canvas.width, canvas.height) * 1.2;
+    visualEffects.push({ type: 'screenTear', x, y, angle, length, dir, life: 50, maxLife: 50 });
+    triggerScreenFlash('#1abc9c', 0.6);
+}
+
+function spawnScreenShatter(x, y) {
+    const cracks = [];
+    for (let i = 0; i < 14; i++) {
+        const angle = (i / 14) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+        const segments = [{ x, y }];
+        let cx = x, cy = y;
+        const steps = 5 + Math.floor(Math.random() * 3);
+        for (let j = 0; j < steps; j++) {
+            cx += Math.cos(angle + (Math.random() - 0.5) * 0.6) * (60 + Math.random() * 50);
+            cy += Math.sin(angle + (Math.random() - 0.5) * 0.6) * (60 + Math.random() * 50);
+            segments.push({ x: cx, y: cy });
+        }
+        cracks.push(segments);
+    }
+    visualEffects.push({ type: 'screenShatter', x, y, cracks, life: 55, maxLife: 55 });
+    triggerScreenFlash('#a0522d', 0.6);
 }
 
 // ══════════════════════════════════════
@@ -840,6 +979,191 @@ function drawVisualEffects() {
             }
             ctx.shadowBlur = 0;
         }
+
+        // ── Rage Activation Burst ──
+        if (vfx.type === 'rageActivation') {
+            const prog = 1 - a;
+            const r = prog * 200;
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 6 * a;
+            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 40;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 3 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.3, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Screen Fracture (Water Rage) ──
+        if (vfx.type === 'screenFracture') {
+            const prog = 1 - a;
+            const reveal = Math.min(prog * 3, 1);
+            // Dark overlay
+            ctx.globalAlpha = a * 0.15;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Main cracks — white/cyan
+            ctx.globalAlpha = a * 0.9;
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+            ctx.shadowColor = '#85c1e9'; ctx.shadowBlur = 15;
+            for (const crack of vfx.cracks) {
+                const segs = Math.floor(crack.length * reveal);
+                if (segs < 2) continue;
+                ctx.beginPath(); ctx.moveTo(crack[0].x, crack[0].y);
+                for (let j = 1; j < segs; j++) ctx.lineTo(crack[j].x, crack[j].y);
+                ctx.stroke();
+            }
+            // Branch cracks
+            ctx.lineWidth = 1.5; ctx.globalAlpha = a * 0.5; ctx.strokeStyle = '#aed6f1';
+            for (const crack of vfx.cracks) {
+                const segs = Math.floor(crack.length * reveal);
+                for (let j = 1; j < segs; j += 2) {
+                    const ba = Math.atan2(crack[j].y - crack[Math.max(0, j - 1)].y, crack[j].x - crack[Math.max(0, j - 1)].x) + (j % 2 === 0 ? 0.8 : -0.8);
+                    const bl = 15 + Math.random() * 35;
+                    ctx.beginPath(); ctx.moveTo(crack[j].x, crack[j].y);
+                    ctx.lineTo(crack[j].x + Math.cos(ba) * bl, crack[j].y + Math.sin(ba) * bl);
+                    ctx.stroke();
+                }
+            }
+            // Center impact glow
+            if (prog < 0.3) {
+                ctx.globalAlpha = (0.3 - prog) / 0.3 * 0.6;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 150);
+                fg.addColorStop(0, '#fff'); fg.addColorStop(0.3, '#85c1e9'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 150, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Screen Lightning Storm (Lightning Rage) ──
+        if (vfx.type === 'screenLightningStorm') {
+            ctx.globalAlpha = a * 0.2;
+            ctx.fillStyle = '#f1c40f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Random bolts across the screen
+            if (vfx.life % 3 === 0) {
+                spawnLightningBolt(Math.random() * canvas.width, 0, groundY, 4 + Math.random() * 5);
+            }
+            // Electrical arcs
+            ctx.globalAlpha = a * 0.6;
+            ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2;
+            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 20;
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath();
+                let bx = Math.random() * canvas.width, by = 0;
+                ctx.moveTo(bx, by);
+                while (by < canvas.height) {
+                    bx += (Math.random() - 0.5) * 80;
+                    by += 20 + Math.random() * 40;
+                    ctx.lineTo(bx, by);
+                }
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Screen Inferno (Fire Rage) ──
+        if (vfx.type === 'screenInferno') {
+            // Screen-wide fire overlay
+            ctx.globalAlpha = a * 0.25;
+            const fireGrd = ctx.createLinearGradient(0, canvas.height, 0, 0);
+            fireGrd.addColorStop(0, '#e74c3c'); fireGrd.addColorStop(0.4, '#e67e22');
+            fireGrd.addColorStop(0.7, 'rgba(243,156,18,0.3)'); fireGrd.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = fireGrd;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Fire from edges
+            ctx.globalAlpha = a * 0.35;
+            for (let side = 0; side < 2; side++) {
+                const sx = side === 0 ? 0 : canvas.width;
+                const eg = ctx.createLinearGradient(sx, 0, sx + (side === 0 ? 200 : -200), 0);
+                eg.addColorStop(0, 'rgba(231,76,60,0.6)'); eg.addColorStop(0.5, 'rgba(230,126,34,0.2)'); eg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = eg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            // Fire particles from bottom
+            if (vfx.life % 2 === 0) {
+                for (let i = 0; i < 8; i++) {
+                    particles.push({ x: Math.random() * canvas.width, y: canvas.height,
+                        vx: (Math.random() - 0.5) * 4, vy: -5 - Math.random() * 10,
+                        life: 15 + Math.random() * 15, maxLife: 30,
+                        color: `hsl(${10 + Math.random() * 25}, 100%, ${45 + Math.random() * 35}%)` });
+                }
+            }
+        }
+
+        // ── Screen Tear (Wind Rage) ──
+        if (vfx.type === 'screenTear') {
+            const prog = 1 - a;
+            const reveal = Math.min(prog * 4, 1);
+            const slashLen = vfx.length * reveal;
+            const sx = vfx.x - Math.cos(vfx.angle) * slashLen * 0.5;
+            const sy = vfx.y - Math.sin(vfx.angle) * slashLen * 0.5;
+            const ex = vfx.x + Math.cos(vfx.angle) * slashLen * 0.5;
+            const ey = vfx.y + Math.sin(vfx.angle) * slashLen * 0.5;
+            // Bright slash line
+            ctx.globalAlpha = a;
+            ctx.strokeStyle = '#1abc9c'; ctx.lineWidth = 8;
+            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = 35;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+            // Dark void behind slash
+            const perpAngle = vfx.angle + Math.PI / 2;
+            ctx.globalAlpha = a * 0.3;
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.moveTo(sx, sy); ctx.lineTo(ex, ey);
+            ctx.lineTo(ex + Math.cos(perpAngle) * 12, ey + Math.sin(perpAngle) * 12);
+            ctx.lineTo(sx + Math.cos(perpAngle) * 12, sy + Math.sin(perpAngle) * 12);
+            ctx.closePath(); ctx.fill();
+            // Particles along the slash
+            if (vfx.life % 3 === 0) {
+                const t = Math.random();
+                const px = sx + (ex - sx) * t, py = sy + (ey - sy) * t;
+                particles.push({ x: px, y: py,
+                    vx: Math.cos(perpAngle) * (3 + Math.random() * 4), vy: Math.sin(perpAngle) * (3 + Math.random() * 4),
+                    life: 8 + Math.random() * 8, maxLife: 16, color: '#a3e4d7' });
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Screen Shatter (Earth Rage) ──
+        if (vfx.type === 'screenShatter') {
+            const prog = 1 - a;
+            const reveal = Math.min(prog * 3, 1);
+            // Earth-colored cracks
+            ctx.globalAlpha = a * 0.85;
+            ctx.strokeStyle = '#a0522d'; ctx.lineWidth = 4;
+            ctx.shadowColor = '#a0522d'; ctx.shadowBlur = 12;
+            for (const crack of vfx.cracks) {
+                const segs = Math.floor(crack.length * reveal);
+                if (segs < 2) continue;
+                ctx.beginPath(); ctx.moveTo(crack[0].x, crack[0].y);
+                for (let j = 1; j < segs; j++) ctx.lineTo(crack[j].x, crack[j].y);
+                ctx.stroke();
+            }
+            // Inner lighter cracks
+            ctx.strokeStyle = '#d4a36e'; ctx.lineWidth = 2; ctx.globalAlpha = a * 0.5;
+            for (const crack of vfx.cracks) {
+                const segs = Math.floor(crack.length * reveal);
+                if (segs < 2) continue;
+                ctx.beginPath(); ctx.moveTo(crack[0].x, crack[0].y);
+                for (let j = 1; j < segs; j++) ctx.lineTo(crack[j].x, crack[j].y);
+                ctx.stroke();
+            }
+            // Ground dust
+            if (vfx.life % 3 === 0) {
+                for (let i = 0; i < 4; i++) {
+                    particles.push({ x: Math.random() * canvas.width, y: groundY,
+                        vx: (Math.random() - 0.5) * 5, vy: -3 - Math.random() * 6,
+                        life: 10 + Math.random() * 10, maxLife: 20,
+                        color: `hsl(28, 35%, ${35 + Math.random() * 25}%)` });
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
     }
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
@@ -905,6 +1229,7 @@ function updateProjectiles() {
                     const hitDist = Math.abs(p.x - p.target.x);
                     if (hitDist < p.radius + 40) {
                         let damage = p.atk.damage;
+                        if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
                         let kb = p.atk.knockback;
                         if (p.target.blocking) {
                             damage = Math.floor(damage * (1 - p.atk.blockReduction));
@@ -915,6 +1240,7 @@ function updateProjectiles() {
                         p.target.hit = true;
                         p.target.x += p.dir * kb;
                         visualEffects.push({ type: 'impactRing', x: p.x, y: groundY - 30, life: 22, maxLife: 22, color: '#a0522d' });
+                        if (p.rageVfx) triggerRageUltVFX(p.rageVfx, p.x, groundY - 30, p.dir);
                     }
                     projectiles.splice(i, 1);
                     continue;
@@ -944,6 +1270,7 @@ function updateProjectiles() {
 
         if (dist < p.radius + 30) {
             let damage = p.atk.damage;
+            if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
             let kb = p.atk.knockback;
             if (p.target.blocking) {
                 damage = Math.floor(damage * (1 - p.atk.blockReduction));
@@ -954,7 +1281,8 @@ function updateProjectiles() {
             p.target.hit = true;
             p.target.x += (p.vx > 0 ? 1 : p.vx < 0 ? -1 : p.owner.facing) * kb;
 
-            spawnElementParticles(p.x, p.y, p.styleData, 60);
+            spawnElementParticles(p.x, p.y, p.styleData, p.owner.rageActive ? 100 : 60);
+            if (p.rageVfx) triggerRageUltVFX(p.rageVfx, p.x, p.y, p.owner.facing);
             // Impact effects scale with damage
             const impactPow = p.atk.damage;
             triggerScreenShake(Math.min(impactPow * 1.2, 28), Math.min(impactPow * 1.0, 30));
@@ -1626,6 +1954,7 @@ function handleInput() {
     if (keys['x']) { player1.useAttack(1, player2); keys['x'] = false; }
     if (keys['c']) { player1.useAttack(2, player2); keys['c'] = false; }
     if (keys['v']) { player1.useAttack(3, player2); keys['v'] = false; }
+    if (keys['e']) { player1.activateRage(); keys['e'] = false; }
 
     if (!aiMode) {
         player2.vx = 0; player2.blocking = false;
@@ -1639,6 +1968,7 @@ function handleInput() {
         if (keys['/'])  { player2.useAttack(1, player1); keys['/'] = false; }
         if (keys['.'])  { player2.useAttack(2, player1); keys['.'] = false; }
         if (keys[','])  { player2.useAttack(3, player1); keys[','] = false; }
+        if (keys['m'])  { player2.activateRage(); keys['m'] = false; }
     }
 }
 
@@ -1690,6 +2020,10 @@ function handleAI() {
             player2.vx = dir * MOVE_SPEED; break;
     }
     if (player1.casting && dist < 120 && Math.random() < 0.3) player2.blocking = true;
+    // AI activates rage when available and health is low
+    if (player2.rageAvailable && !player2.rageActive && player2.health <= MAX_HEALTH * 0.4) {
+        player2.activateRage();
+    }
 }
 
 // ── Drawing ──
@@ -1831,6 +2165,50 @@ function drawCooldownBar(x, y, w, h, ratio, name, color, maxCd) {
     ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
 
+// ── Rage Bars ──
+function drawRageBars() {
+    drawRageBar(32, 148, 100, 6, player1, 'E');
+    drawRageBar(canvas.width - 132, 148, 100, 6, player2, aiMode ? '' : 'M');
+}
+
+function drawRageBar(x, y, w, h, player, key) {
+    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
+    ctx.font = '9px "Segoe UI",Arial,sans-serif';
+    ctx.textAlign = 'left';
+
+    if (player.rageActive) {
+        const ratio = player.rageTimer / (30 * 60);
+        ctx.fillStyle = '#ff0000';
+        ctx.globalAlpha = 0.6 + Math.sin(Date.now() * 0.008) * 0.3;
+        ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8;
+        ctx.fillRect(x, y, w * ratio, h);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        ctx.fillStyle = '#ff4444';
+        ctx.fillText('RAGE ACTIVE', x, y - 2);
+        ctx.textAlign = 'right'; ctx.fillStyle = '#ff6666';
+        ctx.fillText(Math.ceil(player.rageTimer / 60) + 's', x + w, y - 2);
+    } else if (player.rageAvailable) {
+        ctx.fillStyle = '#ff0000';
+        ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.006) * 0.3;
+        ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
+        ctx.fillRect(x, y, w, h);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        ctx.fillStyle = '#ff4444';
+        ctx.fillText('RAGE READY' + (key ? ' [' + key + ']' : ''), x, y - 2);
+    } else if (player.rageUsed) {
+        ctx.fillStyle = '#444';
+        ctx.fillText('RAGE SPENT', x, y - 2);
+    } else {
+        const fill = Math.max(0, 1 - player.health / (MAX_HEALTH * 0.5));
+        ctx.fillStyle = '#660000';
+        ctx.fillRect(x, y, w * fill, h);
+        ctx.fillStyle = '#555';
+        ctx.fillText('RAGE', x, y - 2);
+    }
+    ctx.textAlign = 'left'; ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+
 // ── Round / Game Logic ──
 function startTimer() {
     timer = ROUND_TIME;
@@ -1872,7 +2250,7 @@ function gameLoop() {
         ctx.translate(shakeOffsetX, shakeOffsetY);
         drawBackground();
         player1.draw(); player2.draw();
-        drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns();
+        drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars();
         ctx.restore();
         drawScreenFlash();
         updateUI();
@@ -1891,7 +2269,7 @@ function gameLoop() {
 
     drawBackground();
     player1.draw(); player2.draw();
-    drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns();
+    drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars();
 
     ctx.restore();
 
