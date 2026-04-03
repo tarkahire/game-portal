@@ -7,6 +7,12 @@ faceImg.src = 'face.jpg';
 let faceImgLoaded = false;
 faceImg.onload = () => { faceImgLoaded = true; };
 
+// ── Van Image ──
+const vanImg = new Image();
+vanImg.src = 'car.jpg';
+let vanImgLoaded = false;
+vanImg.onload = () => { vanImgLoaded = true; };
+
 // ── Constants ──
 const GROUND_Y_RATIO = 0.85;
 const GRAVITY = 0.6;
@@ -1534,32 +1540,16 @@ class Fighter {
             ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
         }
 
-        // ── Tarka Van Rage: draw van instead of stickman ──
+        // ── Tarka Van Rage: draw actual van image instead of stickman ──
         if (this.rageActive && this.style === 'tarkavan') {
             const bounce = Math.sin(Date.now() * 0.015) * 2;
             ctx.translate(0, bounce);
-            // Van body
-            ctx.fillStyle = '#f0f0f0'; ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
-            ctx.fillRect(-35, -75, 70, 50); ctx.strokeRect(-35, -75, 70, 50);
-            // Blue stripe with text
-            ctx.fillStyle = '#2e5bff'; ctx.fillRect(-35, -55, 70, 18);
-            ctx.font = 'bold 8px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
-            ctx.fillStyle = '#fff'; ctx.fillText('TARKA VAN', 0, -42);
-            ctx.font = '6px sans-serif'; ctx.fillText('HIRE', 0, -35);
-            // Windshield
-            ctx.fillStyle = '#aaccee'; ctx.fillRect(-30, -73, 25, 16);
-            // Headlight
-            ctx.fillStyle = '#ffe066'; ctx.fillRect(26, -68, 6, 6);
-            // Wheels
-            ctx.fillStyle = '#333';
-            ctx.beginPath(); ctx.arc(-20, -25, 8, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(20, -25, 8, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#888';
-            ctx.beginPath(); ctx.arc(-20, -25, 4, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(20, -25, 4, 0, Math.PI * 2); ctx.fill();
+            if (vanImgLoaded) {
+                ctx.drawImage(vanImg, -45, -80, 90, 54);
+            }
             // Exhaust smoke
             if (Math.random() < 0.4) {
-                particles.push({ x: this.x - this.facing * 35, y: this.y - 28,
+                particles.push({ x: this.x - this.facing * 40, y: this.y - 28,
                     vx: -this.facing * (1 + Math.random() * 2), vy: -1 - Math.random(),
                     life: 10 + Math.random() * 8, maxLife: 18, color: '#aaa' });
             }
@@ -3132,25 +3122,17 @@ function drawVisualEffects() {
         if (vfx.type === 'fleetStrike') {
             const prog = 1 - a;
             ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Multiple vans rushing across screen from both sides
-            ctx.globalAlpha = a * 0.8;
-            for (let v = 0; v < 6; v++) {
-                const fromLeft = v % 2 === 0;
-                const vx = fromLeft ? -60 + prog * (canvas.width + 120) : canvas.width + 60 - prog * (canvas.width + 120);
-                const vy = 100 + v * 70 + Math.sin(v * 2.1) * 20;
-                const vDir = fromLeft ? 1 : -1;
-                ctx.save(); ctx.translate(vx, vy); ctx.scale(vDir, 1);
-                // Van body
-                ctx.fillStyle = '#f0f0f0'; ctx.fillRect(-25, -18, 50, 30);
-                ctx.fillStyle = '#2e5bff'; ctx.fillRect(-25, -8, 50, 12);
-                ctx.font = 'bold 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-                ctx.fillText('TARKA', 0, 1);
-                ctx.fillStyle = '#aaccee'; ctx.fillRect(-22, -16, 18, 10);
-                ctx.fillStyle = '#ffe066'; ctx.fillRect(18, -14, 5, 5);
-                ctx.fillStyle = '#333';
-                ctx.beginPath(); ctx.arc(-14, 12, 6, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(14, 12, 6, 0, Math.PI * 2); ctx.fill();
-                ctx.restore();
+            // Multiple actual van images rushing across screen from both sides
+            if (vanImgLoaded) {
+                ctx.globalAlpha = a * 0.85;
+                for (let v = 0; v < 6; v++) {
+                    const fromLeft = v % 2 === 0;
+                    const vx = fromLeft ? -80 + prog * (canvas.width + 160) : canvas.width + 80 - prog * (canvas.width + 160);
+                    const vy = 100 + v * 70 + Math.sin(v * 2.1) * 20;
+                    ctx.save(); ctx.translate(vx, vy); ctx.scale(fromLeft ? 1 : -1, 1);
+                    ctx.drawImage(vanImg, -35, -20, 70, 42);
+                    ctx.restore();
+                }
             }
             // Speed lines
             ctx.globalAlpha = a * 0.3; ctx.strokeStyle = '#2e5bff'; ctx.lineWidth = 2;
@@ -3163,22 +3145,18 @@ function drawVisualEffects() {
         if (vfx.type === 'screenFleet') {
             const prog = 1 - a;
             ctx.globalAlpha = a * 0.4; ctx.fillStyle = '#001030'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Absolute chaos — vans everywhere
-            ctx.globalAlpha = a * 0.7;
-            for (let v = 0; v < 10; v++) {
-                const vx = (v * 137 + Date.now() * 0.1 * (v % 2 === 0 ? 1 : -1)) % (canvas.width + 100) - 50;
-                const vy = (v * 89 + Date.now() * 0.06) % (canvas.height * 0.8) + 30;
-                const vDir = v % 2 === 0 ? 1 : -1;
-                const sc = 0.7 + Math.sin(v * 1.7) * 0.3;
-                ctx.save(); ctx.translate(vx, vy); ctx.scale(vDir * sc, sc); ctx.rotate(Math.sin(Date.now() * 0.003 + v) * 0.2);
-                ctx.fillStyle = '#f0f0f0'; ctx.fillRect(-25, -18, 50, 30);
-                ctx.fillStyle = '#2e5bff'; ctx.fillRect(-25, -8, 50, 12);
-                ctx.font = 'bold 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-                ctx.fillText('TARKA', 0, 1);
-                ctx.fillStyle = '#333';
-                ctx.beginPath(); ctx.arc(-14, 12, 5, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(14, 12, 5, 0, Math.PI * 2); ctx.fill();
-                ctx.restore();
+            // Absolute chaos — actual van images everywhere
+            if (vanImgLoaded) {
+                for (let v = 0; v < 10; v++) {
+                    const vx = (v * 137 + Date.now() * 0.1 * (v % 2 === 0 ? 1 : -1)) % (canvas.width + 100) - 50;
+                    const vy = (v * 89 + Date.now() * 0.06) % (canvas.height * 0.8) + 30;
+                    const vDir = v % 2 === 0 ? 1 : -1;
+                    const sc = 0.7 + Math.sin(v * 1.7) * 0.3;
+                    ctx.globalAlpha = a * 0.7;
+                    ctx.save(); ctx.translate(vx, vy); ctx.scale(vDir * sc, sc); ctx.rotate(Math.sin(Date.now() * 0.003 + v) * 0.2);
+                    ctx.drawImage(vanImg, -35, -20, 70, 42);
+                    ctx.restore();
+                }
             }
             // HONK text floating
             ctx.globalAlpha = a * 0.5; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center';
@@ -5107,7 +5085,7 @@ function drawProjectiles() {
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
             }
         }
-        // ─── TARKA VAN: Van Launch ───
+        // ─── TARKA VAN: Van Launch (actual van image) ───
         else if (draw === 'vanLaunch') {
             const dir = p.vx > 0 ? 1 : -1;
             // Exhaust trail
@@ -5117,56 +5095,29 @@ function drawProjectiles() {
                 ctx.beginPath(); ctx.arc(t.x, t.y, 4 + (1 - t.alpha) * 6, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1; ctx.shadowColor = '#2e5bff'; ctx.shadowBlur = 10;
-            ctx.save(); ctx.translate(p.x, p.y); ctx.scale(dir, 1);
-            // Van body
-            ctx.fillStyle = '#f0f0f0'; ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5;
-            ctx.fillRect(-22, -15, 44, 25); ctx.strokeRect(-22, -15, 44, 25);
-            // Blue stripe with text
-            ctx.fillStyle = '#2e5bff'; ctx.fillRect(-22, -5, 44, 10);
-            ctx.font = 'bold 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-            ctx.fillText('TARKA', 0, 3);
-            // Windshield
-            ctx.fillStyle = '#aaccee'; ctx.fillRect(-18, -13, 15, 8);
-            // Headlight
-            ctx.fillStyle = '#ffe066'; ctx.fillRect(16, -11, 4, 4);
-            // Wheels
-            ctx.fillStyle = '#333';
-            ctx.beginPath(); ctx.arc(-12, 10, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(12, 10, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#888';
-            ctx.beginPath(); ctx.arc(-12, 10, 2.5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(12, 10, 2.5, 0, Math.PI * 2); ctx.fill();
-            ctx.restore(); ctx.shadowBlur = 0;
+            if (vanImgLoaded) {
+                ctx.save(); ctx.translate(p.x, p.y); ctx.scale(dir, 1);
+                ctx.drawImage(vanImg, -30, -18, 60, 36);
+                ctx.restore();
+            }
+            ctx.shadowBlur = 0;
         }
-        // ─── TARKA VAN: Delivery Drop (van from sky) ───
+        // ─── TARKA VAN: Delivery Drop (actual van image from sky) ───
         else if (draw === 'deliveryDrop') {
             const r = p.radius;
             // Shadow on ground
             ctx.fillStyle = 'rgba(0,0,0,0.25)';
-            ctx.beginPath(); ctx.ellipse(p.x, groundY + 3, r * 0.6, 8, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = 1; ctx.shadowColor = '#2e5bff'; ctx.shadowBlur = 15;
-            ctx.save(); ctx.translate(p.x, p.y);
-            // Bigger van
-            ctx.fillStyle = '#f0f0f0'; ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
-            ctx.fillRect(-30, -20, 60, 35); ctx.strokeRect(-30, -20, 60, 35);
-            ctx.fillStyle = '#2e5bff'; ctx.fillRect(-30, -8, 60, 14);
-            ctx.font = 'bold 7px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-            ctx.fillText('TARKA VAN', 0, 2);
-            ctx.font = '5px sans-serif'; ctx.fillText('HIRE', 0, 8);
-            ctx.fillStyle = '#aaccee'; ctx.fillRect(-26, -18, 20, 10);
-            ctx.fillStyle = '#ffe066'; ctx.fillRect(22, -16, 5, 5);
-            ctx.fillStyle = '#333';
-            ctx.beginPath(); ctx.arc(-16, 15, 7, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(16, 15, 7, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#888';
-            ctx.beginPath(); ctx.arc(-16, 15, 3.5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(16, 15, 3.5, 0, Math.PI * 2); ctx.fill();
-            ctx.restore(); ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.ellipse(p.x, groundY + 3, r * 0.8, 8, 0, 0, Math.PI * 2); ctx.fill();
+            if (vanImgLoaded) {
+                ctx.globalAlpha = 1; ctx.shadowColor = '#2e5bff'; ctx.shadowBlur = 15;
+                ctx.drawImage(vanImg, p.x - 40, p.y - 22, 80, 48);
+                ctx.shadowBlur = 0;
+            }
             // Speed lines above
             ctx.globalAlpha = 0.4; ctx.strokeStyle = '#2e5bff'; ctx.lineWidth = 2;
             for (let s = 0; s < 3; s++) {
-                const sx = p.x + (Math.random() - 0.5) * 40;
-                ctx.beginPath(); ctx.moveTo(sx, p.y - 25); ctx.lineTo(sx, p.y - 45 - Math.random() * 20); ctx.stroke();
+                const sx = p.x + (Math.random() - 0.5) * 50;
+                ctx.beginPath(); ctx.moveTo(sx, p.y - 25); ctx.lineTo(sx, p.y - 50 - Math.random() * 25); ctx.stroke();
             }
             ctx.globalAlpha = 1;
         }
