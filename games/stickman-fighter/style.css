@@ -262,21 +262,6 @@ button:hover {
     box-shadow: none;
 }
 
-.style-btn.locked {
-    opacity: 0.35;
-    cursor: not-allowed;
-    border-color: #222;
-}
-
-.style-btn.locked:hover {
-    transform: none;
-    border-color: #333;
-}
-
-.style-btn.locked .style-icon {
-    filter: grayscale(1);
-}
-
 .style-btn.selected {
     border-color: #f39c12;
     box-shadow: 0 0 20px rgba(243, 156, 18, 0.4);

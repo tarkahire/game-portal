@@ -135,35 +135,6 @@ const STYLES = {
     },
 };
 
-// ── Unlock System ──
-const UNLOCK_REQUIREMENTS = {
-    light: { requires: 'lightning', hint: 'Win with Lightning' },
-    dark: { requires: 'fire', hint: 'Win with Fire' },
-    shadow: { requires: 'wind', hint: 'Win with Wind' },
-    portal: { requires: 'water', hint: 'Win with Water' },
-    washingmachine: { requires: 'earth', hint: 'Win with Earth' },
-};
-
-function getUnlocks() {
-    try { return JSON.parse(localStorage.getItem('sf_unlocks') || '{}'); } catch { return {}; }
-}
-function saveUnlock(style) {
-    const u = getUnlocks(); u[style] = true; localStorage.setItem('sf_unlocks', JSON.stringify(u));
-}
-function isStyleUnlocked(style) {
-    if (!UNLOCK_REQUIREMENTS[style]) return true; // base styles always unlocked
-    return !!getUnlocks()[style];
-}
-function checkUnlocksAfterWin(winnerStyle) {
-    for (const [style, req] of Object.entries(UNLOCK_REQUIREMENTS)) {
-        if (req.requires === winnerStyle && !isStyleUnlocked(style)) {
-            saveUnlock(style);
-            // Show unlock notification
-            visualEffects.push({ type: 'unlockNotification', styleName: STYLES[style].name, life: 180, maxLife: 180 });
-        }
-    }
-}
-
 // ── Screen Shake ──
 let shakeIntensity = 0;
 let shakeDuration = 0;
@@ -4835,9 +4806,6 @@ function endGame(text) {
     document.getElementById('result-text').textContent = text;
     document.getElementById('result-screen').classList.remove('hidden');
     document.getElementById('ui-overlay').style.display = 'none';
-    // Check for style unlocks based on winner
-    if (text.includes('Player 1')) checkUnlocksAfterWin(p1Style);
-    else if (text.includes('Player 2')) checkUnlocksAfterWin(p2Style);
 }
 function checkRoundEnd() {
     if (player1.health <= 0) { p2Wins++; if (p2Wins >= ROUNDS_TO_WIN) endGame('Player 2 Wins!'); else { currentRound++; resetPositions(); clearInterval(timerInterval); startTimer(); } }
@@ -4925,29 +4893,11 @@ function setupStyleSelect() {
     document.getElementById('p1-preview').innerHTML = '';
     document.getElementById('p2-preview').innerHTML = '';
     document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('selected'));
-    updateStyleButtons();
-}
-
-function updateStyleButtons() {
-    document.querySelectorAll('.style-btn').forEach(btn => {
-        const style = btn.dataset.style;
-        const locked = !isStyleUnlocked(style);
-        btn.classList.toggle('locked', locked);
-        if (locked) {
-            const req = UNLOCK_REQUIREMENTS[style];
-            btn.title = req ? req.hint : '';
-            btn.querySelector('.style-name').textContent = '???';
-        } else {
-            btn.title = '';
-            btn.querySelector('.style-name').textContent = STYLES[style].name;
-        }
-    });
 }
 
 document.querySelectorAll('.style-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const style = btn.dataset.style;
-        if (!isStyleUnlocked(style)) return; // can't pick locked styles
         const player = parseInt(btn.dataset.player);
         btn.closest('.select-side').querySelectorAll('.style-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
