@@ -614,6 +614,142 @@ button:hover {
     border-color: #ff00ff;
     box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
 }
+.style-btn[data-style="pharaoh"].selected {
+    border-color: #daa520;
+    box-shadow: 0 0 20px rgba(218, 165, 32, 0.4);
+}
+.style-btn[data-style="viking"].selected {
+    border-color: #b8860b;
+    box-shadow: 0 0 20px rgba(184, 134, 11, 0.4);
+}
+.style-btn[data-style="spartan"].selected {
+    border-color: #cd853f;
+    box-shadow: 0 0 20px rgba(205, 133, 63, 0.4);
+}
+.style-btn[data-style="zeus"].selected {
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+.style-btn[data-style="medusa"].selected {
+    border-color: #9370db;
+    box-shadow: 0 0 20px rgba(147, 112, 219, 0.4);
+}
+.style-btn[data-style="hacker"].selected {
+    border-color: #00ff00;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+}
+.style-btn[data-style="alien"].selected {
+    border-color: #7cfc00;
+    box-shadow: 0 0 20px rgba(124, 252, 0, 0.4);
+}
+.style-btn[data-style="cyborg"].selected {
+    border-color: #ff6347;
+    box-shadow: 0 0 20px rgba(255, 99, 71, 0.4);
+}
+.style-btn[data-style="glitch2"].selected {
+    border-color: #ff00ff;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
+}
+.style-btn[data-style="ai"].selected {
+    border-color: #4169e1;
+    box-shadow: 0 0 20px rgba(65, 105, 225, 0.4);
+}
+.style-btn[data-style="shark"].selected {
+    border-color: #4682b4;
+    box-shadow: 0 0 20px rgba(70, 130, 180, 0.4);
+}
+.style-btn[data-style="gorilla"].selected {
+    border-color: #8b4513;
+    box-shadow: 0 0 20px rgba(139, 69, 19, 0.4);
+}
+.style-btn[data-style="scorpion"].selected {
+    border-color: #ff8c00;
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+}
+.style-btn[data-style="eagle"].selected {
+    border-color: #deb887;
+    box-shadow: 0 0 20px rgba(222, 184, 135, 0.4);
+}
+.style-btn[data-style="snake"].selected {
+    border-color: #556b2f;
+    box-shadow: 0 0 20px rgba(85, 107, 47, 0.4);
+}
+.style-btn[data-style="sushi"].selected {
+    border-color: #ff6347;
+    box-shadow: 0 0 20px rgba(255, 99, 71, 0.4);
+}
+.style-btn[data-style="coffee"].selected {
+    border-color: #8b4513;
+    box-shadow: 0 0 20px rgba(139, 69, 19, 0.4);
+}
+.style-btn[data-style="taco"].selected {
+    border-color: #ff8c00;
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+}
+.style-btn[data-style="icecream"].selected {
+    border-color: #ffb6c1;
+    box-shadow: 0 0 20px rgba(255, 182, 193, 0.4);
+}
+.style-btn[data-style="popcorn"].selected {
+    border-color: #fffacd;
+    box-shadow: 0 0 20px rgba(255, 250, 205, 0.4);
+}
+.style-btn[data-style="firefighter"].selected {
+    border-color: #ff4500;
+    box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+}
+.style-btn[data-style="doctor"].selected {
+    border-color: #ffffff;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+}
+.style-btn[data-style="lawyer"].selected {
+    border-color: #2f4f4f;
+    box-shadow: 0 0 20px rgba(47, 79, 79, 0.4);
+}
+.style-btn[data-style="dentist"].selected {
+    border-color: #add8e6;
+    box-shadow: 0 0 20px rgba(173, 216, 230, 0.4);
+}
+.style-btn[data-style="mailman"].selected {
+    border-color: #4169e1;
+    box-shadow: 0 0 20px rgba(65, 105, 225, 0.4);
+}
+.style-btn[data-style="metal"].selected {
+    border-color: #2f2f2f;
+    box-shadow: 0 0 20px rgba(47, 47, 47, 0.4);
+}
+.style-btn[data-style="rap"].selected {
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+.style-btn[data-style="opera"].selected {
+    border-color: #800020;
+    box-shadow: 0 0 20px rgba(128, 0, 32, 0.4);
+}
+.style-btn[data-style="country"].selected {
+    border-color: #deb887;
+    box-shadow: 0 0 20px rgba(222, 184, 135, 0.4);
+}
+.style-btn[data-style="trampoline"].selected {
+    border-color: #ff69b4;
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.4);
+}
+.style-btn[data-style="bubble"].selected {
+    border-color: #87ceeb;
+    box-shadow: 0 0 20px rgba(135, 206, 235, 0.4);
+}
+.style-btn[data-style="mirror"].selected {
+    border-color: #c0c0c0;
+    box-shadow: 0 0 20px rgba(192, 192, 192, 0.4);
+}
+.style-btn[data-style="rubber"].selected {
+    border-color: #ff4500;
+    box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+}
+.style-btn[data-style="cheese"].selected {
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
 
 .stage-btn {
     padding: 8px 14px;

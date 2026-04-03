@@ -771,6 +771,319 @@ const STYLES = {
             { name: 'Encore',       type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'encore' },
         ],
     },
+    // ── Mythological ──
+    pharaoh: {
+        name: 'Pharaoh', color: '#daa520', hue: 43,
+        attacks: [
+            { name: 'Scarab Swarm',     type: 'projectile', damage: 6,  cooldown: 90,   speed: 11, radius: 28, knockback: 7,  blockReduction: 0.5, draw: 'scarabSwarm', special: 'scarabSwarm' },
+            { name: 'Sandstorm Curse',  type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'sandstormCurse' },
+            { name: 'Mummy Wrap',       type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 8,  blockReduction: 0.3, vfx: 'mummyWrap' },
+            { name: 'Pyramid Crush',    type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'pyramidCrush' },
+        ],
+    },
+    viking: {
+        name: 'Viking', color: '#b8860b', hue: 43,
+        attacks: [
+            { name: 'Axe Throw',        type: 'projectile', damage: 7,  cooldown: 100,  speed: 12, radius: 30, knockback: 10, blockReduction: 0.4, draw: 'vikingAxe' },
+            { name: 'Shield Bash',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'shieldBash' },
+            { name: 'Berserker Charge', type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'berserkerCharge', launchUp: -14 },
+            { name: 'Valhalla Strike',  type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'valhallaStrike' },
+        ],
+    },
+    spartan: {
+        name: 'Spartan', color: '#cd853f', hue: 29,
+        attacks: [
+            { name: 'Spear Throw',      type: 'projectile', damage: 7,  cooldown: 80,   speed: 16, radius: 24, knockback: 8,  blockReduction: 0.5, draw: 'spearThrow' },
+            { name: 'Phalanx Shield',   type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'phalanxShield' },
+            { name: 'THIS IS SPARTA',   type: 'instant',    damage: 14, cooldown: 360,  range: 9999, knockback: 30, blockReduction: 0.3, vfx: 'thisIsSparta' },
+            { name: 'Legion Charge',    type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'legionCharge' },
+        ],
+    },
+    zeus: {
+        name: 'Zeus', color: '#ffd700', hue: 51,
+        attacks: [
+            { name: 'Mini Bolt',        type: 'projectile', damage: 6,  cooldown: 70,   speed: 18, radius: 22, knockback: 6,  blockReduction: 0.5, draw: 'miniBolt' },
+            { name: 'Thunder Hammer',   type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'thunderHammer' },
+            { name: 'Cloud Ride',       type: 'instant',    damage: 13, cooldown: 340,  range: 9999, knockback: 12, blockReduction: 0.3, vfx: 'cloudRide' },
+            { name: 'Olympus Judgment', type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'olympusJudgment' },
+        ],
+    },
+    medusa: {
+        name: 'Medusa', color: '#9370db', hue: 260,
+        attacks: [
+            { name: 'Snake Shot',       type: 'projectile', damage: 6,  cooldown: 90,   speed: 13, radius: 26, knockback: 6,  blockReduction: 0.5, draw: 'snakeShot' },
+            { name: 'Stone Gaze',       type: 'instant',    damage: 11, cooldown: 290,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'stoneGaze' },
+            { name: 'Venom Pool',       type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 8,  blockReduction: 0.3, vfx: 'venomPool' },
+            { name: 'Petrify',          type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'petrify' },
+        ],
+    },
+    // ── Sci-Fi ──
+    hacker: {
+        name: 'Hacker', color: '#00ff00', hue: 120,
+        attacks: [
+            { name: 'Virus Shot',       type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'virusShot' },
+            { name: 'Firewall',         type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'firewall' },
+            { name: 'DDOS',             type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'virusShot', special: 'ddos' },
+            { name: 'System Crash',     type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'systemCrash' },
+        ],
+    },
+    alien: {
+        name: 'Alien', color: '#7cfc00', hue: 90,
+        attacks: [
+            { name: 'Ray Gun',          type: 'projectile', damage: 7,  cooldown: 90,   speed: 15, radius: 22, knockback: 7,  blockReduction: 0.5, draw: 'rayGun' },
+            { name: 'Abduction Beam',   type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'abductionBeam' },
+            { name: 'Crop Circles',     type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 10, blockReduction: 0.3, vfx: 'cropCircles' },
+            { name: 'Mothership',       type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'mothership' },
+        ],
+    },
+    cyborg: {
+        name: 'Cyborg', color: '#ff6347', hue: 9,
+        attacks: [
+            { name: 'Arm Cannon',       type: 'projectile', damage: 7,  cooldown: 90,   speed: 16, radius: 24, knockback: 8,  blockReduction: 0.5, draw: 'armCannon' },
+            { name: 'Eye Laser',        type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'eyeLaser' },
+            { name: 'Rocket Boost',     type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 12, blockReduction: 0.3, vfx: 'rocketBoost', launchUp: -16 },
+            { name: 'Overclock',        type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'overclock' },
+        ],
+    },
+    glitch2: {
+        name: 'Glitch', color: '#ff00ff', hue: 300,
+        attacks: [
+            { name: 'Error Throw',      type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 26, knockback: 7,  blockReduction: 0.5, draw: 'errorThrow' },
+            { name: 'Lag Teleport',     type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'lagTeleport' },
+            { name: '404 Not Found',    type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 10, blockReduction: 0.3, vfx: 'notFound404' },
+            { name: 'Kernel Panic',     type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'kernelPanic' },
+        ],
+    },
+    ai: {
+        name: 'AI', color: '#4169e1', hue: 225,
+        attacks: [
+            { name: 'Data Stream',      type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'dataStream' },
+            { name: 'Prediction',       type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'prediction' },
+            { name: 'Neural Net',       type: 'projectile', damage: 5,  cooldown: 100,  speed: 12, radius: 20, knockback: 5,  blockReduction: 0.5, draw: 'dataStream', special: 'neuralNet' },
+            { name: 'Singularity',      type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'aiSingularity' },
+        ],
+    },
+    // ── Animals ──
+    shark: {
+        name: 'Shark', color: '#4682b4', hue: 207,
+        attacks: [
+            { name: 'Bite Lunge',       type: 'projectile', damage: 7,  cooldown: 90,   speed: 14, radius: 30, knockback: 10, blockReduction: 0.4, draw: 'biteLunge' },
+            { name: 'Fin Slash',        type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'finSlash' },
+            { name: 'Blood Frenzy',     type: 'instant',    damage: 14, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'bloodFrenzy' },
+            { name: 'Megalodon',        type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'megalodon' },
+        ],
+    },
+    gorilla: {
+        name: 'Gorilla', color: '#8b4513', hue: 25,
+        attacks: [
+            { name: 'Rock Throw',       type: 'projectile', damage: 7,  cooldown: 100,  speed: 10, radius: 36, knockback: 10, blockReduction: 0.4, draw: 'gorillaRock' },
+            { name: 'Chest Pound',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'chestPound' },
+            { name: 'Ground Slam',      type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'groundSlam', launchUp: -18 },
+            { name: 'King Kong',        type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'kingKong' },
+        ],
+    },
+    scorpion: {
+        name: 'Scorpion', color: '#ff8c00', hue: 33,
+        attacks: [
+            { name: 'Tail Sting',       type: 'projectile', damage: 7,  cooldown: 70,   speed: 18, radius: 20, knockback: 6,  blockReduction: 0.5, draw: 'tailSting' },
+            { name: 'Claw Grab',        type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'clawGrab' },
+            { name: 'Venom Inject',     type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 8,  blockReduction: 0.3, vfx: 'venomInject' },
+            { name: 'Desert Storm',     type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'desertStorm' },
+        ],
+    },
+    eagle: {
+        name: 'Eagle', color: '#deb887', hue: 34,
+        attacks: [
+            { name: 'Talon Dive',       type: 'projectile', damage: 6,  cooldown: 90,   speed: 14, radius: 26, knockback: 8,  blockReduction: 0.5, draw: 'talonDive' },
+            { name: 'Wing Gust',        type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 24, blockReduction: 0.4, vfx: 'wingGust' },
+            { name: 'Screech',          type: 'instant',    damage: 12, cooldown: 340,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'screech' },
+            { name: 'Freedom Strike',   type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'freedomStrike' },
+        ],
+    },
+    snake: {
+        name: 'Snake', color: '#556b2f', hue: 80,
+        attacks: [
+            { name: 'Venom Spit',       type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 22, knockback: 5,  blockReduction: 0.5, draw: 'venomSpit' },
+            { name: 'Constrict',        type: 'instant',    damage: 11, cooldown: 290,  range: 9999, knockback: 6,  blockReduction: 0.4, vfx: 'constrict' },
+            { name: 'Cobra Strike',     type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 12, blockReduction: 0.3, vfx: 'cobraStrike' },
+            { name: 'Anaconda Crush',   type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'anacondaCrush' },
+        ],
+    },
+    // ── Food ──
+    sushi: {
+        name: 'Sushi', color: '#ff6347', hue: 9,
+        attacks: [
+            { name: 'Chopstick Throw',  type: 'projectile', damage: 6,  cooldown: 80,   speed: 16, radius: 20, knockback: 5,  blockReduction: 0.5, draw: 'chopstickThrow' },
+            { name: 'Wasabi Burn',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'wasabiBurn' },
+            { name: 'Soy Splash',       type: 'instant',    damage: 12, cooldown: 340,  range: 9999, knockback: 10, blockReduction: 0.3, vfx: 'soySplash' },
+            { name: 'Dragon Roll',      type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'dragonRoll' },
+        ],
+    },
+    coffee: {
+        name: 'Coffee', color: '#8b4513', hue: 25,
+        attacks: [
+            { name: 'Espresso Shot',    type: 'projectile', damage: 7,  cooldown: 70,   speed: 18, radius: 20, knockback: 6,  blockReduction: 0.5, draw: 'espressoShot' },
+            { name: 'Steam Blast',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'steamBlast' },
+            { name: 'Caffeine Rush',    type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'caffeineRush' },
+            { name: 'Overdose',         type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'overdose' },
+        ],
+    },
+    taco: {
+        name: 'Taco', color: '#ff8c00', hue: 33,
+        attacks: [
+            { name: 'Shell Throw',      type: 'projectile', damage: 6,  cooldown: 90,   speed: 12, radius: 28, knockback: 7,  blockReduction: 0.5, draw: 'shellThrow' },
+            { name: 'Hot Sauce',        type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'hotSauce' },
+            { name: 'Guac Smash',       type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'guacSmash' },
+            { name: 'Fiesta',           type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'fiesta' },
+        ],
+    },
+    icecream: {
+        name: 'IceCream', color: '#ffb6c1', hue: 350,
+        attacks: [
+            { name: 'Scoop Shot',       type: 'projectile', damage: 6,  cooldown: 80,   speed: 13, radius: 26, knockback: 6,  blockReduction: 0.5, draw: 'scoopShot' },
+            { name: 'Brain Freeze',     type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'brainFreeze' },
+            { name: 'Sprinkle Storm',   type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 10, blockReduction: 0.3, vfx: 'sprinkleStorm' },
+            { name: 'Sundae Slam',      type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'sundaeSlam' },
+        ],
+    },
+    popcorn: {
+        name: 'Popcorn', color: '#fffacd', hue: 54,
+        attacks: [
+            { name: 'Kernel Pop',       type: 'projectile', damage: 5,  cooldown: 70,   speed: 14, radius: 22, knockback: 5,  blockReduction: 0.5, draw: 'kernelPop' },
+            { name: 'Butter Splash',    type: 'instant',    damage: 10, cooldown: 260,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'butterSplash' },
+            { name: 'Microwave',        type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 12, blockReduction: 0.3, vfx: 'microwave' },
+            { name: 'Theater Boom',     type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'theaterBoom' },
+        ],
+    },
+    // ── Jobs ──
+    firefighter: {
+        name: 'Firefighter', color: '#ff4500', hue: 16,
+        attacks: [
+            { name: 'Hose Blast',       type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 30, knockback: 10, blockReduction: 0.5, draw: 'hoseBlast' },
+            { name: 'Axe Chop',         type: 'projectile', damage: 7,  cooldown: 100,  speed: 12, radius: 28, knockback: 8,  blockReduction: 0.4, draw: 'fireAxe' },
+            { name: 'Ladder Swing',     type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'ladderSwing' },
+            { name: 'Inferno Rescue',   type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'infernoRescue' },
+        ],
+    },
+    doctor: {
+        name: 'Doctor', color: '#ffffff', hue: 0,
+        attacks: [
+            { name: 'Syringe Shot',     type: 'projectile', damage: 6,  cooldown: 80,   speed: 16, radius: 18, knockback: 5,  blockReduction: 0.5, draw: 'syringeShot' },
+            { name: 'Defib Shock',      type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'defibShock' },
+            { name: 'Scalpel Slash',    type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 10, blockReduction: 0.3, vfx: 'scalpelSlash' },
+            { name: 'Flatline',         type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'flatline' },
+        ],
+    },
+    lawyer: {
+        name: 'Lawyer', color: '#2f4f4f', hue: 180,
+        attacks: [
+            { name: 'Objection',        type: 'projectile', damage: 6,  cooldown: 90,   speed: 14, radius: 26, knockback: 8,  blockReduction: 0.5, draw: 'objection' },
+            { name: 'Gavel Slam',       type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'gavelSlam' },
+            { name: 'Paperwork',        type: 'projectile', damage: 5,  cooldown: 100,  speed: 0,  radius: 24, knockback: 4,  blockReduction: 0.5, draw: 'paperwork', special: 'paperwork' },
+            { name: 'Guilty Verdict',   type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'guiltyVerdict' },
+        ],
+    },
+    dentist: {
+        name: 'Dentist', color: '#add8e6', hue: 195,
+        attacks: [
+            { name: 'Drill Attack',     type: 'projectile', damage: 7,  cooldown: 90,   speed: 14, radius: 22, knockback: 6,  blockReduction: 0.5, draw: 'drillAttack' },
+            { name: 'Toothbrush Spin',  type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'toothbrushSpin' },
+            { name: 'Cavity Bomb',      type: 'projectile', damage: 10, cooldown: 340,  speed: 10, radius: 30, knockback: 10, blockReduction: 0.3, draw: 'cavityBomb' },
+            { name: 'Root Canal',       type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'rootCanal' },
+        ],
+    },
+    mailman: {
+        name: 'Mailman', color: '#4169e1', hue: 225,
+        attacks: [
+            { name: 'Package Throw',    type: 'projectile', damage: 6,  cooldown: 90,   speed: 12, radius: 30, knockback: 8,  blockReduction: 0.5, draw: 'packageThrow' },
+            { name: 'Stamp Smack',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'stampSmack' },
+            { name: 'Express Delivery', type: 'projectile', damage: 7,  cooldown: 80,   speed: 20, radius: 22, knockback: 10, blockReduction: 0.4, draw: 'expressDelivery' },
+            { name: 'Return to Sender', type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'returnToSender' },
+        ],
+    },
+    // ── Music ──
+    metal: {
+        name: 'Metal', color: '#2f2f2f', hue: 0,
+        attacks: [
+            { name: 'Headbang',         type: 'projectile', damage: 7,  cooldown: 100,  speed: 12, radius: 30, knockback: 10, blockReduction: 0.4, draw: 'headbang' },
+            { name: 'Mosh Pit',         type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'moshPit' },
+            { name: 'Guitar Shred',     type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'guitarShred' },
+            { name: 'Wall of Death',    type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'wallOfDeath' },
+        ],
+    },
+    rap: {
+        name: 'Rap', color: '#ffd700', hue: 51,
+        attacks: [
+            { name: 'Mic Drop',         type: 'projectile', damage: 7,  cooldown: 90,   speed: 13, radius: 26, knockback: 8,  blockReduction: 0.5, draw: 'micDrop' },
+            { name: 'Beatbox',          type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'beatbox' },
+            { name: 'Diss Track',       type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'dissTrack' },
+            { name: 'Platinum Album',   type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'platinumAlbum' },
+        ],
+    },
+    opera: {
+        name: 'Opera', color: '#800020', hue: 345,
+        attacks: [
+            { name: 'High Note',        type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 28, knockback: 8,  blockReduction: 0.5, draw: 'highNote' },
+            { name: 'Crescendo',        type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'crescendo' },
+            { name: 'Aria Burst',       type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 12, blockReduction: 0.3, vfx: 'ariaBurst' },
+            { name: 'Standing Ovation', type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'standingOvation' },
+        ],
+    },
+    country: {
+        name: 'Country', color: '#deb887', hue: 34,
+        attacks: [
+            { name: 'Banjo Twang',      type: 'projectile', damage: 6,  cooldown: 80,   speed: 13, radius: 26, knockback: 7,  blockReduction: 0.5, draw: 'banjoTwang' },
+            { name: 'Line Dance Kick',  type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'lineDanceKick' },
+            { name: 'Rodeo Lasso',      type: 'instant',    damage: 12, cooldown: 340,  range: 9999, knockback: -10, blockReduction: 0.3, vfx: 'rodeoLasso' },
+            { name: 'Yeehaw',           type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'yeehaw' },
+        ],
+    },
+    // ── Random ──
+    trampoline: {
+        name: 'Trampoline', color: '#ff69b4', hue: 330,
+        attacks: [
+            { name: 'Bounce Shot',      type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 24, knockback: 8,  blockReduction: 0.5, draw: 'bounceShot' },
+            { name: 'Spring Launch',    type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'springLaunch', launchUp: -22 },
+            { name: 'Flip Kick',        type: 'instant',    damage: 13, cooldown: 350,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'flipKick' },
+            { name: 'Mega Bounce',      type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'megaBounce' },
+        ],
+    },
+    bubble: {
+        name: 'Bubble', color: '#87ceeb', hue: 197,
+        attacks: [
+            { name: 'Bubble Shot',      type: 'projectile', damage: 5,  cooldown: 70,   speed: 10, radius: 30, knockback: 6,  blockReduction: 0.5, draw: 'bubbleShot' },
+            { name: 'Bubble Trap',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'bubbleTrap' },
+            { name: 'Pop Chain',        type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'popChain' },
+            { name: 'Bubble Universe',  type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'bubbleUniverse' },
+        ],
+    },
+    mirror: {
+        name: 'Mirror', color: '#c0c0c0', hue: 0,
+        attacks: [
+            { name: 'Reflect Shot',     type: 'projectile', damage: 6,  cooldown: 80,   speed: 16, radius: 22, knockback: 7,  blockReduction: 0.5, draw: 'reflectShot' },
+            { name: 'Clone',            type: 'instant',    damage: 11, cooldown: 290,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'clone' },
+            { name: 'Shatter',          type: 'instant',    damage: 14, cooldown: 370,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'shatter' },
+            { name: 'Hall of Mirrors',  type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'hallOfMirrors' },
+        ],
+    },
+    rubber: {
+        name: 'Rubber', color: '#ff4500', hue: 16,
+        attacks: [
+            { name: 'Stretch Punch',    type: 'projectile', damage: 7,  cooldown: 90,   speed: 14, radius: 26, knockback: 10, blockReduction: 0.4, draw: 'stretchPunch' },
+            { name: 'Bounce Back',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'bounceBack' },
+            { name: 'Slingshot',        type: 'projectile', damage: 10, cooldown: 340,  speed: 20, radius: 24, knockback: 12, blockReduction: 0.3, draw: 'slingshot' },
+            { name: 'Rubber Snap',      type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'rubberSnap' },
+        ],
+    },
+    cheese: {
+        name: 'Cheese', color: '#ffd700', hue: 51,
+        attacks: [
+            { name: 'Cheese Wheel',     type: 'projectile', damage: 7,  cooldown: 100,  speed: 10, radius: 34, knockback: 10, blockReduction: 0.4, draw: 'cheeseWheel' },
+            { name: 'Fondue Splash',    type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'fondueSplash' },
+            { name: 'Stink Cloud',      type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 8,  blockReduction: 0.3, vfx: 'stinkCloud' },
+            { name: 'Swiss Trap',       type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'swissTrap' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -3441,6 +3754,216 @@ class Fighter {
             }
         }
 
+        // ── Pharaoh Rage Upgrades ──
+        if (this.rageActive && this.style === 'pharaoh') {
+            if (index === 0) {
+                for (let b = -3; b <= 3; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55, vx: dir * atk.speed * 0.9, vy: b * 2.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#daa520', 0.2); return;
+            }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#daa520', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#daa520', 0.6); return; }
+        }
+        // ── Viking Rage Upgrades ──
+        if (this.rageActive && this.style === 'viking') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#b8860b', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#b8860b', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -18; opponent.onGround = false; triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#b8860b', 0.6); return; }
+        }
+        // ── Spartan Rage Upgrades ──
+        if (this.rageActive && this.style === 'spartan') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 12, vx: dir * (atk.speed + 3), vy: b * 1, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#cd853f', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#cd853f', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 22; opponent.hit = true; opponent.x += dir * 40; triggerScreenShake(20, 25); triggerHitstop(14); triggerScreenFlash('#cd853f', 0.7); return; }
+        }
+        // ── Zeus Rage Upgrades ──
+        if (this.rageActive && this.style === 'zeus') {
+            if (index === 0) { for (let b = -3; b <= 3; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 10, vx: dir * (atk.speed + 4), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ffd700', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -16; opponent.onGround = false; triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#ffd700', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; spawnLightningBolt(opponent.x, 0, groundY, 10); triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ffd700', 0.6); return; }
+        }
+        // ── Medusa Rage Upgrades ──
+        if (this.rageActive && this.style === 'medusa') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 2, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#9370db', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#9370db', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 22; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#9370db', 0.6); return; }
+        }
+        // ── Hacker Rage Upgrades ──
+        if (this.rageActive && this.style === 'hacker') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#00ff00', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#00ff00', 0.5); return; }
+            if (index === 2) { for (let b = 0; b < 12; b++) { setTimeout(() => { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + (Math.random()-0.5)*20, vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*3, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 180, trail: [], rageVfx: null }); }, b * 30); } triggerScreenFlash('#00ff00', 0.3); return; }
+        }
+        // ── Alien Rage Upgrades ──
+        if (this.rageActive && this.style === 'alien') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#7cfc00', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -16; opponent.onGround = false; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#7cfc00', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#7cfc00', 0.6); return; }
+        }
+        // ── Cyborg Rage Upgrades ──
+        if (this.rageActive && this.style === 'cyborg') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 4), vy: b * 1, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff6347', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; const beamY = this.y - this.height * 0.7; visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 20, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 25, maxLife: 25 }); triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff6347', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -20; opponent.onGround = false; triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ff6347', 0.6); return; }
+        }
+        // ── Glitch2 Rage Upgrades ──
+        if (this.rageActive && this.style === 'glitch2') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30 + (Math.random()-0.5)*20, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 2, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff00ff', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff00ff', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ff00ff', 0.6); return; }
+        }
+        // ── AI Rage Upgrades ──
+        if (this.rageActive && this.style === 'ai') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#4169e1', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#4169e1', 0.5); return; }
+            if (index === 2) { for (let b = -4; b <= 4; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 10, vx: dir * (atk.speed + 2 + Math.abs(b)), vy: b * 1, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#4169e1', 0.3); return; }
+        }
+        // ── Shark Rage Upgrades ──
+        if (this.rageActive && this.style === 'shark') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#4682b4', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#4682b4', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#4682b4', 0.6); return; }
+        }
+        // ── Gorilla Rage Upgrades ──
+        if (this.rageActive && this.style === 'gorilla') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 2, radius: atk.radius + 8, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#8b4513', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(18, 22); triggerHitstop(10); triggerScreenFlash('#8b4513', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 22; opponent.hit = true; opponent.vy = -22; opponent.onGround = false; triggerScreenShake(22, 28); triggerHitstop(14); triggerScreenFlash('#8b4513', 0.7); return; }
+        }
+        // ── Scorpion Rage Upgrades ──
+        if (this.rageActive && this.style === 'scorpion') {
+            if (index === 0) { for (let b = -3; b <= 3; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55, vx: dir * (atk.speed + 4), vy: b * 2, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff8c00', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff8c00', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ff8c00', 0.6); return; }
+        }
+        // ── Eagle Rage Upgrades ──
+        if (this.rageActive && this.style === 'eagle') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#deb887', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * 30; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#deb887', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#deb887', 0.6); return; }
+        }
+        // ── Snake Rage Upgrades ──
+        if (this.rageActive && this.style === 'snake') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#556b2f', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#556b2f', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#556b2f', 0.6); return; }
+        }
+        // ── Sushi Rage Upgrades ──
+        if (this.rageActive && this.style === 'sushi') {
+            if (index === 0) { for (let b = -3; b <= 3; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55, vx: dir * (atk.speed + 3), vy: b * 2, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff6347', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff6347', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ff6347', 0.6); return; }
+        }
+        // ── Coffee Rage Upgrades ──
+        if (this.rageActive && this.style === 'coffee') {
+            if (index === 0) { for (let b = -3; b <= 3; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55, vx: dir * (atk.speed + 5), vy: b * 2, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#8b4513', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#8b4513', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#8b4513', 0.6); return; }
+        }
+        // ── Taco Rage Upgrades ──
+        if (this.rageActive && this.style === 'taco') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff8c00', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff8c00', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ff8c00', 0.6); return; }
+        }
+        // ── IceCream Rage Upgrades ──
+        if (this.rageActive && this.style === 'icecream') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 2, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ffb6c1', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ffb6c1', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ffb6c1', 0.6); return; }
+        }
+        // ── Popcorn Rage Upgrades ──
+        if (this.rageActive && this.style === 'popcorn') {
+            if (index === 0) { for (let b = -3; b <= 3; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55, vx: dir * (atk.speed + 2), vy: b * 2.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#fffacd', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#fffacd', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#fffacd', 0.6); return; }
+        }
+        // ── Firefighter Rage Upgrades ──
+        if (this.rageActive && this.style === 'firefighter') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff4500', 0.2); return; }
+            if (index === 1) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff4500', 0.2); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ff4500', 0.6); return; }
+        }
+        // ── Doctor Rage Upgrades ──
+        if (this.rageActive && this.style === 'doctor') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 4), vy: b * 1, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ffffff', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; spawnLightningBolt(opponent.x, 0, groundY, 8); triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ffffff', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ffffff', 0.6); return; }
+        }
+        // ── Lawyer Rage Upgrades ──
+        if (this.rageActive && this.style === 'lawyer') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#2f4f4f', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#2f4f4f', 0.5); return; }
+            if (index === 2) { for (let b = 0; b < 12; b++) { projectiles.push({ x: opponent.x + (Math.random()-0.5)*150, y: -50 - Math.random()*60, vx: (Math.random()-0.5)*3, vy: 7 + Math.random()*4, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#2f4f4f', 0.3); return; }
+        }
+        // ── Dentist Rage Upgrades ──
+        if (this.rageActive && this.style === 'dentist') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#add8e6', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#add8e6', 0.5); return; }
+            if (index === 2) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 2, radius: atk.radius + 8, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#add8e6', 0.3); return; }
+        }
+        // ── Mailman Rage Upgrades ──
+        if (this.rageActive && this.style === 'mailman') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#4169e1', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#4169e1', 0.5); return; }
+            if (index === 2) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 6), vy: b * 1, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#4169e1', 0.3); return; }
+        }
+        // ── Metal Rage Upgrades ──
+        if (this.rageActive && this.style === 'metal') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 2, radius: atk.radius + 5, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#2f2f2f', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#2f2f2f', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#2f2f2f', 0.6); return; }
+        }
+        // ── Rap Rage Upgrades ──
+        if (this.rageActive && this.style === 'rap') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ffd700', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ffd700', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ffd700', 0.6); return; }
+        }
+        // ── Opera Rage Upgrades ──
+        if (this.rageActive && this.style === 'opera') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#800020', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#800020', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#800020', 0.6); return; }
+        }
+        // ── Country Rage Upgrades ──
+        if (this.rageActive && this.style === 'country') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 2, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#deb887', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#deb887', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * -20; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#deb887', 0.6); return; }
+        }
+        // ── Trampoline Rage Upgrades ──
+        if (this.rageActive && this.style === 'trampoline') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 2 - 3, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff69b4', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -28; opponent.onGround = false; triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#ff69b4', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ff69b4', 0.6); return; }
+        }
+        // ── Bubble Rage Upgrades ──
+        if (this.rageActive && this.style === 'bubble') {
+            if (index === 0) { for (let b = -3; b <= 3; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 12, vx: dir * (atk.speed + 1), vy: b * 2, radius: atk.radius + 5, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#87ceeb', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#87ceeb', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#87ceeb', 0.6); return; }
+        }
+        // ── Mirror Rage Upgrades ──
+        if (this.rageActive && this.style === 'mirror') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 4), vy: b * 1, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#c0c0c0', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#c0c0c0', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#c0c0c0', 0.6); return; }
+        }
+        // ── Rubber Rage Upgrades ──
+        if (this.rageActive && this.style === 'rubber') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 3), vy: b * 2, radius: atk.radius + 5, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff4500', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff4500', 0.5); return; }
+            if (index === 2) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 6), vy: b * 1, radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ff4500', 0.3); return; }
+        }
+        // ── Cheese Rage Upgrades ──
+        if (this.rageActive && this.style === 'cheese') {
+            if (index === 0) { for (let b = -2; b <= 2; b++) { projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14, vx: dir * (atk.speed + 2), vy: b * 2, radius: atk.radius + 8, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null }); } triggerScreenFlash('#ffd700', 0.2); return; }
+            if (index === 1) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 18; opponent.hit = true; triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ffd700', 0.5); return; }
+            if (index === 2) { let damage = Math.floor(atk.damage * 1.5); if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction)); opponent.health = Math.max(0, opponent.health - damage); spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo(); opponent.hitTimer = 20; opponent.hit = true; triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ffd700', 0.6); return; }
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -3806,6 +4329,49 @@ class Fighter {
                     rageVfx: this.rageActive && index === 3 ? this.style : null });
                 triggerScreenShake(4, 6);
             }
+            // Scarab Swarm — 5 bugs spreading out
+            else if (atk.special === 'scarabSwarm') {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 12,
+                        vx: dir * (atk.speed + Math.random()*2), vy: b * 1.5 + (Math.random()-0.5)*2,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 250, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // DDOS — 8 rapid fire shots
+            else if (atk.special === 'ddos') {
+                for (let b = 0; b < 8; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + (Math.random()-0.5)*20,
+                            vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*3,
+                            radius: atk.radius, owner: this, target: opponent,
+                            atk, styleData, life: 180, trail: [],
+                            rageVfx: this.rageActive && index === 3 ? this.style : null });
+                    }, b * 35);
+                }
+            }
+            // Neural Net — 6 spread shots
+            else if (atk.special === 'neuralNet') {
+                for (let b = -3; b <= 2; b++) {
+                    const angle = b * 0.2;
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                        vx: dir * atk.speed * Math.cos(angle), vy: atk.speed * Math.sin(angle),
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Paperwork — 8 papers from sky
+            else if (atk.special === 'paperwork') {
+                for (let b = 0; b < 8; b++) {
+                    projectiles.push({ x: opponent.x + (Math.random()-0.5)*160, y: -50 - Math.random()*60,
+                        vx: (Math.random()-0.5)*3, vy: 6 + Math.random()*4,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
             else {
                 // Flyers (pigeon/bee) aim projectiles directly at opponent
                 const isFlyer = true; // all characters aim projectiles at opponent
@@ -4094,6 +4660,135 @@ class Fighter {
         else if (vfx === 'ampBlast') { visualEffects.push({ type: 'bassDrop', x: this.x, y: this.y - this.height * 0.4, life: 30, maxLife: 30 }); triggerScreenFlash('#ff00ff', 0.3); }
         else if (vfx === 'stageDive') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff00ff' }); triggerScreenFlash('#ff00ff', 0.4); }
         else if (vfx === 'encore') { visualEffects.push({ type: 'dropTheBeat', life: 55, maxLife: 55 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff00ff', 0.7); }
+        // ── Pharaoh VFX ──
+        else if (vfx === 'sandstormCurse') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#daa520' }); triggerScreenFlash('#daa520', 0.3); }
+        else if (vfx === 'mummyWrap') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 60, life: 30, maxLife: 30 }); triggerScreenFlash('#daa520', 0.4); }
+        else if (vfx === 'pyramidCrush') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(20, 25); triggerScreenFlash('#daa520', 0.7); }
+        // ── Viking VFX ──
+        else if (vfx === 'shieldBash') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#b8860b' }); triggerScreenShake(8, 12); triggerScreenFlash('#b8860b', 0.3); }
+        else if (vfx === 'berserkerCharge') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#b8860b' }); triggerScreenShake(12, 16); triggerScreenFlash('#b8860b', 0.4); }
+        else if (vfx === 'valhallaStrike') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenShake(20, 25); triggerScreenFlash('#b8860b', 0.7); }
+        // ── Spartan VFX ──
+        else if (vfx === 'phalanxShield') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 25, maxLife: 25, color: '#cd853f' }); triggerScreenFlash('#cd853f', 0.3); }
+        else if (vfx === 'thisIsSparta') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#cd853f' }); triggerScreenShake(14, 18); triggerScreenFlash('#cd853f', 0.5); }
+        else if (vfx === 'legionCharge') { for (let pp = -2; pp <= 2; pp++) spawnEarthPillar(opponent.x + pp * 60, groundY); triggerScreenShake(20, 25); triggerScreenFlash('#cd853f', 0.7); }
+        // ── Zeus VFX ──
+        else if (vfx === 'thunderHammer') { spawnLightningBolt(opponent.x, 0, groundY, 8); triggerScreenShake(10, 14); triggerScreenFlash('#ffd700', 0.4); }
+        else if (vfx === 'cloudRide') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ffd700' }); triggerScreenFlash('#ffd700', 0.3); }
+        else if (vfx === 'olympusJudgment') { for (let i = 0; i < 5; i++) setTimeout(() => spawnLightningBolt(opponent.x + (Math.random()-0.5)*150, 0, groundY, 8), i * 40); triggerScreenShake(22, 28); triggerScreenFlash('#ffd700', 0.8); }
+        // ── Medusa VFX ──
+        else if (vfx === 'stoneGaze') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#9370db' }); triggerScreenFlash('#9370db', 0.3); }
+        else if (vfx === 'venomPool') { visualEffects.push({ type: 'decayPulse', x: opponent.x, y: groundY, life: 35, maxLife: 35 }); triggerScreenFlash('#9370db', 0.4); }
+        else if (vfx === 'petrify') { visualEffects.push({ type: 'eclipse', life: 40, maxLife: 40 }); triggerScreenShake(18, 22); triggerScreenFlash('#9370db', 0.7); }
+        // ── Hacker VFX ──
+        else if (vfx === 'firewall') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 30, maxLife: 30, color: '#00ff00' }); triggerScreenFlash('#00ff00', 0.3); }
+        else if (vfx === 'systemCrash') { visualEffects.push({ type: 'blueScreen', life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#00ff00', 0.7); }
+        // ── Alien VFX ──
+        else if (vfx === 'abductionBeam') { const beamY = opponent.y - opponent.height * 0.5; visualEffects.push({ type: 'laserBeam', x1: opponent.x, y1: -50, x2: opponent.x, y2: beamY + 30, dir: 0, life: 28, maxLife: 28 }); triggerScreenFlash('#7cfc00', 0.3); }
+        else if (vfx === 'cropCircles') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: groundY, radius: 100, life: 35, maxLife: 35 }); triggerScreenFlash('#7cfc00', 0.4); }
+        else if (vfx === 'mothership') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 50, maxLife: 50 }); triggerScreenShake(20, 25); triggerScreenFlash('#7cfc00', 0.7); }
+        // ── Cyborg VFX ──
+        else if (vfx === 'eyeLaser') { const beamY = this.y - this.height * 0.7; visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 20, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 22, maxLife: 22 }); triggerScreenFlash('#ff6347', 0.3); }
+        else if (vfx === 'rocketBoost') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff6347' }); triggerScreenShake(10, 14); triggerScreenFlash('#ff6347', 0.4); }
+        else if (vfx === 'overclock') { visualEffects.push({ type: 'screenLightningStorm', life: 50, maxLife: 50 }); triggerScreenShake(20, 25); triggerScreenFlash('#ff6347', 0.7); }
+        // ── Glitch2 VFX ──
+        else if (vfx === 'lagTeleport') { visualEffects.push({ type: 'warpPortal', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 28, maxLife: 28 }); triggerScreenFlash('#ff00ff', 0.3); }
+        else if (vfx === 'notFound404') { visualEffects.push({ type: 'blueScreen', life: 30, maxLife: 30 }); triggerScreenFlash('#ff00ff', 0.4); }
+        else if (vfx === 'kernelPanic') { visualEffects.push({ type: 'totalCorruption', life: 50, maxLife: 50 }); triggerScreenShake(18, 22); triggerScreenFlash('#ff00ff', 0.7); }
+        // ── AI VFX ──
+        else if (vfx === 'prediction') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#4169e1' }); triggerScreenFlash('#4169e1', 0.3); }
+        else if (vfx === 'aiSingularity') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 150, life: 50, maxLife: 50 }); triggerScreenShake(20, 25); triggerScreenFlash('#4169e1', 0.7); }
+        // ── Shark VFX ──
+        else if (vfx === 'finSlash') { for (let s = 0; s < 3; s++) visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random()-0.5)*30, y: opponent.y - opponent.height * 0.5 + (s-1)*20, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 }); triggerScreenFlash('#4682b4', 0.3); }
+        else if (vfx === 'bloodFrenzy') { for (let s = 0; s < 5; s++) visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random()-0.5)*40, y: opponent.y - opponent.height * 0.5 + (Math.random()-0.5)*40, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 }); triggerScreenShake(10, 14); triggerScreenFlash('#4682b4', 0.5); }
+        else if (vfx === 'megalodon') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 50, maxLife: 50 }); triggerScreenShake(22, 28); triggerScreenFlash('#4682b4', 0.7); }
+        // ── Gorilla VFX ──
+        else if (vfx === 'chestPound') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 30, maxLife: 30, color: '#8b4513' }); triggerScreenShake(10, 14); triggerScreenFlash('#8b4513', 0.3); }
+        else if (vfx === 'groundSlam') { spawnEarthPillar(opponent.x, groundY); triggerScreenShake(16, 20); triggerScreenFlash('#8b4513', 0.5); }
+        else if (vfx === 'kingKong') { for (let pp = -2; pp <= 2; pp++) spawnEarthPillar(opponent.x + pp * 70, groundY); triggerScreenShake(24, 30); triggerScreenFlash('#8b4513', 0.7); }
+        // ── Scorpion VFX ──
+        else if (vfx === 'clawGrab') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff8c00' }); triggerScreenFlash('#ff8c00', 0.3); }
+        else if (vfx === 'venomInject') { visualEffects.push({ type: 'decayPulse', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenFlash('#ff8c00', 0.4); }
+        else if (vfx === 'desertStorm') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#ff8c00', 0.7); }
+        // ── Eagle VFX ──
+        else if (vfx === 'wingGust') { spawnWindGust(this.x, this.y - this.height * 0.5, dir); triggerScreenFlash('#deb887', 0.3); }
+        else if (vfx === 'screech') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 30, maxLife: 30, color: '#deb887' }); triggerScreenShake(8, 12); triggerScreenFlash('#deb887', 0.4); }
+        else if (vfx === 'freedomStrike') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenShake(18, 22); triggerScreenFlash('#deb887', 0.7); }
+        // ── Snake VFX ──
+        else if (vfx === 'constrict') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 50, life: 30, maxLife: 30 }); triggerScreenFlash('#556b2f', 0.3); }
+        else if (vfx === 'cobraStrike') { visualEffects.push({ type: 'phantomSlash', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, life: 18, maxLife: 18 }); triggerScreenShake(8, 12); triggerScreenFlash('#556b2f', 0.4); }
+        else if (vfx === 'anacondaCrush') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 120, life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#556b2f', 0.7); }
+        // ── Sushi VFX ──
+        else if (vfx === 'wasabiBurn') { spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4); triggerScreenFlash('#ff6347', 0.3); }
+        else if (vfx === 'soySplash') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#8b4513' }); triggerScreenFlash('#ff6347', 0.3); }
+        else if (vfx === 'dragonRoll') { visualEffects.push({ type: 'screenInferno', life: 50, maxLife: 50 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff6347', 0.6); }
+        // ── Coffee VFX ──
+        else if (vfx === 'steamBlast') { spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4); triggerScreenFlash('#8b4513', 0.3); }
+        else if (vfx === 'caffeineRush') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 25, maxLife: 25, color: '#8b4513' }); triggerScreenFlash('#8b4513', 0.4); }
+        else if (vfx === 'overdose') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#8b4513', 0.7); }
+        // ── Taco VFX ──
+        else if (vfx === 'hotSauce') { spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4); triggerScreenFlash('#ff8c00', 0.3); }
+        else if (vfx === 'guacSmash') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#2e8b57' }); triggerScreenShake(10, 14); triggerScreenFlash('#ff8c00', 0.4); }
+        else if (vfx === 'fiesta') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff8c00', 0.6); }
+        // ── IceCream VFX ──
+        else if (vfx === 'brainFreeze') { visualEffects.push({ type: 'frostNova', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenFlash('#ffb6c1', 0.3); }
+        else if (vfx === 'sprinkleStorm') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#ffb6c1', 0.4); }
+        else if (vfx === 'sundaeSlam') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(16, 20); triggerScreenFlash('#ffb6c1', 0.6); }
+        // ── Popcorn VFX ──
+        else if (vfx === 'butterSplash') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#fffacd' }); triggerScreenFlash('#fffacd', 0.3); }
+        else if (vfx === 'microwave') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#fffacd' }); triggerScreenShake(8, 12); triggerScreenFlash('#fffacd', 0.4); }
+        else if (vfx === 'theaterBoom') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(16, 20); triggerScreenFlash('#fffacd', 0.6); }
+        // ── Firefighter VFX ──
+        else if (vfx === 'ladderSwing') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff4500' }); triggerScreenShake(10, 14); triggerScreenFlash('#ff4500', 0.4); }
+        else if (vfx === 'infernoRescue') { spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4); for (let pp = -1; pp <= 1; pp++) spawnFirePillar(opponent.x + pp * 80, groundY); triggerScreenShake(20, 25); triggerScreenFlash('#ff4500', 0.7); }
+        // ── Doctor VFX ──
+        else if (vfx === 'defibShock') { spawnLightningBolt(opponent.x, opponent.y - opponent.height, opponent.y, 6); triggerScreenShake(10, 14); triggerScreenFlash('#ffffff', 0.4); }
+        else if (vfx === 'scalpelSlash') { visualEffects.push({ type: 'phantomSlash', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, life: 18, maxLife: 18 }); triggerScreenFlash('#ffffff', 0.3); }
+        else if (vfx === 'flatline') { visualEffects.push({ type: 'eclipse', life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#ffffff', 0.7); }
+        // ── Lawyer VFX ──
+        else if (vfx === 'gavelSlam') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#2f4f4f' }); triggerScreenShake(10, 14); triggerScreenFlash('#2f4f4f', 0.4); }
+        else if (vfx === 'guiltyVerdict') { visualEffects.push({ type: 'eclipse', life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#2f4f4f', 0.7); }
+        // ── Dentist VFX ──
+        else if (vfx === 'toothbrushSpin') { visualEffects.push({ type: 'spinCycle', x: this.x, y: this.y - this.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#add8e6', 0.3); }
+        else if (vfx === 'rootCanal') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#add8e6', 0.7); }
+        // ── Mailman VFX ──
+        else if (vfx === 'stampSmack') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#4169e1' }); triggerScreenFlash('#4169e1', 0.3); }
+        else if (vfx === 'returnToSender') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#4169e1', 0.7); }
+        // ── Metal VFX ──
+        else if (vfx === 'moshPit') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#2f2f2f' }); triggerScreenShake(10, 14); triggerScreenFlash('#2f2f2f', 0.4); }
+        else if (vfx === 'guitarShred') { visualEffects.push({ type: 'bassDrop', x: this.x, y: this.y - this.height * 0.4, life: 30, maxLife: 30 }); triggerScreenFlash('#2f2f2f', 0.4); }
+        else if (vfx === 'wallOfDeath') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenShake(22, 28); triggerScreenFlash('#2f2f2f', 0.7); }
+        // ── Rap VFX ──
+        else if (vfx === 'beatbox') { visualEffects.push({ type: 'bassDrop', x: this.x, y: this.y - this.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#ffd700', 0.3); }
+        else if (vfx === 'dissTrack') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ffd700' }); triggerScreenShake(8, 12); triggerScreenFlash('#ffd700', 0.4); }
+        else if (vfx === 'platinumAlbum') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#ffd700', 0.7); }
+        // ── Opera VFX ──
+        else if (vfx === 'crescendo') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 30, maxLife: 30, color: '#800020' }); triggerScreenShake(8, 12); triggerScreenFlash('#800020', 0.3); }
+        else if (vfx === 'ariaBurst') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#800020', 0.4); }
+        else if (vfx === 'standingOvation') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#800020', 0.7); }
+        // ── Country VFX ──
+        else if (vfx === 'lineDanceKick') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#deb887' }); triggerScreenFlash('#deb887', 0.3); }
+        else if (vfx === 'rodeoLasso') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 60, life: 30, maxLife: 30 }); triggerScreenFlash('#deb887', 0.4); }
+        else if (vfx === 'yeehaw') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#deb887', 0.7); }
+        // ── Trampoline VFX ──
+        else if (vfx === 'springLaunch') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff69b4' }); triggerScreenShake(10, 14); triggerScreenFlash('#ff69b4', 0.4); }
+        else if (vfx === 'flipKick') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff69b4' }); triggerScreenFlash('#ff69b4', 0.3); }
+        else if (vfx === 'megaBounce') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(20, 25); triggerScreenFlash('#ff69b4', 0.7); }
+        // ── Bubble VFX ──
+        else if (vfx === 'bubbleTrap') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 60, life: 30, maxLife: 30 }); triggerScreenFlash('#87ceeb', 0.3); }
+        else if (vfx === 'popChain') { for (let i = 0; i < 8; i++) { const pa = Math.random() * Math.PI * 2; const ps = 3 + Math.random() * 5; particles.push({ x: opponent.x, y: opponent.y - opponent.height * 0.5, vx: Math.cos(pa) * ps, vy: Math.sin(pa) * ps, life: 12, maxLife: 12, color: '#87ceeb' }); } triggerScreenShake(8, 12); triggerScreenFlash('#87ceeb', 0.4); }
+        else if (vfx === 'bubbleUniverse') { visualEffects.push({ type: 'screenFlood', life: 55, maxLife: 55 }); triggerScreenShake(16, 20); triggerScreenFlash('#87ceeb', 0.7); }
+        // ── Mirror VFX ──
+        else if (vfx === 'clone') { visualEffects.push({ type: 'warpPortal', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 28, maxLife: 28 }); triggerScreenFlash('#c0c0c0', 0.3); }
+        else if (vfx === 'shatter') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenShake(12, 16); triggerScreenFlash('#c0c0c0', 0.5); }
+        else if (vfx === 'hallOfMirrors') { visualEffects.push({ type: 'screenCrystal', life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#c0c0c0', 0.7); }
+        // ── Rubber VFX ──
+        else if (vfx === 'bounceBack') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 25, maxLife: 25, color: '#ff4500' }); triggerScreenFlash('#ff4500', 0.3); }
+        else if (vfx === 'rubberSnap') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenShake(18, 22); triggerScreenFlash('#ff4500', 0.7); }
+        // ── Cheese VFX ──
+        else if (vfx === 'fondueSplash') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ffd700' }); triggerScreenFlash('#ffd700', 0.3); }
+        else if (vfx === 'stinkCloud') { visualEffects.push({ type: 'decayPulse', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#ffd700', 0.4); }
+        else if (vfx === 'swissTrap') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: groundY, radius: 80, life: 40, maxLife: 40 }); triggerScreenShake(16, 20); triggerScreenFlash('#ffd700', 0.6); }
     }
 
     draw() {
@@ -7236,6 +7931,450 @@ class Fighter {
             ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
+        // ── PHARAOH: Golden Pharaoh ──
+        if (this.health < MAX_HEALTH && this.style === 'pharaoh') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#daa520'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#4169e1'; ctx.beginPath(); ctx.moveTo(-14, -this.height+3); ctx.lineTo(0, -this.height-14); ctx.lineTo(14, -this.height+3); ctx.fill();
+            ctx.fillStyle = '#daa520'; ctx.fillRect(-14, -this.height+3, 28, 6);
+            ctx.fillStyle = '#ffd700'; ctx.fillRect(-12, -75, 24, 35);
+            ctx.fillStyle = '#4169e1'; ctx.fillRect(-6, -45, 12, 8);
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 8, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-3, -this.height+2, 1.5, 0, Math.PI*2); ctx.arc(3, -this.height+2, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#daa520'; ctx.fillRect(-14, -40, 10, 30); ctx.fillRect(4, -40, 10, 30);
+            ctx.fillStyle = '#daa520'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            if (Math.random()<0.2) particles.push({ x: this.x+(Math.random()-0.5)*30, y: this.y-40-Math.random()*40, vx: (Math.random()-0.5)*2, vy: -1-Math.random(), life: 12, maxLife: 12, color: '#daa520' });
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── VIKING: Horned Helmet ──
+        if (this.health < MAX_HEALTH && this.style === 'viking') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#b8860b'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#b8860b'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#8b6914'; ctx.beginPath(); ctx.arc(0, -this.height+3, 14, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.moveTo(-14, -this.height+3); ctx.lineTo(-20, -this.height-12); ctx.lineTo(-10, -this.height); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(14, -this.height+3); ctx.lineTo(20, -this.height-12); ctx.lineTo(10, -this.height); ctx.fill();
+            ctx.fillStyle = '#cd853f'; ctx.beginPath(); ctx.moveTo(-3, -this.height+10); ctx.quadraticCurveTo(0, -this.height+20, 3, -this.height+10); ctx.fill();
+            ctx.fillStyle = '#8b6914'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#c0c0c0'; ctx.fillRect(-16, -40, 12, 30); ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            if (Math.random()<0.2) particles.push({ x: this.x+(Math.random()-0.5)*30, y: this.y-60, vx: (Math.random()-0.5)*2, vy: -2, life: 10, maxLife: 10, color: '#b8860b' });
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── SPARTAN: Helmet with Plume ──
+        if (this.health < MAX_HEALTH && this.style === 'spartan') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#cd853f'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#cd853f'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#cd7f32'; ctx.beginPath(); ctx.arc(0, -this.height+3, 14, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#cd853f'; ctx.fillRect(-2, -this.height-8, 4, 16);
+            ctx.fillStyle = '#dc143c'; for (let i = -3; i <= 3; i++) ctx.fillRect(i*2-1, -this.height-14-Math.abs(i), 2, 8+Math.abs(i));
+            ctx.fillStyle = '#cd853f'; ctx.fillRect(-14, -this.height+3, 28, 8);
+            ctx.fillStyle = '#8b6914'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#cd7f32'; ctx.fillRect(-18, -60, 8, 25); ctx.fillRect(10, -60, 8, 25);
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── ZEUS: White Robed God ──
+        if (this.health < MAX_HEALTH && this.style === 'zeus') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 45, 55, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 20;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-3, -this.height+10); ctx.quadraticCurveTo(-8, -this.height+20, -3, -this.height+15); ctx.fill();
+            ctx.fillStyle = '#ffd700'; for (let i = 0; i < 5; i++) { const a = -Math.PI/2 + (i-2)*0.4; ctx.beginPath(); ctx.moveTo(Math.cos(a)*10, -this.height+3+Math.sin(a)*10); ctx.lineTo(Math.cos(a)*18, -this.height+3+Math.sin(a)*18); ctx.lineWidth = 2; ctx.strokeStyle = '#ffd700'; ctx.stroke(); }
+            ctx.fillStyle = '#f0f0f0'; ctx.fillRect(-14, -75, 28, 40);
+            ctx.fillStyle = '#ddd'; ctx.fillRect(-16, -38, 10, 28); ctx.fillRect(6, -38, 10, 28);
+            ctx.fillStyle = '#f0f0f0'; ctx.beginPath(); ctx.moveTo(-14, -35); ctx.lineTo(-10, 0); ctx.lineTo(10, 0); ctx.lineTo(14, -35); ctx.fill();
+            if (Math.random()<0.3) { const la = Math.random()*Math.PI*2; particles.push({ x: this.x+Math.cos(la)*20, y: this.y-50+Math.sin(la)*20, vx: (Math.random()-0.5)*3, vy: -2, life: 8, maxLife: 8, color: '#ffd700' }); }
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── MEDUSA: Snake Hair ──
+        if (this.health < MAX_HEALTH && this.style === 'medusa') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#9370db'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#9370db'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#90ee90'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(-3, -this.height+1, 2, 0, Math.PI*2); ctx.arc(3, -this.height+1, 2, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#556b2f'; ctx.lineWidth = 2; const t = Date.now()*0.005;
+            for (let i = 0; i < 7; i++) { const sa = -Math.PI/2 + (i-3)*0.35; ctx.beginPath(); ctx.moveTo(Math.cos(sa)*12, -this.height+3+Math.sin(sa)*12); ctx.quadraticCurveTo(Math.cos(sa)*22+Math.sin(t+i)*5, -this.height+3+Math.sin(sa)*22, Math.cos(sa)*28+Math.sin(t+i*2)*4, -this.height+3+Math.sin(sa)*28); ctx.stroke(); }
+            ctx.fillStyle = '#9370db'; ctx.fillRect(-12, -75, 24, 35);
+            ctx.fillStyle = '#556b2f'; ctx.fillRect(-14, -40, 10, 28); ctx.fillRect(4, -40, 10, 28);
+            ctx.fillStyle = '#556b2f'; ctx.fillRect(-10, -12, 8, 12); ctx.fillRect(2, -12, 8, 12);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── HACKER: Hooded Figure ──
+        if (this.health < MAX_HEALTH && this.style === 'hacker') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#00ff00'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(0, -this.height+3, 14, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.moveTo(-16, -this.height+5); ctx.lineTo(0, -this.height-10); ctx.lineTo(16, -this.height+5); ctx.fill();
+            ctx.fillStyle = '#00ff00'; ctx.beginPath(); ctx.arc(-3, -this.height+3, 2, 0, Math.PI*2); ctx.arc(3, -this.height+3, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#111'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-16, -40, 12, 30); ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#222'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            if (Math.random()<0.3) { ctx.fillStyle = '#00ff00'; ctx.font = '8px monospace'; ctx.fillText(Math.random()>0.5?'1':'0', (Math.random()-0.5)*30, -40-Math.random()*40); }
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── ALIEN: Gray Alien ──
+        if (this.health < MAX_HEALTH && this.style === 'alien') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#7cfc00'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#7cfc00'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#bbb'; ctx.beginPath(); ctx.ellipse(0, -this.height+5, 14, 18, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(-5, -this.height+3, 5, 7, -0.2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(5, -this.height+3, 5, 7, 0.2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#7cfc00'; ctx.beginPath(); ctx.ellipse(-5, -this.height+3, 3, 5, -0.2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(5, -this.height+3, 3, 5, 0.2, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -this.height-12); ctx.lineTo(0, -this.height-18); ctx.stroke();
+            ctx.fillStyle = '#7cfc00'; ctx.beginPath(); ctx.arc(0, -this.height-18, 3, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#aaa'; ctx.fillRect(-10, -70, 20, 30);
+            ctx.fillStyle = '#bbb'; ctx.fillRect(-8, -40, 6, 25); ctx.fillRect(2, -40, 6, 25);
+            ctx.fillStyle = '#aaa'; ctx.fillRect(-8, -15, 6, 15); ctx.fillRect(2, -15, 6, 15);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── CYBORG: Half-Metal Face ──
+        if (this.health < MAX_HEALTH && this.style === 'cyborg') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff6347'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff6347'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI); ctx.fill();
+            ctx.fillStyle = '#c0c0c0'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(5, -this.height+2, 3, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-4, -this.height+2, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#c0c0c0'; ctx.fillRect(6, -75, 12, 35); ctx.fillStyle = '#666'; ctx.fillRect(-12, -75, 12, 35);
+            ctx.fillStyle = '#c0c0c0'; ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#888'; ctx.fillRect(-14, -40, 10, 30);
+            ctx.fillStyle = '#555'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            if (Math.random()<0.2) particles.push({ x: this.x+8, y: this.y-this.height, vx: Math.random()*2, vy: -2, life: 8, maxLife: 8, color: '#ff6347' });
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── GLITCH2: Glitching Pixelated ──
+        if (this.health < MAX_HEALTH && this.style === 'glitch2') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff00ff'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 15;
+            const gx = (Math.random()-0.5)*6; const gy = (Math.random()-0.5)*4;
+            ctx.fillStyle = '#f0f'; ctx.fillRect(-12+gx, -this.height-8+gy, 24, 22);
+            ctx.fillStyle = '#0ff'; ctx.fillRect(-10-gx, -75-gy, 20, 35);
+            ctx.fillStyle = '#ff0'; ctx.fillRect(-12+gx*0.5, -40+gy*0.5, 10, 30); ctx.fillRect(2-gx*0.5, -40-gy*0.5, 10, 30);
+            ctx.fillStyle = '#f0f'; ctx.fillRect(-8, -10, 6, 10); ctx.fillRect(2, -10, 6, 10);
+            if (Math.random()<0.4) { ctx.fillStyle = `hsl(${Math.random()*360},100%,50%)`; ctx.fillRect((Math.random()-0.5)*30, -Math.random()*80, 8, 4); }
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── AI: Holographic Blue ──
+        if (this.health < MAX_HEALTH && this.style === 'ai') {
+            const pulse = 0.6 + Math.sin(Date.now()*0.005)*0.2;
+            ctx.globalAlpha = pulse; ctx.shadowColor = '#4169e1'; ctx.shadowBlur = 20;
+            ctx.strokeStyle = '#4169e1'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -this.height+15); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -this.height+25); ctx.lineTo(-20, -50); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -this.height+25); ctx.lineTo(20, -50); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(65,105,225,0.3)'; ctx.beginPath(); ctx.arc(0, -this.height*0.5, 35, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── SHARK: Shark Form ──
+        if (this.health < MAX_HEALTH && this.style === 'shark') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#4682b4'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#4682b4'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#4682b4'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 18, 35, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#87ceeb'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5+5, 14, 20, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#4682b4'; ctx.beginPath(); ctx.moveTo(0, -this.height-5); ctx.lineTo(-6, -this.height-20); ctx.lineTo(6, -this.height-20); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-5, -this.height*0.5-10, 2, 0, Math.PI*2); ctx.arc(5, -this.height*0.5-10, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-8, -this.height*0.5+15); for (let j=0;j<6;j++) ctx.lineTo(-8+j*3, -this.height*0.5+(j%2===0?18:15)); ctx.fill();
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── GORILLA: Big Ape ──
+        if (this.health < MAX_HEALTH && this.style === 'gorilla') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#8b4513'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 45, 55, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#8b4513'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#3e2723'; ctx.beginPath(); ctx.ellipse(0, -this.height+5, 16, 14, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#5d4037'; ctx.beginPath(); ctx.ellipse(0, -this.height+7, 10, 8, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-4, -this.height+5, 2, 0, Math.PI*2); ctx.arc(4, -this.height+5, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#3e2723'; ctx.fillRect(-18, -75, 36, 40);
+            ctx.fillStyle = '#5d4037'; ctx.beginPath(); ctx.ellipse(-8, -55, 8, 12, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(8, -55, 8, 12, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#3e2723'; ctx.fillRect(-20, -40, 14, 35); ctx.fillRect(6, -40, 14, 35);
+            ctx.fillStyle = '#3e2723'; ctx.fillRect(-12, -5, 10, 10); ctx.fillRect(2, -5, 10, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── SCORPION: Scorpion Body ──
+        if (this.health < MAX_HEALTH && this.style === 'scorpion') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 16, 30, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#cc7000'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5+15, 12, 10, 0, 0, Math.PI*2); ctx.fill();
+            const t = Date.now()*0.005; ctx.strokeStyle = '#ff8c00'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, -this.height-5); ctx.quadraticCurveTo(-10, -this.height-25, 5+Math.sin(t)*5, -this.height-30); ctx.stroke();
+            ctx.fillStyle = '#8b0000'; ctx.beginPath(); ctx.arc(5+Math.sin(t)*5, -this.height-30, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#cc7000'; ctx.beginPath(); ctx.moveTo(-16, -this.height*0.5-5); ctx.lineTo(-24, -this.height*0.5-15); ctx.lineTo(-20, -this.height*0.5-5); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(16, -this.height*0.5-5); ctx.lineTo(24, -this.height*0.5-15); ctx.lineTo(20, -this.height*0.5-5); ctx.fill();
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── EAGLE: Spread Wings ──
+        if (this.health < MAX_HEALTH && this.style === 'eagle') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 45, 55, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#deb887'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#8b6914'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 14, 25, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -this.height+5, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.moveTo(0, -this.height+10); ctx.lineTo(-4, -this.height+16); ctx.lineTo(4, -this.height+16); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-3, -this.height+4, 2, 0, Math.PI*2); ctx.arc(3, -this.height+4, 2, 0, Math.PI*2); ctx.fill();
+            const wf = Math.sin(Date.now()*0.008)*0.3; ctx.fillStyle = '#8b6914';
+            ctx.save(); ctx.rotate(wf); ctx.beginPath(); ctx.moveTo(-14, -60); ctx.lineTo(-40, -70); ctx.lineTo(-35, -55); ctx.fill(); ctx.restore();
+            ctx.save(); ctx.rotate(-wf); ctx.beginPath(); ctx.moveTo(14, -60); ctx.lineTo(40, -70); ctx.lineTo(35, -55); ctx.fill(); ctx.restore();
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── SNAKE: Coiled Snake ──
+        if (this.health < MAX_HEALTH && this.style === 'snake') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#556b2f'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#556b2f'; ctx.shadowBlur = 15;
+            ctx.strokeStyle = '#556b2f'; ctx.lineWidth = 8; const t = Date.now()*0.004;
+            ctx.beginPath(); ctx.moveTo(0, -10); for (let i=0;i<8;i++) ctx.quadraticCurveTo(Math.sin(t+i)*12, -10-i*10, Math.sin(t+i+0.5)*8, -10-i*10-5); ctx.stroke();
+            ctx.fillStyle = '#556b2f'; ctx.beginPath(); ctx.ellipse(Math.sin(t+7.5)*8, -this.height+5, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(Math.sin(t+7.5)*8-3, -this.height+4, 1.5, 0, Math.PI*2); ctx.arc(Math.sin(t+7.5)*8+3, -this.height+4, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── SUSHI: Sushi Chef ──
+        if (this.health < MAX_HEALTH && this.style === 'sushi') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff6347'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff6347'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -this.height, 14, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#ff6347'; ctx.fillRect(-14, -this.height, 28, 4);
+            ctx.fillStyle = '#fff'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#eee'; ctx.fillRect(-16, -40, 12, 30); ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#333'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── COFFEE: Coffee Cup Body ──
+        if (this.health < MAX_HEALTH && this.style === 'coffee') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#8b4513'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#8b4513'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#f5f5dc'; ctx.beginPath(); ctx.moveTo(-16, -this.height+10); ctx.lineTo(-12, -10); ctx.lineTo(12, -10); ctx.lineTo(16, -this.height+10); ctx.fill();
+            ctx.fillStyle = '#3e1a00'; ctx.beginPath(); ctx.ellipse(0, -this.height+10, 16, 5, 0, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#f5f5dc'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(18, -this.height*0.5, 8, -Math.PI/2, Math.PI/2); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1; const t = Date.now()*0.003;
+            for (let i=0;i<3;i++) { ctx.beginPath(); ctx.moveTo(-6+i*6, -this.height+5); ctx.quadraticCurveTo(-6+i*6+Math.sin(t+i)*3, -this.height-5, -6+i*6, -this.height-10); ctx.stroke(); }
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(-8, -10, 6, 10); ctx.fillRect(2, -10, 6, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── TACO: Taco Shell Body ──
+        if (this.health < MAX_HEALTH && this.style === 'taco') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.arc(0, -this.height*0.5, 25, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#2e8b57'; ctx.fillRect(-16, -this.height*0.5-8, 32, 6);
+            ctx.fillStyle = '#ff6347'; ctx.fillRect(-12, -this.height*0.5-14, 24, 6);
+            ctx.fillStyle = '#ffd700'; ctx.fillRect(-10, -this.height*0.5-2, 20, 4);
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-5, -this.height*0.5-20, 2, 0, Math.PI*2); ctx.arc(5, -this.height*0.5-20, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#daa520'; ctx.fillRect(-8, -10, 6, 10); ctx.fillRect(2, -10, 6, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── ICECREAM: Ice Cream Cone ──
+        if (this.health < MAX_HEALTH && this.style === 'icecream') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ffb6c1'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ffb6c1'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.moveTo(-14, -this.height*0.5); ctx.lineTo(0, 0); ctx.lineTo(14, -this.height*0.5); ctx.fill();
+            ctx.fillStyle = '#ffb6c1'; ctx.beginPath(); ctx.arc(0, -this.height*0.5-5, 16, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#87ceeb'; ctx.beginPath(); ctx.arc(-8, -this.height*0.5-15, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(8, -this.height*0.5-15, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff69b4'; for (let i=0;i<5;i++) ctx.fillRect(-8+(Math.random()-0.5)*20, -this.height*0.5-10-Math.random()*15, 2, 2);
+            ctx.fillStyle = '#f00'; ctx.beginPath(); ctx.arc(0, -this.height*0.5-25, 4, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── POPCORN: Popcorn Bucket ──
+        if (this.health < MAX_HEALTH && this.style === 'popcorn') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#fffacd'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#fffacd'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.moveTo(-18, -20); ctx.lineTo(-14, -this.height+15); ctx.lineTo(14, -this.height+15); ctx.lineTo(18, -20); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-16, -this.height*0.5, 32, 6); ctx.fillRect(-16, -this.height*0.5+12, 32, 6);
+            ctx.fillStyle = '#fffacd'; for (let i=0;i<6;i++) { ctx.beginPath(); ctx.arc(-10+i*4+(Math.random()-0.5)*4, -this.height+12-Math.random()*8, 5+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-5, -this.height*0.5-10, 2, 0, Math.PI*2); ctx.arc(5, -this.height*0.5-10, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff0000'; ctx.fillRect(-8, -20, 6, 20); ctx.fillRect(2, -20, 6, 20);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── FIREFIGHTER: Firefighter Gear ──
+        if (this.health < MAX_HEALTH && this.style === 'firefighter') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.arc(0, -this.height+3, 14, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#ffd700'; ctx.fillRect(-4, -this.height, 8, 4);
+            ctx.fillStyle = '#ff4500'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#ffd700'; ctx.fillRect(-14, -55, 28, 4);
+            ctx.fillStyle = '#ff4500'; ctx.fillRect(-16, -40, 12, 30); ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#333'; ctx.fillRect(-12, -10, 10, 10); ctx.fillRect(2, -10, 10, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── DOCTOR: White Coat ──
+        if (this.health < MAX_HEALTH && this.style === 'doctor') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-14, -75, 28, 40);
+            ctx.fillStyle = '#87ceeb'; ctx.fillRect(-6, -72, 12, 8);
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-8, -60, 5, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-8, -55); ctx.lineTo(-8, -45); ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-16, -38, 12, 28); ctx.fillRect(4, -38, 12, 28);
+            ctx.fillStyle = '#333'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── LAWYER: Suit with Briefcase ──
+        if (this.health < MAX_HEALTH && this.style === 'lawyer') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#2f4f4f'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#2f4f4f'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#111'; ctx.fillRect(-8, -this.height, 6, 4); ctx.fillRect(2, -this.height, 6, 4);
+            ctx.fillStyle = '#2f4f4f'; ctx.fillRect(-14, -75, 28, 40);
+            ctx.fillStyle = '#fff'; ctx.fillRect(-4, -75, 8, 10);
+            ctx.fillStyle = '#800020'; ctx.fillRect(-2, -75, 4, 15);
+            ctx.fillStyle = '#2f4f4f'; ctx.fillRect(-16, -38, 12, 28); ctx.fillRect(4, -38, 12, 28);
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(-26, -35, 14, 10); ctx.strokeStyle = '#5a3a1a'; ctx.lineWidth = 1; ctx.strokeRect(-26, -35, 14, 10);
+            ctx.fillStyle = '#222'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── DENTIST: Dental Gear ──
+        if (this.health < MAX_HEALTH && this.style === 'dentist') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#add8e6'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#add8e6'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#87ceeb'; ctx.beginPath(); ctx.arc(0, -this.height+3, 14, Math.PI+0.5, -0.5); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#add8e6'; ctx.fillRect(-14, -55, 28, 4);
+            ctx.fillStyle = '#fff'; ctx.fillRect(-16, -40, 12, 30); ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#c0c0c0'; ctx.fillRect(-24, -45, 6, 18);
+            ctx.beginPath(); ctx.arc(-21, -45, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#333'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── MAILMAN: Uniform ──
+        if (this.health < MAX_HEALTH && this.style === 'mailman') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#4169e1'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#4169e1'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#4169e1'; ctx.beginPath(); ctx.arc(0, -this.height+1, 14, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#4169e1'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#ffd700'; ctx.fillRect(-6, -65, 12, 4);
+            ctx.fillStyle = '#4169e1'; ctx.fillRect(-16, -40, 12, 30); ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(10, -50, 14, 18);
+            ctx.fillStyle = '#333'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── METAL: Metalhead ──
+        if (this.health < MAX_HEALTH && this.style === 'metal') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#2f2f2f'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#2f2f2f'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#1a1a1a'; for (let i=-4;i<=4;i++) ctx.fillRect(i*2, -this.height-6, 2, 20+Math.abs(i)*3);
+            ctx.fillStyle = '#111'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#c0c0c0'; ctx.beginPath(); ctx.arc(0, -60, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#111'; ctx.fillRect(-16, -40, 12, 30); ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#222'; ctx.fillRect(-12, -10, 10, 10); ctx.fillRect(2, -10, 10, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── RAP: Chains and Cap ──
+        if (this.health < MAX_HEALTH && this.style === 'rap') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(0, -this.height+3, 14, Math.PI, 0); ctx.fill();
+            ctx.fillRect(-18, -this.height+3, 36, 4);
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-4, -this.height+2, 2, 0, Math.PI*2); ctx.arc(4, -this.height+2, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-14, -75, 28, 38);
+            ctx.fillStyle = '#ffd700'; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, -55, 8, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-16, -37, 12, 28); ctx.fillRect(4, -37, 12, 28);
+            ctx.fillStyle = '#333'; ctx.fillRect(-12, -10, 10, 10); ctx.fillRect(2, -10, 10, 10);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── OPERA: Formal Dress ──
+        if (this.health < MAX_HEALTH && this.style === 'opera') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#800020'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#800020'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#800020'; ctx.fillRect(-16, -75, 32, 40);
+            ctx.beginPath(); ctx.moveTo(-16, -35); ctx.lineTo(-22, 0); ctx.lineTo(22, 0); ctx.lineTo(16, -35); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-4, -70, 8, 6);
+            ctx.fillStyle = '#800020'; ctx.fillRect(-18, -40, 10, 25); ctx.fillRect(8, -40, 10, 25);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── COUNTRY: Cowboy Hat and Plaid ──
+        if (this.health < MAX_HEALTH && this.style === 'country') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#deb887'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#d4a574'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#8b6914'; ctx.fillRect(-20, -this.height+2, 40, 4);
+            ctx.beginPath(); ctx.moveTo(-10, -this.height+2); ctx.lineTo(0, -this.height-10); ctx.lineTo(10, -this.height+2); ctx.fill();
+            ctx.fillStyle = '#dc143c'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.strokeStyle = '#228b22'; ctx.lineWidth = 1; for (let i=0;i<5;i++) { ctx.beginPath(); ctx.moveTo(-14+i*7, -75); ctx.lineTo(-14+i*7, -40); ctx.stroke(); }
+            ctx.fillStyle = '#dc143c'; ctx.fillRect(-16, -40, 12, 28); ctx.fillRect(4, -40, 12, 28);
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(-12, -12, 10, 12); ctx.fillRect(2, -12, 10, 12);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── TRAMPOLINE: Springy Body ──
+        if (this.health < MAX_HEALTH && this.style === 'trampoline') {
+            const bounce = Math.sin(Date.now()*0.01)*8;
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff69b4'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5+bounce, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 15; ctx.translate(0, bounce);
+            ctx.strokeStyle = '#ff69b4'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -this.height+15); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -60); ctx.lineTo(-20, -45); ctx.moveTo(0, -60); ctx.lineTo(20, -45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            ctx.strokeStyle = '#c0c0c0'; ctx.lineWidth = 2; ctx.beginPath();
+            for (let i=0;i<6;i++) ctx.lineTo(-8+i*3.2, 4+(i%2)*6); ctx.stroke();
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── BUBBLE: Translucent Bubble Body ──
+        if (this.health < MAX_HEALTH && this.style === 'bubble') {
+            ctx.globalAlpha = 0.4; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 20;
+            ctx.strokeStyle = '#87ceeb'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, -this.height*0.5, 35, 0, Math.PI*2); ctx.stroke();
+            ctx.globalAlpha = 0.15; ctx.fillStyle = '#87ceeb'; ctx.beginPath(); ctx.arc(0, -this.height*0.5, 35, 0, Math.PI*2); ctx.fill();
+            ctx.globalAlpha = 0.6; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(-10, -this.height*0.5-10, 8, 0, Math.PI*2); ctx.fill();
+            ctx.globalAlpha = 0.8; ctx.strokeStyle = '#87ceeb'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(0, -this.height+8, 10, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -this.height+18); ctx.lineTo(0, -35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -55); ctx.lineTo(-15, -40); ctx.moveTo(0, -55); ctx.lineTo(15, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -35); ctx.lineTo(-8, -5); ctx.moveTo(0, -35); ctx.lineTo(8, -5); ctx.stroke();
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── MIRROR: Reflective Chrome ──
+        if (this.health < MAX_HEALTH && this.style === 'mirror') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#c0c0c0'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 20;
+            const t = Date.now()*0.003;
+            ctx.fillStyle = `hsl(${(t*50)%360}, 20%, 80%)`; ctx.beginPath(); ctx.arc(0, -this.height+3, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#e0e0e0'; ctx.fillRect(-14, -75, 28, 35);
+            ctx.fillStyle = '#d0d0d0'; ctx.fillRect(-16, -40, 12, 30); ctx.fillRect(4, -40, 12, 30);
+            ctx.fillStyle = '#c0c0c0'; ctx.fillRect(-10, -10, 8, 10); ctx.fillRect(2, -10, 8, 10);
+            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.ellipse(-6, -60, 4, 12, -0.3, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── RUBBER: Stretchy Red Body ──
+        if (this.health < MAX_HEALTH && this.style === 'rubber') {
+            const stretch = Math.sin(Date.now()*0.008)*4;
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40+stretch, 50-stretch, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.arc(0, -this.height+3, 12+stretch*0.5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-4, -this.height+2, 2, 0, Math.PI*2); ctx.arc(4, -this.height+2, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff4500'; ctx.fillRect(-14-stretch, -75, 28+stretch*2, 35);
+            ctx.fillStyle = '#cc3300'; ctx.fillRect(-16, -40, 12+stretch, 30); ctx.fillRect(4-stretch, -40, 12+stretch, 30);
+            ctx.fillStyle = '#ff4500'; ctx.fillRect(-10, -10, 8, 10+stretch); ctx.fillRect(2, -10, 8, 10+stretch);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+        // ── CHEESE: Cheese Wedge Body ──
+        if (this.health < MAX_HEALTH && this.style === 'cheese') {
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.ellipse(0, -this.height*0.5, 40, 50, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.moveTo(-18, -20); ctx.lineTo(0, -this.height-5); ctx.lineTo(18, -20); ctx.fill();
+            ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.arc(-5, -50, 5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(6, -35, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-2, -65, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(8, -55, 3.5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-4, -this.height*0.5-15, 2, 0, Math.PI*2); ctx.arc(4, -this.height*0.5-15, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffd700'; ctx.fillRect(-8, -20, 6, 20); ctx.fillRect(2, -20, 6, 20);
+            ctx.shadowBlur = 0; ctx.restore(); return;
+        }
+
         // ── Phoenix Dive: draw fireball instead of stickman ──
         if (this.phoenixDive && (this.phoenixDive.phase === 'hover' || this.phoenixDive.phase === 'dive')) {
             const r = this.phoenixDive.phase === 'dive' ? 50 : 38;
@@ -7619,6 +8758,41 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'pirate') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#8b0000', 0.7); }
     else if (style === 'astronaut') { visualEffects.push({ type: 'screenDarkness', life: 60, maxLife: 60 }); triggerScreenFlash('#c0c0c0', 0.8); }
     else if (style === 'rockstar') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff00ff', 0.8); }
+    // ── 34 New Styles Rage Ult VFX ──
+    else if (style === 'pharaoh') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#daa520', 0.8); }
+    else if (style === 'viking') { visualEffects.push({ type: 'screenShatter', x, y, cracks: [], life: 60, maxLife: 60 }); triggerScreenFlash('#b8860b', 0.8); }
+    else if (style === 'spartan') { visualEffects.push({ type: 'screenShatter', x, y, cracks: [], life: 60, maxLife: 60 }); triggerScreenFlash('#cd853f', 0.8); }
+    else if (style === 'zeus') { visualEffects.push({ type: 'screenLightningStorm', life: 60, maxLife: 60 }); triggerScreenFlash('#ffd700', 0.9); }
+    else if (style === 'medusa') { visualEffects.push({ type: 'screenDarkness', life: 60, maxLife: 60 }); triggerScreenFlash('#9370db', 0.8); }
+    else if (style === 'hacker') { visualEffects.push({ type: 'blueScreen', life: 65, maxLife: 65 }); triggerScreenFlash('#00ff00', 0.8); }
+    else if (style === 'alien') { visualEffects.push({ type: 'screenRadiance', life: 60, maxLife: 60 }); triggerScreenFlash('#7cfc00', 0.8); }
+    else if (style === 'cyborg') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#ff6347', 0.8); }
+    else if (style === 'glitch2') { visualEffects.push({ type: 'screenCorruption', life: 65, maxLife: 65 }); triggerScreenFlash('#ff00ff', 0.8); }
+    else if (style === 'ai') { visualEffects.push({ type: 'screenLightningStorm', life: 60, maxLife: 60 }); triggerScreenFlash('#4169e1', 0.8); }
+    else if (style === 'shark') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#4682b4', 0.8); }
+    else if (style === 'gorilla') { visualEffects.push({ type: 'screenShatter', x, y, cracks: [], life: 60, maxLife: 60 }); triggerScreenFlash('#8b4513', 0.8); }
+    else if (style === 'scorpion') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#ff8c00', 0.8); }
+    else if (style === 'eagle') { visualEffects.push({ type: 'screenRadiance', life: 60, maxLife: 60 }); triggerScreenFlash('#deb887', 0.8); }
+    else if (style === 'snake') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#556b2f', 0.8); }
+    else if (style === 'sushi') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenFlash('#ff6347', 0.7); }
+    else if (style === 'coffee') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#8b4513', 0.8); }
+    else if (style === 'taco') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenFlash('#ff8c00', 0.7); }
+    else if (style === 'icecream') { visualEffects.push({ type: 'frostOverlay', life: 60, maxLife: 60 }); triggerScreenFlash('#ffb6c1', 0.7); }
+    else if (style === 'popcorn') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#fffacd', 0.7); }
+    else if (style === 'firefighter') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#ff4500', 0.8); }
+    else if (style === 'doctor') { visualEffects.push({ type: 'screenRadiance', life: 60, maxLife: 60 }); triggerScreenFlash('#ffffff', 0.8); }
+    else if (style === 'lawyer') { visualEffects.push({ type: 'screenDarkness', life: 60, maxLife: 60 }); triggerScreenFlash('#2f4f4f', 0.7); }
+    else if (style === 'dentist') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#add8e6', 0.7); }
+    else if (style === 'mailman') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#4169e1', 0.7); }
+    else if (style === 'metal') { visualEffects.push({ type: 'screenDarkness', life: 65, maxLife: 65 }); triggerScreenFlash('#2f2f2f', 0.8); }
+    else if (style === 'rap') { visualEffects.push({ type: 'screenRadiance', life: 60, maxLife: 60 }); triggerScreenFlash('#ffd700', 0.8); }
+    else if (style === 'opera') { visualEffects.push({ type: 'screenRadiance', life: 60, maxLife: 60 }); triggerScreenFlash('#800020', 0.8); }
+    else if (style === 'country') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenFlash('#deb887', 0.7); }
+    else if (style === 'trampoline') { visualEffects.push({ type: 'screenRadiance', life: 60, maxLife: 60 }); triggerScreenFlash('#ff69b4', 0.8); }
+    else if (style === 'bubble') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#87ceeb', 0.7); }
+    else if (style === 'mirror') { visualEffects.push({ type: 'screenCrystal', life: 60, maxLife: 60 }); triggerScreenFlash('#c0c0c0', 0.8); }
+    else if (style === 'rubber') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#ff4500', 0.8); }
+    else if (style === 'cheese') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#ffd700', 0.7); }
 }
 
 function spawnScreenMeltdown(x, y) {
@@ -14563,6 +15737,364 @@ function drawProjectiles() {
             }
         }
 
+        // ─── PHARAOH: Scarab Swarm ───
+        else if (draw === 'scarabSwarm') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#daa520'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#8b6914';
+            ctx.beginPath(); ctx.ellipse(p.x, p.y, 8, 5, Date.now() * 0.01, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 5, 3, Date.now() * 0.01, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(p.x - 3, p.y - 5); ctx.lineTo(p.x - 6, p.y - 8); ctx.moveTo(p.x + 3, p.y - 5); ctx.lineTo(p.x + 6, p.y - 8); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        // ─── VIKING: Axe Throw ───
+        else if (draw === 'vikingAxe') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#b8860b'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#b8860b'; ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015);
+            ctx.fillStyle = '#8b6914'; ctx.fillRect(-3, -12, 6, 24); // handle
+            ctx.fillStyle = '#c0c0c0'; ctx.beginPath(); ctx.moveTo(-10, -12); ctx.lineTo(0, -16); ctx.lineTo(10, -12); ctx.lineTo(0, -6); ctx.fill(); // blade
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── SPARTAN: Spear Throw ───
+        else if (draw === 'spearThrow') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#cd853f'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#cd853f'; ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const angle = Math.atan2(p.vy, p.vx);
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(angle);
+            ctx.strokeStyle = '#8b6914'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(14, 0); ctx.stroke();
+            ctx.fillStyle = '#c0c0c0'; ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(10, -4); ctx.lineTo(10, 4); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── ZEUS: Mini Bolt ───
+        else if (draw === 'miniBolt') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 15;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(t.x - 4, t.y); ctx.lineTo(t.x + 4, t.y + (Math.random()-0.5)*6); ctx.stroke(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; for (let j = 0; j < 3; j++) { const a = Math.random() * Math.PI * 2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + Math.cos(a) * 12, p.y + Math.sin(a) * 12); ctx.stroke(); }
+            ctx.shadowBlur = 0;
+        }
+        // ─── MEDUSA: Snake Shot ───
+        else if (draw === 'snakeShot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#9370db'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#9370db'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#556b2f'; const sx = Math.sin(Date.now() * 0.015) * 4;
+            ctx.beginPath(); ctx.ellipse(p.x + sx, p.y, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(p.x + sx - 3, p.y - 2, 1.5, 0, Math.PI * 2); ctx.arc(p.x + sx + 3, p.y - 2, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── HACKER: Virus Shot ───
+        else if (draw === 'virusShot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#00ff00'; ctx.font = '8px monospace'; ctx.fillText(Math.random() > 0.5 ? '1' : '0', t.x, t.y); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#00ff00'; ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.fillText('!', p.x, p.y + 3);
+            ctx.shadowBlur = 0;
+        }
+        // ─── ALIEN: Ray Gun ───
+        else if (draw === 'rayGun') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#7cfc00'; ctx.shadowBlur = 15;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#7cfc00'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const rg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 10);
+            rg.addColorStop(0, '#fff'); rg.addColorStop(0.5, '#7cfc00'); rg.addColorStop(1, 'rgba(124,252,0,0)');
+            ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── CYBORG: Arm Cannon ───
+        else if (draw === 'armCannon') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff6347'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ff6347'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#ff6347'; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#ff6347'; ctx.lineWidth = 1; for (let j = 0; j < 4; j++) { const a = Date.now() * 0.01 + j * Math.PI/2; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(a)*8, p.y + Math.sin(a)*8); ctx.lineTo(p.x + Math.cos(a)*14, p.y + Math.sin(a)*14); ctx.stroke(); }
+            ctx.shadowBlur = 0;
+        }
+        // ─── GLITCH2: Error Throw ───
+        else if (draw === 'errorThrow') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = `hsl(${Math.random()*360}, 100%, 60%)`; ctx.fillRect(t.x - 3, t.y - 3, 6, 6); }
+            ctx.globalAlpha = 0.9; const offX = (Math.random()-0.5)*4; const offY = (Math.random()-0.5)*4;
+            ctx.fillStyle = '#f0f'; ctx.fillRect(p.x + offX - 6, p.y + offY - 6, 12, 12);
+            ctx.fillStyle = '#0ff'; ctx.fillRect(p.x - offX - 4, p.y - offY - 4, 8, 8);
+            ctx.shadowBlur = 0;
+        }
+        // ─── AI: Data Stream ───
+        else if (draw === 'dataStream') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#4169e1'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#4169e1'; ctx.fillRect(t.x - 2, t.y - 2, 4, 4); }
+            ctx.globalAlpha = 1; const dg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 8);
+            dg.addColorStop(0, '#fff'); dg.addColorStop(0.5, '#4169e1'); dg.addColorStop(1, 'rgba(65,105,225,0)');
+            ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#4169e1'; ctx.font = '6px monospace'; for (let j = 0; j < 2; j++) ctx.fillText('01', p.x - 6 + j * 8, p.y + 12 + j * 6);
+            ctx.shadowBlur = 0;
+        }
+        // ─── SHARK: Bite Lunge ───
+        else if (draw === 'biteLunge') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#4682b4'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#4682b4'; ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#4682b4'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 12, 7, Math.atan2(p.vy, p.vx), 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(p.x - 6, p.y + 2); for (let j = 0; j < 5; j++) ctx.lineTo(p.x - 6 + j * 3, p.y + (j % 2 === 0 ? 5 : 2)); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── GORILLA: Rock Throw ───
+        else if (draw === 'gorillaRock') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#8b4513'; ctx.shadowBlur = 8;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.2; ctx.fillStyle = '#8b4513'; ctx.beginPath(); ctx.arc(t.x, t.y, 5, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.008);
+            ctx.fillStyle = '#696969'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(-4, -4, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#777'; ctx.beginPath(); ctx.arc(5, 3, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── SCORPION: Tail Sting ───
+        else if (draw === 'tailSting') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const angle = Math.atan2(p.vy, p.vx);
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(angle);
+            ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-6, -5); ctx.lineTo(-6, 5); ctx.fill();
+            ctx.fillStyle = '#8b0000'; ctx.beginPath(); ctx.arc(10, 0, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── EAGLE: Talon Dive ───
+        else if (draw === 'talonDive') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#deb887'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.strokeStyle = '#deb887'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(p.x - 8, p.y); ctx.lineTo(p.x, p.y + 8); ctx.lineTo(p.x + 8, p.y); ctx.stroke(); // talons
+            ctx.fillStyle = '#8b6914'; ctx.beginPath(); ctx.arc(p.x, p.y - 4, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── SNAKE: Venom Spit ───
+        else if (draw === 'venomSpit') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#556b2f'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#556b2f'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#9acd32'; ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#556b2f'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── SUSHI: Chopstick Throw ───
+        else if (draw === 'chopstickThrow') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff6347'; ctx.shadowBlur = 8;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.2; ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const a = Math.atan2(p.vy, p.vx);
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
+            ctx.strokeStyle = '#deb887'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-14, -3); ctx.lineTo(14, -3); ctx.moveTo(-14, 3); ctx.lineTo(14, 3); ctx.stroke();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── COFFEE: Espresso Shot ───
+        else if (draw === 'espressoShot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#8b4513'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#8b4513'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#3e1a00'; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#8b4513'; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+            // Steam wisp
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p.x, p.y - 8); ctx.quadraticCurveTo(p.x + 4, p.y - 14, p.x, p.y - 18); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        // ─── TACO: Shell Throw ───
+        else if (draw === 'shellThrow') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 8;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.2; ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.008);
+            ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.arc(0, 0, 10, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#2e8b57'; ctx.fillRect(-6, -3, 12, 3);
+            ctx.fillStyle = '#ff6347'; ctx.fillRect(-4, -6, 8, 3);
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── ICECREAM: Scoop Shot ───
+        else if (draw === 'scoopShot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffb6c1'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ffb6c1'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#ffb6c1'; ctx.beginPath(); ctx.arc(p.x, p.y - 3, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.moveTo(p.x - 5, p.y + 4); ctx.lineTo(p.x, p.y + 14); ctx.lineTo(p.x + 5, p.y + 4); ctx.fill();
+            ctx.fillStyle = '#ff69b4'; ctx.beginPath(); ctx.arc(p.x + 2, p.y - 5, 1.5, 0, Math.PI * 2); ctx.arc(p.x - 3, p.y - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── POPCORN: Kernel Pop ───
+        else if (draw === 'kernelPop') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#fffacd'; ctx.shadowBlur = 8;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#fffacd'; ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#fffacd';
+            ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(p.x - 2, p.y - 2, 3, 0, Math.PI * 2); ctx.arc(p.x + 3, p.y + 1, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── FIREFIGHTER: Hose Blast ───
+        else if (draw === 'hoseBlast') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#4682b4'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#4682b4'; ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 0.8; const wg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 12);
+            wg.addColorStop(0, '#fff'); wg.addColorStop(0.5, '#87ceeb'); wg.addColorStop(1, 'rgba(70,130,180,0)');
+            ctx.fillStyle = wg; ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── FIREFIGHTER: Fire Axe ───
+        else if (draw === 'fireAxe') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.012);
+            ctx.fillStyle = '#8b0000'; ctx.fillRect(-2, -12, 4, 24);
+            ctx.fillStyle = '#c0c0c0'; ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(0, -16); ctx.lineTo(8, -12); ctx.lineTo(0, -8); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── DOCTOR: Syringe Shot ───
+        else if (draw === 'syringeShot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.2; ctx.fillStyle = '#87ceeb'; ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const a = Math.atan2(p.vy, p.vx);
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
+            ctx.fillStyle = '#ddd'; ctx.fillRect(-12, -2, 20, 4);
+            ctx.fillStyle = '#87ceeb'; ctx.fillRect(-8, -1, 12, 2);
+            ctx.fillStyle = '#c0c0c0'; ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(12, -1); ctx.lineTo(12, 1); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── LAWYER: Objection ───
+        else if (draw === 'objection') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#2f4f4f'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#2f4f4f'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#c00'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center'; ctx.fillText('!', p.x, p.y + 4);
+            ctx.shadowBlur = 0;
+        }
+        // ─── LAWYER: Paperwork ───
+        else if (draw === 'paperwork') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#2f4f4f'; ctx.shadowBlur = 6;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.005 + p.x * 0.01);
+            ctx.fillStyle = '#f5f5f5'; ctx.fillRect(-8, -10, 16, 20);
+            ctx.strokeStyle = '#999'; ctx.lineWidth = 0.5; for (let j = 0; j < 4; j++) { ctx.beginPath(); ctx.moveTo(-5, -6 + j * 4); ctx.lineTo(5, -6 + j * 4); ctx.stroke(); }
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── DENTIST: Drill Attack ───
+        else if (draw === 'drillAttack') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#add8e6'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#add8e6'; ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const a = Math.atan2(p.vy, p.vx);
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a + Date.now() * 0.03);
+            ctx.fillStyle = '#c0c0c0'; ctx.fillRect(-3, -10, 6, 20);
+            ctx.fillStyle = '#888'; ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(-3, -10); ctx.lineTo(3, -10); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── DENTIST: Cavity Bomb ───
+        else if (draw === 'cavityBomb') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#add8e6'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#add8e6'; ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#f5f5dc'; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(p.x + 2, p.y - 2, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── MAILMAN: Package Throw ───
+        else if (draw === 'packageThrow') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#4169e1'; ctx.shadowBlur = 8;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.2; ctx.fillStyle = '#8b4513'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.006);
+            ctx.fillStyle = '#cd853f'; ctx.fillRect(-8, -6, 16, 12);
+            ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 1; ctx.strokeRect(-8, -6, 16, 12);
+            ctx.strokeStyle = '#deb887'; ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(0, 6); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.stroke();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── MAILMAN: Express Delivery ───
+        else if (draw === 'expressDelivery') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#4169e1'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#4169e1'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#f5f5dc'; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx));
+            ctx.fillRect(-10, -6, 20, 12);
+            ctx.fillStyle = '#4169e1'; ctx.font = '8px Arial'; ctx.textAlign = 'center'; ctx.fillText('EXP', 0, 3);
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── METAL: Headbang ───
+        else if (draw === 'headbang') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#2f2f2f'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#2f2f2f'; ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#c0c0c0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p.x - 6, p.y - 3); ctx.lineTo(p.x - 12, p.y - 12); ctx.moveTo(p.x + 6, p.y - 3); ctx.lineTo(p.x + 12, p.y - 12); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        // ─── RAP: Mic Drop ───
+        else if (draw === 'micDrop') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(p.x, p.y - 4, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#c0c0c0'; ctx.fillRect(p.x - 2, p.y + 2, 4, 10);
+            ctx.shadowBlur = 0;
+        }
+        // ─── OPERA: High Note ───
+        else if (draw === 'highNote') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#800020'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#800020'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const ng = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 10);
+            ng.addColorStop(0, '#fff'); ng.addColorStop(0.5, '#800020'); ng.addColorStop(1, 'rgba(128,0,32,0)');
+            ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#800020'; ctx.lineWidth = 1; for (let j = 0; j < 3; j++) { ctx.beginPath(); ctx.arc(p.x, p.y, 12 + j * 4, 0, Math.PI); ctx.stroke(); }
+            ctx.shadowBlur = 0;
+        }
+        // ─── COUNTRY: Banjo Twang ───
+        else if (draw === 'banjoTwang') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#deb887'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const ng = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 10);
+            ng.addColorStop(0, '#fff'); ng.addColorStop(0.4, '#deb887'); ng.addColorStop(1, 'rgba(222,184,135,0)');
+            ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#deb887'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x, p.y, 14 + Math.sin(Date.now() * 0.02) * 3, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        // ─── TRAMPOLINE: Bounce Shot ───
+        else if (draw === 'bounceShot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ff69b4'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; const bg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 9);
+            bg.addColorStop(0, '#fff'); bg.addColorStop(0.5, '#ff69b4'); bg.addColorStop(1, 'rgba(255,105,180,0)');
+            ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── BUBBLE: Bubble Shot ───
+        else if (draw === 'bubbleShot') {
+            ctx.globalAlpha = 0.7; ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 12;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.2; ctx.strokeStyle = '#87ceeb'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(t.x, t.y, 5, 0, Math.PI * 2); ctx.stroke(); }
+            ctx.globalAlpha = 0.6; ctx.strokeStyle = '#87ceeb'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(p.x - 3, p.y - 3, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        }
+        // ─── MIRROR: Reflect Shot ───
+        else if (draw === 'reflectShot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#c0c0c0'; ctx.shadowBlur = 15;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#c0c0c0'; ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 0.9; const mg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 8);
+            mg.addColorStop(0, '#fff'); mg.addColorStop(0.5, '#e0e0e0'); mg.addColorStop(1, 'rgba(192,192,192,0)');
+            ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#c0c0c0'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        // ─── RUBBER: Stretch Punch ───
+        else if (draw === 'stretchPunch') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 10;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#ff4500'; const stretch = Math.sin(Date.now() * 0.02) * 3;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 + stretch, 7 - stretch, Math.atan2(p.vy, p.vx), 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#cc3300'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── RUBBER: Slingshot ───
+        else if (draw === 'slingshot') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 14;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── CHEESE: Cheese Wheel ───
+        else if (draw === 'cheeseWheel') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8;
+            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.2; ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.01);
+            ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.arc(-4, -3, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(3, 4, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(5, -4, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+
         // ─── TORNADO DEBRIS (spinning stickmen/cows) ───
         else if (p.isTornadoDebris) {
             ctx.save();
@@ -17909,6 +19441,151 @@ function drawVictoryDance(fighter, frame) {
             ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
             if (frame > smashFrame + 5) { ctx.font = 'bold 20px Arial'; ctx.fillStyle = '#e74c3c'; ctx.textAlign = 'center'; ctx.fillText('ENCORE!', 0, headY - 25); }
+            break;
+        }
+        case 'pharaoh': {
+            ctx.translate(0, -bounce * 0.3);
+            ctx.fillStyle = '#daa520'; ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#4169e1'; ctx.beginPath(); ctx.moveTo(-14, headY); ctx.lineTo(0, headY - 16); ctx.lineTo(14, headY); ctx.fill();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + 10 + Math.sin(t*4)*8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + 10 + Math.cos(t*4)*8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            if (frame % 4 === 0) particles.push({ x: fighter.x + (Math.random()-0.5)*40, y: fighter.y + headY - 20, vx: (Math.random()-0.5)*3, vy: -2, life: 12, maxLife: 12, color: '#daa520' });
+            break;
+        }
+        case 'viking': {
+            ctx.translate(sway * 0.5, -bounce * 0.5);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#daa520'; ctx.beginPath(); ctx.moveTo(-14, headY); ctx.lineTo(-20, headY - 14); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(14, headY); ctx.lineTo(20, headY - 14); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            const axeSwing = Math.sin(t * 5) * 30;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + axeSwing); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            break;
+        }
+        case 'spartan': {
+            ctx.translate(0, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = '#dc143c'; ctx.fillRect(-2, headY - 20, 4, 12);
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY - 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            if (frame > 20) { ctx.font = 'bold 16px Arial'; ctx.fillStyle = '#cd853f'; ctx.textAlign = 'center'; ctx.fillText('SPARTA!', 0, headY - 20); }
+            break;
+        }
+        case 'zeus': {
+            ctx.translate(0, -bounce);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#ffd700'; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY - 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY - 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            if (frame % 3 === 0) particles.push({ x: fighter.x + (Math.random()-0.5)*40, y: fighter.y - 50, vx: (Math.random()-0.5)*4, vy: -3, life: 10, maxLife: 10, color: '#ffd700' });
+            break;
+        }
+        case 'medusa': {
+            ctx.translate(sway, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#556b2f'; for (let i = 0; i < 5; i++) { const sa = -Math.PI/2 + (i-2)*0.4; ctx.beginPath(); ctx.moveTo(Math.cos(sa)*14, headY+Math.sin(sa)*14); ctx.lineTo(Math.cos(sa)*22+Math.sin(t*3+i)*4, headY+Math.sin(sa)*22); ctx.stroke(); }
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            break;
+        }
+        case 'hacker': {
+            ctx.translate(0, -bounce * 0.2);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            if (frame % 2 === 0) { ctx.fillStyle = '#00ff00'; ctx.font = '8px monospace'; ctx.fillText(Math.random()>0.5?'1':'0', (Math.random()-0.5)*40, headY - 20 - Math.random()*30); }
+            break;
+        }
+        case 'alien': case 'cyborg': case 'glitch2': case 'ai': case 'shark': case 'gorilla': case 'scorpion': case 'eagle': case 'snake': {
+            ctx.translate(sway, -bounce);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + 5 + Math.sin(t*5)*10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + 5 + Math.cos(t*5)*10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            if (frame % 3 === 0) particles.push({ x: fighter.x + (Math.random()-0.5)*30, y: fighter.y + headY, vx: (Math.random()-0.5)*3, vy: -2, life: 10, maxLife: 10, color: styleColor });
+            break;
+        }
+        case 'sushi': case 'coffee': case 'taco': case 'icecream': case 'popcorn': {
+            ctx.translate(sway * 1.5, -bounce);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            const armWave = Math.sin(t * 6) * 15;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + armWave); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY - armWave); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10 + Math.sin(t*4)*5, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10 + Math.cos(t*4)*5, 0); ctx.stroke();
+            break;
+        }
+        case 'firefighter': case 'doctor': case 'lawyer': case 'dentist': case 'mailman': {
+            ctx.translate(0, -bounce * 0.5);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            if (frame > 30) { ctx.font = 'bold 14px Arial'; ctx.fillStyle = styleColor; ctx.textAlign = 'center'; ctx.fillText('VICTORY', 0, headY - 22); }
+            break;
+        }
+        case 'metal': {
+            const headbang = Math.sin(t * 8) * 15;
+            ctx.translate(0, headbang * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY + headbang * 0.5, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            break;
+        }
+        case 'rap': {
+            ctx.translate(sway * 1.5, -bounce * 0.5);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 10 + Math.sin(t*6)*8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            if (frame > 20) { ctx.font = 'bold 14px Arial'; ctx.fillStyle = '#ffd700'; ctx.textAlign = 'center'; ctx.fillText('MIC DROP', 0, headY - 25); }
+            break;
+        }
+        case 'opera': case 'country': {
+            ctx.translate(sway, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + Math.sin(t*3)*15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + Math.cos(t*3)*15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            break;
+        }
+        case 'trampoline': {
+            const bigBounce = Math.abs(Math.sin(t * 6)) * 40;
+            ctx.translate(0, -bigBounce);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            const flipAngle = t * 8;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(Math.cos(flipAngle)*20, headY + 5 + Math.sin(flipAngle)*15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-Math.cos(flipAngle)*20, headY + 5 - Math.sin(flipAngle)*15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            break;
+        }
+        case 'bubble': case 'mirror': case 'rubber': case 'cheese': {
+            ctx.translate(sway, -bounce);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = styleColor; ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            if (frame % 3 === 0) particles.push({ x: fighter.x + (Math.random()-0.5)*30, y: fighter.y + headY, vx: (Math.random()-0.5)*3, vy: -2, life: 10, maxLife: 10, color: styleColor });
             break;
         }
         default: {
