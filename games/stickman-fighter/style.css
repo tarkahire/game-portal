@@ -375,6 +375,86 @@ button:hover {
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
 }
 
+.style-btn[data-style="ice"].selected {
+    border-color: #88cfff;
+    box-shadow: 0 0 20px rgba(136, 207, 255, 0.4);
+}
+
+.style-btn[data-style="gravity"].selected {
+    border-color: #9b59b6;
+    box-shadow: 0 0 20px rgba(155, 89, 182, 0.4);
+}
+
+.style-btn[data-style="time"].selected {
+    border-color: #f0e68c;
+    box-shadow: 0 0 20px rgba(240, 230, 140, 0.4);
+}
+
+.style-btn[data-style="vampire"].selected {
+    border-color: #8b0000;
+    box-shadow: 0 0 20px rgba(139, 0, 0, 0.4);
+}
+
+.style-btn[data-style="dragon"].selected {
+    border-color: #ff4500;
+    box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+}
+
+.style-btn[data-style="necro"].selected {
+    border-color: #556b2f;
+    box-shadow: 0 0 20px rgba(85, 107, 47, 0.4);
+}
+
+.style-btn[data-style="magnet"].selected {
+    border-color: #c0c0c0;
+    box-shadow: 0 0 20px rgba(192, 192, 192, 0.4);
+}
+
+.style-btn[data-style="mech"].selected {
+    border-color: #708090;
+    box-shadow: 0 0 20px rgba(112, 128, 144, 0.4);
+}
+
+.style-btn[data-style="pizza"].selected {
+    border-color: #ff6347;
+    box-shadow: 0 0 20px rgba(255, 99, 71, 0.4);
+}
+
+.style-btn[data-style="cat"].selected {
+    border-color: #dda0dd;
+    box-shadow: 0 0 20px rgba(221, 160, 221, 0.4);
+}
+
+.style-btn[data-style="banana"].selected {
+    border-color: #ffe135;
+    box-shadow: 0 0 20px rgba(255, 225, 53, 0.4);
+}
+
+.style-btn[data-style="grandma"].selected {
+    border-color: #deb887;
+    box-shadow: 0 0 20px rgba(222, 184, 135, 0.4);
+}
+
+.style-btn[data-style="painter"].selected {
+    border-color: #ff69b4;
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.4);
+}
+
+.style-btn[data-style="bee"].selected {
+    border-color: #ffc107;
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.4);
+}
+
+.style-btn[data-style="teacher"].selected {
+    border-color: #2e8b57;
+    box-shadow: 0 0 20px rgba(46, 139, 87, 0.4);
+}
+
+.style-btn[data-style="plumber"].selected {
+    border-color: #4169e1;
+    box-shadow: 0 0 20px rgba(65, 105, 225, 0.4);
+}
+
 .style-icon {
     font-size: 28px;
 }

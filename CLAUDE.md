@@ -33,7 +33,8 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 ### Stickman Fighter
 - **Path**: `games/stickman-fighter/`
 - **Tech**: HTML5 Canvas, vanilla JS, CSS
-- **Features**: 5 elemental fighting styles (Lightning, Fire, Water, Wind, Earth) selectable at a style select screen, each with 4 unique attacks and custom visuals; 2-player local and VS AI modes; health bars, round timer, cooldown displays; dramatic visual effects (screen shake, particles, hell background for meteor, cinematic boulder crush)
+- **Features**: 36 fighting styles selectable at a style select screen, each with 4 unique attacks and custom visuals; rage system with upgraded attacks; combo system; 2-player local, VS AI, and Training modes; health bars, round timer, cooldown displays; dramatic visual effects (screen shake, particles, hell background for meteor, cinematic boulder crush)
+- **Styles**: Lightning, Fire, Water, Wind, Earth, Acid, Light, Dark, Shadow, Portal, Washer, Corrupt, Crystal, Duck, Keyboard, Chef, DJ, Pigeon, Samurai, Selfie, Ice, Gravity, Time, Vampire, Dragon, Necro, Magnet, Mech, Pizza, Cat, Banana, Grandma, Painter, Bee, Teacher, Plumber
 - **Controls**: Player 1: WASD + ZXCV attacks, Player 2: Arrows + \/., attacks
 
 ## Adding a New Game

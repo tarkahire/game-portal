@@ -238,6 +238,182 @@ const STYLES = {
             { name: 'THE FACE',    type: 'instant',    damage: 20, cooldown: 900,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'theFace' },
         ],
     },
+    ice: {
+        name: 'Ice',
+        color: '#88cfff',
+        hue: 200,
+        attacks: [
+            { name: 'Icicle Throw',  type: 'projectile', damage: 6,  cooldown: 100,  speed: 14, radius: 27, knockback: 5,  blockReduction: 0.5, draw: 'icicleThrow' },
+            { name: 'Frost Nova',    type: 'instant',    damage: 10, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'frostNova' },
+            { name: 'Ice Wall',      type: 'projectile', damage: 12, cooldown: 360,  speed: 0,  radius: 68, knockback: 8,  blockReduction: 0.3, draw: 'iceWall', special: 'iceWall' },
+            { name: 'Blizzard',      type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'blizzard' },
+        ],
+    },
+    gravity: {
+        name: 'Gravity',
+        color: '#9b59b6',
+        hue: 280,
+        attacks: [
+            { name: 'Gravity Pull',   type: 'projectile', damage: 5,  cooldown: 90,   speed: 12, radius: 30, knockback: -8, blockReduction: 0.5, draw: 'gravityPull' },
+            { name: 'Crush Field',    type: 'instant',    damage: 11, cooldown: 300,  range: 9999, knockback: 4,  blockReduction: 0.4, vfx: 'crushField' },
+            { name: 'Levitate Slam',  type: 'instant',    damage: 14, cooldown: 380,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'levitateSla', launchUp: -18 },
+            { name: 'Singularity',    type: 'instant',    damage: 20, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'singularity' },
+        ],
+    },
+    time: {
+        name: 'Time',
+        color: '#f0e68c',
+        hue: 55,
+        attacks: [
+            { name: 'Time Jab',       type: 'projectile', damage: 6,  cooldown: 80,   speed: 16, radius: 24, knockback: 5,  blockReduction: 0.5, draw: 'timeJab' },
+            { name: 'Slow Zone',      type: 'instant',    damage: 9,  cooldown: 260,  range: 9999, knockback: 6,  blockReduction: 0.4, vfx: 'slowZone' },
+            { name: 'Rewind Strike',  type: 'projectile', damage: 13, cooldown: 360,  speed: 10, radius: 45, knockback: 14, blockReduction: 0.3, draw: 'rewindStrike' },
+            { name: 'Time Stop',      type: 'instant',    damage: 20, cooldown: 640,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'timeStop' },
+        ],
+    },
+    vampire: {
+        name: 'Vampire',
+        color: '#8b0000',
+        hue: 0,
+        attacks: [
+            { name: 'Blood Dart',    type: 'projectile', damage: 6,  cooldown: 100,  speed: 13, radius: 24, knockback: 5,  blockReduction: 0.5, draw: 'bloodDart' },
+            { name: 'Bat Swarm',     type: 'instant',    damage: 10, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'batSwarm' },
+            { name: 'Life Drain',    type: 'instant',    damage: 12, cooldown: 360,  range: 9999, knockback: 6,  blockReduction: 0.3, vfx: 'lifeDrain' },
+            { name: 'Blood Moon',    type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'bloodMoon' },
+        ],
+    },
+    dragon: {
+        name: 'Dragon',
+        color: '#ff4500',
+        hue: 16,
+        attacks: [
+            { name: 'Flame Claw',    type: 'projectile', damage: 7,  cooldown: 110,  speed: 11, radius: 36, knockback: 8,  blockReduction: 0.5, draw: 'flameClaw' },
+            { name: 'Dragon Breath', type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'dragonBreath' },
+            { name: 'Tail Sweep',    type: 'instant',    damage: 14, cooldown: 380,  range: 9999, knockback: 18, blockReduction: 0.3, vfx: 'tailSweep', launchUp: -14 },
+            { name: 'Dragon Roar',   type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'dragonRoar' },
+        ],
+    },
+    necro: {
+        name: 'Necro',
+        color: '#556b2f',
+        hue: 80,
+        attacks: [
+            { name: 'Bone Throw',      type: 'projectile', damage: 6,  cooldown: 90,   speed: 13, radius: 27, knockback: 6,  blockReduction: 0.5, draw: 'boneThrow' },
+            { name: 'Skeleton Summon', type: 'projectile', damage: 10, cooldown: 300,  speed: 5,  radius: 60, knockback: 10, blockReduction: 0.4, draw: 'skeletonSummon' },
+            { name: 'Soul Drain',      type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 8,  blockReduction: 0.3, vfx: 'soulDrain' },
+            { name: 'Army of Dead',    type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'armyOfDead' },
+        ],
+    },
+    magnet: {
+        name: 'Magnet',
+        color: '#c0c0c0',
+        hue: 0,
+        attacks: [
+            { name: 'Metal Shard',    type: 'projectile', damage: 6,  cooldown: 90,   speed: 15, radius: 21, knockback: 5,  blockReduction: 0.5, draw: 'metalShard' },
+            { name: 'Repulse',        type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: 22, blockReduction: 0.4, vfx: 'repulse' },
+            { name: 'Iron Pull',      type: 'instant',    damage: 12, cooldown: 340,  range: 9999, knockback: -14, blockReduction: 0.3, vfx: 'ironPull' },
+            { name: 'Magnetic Storm', type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'magneticStorm' },
+        ],
+    },
+    mech: {
+        name: 'Mech',
+        color: '#708090',
+        hue: 210,
+        attacks: [
+            { name: 'Rocket Punch',    type: 'projectile', damage: 8,  cooldown: 120,  speed: 10, radius: 42, knockback: 12, blockReduction: 0.4, draw: 'rocketPunch' },
+            { name: 'Laser Eye',       type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'laserEye' },
+            { name: 'Missile Barrage', type: 'projectile', damage: 4,  cooldown: 340,  speed: 8,  radius: 24, knockback: 6,  blockReduction: 0.4, draw: 'missile', special: 'missileBarrage' },
+            { name: 'Self-Destruct',   type: 'instant',    damage: 25, cooldown: 700,  range: 9999, knockback: 28, blockReduction: 0.1, vfx: 'selfDestruct' },
+        ],
+    },
+    pizza: {
+        name: 'Pizza',
+        color: '#ff6347',
+        hue: 9,
+        attacks: [
+            { name: 'Slice Throw',     type: 'projectile', damage: 5,  cooldown: 80,   speed: 13, radius: 27, knockback: 5,  blockReduction: 0.5, draw: 'sliceThrow' },
+            { name: 'Cheese Stretch',  type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: -10, blockReduction: 0.4, vfx: 'cheeseStretch' },
+            { name: 'Hot Sauce Splash',type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'hotSauce' },
+            { name: 'The Full Pie',    type: 'projectile', damage: 20, cooldown: 620,  speed: 0,  radius: 110, knockback: 22, blockReduction: 0.2, draw: 'fullPie', special: 'fullPie' },
+        ],
+    },
+    cat: {
+        name: 'Cat',
+        color: '#dda0dd',
+        hue: 300,
+        attacks: [
+            { name: 'Hairball',        type: 'projectile', damage: 5,  cooldown: 80,   speed: 11, radius: 24, knockback: 4,  blockReduction: 0.5, draw: 'hairball' },
+            { name: 'Scratch Fury',    type: 'instant',    damage: 11, cooldown: 270,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'scratchFury' },
+            { name: 'Laser Pointer',   type: 'projectile', damage: 8,  cooldown: 100,  speed: 20, radius: 18, knockback: 3,  blockReduction: 0.5, draw: 'laserPointer' },
+            { name: 'Cat Army',        type: 'instant',    damage: 18, cooldown: 580,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'catArmy' },
+        ],
+    },
+    banana: {
+        name: 'Banana',
+        color: '#ffe135',
+        hue: 50,
+        attacks: [
+            { name: 'Peel Toss',         type: 'projectile', damage: 4,  cooldown: 70,   speed: 12, radius: 24, knockback: 3,  blockReduction: 0.6, draw: 'peelToss' },
+            { name: 'Banana Boomerang',  type: 'projectile', damage: 10, cooldown: 280,  speed: 8,  radius: 36, knockback: 10, blockReduction: 0.4, draw: 'bananaBoomerang' },
+            { name: 'Split Slam',        type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'splitSlam' },
+            { name: 'Potassium Overload',type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'potassiumOverload' },
+        ],
+    },
+    grandma: {
+        name: 'Grandma',
+        color: '#deb887',
+        hue: 34,
+        attacks: [
+            { name: 'Slipper Throw',  type: 'projectile', damage: 7,  cooldown: 90,   speed: 14, radius: 27, knockback: 8,  blockReduction: 0.4, draw: 'slipperThrow' },
+            { name: 'Purse Swing',    type: 'instant',    damage: 11, cooldown: 270,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'purseSwing' },
+            { name: 'Cookie Barrage', type: 'projectile', damage: 4,  cooldown: 100,  speed: 10, radius: 21, knockback: 4,  blockReduction: 0.5, draw: 'cookieBarrage', special: 'cookieBarrage' },
+            { name: 'The Chancla',    type: 'instant',    damage: 22, cooldown: 620,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'theChancla' },
+        ],
+    },
+    painter: {
+        name: 'Painter',
+        color: '#ff69b4',
+        hue: 330,
+        attacks: [
+            { name: 'Paint Splash',  type: 'projectile', damage: 5,  cooldown: 80,   speed: 11, radius: 33, knockback: 5,  blockReduction: 0.5, draw: 'paintSplash' },
+            { name: 'Brush Stroke',  type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'brushStroke' },
+            { name: 'Canvas Slam',   type: 'projectile', damage: 13, cooldown: 350,  speed: 0,  radius: 75, knockback: 14, blockReduction: 0.3, draw: 'canvasSlam', special: 'canvasSlam' },
+            { name: 'Masterpiece',   type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'masterpiece' },
+        ],
+    },
+    bee: {
+        name: 'Bee',
+        color: '#ffc107',
+        hue: 45,
+        attacks: [
+            { name: 'Sting Shot',     type: 'projectile', damage: 5,  cooldown: 70,   speed: 16, radius: 18, knockback: 4,  blockReduction: 0.6, draw: 'stingShot' },
+            { name: 'Honey Trap',     type: 'projectile', damage: 8,  cooldown: 260,  speed: 7,  radius: 45, knockback: 3,  blockReduction: 0.4, draw: 'honeyTrap' },
+            { name: 'Swarm Cloud',    type: 'instant',    damage: 12, cooldown: 340,  range: 9999, knockback: 10, blockReduction: 0.3, vfx: 'swarmCloud' },
+            { name: "Queen's Wrath", type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'queensWrath' },
+        ],
+    },
+    teacher: {
+        name: 'Teacher',
+        color: '#2e8b57',
+        hue: 146,
+        attacks: [
+            { name: 'Chalk Throw',       type: 'projectile', damage: 5,  cooldown: 70,   speed: 15, radius: 18, knockback: 4,  blockReduction: 0.6, draw: 'chalkThrow' },
+            { name: 'Ruler Slap',        type: 'instant',    damage: 11, cooldown: 270,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'rulerSlap' },
+            { name: 'Homework Avalanche',type: 'projectile', damage: 4,  cooldown: 100,  speed: 6,  radius: 24, knockback: 4,  blockReduction: 0.5, draw: 'homeworkAvalanche', special: 'homeworkAvalanche' },
+            { name: 'Detention',         type: 'instant',    damage: 19, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'detention' },
+        ],
+    },
+    plumber: {
+        name: 'Plumber',
+        color: '#4169e1',
+        hue: 225,
+        attacks: [
+            { name: 'Plunger Toss',     type: 'projectile', damage: 6,  cooldown: 90,   speed: 12, radius: 30, knockback: 6,  blockReduction: 0.5, draw: 'plungerToss' },
+            { name: 'Pipe Wrench Spin', type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'pipeWrench' },
+            { name: 'Flood Burst',      type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'floodBurst' },
+            { name: 'Clogged Explosion',type: 'instant',    damage: 20, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'cloggedExplosion' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -1286,6 +1462,522 @@ class Fighter {
             }
         }
 
+        // ── Ice Rage Upgrades ──
+        if (this.rageActive && this.style === 'ice') {
+            if (index === 0) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#88cfff', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
+                for (let sp = -2; sp <= 2; sp++) spawnIceSpike(opponent.x + sp * 70, groundY);
+                visualEffects.push({ type: 'frostOverlay', life: 55, maxLife: 55 });
+                triggerScreenShake(20, 25); triggerHitstop(12); triggerScreenFlash('#88cfff', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                for (let w = -1; w <= 1; w++) {
+                    projectiles.push({ x: opponent.x + w * 60, y: groundY + 20, vx: 0, vy: -6,
+                        radius: atk.radius, owner: this, target: opponent, atk: { ...atk, damage: 0 }, styleData,
+                        life: 180, trail: [], rageVfx: null });
+                }
+                triggerScreenShake(14, 18); triggerHitstop(8); triggerScreenFlash('#88cfff', 0.4); return;
+            }
+        }
+
+        // ── Gravity Rage Upgrades ──
+        if (this.rageActive && this.style === 'gravity') {
+            if (index === 0) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 15; opponent.hit = true;
+                opponent.x += (this.x - opponent.x) * 0.5;
+                visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 });
+                triggerScreenShake(10, 14); triggerHitstop(6); triggerScreenFlash('#9b59b6', 0.3); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = 15; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: groundY, life: 25, maxLife: 25, color: '#9b59b6' });
+                triggerScreenShake(20, 25); triggerHitstop(12); triggerScreenFlash('#9b59b6', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -20; opponent.onGround = false;
+                visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 });
+                triggerScreenShake(18, 22); triggerHitstop(10); triggerScreenFlash('#9b59b6', 0.5); return;
+            }
+        }
+
+        // ── Time Rage Upgrades ──
+        if (this.rageActive && this.style === 'time') {
+            if (index === 0) {
+                for (let b = 0; b < 5; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                            vx: dir * (atk.speed + 4), vy: (Math.random() - 0.5) * 3, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                    }, b * 80);
+                }
+                triggerScreenFlash('#f0e68c', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 25; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35, color: '#f0e68c' });
+                triggerScreenShake(12, 16); triggerHitstop(15); triggerScreenFlash('#f0e68c', 0.4); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -8; opponent.onGround = false;
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30 + b * 20, y: this.y - this.height * 0.55 + b * 15,
+                        vx: dir * (atk.speed + 2), vy: b * 1, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 0.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#f0e68c', 0.5); return;
+            }
+        }
+
+        // ── Vampire Rage Upgrades ──
+        if (this.rageActive && this.style === 'vampire') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 1), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#8b0000', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                this.health = Math.min(MAX_HEALTH, this.health + Math.floor(damage * 0.5));
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#8b0000' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#8b0000', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                this.health = Math.min(MAX_HEALTH, this.health + Math.floor(damage * 0.7));
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#8b0000', 0.5); return;
+            }
+        }
+
+        // ── Dragon Rage Upgrades ──
+        if (this.rageActive && this.style === 'dragon') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff4500', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                const beamY = this.y - this.height * 0.55;
+                visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 30, maxLife: 30 });
+                triggerScreenShake(18, 22); triggerHitstop(10); triggerScreenFlash('#ff4500', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -14; opponent.onGround = false;
+                for (let pp = -1; pp <= 1; pp++) spawnFirePillar(opponent.x + pp * 100, groundY);
+                triggerScreenShake(22, 28); triggerHitstop(12); triggerScreenFlash('#ff4500', 0.6); return;
+            }
+        }
+
+        // ── Necro Rage Upgrades ──
+        if (this.rageActive && this.style === 'necro') {
+            if (index === 0) {
+                for (let b = 0; b < 5; b++) {
+                    projectiles.push({ x: this.x + dir * 30 + (Math.random()-0.5)*20, y: this.y - this.height * 0.55 + (Math.random()-0.5)*30,
+                        vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*4, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#556b2f', 0.2); return;
+            }
+            if (index === 1) {
+                for (let s = -1; s <= 1; s++) {
+                    projectiles.push({ x: this.x + s * 50, y: this.y - this.height * 0.55,
+                        vx: dir * (5 + Math.abs(s)*2), vy: s * 1, radius: 60, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 300, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#556b2f', 0.3); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                this.health = Math.min(MAX_HEALTH, this.health + Math.floor(damage * 0.5));
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 40, maxLife: 40 });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#556b2f', 0.5); return;
+            }
+        }
+
+        // ── Magnet Rage Upgrades ──
+        if (this.rageActive && this.style === 'magnet') {
+            if (index === 0) {
+                for (let b = -3; b <= 3; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                        vx: dir * atk.speed, vy: b * 2.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#c0c0c0', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#c0c0c0' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#c0c0c0', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                opponent.x += (this.x - opponent.x) * 0.7;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#c0c0c0' });
+                triggerScreenShake(14, 18); triggerHitstop(8); triggerScreenFlash('#c0c0c0', 0.4); return;
+            }
+        }
+
+        // ── Mech Rage Upgrades ──
+        if (this.rageActive && this.style === 'mech') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 20,
+                        vx: dir * (atk.speed + 4), vy: b * 1, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#708090', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                const beamY = this.y - this.height * 0.7;
+                visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 25, maxLife: 25 });
+                triggerScreenShake(14, 18); triggerHitstop(8); triggerScreenFlash('#ff0000', 0.4); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 7; b++) {
+                    setTimeout(() => {
+                        const spawnY = -50 - Math.random() * 40;
+                        const dx = opponent.x - this.x;
+                        const dy = (opponent.y - opponent.height * 0.5) - spawnY;
+                        const d = Math.sqrt(dx*dx+dy*dy);
+                        projectiles.push({ x: this.x + (Math.random()-0.5)*100, y: spawnY,
+                            vx: (dx/d)*12, vy: (dy/d)*12, radius: 24, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 180, trail: [], rageVfx: null });
+                    }, b * 60);
+                }
+                triggerScreenShake(10, 12); triggerScreenFlash('#708090', 0.3); return;
+            }
+        }
+
+        // ── Pizza Rage Upgrades ──
+        if (this.rageActive && this.style === 'pizza') {
+            if (index === 0) {
+                for (let b = 0; b < 8; b++) {
+                    const a = (b / 8) * Math.PI * 2;
+                    projectiles.push({ x: this.x, y: this.y - this.height * 0.5,
+                        vx: Math.cos(a) * atk.speed, vy: Math.sin(a) * atk.speed, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff6347', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                opponent.x += (this.x - opponent.x) * 0.6;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff6347' });
+                triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#ff6347', 0.4); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
+                spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4);
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#ff6347', 0.5); return;
+            }
+        }
+
+        // ── Cat Rage Upgrades ──
+        if (this.rageActive && this.style === 'cat') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 3), vy: b * 2, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#dda0dd', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                for (let s = 0; s < 4; s++) {
+                    setTimeout(() => {
+                        visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random()-0.5)*40, y: opponent.y - opponent.height * 0.5 + (Math.random()-0.5)*30, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 });
+                        triggerScreenShake(4, 4);
+                    }, s * 60);
+                }
+                triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#dda0dd', 0.4); return;
+            }
+            if (index === 2) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 12,
+                        vx: dir * (20 + Math.random()*4), vy: b * 1, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 150, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff0000', 0.2); return;
+            }
+        }
+
+        // ── Banana Rage Upgrades ──
+        if (this.rageActive && this.style === 'banana') {
+            if (index === 0) {
+                for (let b = 0; b < 6; b++) {
+                    const a = (b / 6) * Math.PI * 2;
+                    projectiles.push({ x: this.x, y: this.y - this.height * 0.5,
+                        vx: Math.cos(a) * atk.speed, vy: Math.sin(a) * atk.speed, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ffe135', 0.2); return;
+            }
+            if (index === 1) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * atk.speed * 1.3, vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 250, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ffe135', 0.3); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -14; opponent.onGround = false;
+                triggerScreenShake(20, 25); triggerHitstop(12); triggerScreenFlash('#ffe135', 0.6); return;
+            }
+        }
+
+        // ── Grandma Rage Upgrades ──
+        if (this.rageActive && this.style === 'grandma') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 12,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#deb887', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#deb887' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#deb887', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 8; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                            vx: dir * (atk.speed + Math.random()*5), vy: (Math.random()-0.5)*4, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                    }, b * 40);
+                }
+                triggerScreenFlash('#deb887', 0.3); return;
+            }
+        }
+
+        // ── Painter Rage Upgrades ──
+        if (this.rageActive && this.style === 'painter') {
+            if (index === 0) {
+                const colors = ['#e74c3c', '#3498db', '#f39c12', '#2ecc71', '#9b59b6', '#ff69b4'];
+                for (let b = 0; b < 6; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + (b-2.5)*12,
+                        vx: dir * (atk.speed + Math.random()*4), vy: (b-2.5)*1.5, radius: atk.radius + Math.random()*10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData: {...styleData, color: colors[b]}, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff69b4', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 1.5;
+                spawnAcidSlash(this.x, this.y - this.height * 0.3, opponent.x, opponent.y - opponent.height * 0.8, dir);
+                spawnAcidSlash(this.x, this.y - this.height * 0.7, opponent.x, opponent.y - opponent.height * 0.2, dir);
+                triggerScreenShake(14, 18); triggerHitstop(8); triggerScreenFlash('#ff69b4', 0.4); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff69b4' });
+                triggerScreenShake(18, 22); triggerHitstop(10); triggerScreenFlash('#ff69b4', 0.6); return;
+            }
+        }
+
+        // ── Bee Rage Upgrades ──
+        if (this.rageActive && this.style === 'bee') {
+            if (index === 0) {
+                for (let b = 0; b < 7; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + (Math.random()-0.5)*40,
+                        vx: dir * (atk.speed + Math.random()*6), vy: (Math.random()-0.5)*5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 180, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ffc107', 0.2); return;
+            }
+            if (index === 1) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (7 + Math.random()*3), vy: b * 1, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 250, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ffc107', 0.3); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -8; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ffc107' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#ffc107', 0.5); return;
+            }
+        }
+
+        // ── Teacher Rage Upgrades ──
+        if (this.rageActive && this.style === 'teacher') {
+            if (index === 0) {
+                for (let b = 0; b < 6; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                            vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*3, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                    }, b * 50);
+                }
+                triggerScreenFlash('#2e8b57', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#2e8b57' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#2e8b57', 0.4); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 10; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: opponent.x + (Math.random()-0.5)*100, y: -50 - Math.random()*40,
+                            vx: (Math.random()-0.5)*3, vy: 6 + Math.random()*4, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                    }, b * 40);
+                }
+                triggerScreenFlash('#2e8b57', 0.3); return;
+            }
+        }
+
+        // ── Plumber Rage Upgrades ──
+        if (this.rageActive && this.style === 'plumber') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#4169e1', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#4169e1' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#4169e1', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
+                visualEffects.push({ type: 'abyssalFlood', dir, life: 50, maxLife: 50 });
+                triggerScreenShake(20, 25); triggerHitstop(12); triggerScreenFlash('#4169e1', 0.6); return;
+            }
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -1456,7 +2148,65 @@ class Fighter {
                         rageVfx: this.rageActive && index === 3 ? this.style : null,
                     });
                 }
-            } else {
+            }
+            // Missile Barrage — 5 missiles from above
+            else if (atk.special === 'missileBarrage') {
+                for (let b = 0; b < 5; b++) {
+                    setTimeout(() => {
+                        const spawnX = opponent.x + (Math.random()-0.5)*120;
+                        projectiles.push({ x: spawnX, y: -50 - Math.random()*40,
+                            vx: (opponent.x - spawnX) * 0.05, vy: 8 + Math.random()*4,
+                            radius: atk.radius, owner: this, target: opponent,
+                            atk, styleData, life: 200, trail: [],
+                            rageVfx: this.rageActive && index === 3 ? this.style : null });
+                    }, b * 80);
+                }
+            }
+            // Cookie Barrage — 7 cookies in a spread
+            else if (atk.special === 'cookieBarrage') {
+                for (let b = -3; b <= 3; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 10,
+                        vx: dir * (atk.speed + Math.random()*3), vy: b * 1.2,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Homework Avalanche — 8 papers rain from above
+            else if (atk.special === 'homeworkAvalanche') {
+                for (let b = 0; b < 8; b++) {
+                    projectiles.push({ x: opponent.x + (Math.random()-0.5)*150, y: -50 - Math.random()*60,
+                        vx: (Math.random()-0.5)*3, vy: 5 + Math.random()*3,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Full Pie — giant pizza drops from sky
+            else if (atk.special === 'fullPie') {
+                projectiles.push({ x: opponent.x, y: -80,
+                    vx: 0, vy: 7, radius: atk.radius, owner: this, target: opponent,
+                    atk, styleData, life: 200, trail: [],
+                    isHeadSlam: true,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null });
+                triggerScreenShake(4, 6);
+            }
+            // Canvas Slam — drops from sky onto opponent
+            else if (atk.special === 'canvasSlam') {
+                projectiles.push({ x: opponent.x, y: -80,
+                    vx: 0, vy: 7, radius: atk.radius, owner: this, target: opponent,
+                    atk, styleData, life: 200, trail: [],
+                    isHeadSlam: true,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null });
+                triggerScreenShake(4, 6);
+            }
+            // Ice Wall — erupts from ground at opponent
+            else if (atk.special === 'iceWall') {
+                projectiles.push({ x: opponent.x, y: groundY + 20, vx: 0, vy: -6,
+                    radius: atk.radius, owner: this, target: opponent, atk, styleData,
+                    life: 180, trail: [], rageVfx: this.rageActive && index === 3 ? this.style : null });
+            }
+            else {
                 projectiles.push({
                     x: this.x + dir * 30,
                     y: this.y - this.height * 0.55,
@@ -1570,6 +2320,44 @@ class Fighter {
         else if (vfx === 'featherStorm') { visualEffects.push({ type: 'featherStorm', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#9e9e9e', 0.2); }
         else if (vfx === 'flockAttack') { visualEffects.push({ type: 'flockAttack', x: opponent.x, life: 50, maxLife: 50 }); triggerScreenFlash('#9e9e9e', 0.4); }
         else if (vfx === 'theFace') { visualEffects.push({ type: 'theFace', x: opponent.x, y: canvas.height * 0.4, life: 60, maxLife: 60 }); triggerScreenFlash('#ffaa88', 0.5); }
+        // ── New Style VFX ──
+        else if (vfx === 'frostNova') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 28, maxLife: 28 }); spawnIceSpike(opponent.x, groundY); triggerScreenFlash('#88cfff', 0.3); }
+        else if (vfx === 'blizzard') { visualEffects.push({ type: 'frostOverlay', life: 55, maxLife: 55 }); for (let i = 0; i < 5; i++) spawnIceSpike(opponent.x + (Math.random()-0.5)*200, groundY); triggerScreenFlash('#88cfff', 0.5); }
+        else if (vfx === 'crushField') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenFlash('#9b59b6', 0.3); }
+        else if (vfx === 'levitateSla') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#9b59b6' }); triggerScreenFlash('#9b59b6', 0.4); }
+        else if (vfx === 'singularity') { visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 50, maxLife: 50 }); triggerScreenFlash('#9b59b6', 0.6); }
+        else if (vfx === 'slowZone') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#f0e68c' }); triggerScreenFlash('#f0e68c', 0.3); }
+        else if (vfx === 'timeStop') { visualEffects.push({ type: 'eclipse', life: 40, maxLife: 40 }); triggerScreenFlash('#f0e68c', 0.7); }
+        else if (vfx === 'batSwarm') { visualEffects.push({ type: 'featherStorm', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#8b0000', 0.3); }
+        else if (vfx === 'lifeDrain') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); this.health = Math.min(MAX_HEALTH, this.health + 5); triggerScreenFlash('#8b0000', 0.4); }
+        else if (vfx === 'bloodMoon') { visualEffects.push({ type: 'eclipse', life: 50, maxLife: 50 }); triggerScreenFlash('#8b0000', 0.6); }
+        else if (vfx === 'dragonBreath') { const beamY = this.y - this.height * 0.55; visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 25, maxLife: 25 }); triggerScreenFlash('#ff4500', 0.4); }
+        else if (vfx === 'tailSweep') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: groundY - 20, life: 25, maxLife: 25, color: '#ff4500' }); triggerScreenFlash('#ff4500', 0.3); }
+        else if (vfx === 'dragonRoar') { visualEffects.push({ type: 'radiantBurst', x: this.x, y: this.y - this.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#ff4500', 0.6); }
+        else if (vfx === 'soulDrain') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); this.health = Math.min(MAX_HEALTH, this.health + 4); triggerScreenFlash('#556b2f', 0.3); }
+        else if (vfx === 'armyOfDead') { visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 50, maxLife: 50 }); triggerScreenFlash('#556b2f', 0.5); }
+        else if (vfx === 'repulse') { visualEffects.push({ type: 'radiantBurst', x: this.x, y: this.y - this.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#c0c0c0', 0.3); }
+        else if (vfx === 'ironPull') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#c0c0c0', 0.3); }
+        else if (vfx === 'magneticStorm') { visualEffects.push({ type: 'diamondStorm', life: 50, maxLife: 50 }); triggerScreenFlash('#c0c0c0', 0.5); }
+        else if (vfx === 'laserEye') { const beamY = this.y - this.height * 0.7; visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 20, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 22, maxLife: 22 }); triggerScreenFlash('#ff0000', 0.3); }
+        else if (vfx === 'selfDestruct') { visualEffects.push({ type: 'meteorImpact', x: this.x, y: this.y - this.height * 0.5, life: 45, maxLife: 45 }); this.health = Math.max(0, this.health - 10); triggerScreenFlash('#ff4400', 0.7); }
+        else if (vfx === 'cheeseStretch') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#ff6347', 0.3); }
+        else if (vfx === 'hotSauce') { spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4); triggerScreenFlash('#ff6347', 0.4); }
+        else if (vfx === 'scratchFury') { for (let s = 0; s < 3; s++) visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random()-0.5)*30, y: opponent.y - opponent.height * 0.5 + (s-1)*20, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 }); triggerScreenFlash('#dda0dd', 0.3); }
+        else if (vfx === 'catArmy') { visualEffects.push({ type: 'flockAttack', x: opponent.x, life: 55, maxLife: 55 }); triggerScreenFlash('#dda0dd', 0.5); }
+        else if (vfx === 'splitSlam') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: groundY - 20, life: 25, maxLife: 25, color: '#ffe135' }); triggerScreenFlash('#ffe135', 0.4); }
+        else if (vfx === 'potassiumOverload') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#ffe135', 0.6); }
+        else if (vfx === 'purseSwing') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 22, maxLife: 22, color: '#deb887' }); triggerScreenFlash('#deb887', 0.3); }
+        else if (vfx === 'theChancla') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenFlash('#deb887', 0.6); }
+        else if (vfx === 'brushStroke') { spawnAcidSlash(this.x, this.y - this.height * 0.5, opponent.x, opponent.y - opponent.height * 0.5, dir); triggerScreenFlash('#ff69b4', 0.3); }
+        else if (vfx === 'masterpiece') { visualEffects.push({ type: 'totalCorruption', life: 50, maxLife: 50 }); triggerScreenFlash('#ff69b4', 0.6); }
+        else if (vfx === 'swarmCloud') { visualEffects.push({ type: 'featherStorm', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenFlash('#ffc107', 0.3); }
+        else if (vfx === 'queensWrath') { visualEffects.push({ type: 'flockAttack', x: opponent.x, life: 55, maxLife: 55 }); triggerScreenFlash('#ffc107', 0.5); }
+        else if (vfx === 'rulerSlap') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 22, maxLife: 22, color: '#2e8b57' }); triggerScreenFlash('#2e8b57', 0.3); }
+        else if (vfx === 'detention') { visualEffects.push({ type: 'eclipse', life: 45, maxLife: 45 }); triggerScreenFlash('#2e8b57', 0.5); }
+        else if (vfx === 'pipeWrench') { visualEffects.push({ type: 'spinCycle', x: this.x, y: this.y - this.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#4169e1', 0.3); }
+        else if (vfx === 'floodBurst') { visualEffects.push({ type: 'floodRinse', life: 40, maxLife: 40 }); triggerScreenFlash('#4169e1', 0.4); }
+        else if (vfx === 'cloggedExplosion') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 }); triggerScreenFlash('#4169e1', 0.6); }
     }
 
     draw() {
@@ -1996,6 +2784,22 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'pigeon') { visualEffects.push({ type: 'flockAttack', x: x, life: 60, maxLife: 60 }); triggerScreenFlash('#9e9e9e', 0.6); }
     else if (style === 'samurai') { visualEffects.push({ type: 'screenAshura', life: 55, maxLife: 55 }); triggerScreenFlash('#fff', 0.8); }
     else if (style === 'selfie') { visualEffects.push({ type: 'screenViral', life: 60, maxLife: 60 }); triggerScreenFlash('#fff', 0.8); }
+    else if (style === 'ice') { visualEffects.push({ type: 'frostOverlay', life: 60, maxLife: 60 }); triggerScreenFlash('#88cfff', 0.7); }
+    else if (style === 'gravity') { visualEffects.push({ type: 'screenDarkness', life: 55, maxLife: 55 }); triggerScreenFlash('#9b59b6', 0.7); }
+    else if (style === 'time') { visualEffects.push({ type: 'eclipse', life: 60, maxLife: 60 }); triggerScreenFlash('#f0e68c', 0.8); }
+    else if (style === 'vampire') { visualEffects.push({ type: 'screenDarkness', life: 60, maxLife: 60 }); triggerScreenFlash('#8b0000', 0.8); }
+    else if (style === 'dragon') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#ff4500', 0.8); }
+    else if (style === 'necro') { visualEffects.push({ type: 'screenDarkness', life: 60, maxLife: 60 }); triggerScreenFlash('#556b2f', 0.7); }
+    else if (style === 'magnet') { visualEffects.push({ type: 'screenLightningStorm', life: 55, maxLife: 55 }); triggerScreenFlash('#c0c0c0', 0.7); }
+    else if (style === 'mech') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#ff4400', 0.8); }
+    else if (style === 'pizza') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenFlash('#ff6347', 0.7); }
+    else if (style === 'cat') { visualEffects.push({ type: 'screenShadow', life: 55, maxLife: 55 }); triggerScreenFlash('#dda0dd', 0.7); }
+    else if (style === 'banana') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#ffe135', 0.8); }
+    else if (style === 'grandma') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenFlash('#deb887', 0.7); }
+    else if (style === 'painter') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff69b4', 0.8); }
+    else if (style === 'bee') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#ffc107', 0.7); }
+    else if (style === 'teacher') { visualEffects.push({ type: 'screenDarkness', life: 55, maxLife: 55 }); triggerScreenFlash('#2e8b57', 0.7); }
+    else if (style === 'plumber') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#4169e1', 0.7); }
 }
 
 function spawnScreenMeltdown(x, y) {
@@ -5555,6 +6359,215 @@ function drawProjectiles() {
             ctx.fillStyle = 'rgba(255,255,255,0.4)';
             ctx.beginPath(); ctx.arc(p.x - p.radius * 0.25, p.y - p.radius * 0.25, p.radius * 0.25, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        }
+
+        // ─── ICE projectiles ───
+        else if (draw === 'icicleThrow') {
+            ctx.globalAlpha = 0.9; ctx.shadowColor = '#88cfff'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#aed6f1'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(p.x + p.vx * 2, p.y); ctx.lineTo(p.x - 6, p.y - 8); ctx.lineTo(p.x - 6, p.y + 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        else if (draw === 'iceWall') {
+            ctx.globalAlpha = 0.85; ctx.shadowColor = '#88cfff'; ctx.shadowBlur = 15;
+            ctx.fillStyle = '#85c1e9'; ctx.fillRect(p.x - 20, p.y - 40, 40, 80);
+            ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(p.x - 12, p.y - 35, 10, 70);
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(p.x - 20, p.y - 40, 40, 80);
+            ctx.shadowBlur = 0;
+        }
+        // ─── GRAVITY projectiles ───
+        else if (draw === 'gravityPull') {
+            ctx.globalAlpha = 0.8; ctx.shadowColor = '#9b59b6'; ctx.shadowBlur = 15;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#000'); g.addColorStop(0.5, '#9b59b6'); g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#bb88dd'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.6, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        // ─── TIME projectiles ───
+        else if (draw === 'timeJab') {
+            ctx.globalAlpha = 0.9; ctx.shadowColor = '#f0e68c'; ctx.shadowBlur = 10;
+            ctx.strokeStyle = '#f0e68c'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.7, 0, Math.PI * 2); ctx.stroke();
+            // Clock hands
+            const a1 = Date.now() * 0.01; const a2 = Date.now() * 0.003;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + Math.cos(a1) * 8, p.y + Math.sin(a1) * 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + Math.cos(a2) * 6, p.y + Math.sin(a2) * 6); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        else if (draw === 'rewindStrike') {
+            ctx.globalAlpha = 0.85; ctx.shadowColor = '#f0e68c'; ctx.shadowBlur = 15;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.4, '#f0e68c'); g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── VAMPIRE projectiles ───
+        else if (draw === 'bloodDart') {
+            ctx.globalAlpha = 0.9; ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 10;
+            ctx.fillStyle = '#8b0000';
+            ctx.beginPath(); ctx.moveTo(p.x + p.vx * 2, p.y); ctx.lineTo(p.x - 6, p.y - 6); ctx.lineTo(p.x - 3, p.y); ctx.lineTo(p.x - 6, p.y + 6); ctx.closePath(); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── DRAGON projectiles ───
+        else if (draw === 'flameClaw') {
+            ctx.globalAlpha = 0.85; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 18;
+            for (let c = 0; c < 3; c++) {
+                const cy = p.y + (c - 1) * 10;
+                ctx.strokeStyle = c === 1 ? '#fff' : '#ff4500'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(p.x - 12, cy + 6); ctx.quadraticCurveTo(p.x, cy - 4, p.x + 15, cy); ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+        // ─── NECRO projectiles ───
+        else if (draw === 'boneThrow') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.01);
+            ctx.fillStyle = '#e8e8d0'; ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+            ctx.fillRect(-12, -3, 24, 6); ctx.strokeRect(-12, -3, 24, 6);
+            ctx.beginPath(); ctx.arc(-12, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(12, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.restore();
+        }
+        else if (draw === 'skeletonSummon') {
+            ctx.globalAlpha = 0.8; ctx.shadowColor = '#556b2f'; ctx.shadowBlur = 10;
+            ctx.strokeStyle = '#e8e8d0'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(p.x, p.y - 15, 8, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x, p.y - 7); ctx.lineTo(p.x, p.y + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - 10, p.y); ctx.lineTo(p.x + 10, p.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x, p.y + 10); ctx.lineTo(p.x - 7, p.y + 22); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x, p.y + 10); ctx.lineTo(p.x + 7, p.y + 22); ctx.stroke();
+            ctx.fillStyle = '#556b2f'; ctx.beginPath(); ctx.arc(p.x - 3, p.y - 16, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 3, p.y - 16, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── MAGNET projectiles ───
+        else if (draw === 'metalShard') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015);
+            ctx.fillStyle = '#c0c0c0'; ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(6, 0); ctx.lineTo(0, 10); ctx.lineTo(-6, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(6, 0); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
+            ctx.restore();
+        }
+        // ─── MECH projectiles ───
+        else if (draw === 'rocketPunch') {
+            ctx.globalAlpha = 0.9; ctx.shadowColor = '#708090'; ctx.shadowBlur = 10;
+            ctx.fillStyle = '#708090'; ctx.fillRect(p.x - 15, p.y - 10, 30, 20);
+            ctx.fillStyle = '#555'; ctx.fillRect(p.x + (p.vx > 0 ? 10 : -25), p.y - 6, 15, 12);
+            ctx.fillStyle = '#ff4400';
+            for (let f = 0; f < 3; f++) {
+                const fx = p.x - (p.vx > 0 ? 15 : -15) + (Math.random()-0.5)*6;
+                ctx.beginPath(); ctx.arc(fx, p.y + (Math.random()-0.5)*8, 4 + Math.random()*4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+        else if (draw === 'missile') {
+            ctx.globalAlpha = 0.9; ctx.fillStyle = '#556'; ctx.fillRect(p.x - 8, p.y - 4, 16, 8);
+            ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(p.x + (p.vx > 0 ? 8 : -8), p.y); ctx.lineTo(p.x + (p.vx > 0 ? 14 : -14), p.y - 3); ctx.lineTo(p.x + (p.vx > 0 ? 14 : -14), p.y + 3); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(p.x - (p.vx > 0 ? 8 : -8), p.y, 3 + Math.random()*2, 0, Math.PI * 2); ctx.fill();
+        }
+        // ─── PIZZA projectiles ───
+        else if (draw === 'sliceThrow') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.01);
+            ctx.fillStyle = '#f4a460'; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(-10, 10); ctx.lineTo(10, 10); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(-7, 8); ctx.lineTo(7, 8); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#ffe4b5'; for (let d = 0; d < 3; d++) { ctx.beginPath(); ctx.arc(-3 + d*3, d*3 - 2, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.restore();
+        }
+        else if (draw === 'fullPie') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.005);
+            ctx.shadowColor = '#ff6347'; ctx.shadowBlur = 20;
+            ctx.fillStyle = '#f4a460'; ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffe4b5'; for (let d = 0; d < 8; d++) { const da = (d/8)*Math.PI*2; ctx.beginPath(); ctx.arc(Math.cos(da)*18, Math.sin(da)*18, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.strokeStyle = '#f4a460'; ctx.lineWidth = 2; for (let s = 0; s < 8; s++) { const sa = (s/8)*Math.PI*2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(sa)*35, Math.sin(sa)*35); ctx.stroke(); }
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── CAT projectiles ───
+        else if (draw === 'hairball') {
+            ctx.globalAlpha = 0.9; ctx.fillStyle = '#8b7355';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#6b5335'; ctx.lineWidth = 1;
+            for (let h = 0; h < 5; h++) { const ha = Math.random()*Math.PI*2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + Math.cos(ha)*p.radius, p.y + Math.sin(ha)*p.radius); ctx.stroke(); }
+        }
+        else if (draw === 'laserPointer') {
+            ctx.globalAlpha = 0.9; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 20;
+            ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── BANANA projectiles ───
+        else if (draw === 'peelToss') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015);
+            ctx.fillStyle = '#ffe135'; ctx.beginPath(); ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#ccb100'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+        }
+        else if (draw === 'bananaBoomerang') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.02);
+            ctx.fillStyle = '#ffe135'; ctx.strokeStyle = '#ccb100'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, 15, -0.5, Math.PI + 0.5); ctx.lineWidth = 8; ctx.stroke();
+            ctx.restore();
+        }
+        // ─── GRANDMA projectiles ───
+        else if (draw === 'slipperThrow') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015);
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(-12, -5, 24, 10);
+            ctx.fillStyle = '#a0522d'; ctx.fillRect(-10, -7, 8, 4);
+            ctx.restore();
+        }
+        else if (draw === 'cookieBarrage') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.008);
+            ctx.fillStyle = '#d2a06d'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#4a2c0a'; for (let c = 0; c < 3; c++) { ctx.beginPath(); ctx.arc(Math.cos(c*2.1)*4, Math.sin(c*2.1)*4, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.restore();
+        }
+        // ─── PAINTER projectiles ───
+        else if (draw === 'paintSplash') {
+            const hue = (p.x * 0.5 + Date.now() * 0.05) % 360;
+            ctx.globalAlpha = 0.85; ctx.shadowColor = `hsl(${hue}, 80%, 60%)`; ctx.shadowBlur = 12;
+            ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.8, 0, Math.PI * 2); ctx.fill();
+            for (let s = 0; s < 4; s++) { const sa = Math.random()*Math.PI*2; ctx.beginPath(); ctx.arc(p.x + Math.cos(sa)*p.radius*0.5, p.y + Math.sin(sa)*p.radius*0.5, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.shadowBlur = 0;
+        }
+        else if (draw === 'canvasSlam') {
+            ctx.globalAlpha = 0.9; ctx.fillStyle = '#fff'; ctx.fillRect(p.x - 30, p.y - 25, 60, 50);
+            ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 3; ctx.strokeRect(p.x - 30, p.y - 25, 60, 50);
+            const colors = ['#e74c3c', '#3498db', '#f39c12', '#2ecc71'];
+            for (let s = 0; s < 6; s++) { ctx.fillStyle = colors[s % colors.length]; ctx.beginPath(); ctx.arc(p.x + (Math.random()-0.5)*40, p.y + (Math.random()-0.5)*30, 5 + Math.random()*5, 0, Math.PI * 2); ctx.fill(); }
+        }
+        // ─── BEE projectiles ───
+        else if (draw === 'stingShot') {
+            ctx.globalAlpha = 0.9; ctx.fillStyle = '#333';
+            ctx.beginPath(); ctx.moveTo(p.x + p.vx * 1.5, p.y); ctx.lineTo(p.x - 5, p.y - 4); ctx.lineTo(p.x - 5, p.y + 4); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#ffc107'; ctx.beginPath(); ctx.arc(p.x - 5, p.y, 4, 0, Math.PI * 2); ctx.fill();
+        }
+        else if (draw === 'honeyTrap') {
+            ctx.globalAlpha = 0.7; ctx.shadowColor = '#ffc107'; ctx.shadowBlur = 10;
+            ctx.fillStyle = 'rgba(255,193,7,0.5)'; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,215,0,0.3)'; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // ─── TEACHER projectiles ───
+        else if (draw === 'chalkThrow') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.012);
+            ctx.fillStyle = '#fff'; ctx.fillRect(-8, -3, 16, 6);
+            ctx.restore();
+        }
+        else if (draw === 'homeworkAvalanche') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(Date.now() * 0.005 + p.x) * 0.5);
+            ctx.fillStyle = '#fff'; ctx.fillRect(-10, -13, 20, 26);
+            ctx.strokeStyle = '#aaa'; ctx.lineWidth = 0.5;
+            for (let l = 0; l < 5; l++) { ctx.beginPath(); ctx.moveTo(-7, -9 + l * 5); ctx.lineTo(7, -9 + l * 5); ctx.stroke(); }
+            ctx.restore();
+        }
+        // ─── PLUMBER projectiles ───
+        else if (draw === 'plungerToss') {
+            ctx.globalAlpha = 0.9; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.01);
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(-2, -14, 4, 20);
+            ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.arc(0, 6, 8, 0, Math.PI); ctx.fill();
+            ctx.restore();
         }
 
         // ─── TORNADO DEBRIS (spinning stickmen/cows) ───
