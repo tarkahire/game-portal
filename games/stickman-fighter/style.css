@@ -455,6 +455,11 @@ button:hover {
     box-shadow: 0 0 20px rgba(65, 105, 225, 0.4);
 }
 
+.style-btn[data-style="football"].selected {
+    border-color: #228b22;
+    box-shadow: 0 0 20px rgba(34, 139, 34, 0.4);
+}
+
 .stage-btn {
     padding: 8px 14px;
     font-size: 12px;

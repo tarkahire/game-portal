@@ -414,6 +414,17 @@ const STYLES = {
             { name: 'Clogged Explosion',type: 'instant',    damage: 20, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'cloggedExplosion' },
         ],
     },
+    football: {
+        name: 'Football',
+        color: '#228b22',
+        hue: 120,
+        attacks: [
+            { name: 'Ball Kick',       type: 'projectile', damage: 7,  cooldown: 90,   speed: 14, radius: 30, knockback: 10, blockReduction: 0.4, draw: 'footballKick' },
+            { name: 'Slide Tackle',    type: 'instant',    damage: 11, cooldown: 270,  range: 9999, knockback: 18, blockReduction: 0.4, vfx: 'slideTackle', launchUp: -8 },
+            { name: 'Header Barrage',  type: 'projectile', damage: 5,  cooldown: 100,  speed: 10, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'footballKick', special: 'headerBarrage' },
+            { name: 'Red Card',        type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'redCard' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -2060,6 +2071,40 @@ class Fighter {
             }
         }
 
+        // ── Football Rage Upgrades ──
+        if (this.rageActive && this.style === 'football') {
+            if (index === 0) {
+                // POWER SHOT — 3 flaming footballs
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 16,
+                        vx: dir * (atk.speed + 4), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#228b22', 0.2); return;
+            }
+            if (index === 1) {
+                // FLYING TACKLE — massive knockback
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 22; opponent.hit = true; opponent.x += dir * atk.knockback * 2.5; opponent.vy = -12; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#228b22' });
+                triggerScreenShake(22, 28); triggerHitstop(12); triggerScreenFlash('#228b22', 0.5); return;
+            }
+            if (index === 2) {
+                // VOLLEY — 8 footballs raining from the sky
+                for (let b = 0; b < 8; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: opponent.x + (Math.random()-0.5)*150, y: -50 - Math.random()*40,
+                            vx: (Math.random()-0.5)*3, vy: 7 + Math.random()*4, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                    }, b * 50);
+                }
+                triggerScreenFlash('#228b22', 0.3); return;
+            }
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -2288,6 +2333,15 @@ class Fighter {
                     radius: atk.radius, owner: this, target: opponent, atk, styleData,
                     life: 180, trail: [], rageVfx: this.rageActive && index === 3 ? this.style : null });
             }
+            // Header Barrage — 5 footballs lobbed in an arc
+            else if (atk.special === 'headerBarrage') {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 20, y: this.y - this.height * 0.9,
+                        vx: dir * (atk.speed + b * 1.5), vy: -4 + Math.abs(b) * 1, radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
             else {
                 // Flyers (pigeon/bee) aim projectiles directly at opponent
                 const isFlyer = true; // all characters aim projectiles at opponent
@@ -2468,6 +2522,9 @@ class Fighter {
         else if (vfx === 'pipeWrench') { visualEffects.push({ type: 'spinCycle', x: this.x, y: this.y - this.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#4169e1', 0.3); }
         else if (vfx === 'floodBurst') { visualEffects.push({ type: 'floodRinse', life: 40, maxLife: 40 }); triggerScreenFlash('#4169e1', 0.4); }
         else if (vfx === 'cloggedExplosion') { visualEffects.push({ type: 'clogExplosionVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenShake(12, 16); triggerScreenFlash('#8b4513', 0.6); }
+        // ── Football VFX ──
+        else if (vfx === 'slideTackle') { visualEffects.push({ type: 'slideTackleVfx', x: opponent.x, y: groundY, dir, life: 25, maxLife: 25 }); triggerScreenShake(10, 14); triggerScreenFlash('#228b22', 0.3); }
+        else if (vfx === 'redCard') { visualEffects.push({ type: 'redCardVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#ff0000', 0.6); }
     }
 
     draw() {
@@ -4257,6 +4314,56 @@ class Fighter {
             return;
         }
 
+        // ── Football: footballer in kit ──
+        if (this.health < MAX_HEALTH && this.style === 'football') {
+            const t = Date.now() * 0.005;
+            const run = Math.sin(t * 8) * 5;
+            ctx.shadowColor = '#228b22'; ctx.shadowBlur = 10;
+            // Head
+            ctx.fillStyle = '#f4c48e'; ctx.beginPath(); ctx.arc(0, -this.height + 2, 13, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke();
+            // Hair (short)
+            ctx.fillStyle = '#333'; ctx.fillRect(-10, -this.height - 7, 20, 7);
+            // Jersey (green with white stripe)
+            ctx.fillStyle = '#228b22'; ctx.fillRect(-18, -78, 36, 32);
+            ctx.fillStyle = '#fff'; ctx.fillRect(-3, -78, 6, 32);
+            // Number on chest
+            ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+            ctx.fillText('10', 0, -56);
+            // Shorts (white)
+            ctx.fillStyle = '#fff'; ctx.fillRect(-14, -46, 28, 14);
+            // Legs with shin guards
+            ctx.strokeStyle = this.color; ctx.lineWidth = 5; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(-8, -32); ctx.lineTo(-8 + run, -10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(8, -32); ctx.lineTo(8 - run, -10); ctx.stroke();
+            // Shin guards
+            ctx.fillStyle = '#228b22';
+            ctx.fillRect(-11, -22, 6, 12); ctx.fillRect(5, -22, 6, 12);
+            // Boots (cleats)
+            ctx.fillStyle = '#111';
+            ctx.fillRect(-12 + run, -10, 10, 5); ctx.fillRect(2 - run, -10, 10, 5);
+            // Football at feet sometimes
+            if (Math.sin(t * 3) > 0.5) {
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(18, -8, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(18, -8, 8, 0, Math.PI * 2); ctx.stroke();
+                // Pentagon pattern on ball
+                ctx.fillStyle = '#333';
+                ctx.beginPath(); ctx.arc(18, -8, 3, 0, Math.PI * 2); ctx.fill();
+            }
+            // Arms
+            ctx.strokeStyle = '#f4c48e'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(-18, -72); ctx.lineTo(-28, -55 + run); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(18, -72); ctx.lineTo(28, -55 - run); ctx.stroke();
+            // Grass particles when running
+            if (this.onGround && Math.abs(this.vx) > 0 && Math.random() < 0.3) {
+                particles.push({ x: this.x + (Math.random()-0.5)*10, y: this.y,
+                    vx: (Math.random()-0.5)*3, vy: -1 - Math.random()*2,
+                    life: 8 + Math.random()*6, maxLife: 14, color: '#228b22' });
+            }
+            ctx.shadowBlur = 0; ctx.restore();
+            return;
+        }
+
         // ── Phoenix Dive: draw fireball instead of stickman ──
         if (this.phoenixDive && (this.phoenixDive.phase === 'hover' || this.phoenixDive.phase === 'dive')) {
             const r = this.phoenixDive.phase === 'dive' ? 50 : 38;
@@ -4607,6 +4714,7 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'bee') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#ffc107', 0.7); }
     else if (style === 'teacher') { visualEffects.push({ type: 'screenDarkness', life: 55, maxLife: 55 }); triggerScreenFlash('#2e8b57', 0.7); }
     else if (style === 'plumber') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#4169e1', 0.7); }
+    else if (style === 'football') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#228b22', 0.8); }
 }
 
 function spawnScreenMeltdown(x, y) {
@@ -7214,6 +7322,70 @@ function drawVisualEffects() {
             }} ctx.shadowBlur = 0;
         }
 
+        // ── Football: Slide Tackle ──
+        if (vfx.type === 'slideTackleVfx') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.8;
+            // Dust cloud along ground
+            ctx.shadowColor = '#228b22'; ctx.shadowBlur = 15;
+            for (let i = 0; i < 8; i++) {
+                const dx = (i - 4) * 25 * vfx.dir * prog;
+                const dy = Math.sin(i * 1.3) * 8;
+                ctx.fillStyle = `rgba(139,119,42,${a * 0.4})`;
+                ctx.beginPath(); ctx.arc(vfx.x + dx, vfx.y - 5 + dy, 10 + i * 2, 0, Math.PI * 2); ctx.fill();
+            }
+            // Impact ring at ground
+            const r = prog * 120;
+            ctx.strokeStyle = '#228b22'; ctx.lineWidth = 4 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            // Grass chunks
+            if (vfx.life % 3 === 0) { for (let i = 0; i < 3; i++) {
+                particles.push({ x: vfx.x + (Math.random()-0.5)*60, y: vfx.y,
+                    vx: vfx.dir * (2 + Math.random()*4), vy: -2 - Math.random()*4,
+                    life: 10 + Math.random()*8, maxLife: 18, color: '#228b22' });
+            }} ctx.shadowBlur = 0;
+        }
+
+        // ── Football: Red Card ──
+        if (vfx.type === 'redCardVfx') {
+            const prog = 1 - a;
+            // Darken screen
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Giant red card descending
+            const cardY = vfx.y - 80 + Math.min(prog * 3, 1) * 60;
+            ctx.save(); ctx.translate(vfx.x, cardY);
+            const cardScale = Math.min(prog * 4, 1);
+            ctx.scale(cardScale, cardScale);
+            ctx.globalAlpha = a * 0.95;
+            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 30;
+            // Card body
+            ctx.fillStyle = '#ff0000'; ctx.fillRect(-30, -45, 60, 90);
+            ctx.strokeStyle = '#cc0000'; ctx.lineWidth = 3; ctx.strokeRect(-30, -45, 60, 90);
+            // White border inside
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(-25, -40, 50, 80);
+            // "RED CARD" text
+            ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+            ctx.fillText('RED', 0, -10); ctx.fillText('CARD', 0, 5);
+            ctx.restore();
+            // Whistle sound effect lines
+            if (prog > 0.3) {
+                ctx.globalAlpha = a * 0.6; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                for (let i = 0; i < 4; i++) {
+                    const wa = -0.3 + i * 0.2;
+                    const wl = 20 + i * 15;
+                    ctx.beginPath(); ctx.arc(vfx.x + 50, cardY - 20, wl, wa, wa + 0.4); ctx.stroke();
+                }
+            }
+            // Impact burst when card arrives
+            if (prog > 0.2 && prog < 0.4) {
+                const burstA = (prog - 0.2) / 0.2;
+                ctx.globalAlpha = (1 - burstA) * a;
+                ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 6;
+                ctx.beginPath(); ctx.arc(vfx.x, cardY, burstA * 100, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+
         // ── Domain Expansion Activation ──
         if (vfx.type === 'domainExpansion') {
             const prog = 1 - a;
@@ -9198,6 +9370,23 @@ function drawProjectiles() {
             ctx.fillStyle = '#8b4513'; ctx.fillRect(-2, -14, 4, 20);
             ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.arc(0, 6, 8, 0, Math.PI); ctx.fill();
             ctx.restore();
+        }
+
+        // ─── FOOTBALL projectiles ───
+        else if (draw === 'footballKick') {
+            ctx.globalAlpha = 0.95; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015);
+            ctx.shadowColor = '#228b22'; ctx.shadowBlur = 8;
+            // White ball
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.stroke();
+            // Pentagon patches
+            ctx.fillStyle = '#333';
+            ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+            for (let pp = 0; pp < 5; pp++) {
+                const pa = (pp / 5) * Math.PI * 2;
+                ctx.beginPath(); ctx.arc(Math.cos(pa) * 7, Math.sin(pa) * 7, 2.5, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0; ctx.restore();
         }
 
         // ─── TORNADO DEBRIS (spinning stickmen/cows) ───
@@ -11735,6 +11924,42 @@ function drawVictoryDance(fighter, frame) {
             // Cap
             ctx.fillStyle = '#4169e1';
             ctx.beginPath(); ctx.arc(0, headY - 8, 16, Math.PI, 0); ctx.fill();
+            break;
+        }
+        case 'football': {
+            // Slide on knees celebration, shirt over head
+            const slideX = Math.min(frame * 2, 80);
+            ctx.translate(slideX, 0);
+            // Kneeling body
+            ctx.beginPath(); ctx.arc(0, headY + 10, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(0, -30); ctx.stroke();
+            // Arms spread wide
+            ctx.beginPath(); ctx.moveTo(0, headY + 32); ctx.lineTo(-30, headY + 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 32); ctx.lineTo(30, headY + 15); ctx.stroke();
+            // Knees on ground
+            ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-12, -10); ctx.lineTo(-14, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(12, -10); ctx.lineTo(14, 0); ctx.stroke();
+            // Jersey pulled over head
+            if (frame > 40) {
+                ctx.fillStyle = '#228b22'; ctx.globalAlpha = 0.8;
+                ctx.fillRect(-12, headY, 24, 20);
+                ctx.fillStyle = '#fff'; ctx.font = '8px Arial'; ctx.textAlign = 'center';
+                ctx.fillText('10', 0, headY + 14);
+            }
+            // "GOOOAL!" text
+            if (frame > 20) {
+                ctx.globalAlpha = Math.min((frame - 20) / 20, 1);
+                ctx.font = `bold ${18 + Math.sin(frame * 0.1) * 3}px Arial`; ctx.fillStyle = '#228b22';
+                ctx.fillText('GOOOAL!', 0, headY - 20);
+            }
+            // Confetti
+            if (frame % 4 === 0) {
+                for (let i = 0; i < 3; i++) {
+                    particles.push({ x: fighter.x + slideX * fighter.facing + (Math.random()-0.5)*60, y: fighter.y + headY,
+                        vx: (Math.random()-0.5)*5, vy: -3 - Math.random()*4,
+                        life: 15 + Math.random()*10, maxLife: 25, color: Math.random() > 0.5 ? '#228b22' : '#fff' });
+                }
+            }
             break;
         }
         default: {
