@@ -7,30 +7,11 @@ faceImg.src = 'face.jpg';
 let faceImgLoaded = false;
 faceImg.onload = () => { faceImgLoaded = true; };
 
-// ── Van Image (with background removal) ──
-const vanImgRaw = new Image();
-vanImgRaw.src = 'car.jpg';
+// ── Van Image ──
+const vanImg = new Image();
+vanImg.src = 'car.jpg';
 let vanImgLoaded = false;
-let vanImg;
-vanImgRaw.onload = () => {
-    // Remove light background by making near-white pixels transparent
-    const tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width = vanImgRaw.width;
-    tmpCanvas.height = vanImgRaw.height;
-    const tmpCtx = tmpCanvas.getContext('2d');
-    tmpCtx.drawImage(vanImgRaw, 0, 0);
-    const imgData = tmpCtx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height);
-    const d = imgData.data;
-    for (let i = 0; i < d.length; i += 4) {
-        // If pixel is close to white/light grey, make it transparent
-        if (d[i] > 200 && d[i+1] > 200 && d[i+2] > 200) {
-            d[i+3] = 0;
-        }
-    }
-    tmpCtx.putImageData(imgData, 0, 0);
-    vanImg = tmpCanvas;
-    vanImgLoaded = true;
-};
+vanImg.onload = () => { vanImgLoaded = true; };
 
 // ── Constants ──
 const GROUND_Y_RATIO = 0.85;
@@ -1564,7 +1545,7 @@ class Fighter {
             const bounce = Math.sin(Date.now() * 0.015) * 2;
             ctx.translate(0, bounce);
             if (vanImgLoaded) {
-                ctx.drawImage(vanImg, -70, -95, 140, 84);
+                ctx.drawImage(vanImg, -45, -80, 90, 54);
             }
             // Exhaust smoke
             if (Math.random() < 0.4) {
@@ -3149,7 +3130,7 @@ function drawVisualEffects() {
                     const vx = fromLeft ? -80 + prog * (canvas.width + 160) : canvas.width + 80 - prog * (canvas.width + 160);
                     const vy = 100 + v * 70 + Math.sin(v * 2.1) * 20;
                     ctx.save(); ctx.translate(vx, vy); ctx.scale(fromLeft ? 1 : -1, 1);
-                    ctx.drawImage(vanImg, -65, -38, 130, 78);
+                    ctx.drawImage(vanImg, -35, -20, 70, 42);
                     ctx.restore();
                 }
             }
@@ -3173,7 +3154,7 @@ function drawVisualEffects() {
                     const sc = 0.7 + Math.sin(v * 1.7) * 0.3;
                     ctx.globalAlpha = a * 0.7;
                     ctx.save(); ctx.translate(vx, vy); ctx.scale(vDir * sc, sc); ctx.rotate(Math.sin(Date.now() * 0.003 + v) * 0.2);
-                    ctx.drawImage(vanImg, -65, -38, 130, 78);
+                    ctx.drawImage(vanImg, -35, -20, 70, 42);
                     ctx.restore();
                 }
             }
@@ -5116,7 +5097,7 @@ function drawProjectiles() {
             ctx.globalAlpha = 1; ctx.shadowColor = '#2e5bff'; ctx.shadowBlur = 10;
             if (vanImgLoaded) {
                 ctx.save(); ctx.translate(p.x, p.y); ctx.scale(dir, 1);
-                ctx.drawImage(vanImg, -55, -30, 110, 66);
+                ctx.drawImage(vanImg, -30, -18, 60, 36);
                 ctx.restore();
             }
             ctx.shadowBlur = 0;
@@ -5129,7 +5110,7 @@ function drawProjectiles() {
             ctx.beginPath(); ctx.ellipse(p.x, groundY + 3, r * 0.8, 8, 0, 0, Math.PI * 2); ctx.fill();
             if (vanImgLoaded) {
                 ctx.globalAlpha = 1; ctx.shadowColor = '#2e5bff'; ctx.shadowBlur = 15;
-                ctx.drawImage(vanImg, p.x - 70, p.y - 40, 140, 84);
+                ctx.drawImage(vanImg, p.x - 40, p.y - 22, 80, 48);
                 ctx.shadowBlur = 0;
             }
             // Speed lines above
