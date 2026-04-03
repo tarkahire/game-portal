@@ -133,6 +133,17 @@ const STYLES = {
             { name: 'Flood Rinse',     type: 'instant',    damage: 16, cooldown: 560,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'floodRinse' },
         ],
     },
+    corruption: {
+        name: 'Corrupt',
+        color: '#ff0055',
+        hue: 340,
+        attacks: [
+            { name: 'Tainted Shot',      type: 'projectile', damage: 6,  cooldown: 110,  speed: 11, radius: 22, knockback: 6,  blockReduction: 0.5, draw: 'taintedShot' },
+            { name: 'Decay Pulse',       type: 'instant',    damage: 10, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'decayPulse' },
+            { name: 'Glitch Swarm',      type: 'projectile', damage: 3,  cooldown: 90,   speed: 8,  radius: 12, knockback: 3,  blockReduction: 0.5, draw: 'glitchFragment', special: 'glitchSwarm' },
+            { name: 'Total Corruption',  type: 'instant',    damage: 18, cooldown: 580,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'totalCorruption' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -928,6 +939,54 @@ class Fighter {
             }
         }
 
+        // ── Corruption Rage Upgrades ──
+        if (this.rageActive && this.style === 'corruption') {
+            if (index === 0) {
+                // CORRUPTION BEAM — glitchy beam across screen
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#ff0055');
+                this.addCombo();
+                opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                this.castTimer = 20;
+                const beamY = this.y - this.height * 0.55;
+                visualEffects.push({ type: 'corruptionBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 30, maxLife: 30 });
+                triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#ff0055', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
+                return;
+            }
+            if (index === 1) {
+                // VIRAL SPREAD — massive corruption field
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#ff0055');
+                this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -8; opponent.onGround = false;
+                visualEffects.push({ type: 'decayPulse', x: opponent.x, y: groundY, life: 45, maxLife: 45 });
+                visualEffects.push({ type: 'decayPulse', x: opponent.x - 100, y: groundY, life: 40, maxLife: 40 });
+                visualEffects.push({ type: 'decayPulse', x: opponent.x + 100, y: groundY, life: 40, maxLife: 40 });
+                triggerScreenShake(18, 22); triggerHitstop(10); triggerScreenFlash('#ff0055', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                return;
+            }
+            if (index === 2) {
+                // DIGITAL STORM — 9 erratic glitch fragments
+                for (let b = 0; b < 9; b++) {
+                    projectiles.push({
+                        x: this.x + dir * 30, y: this.y - this.height * 0.55 + (Math.random() - 0.5) * 50,
+                        vx: dir * (atk.speed + Math.random() * 6), vy: (Math.random() - 0.5) * 7,
+                        radius: atk.radius + Math.random() * 8, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [],
+                        isGlitch: true, glitchOffset: Math.random() * 100, rageVfx: null,
+                    });
+                }
+                triggerScreenFlash('#ff0055', 0.3);
+                return;
+            }
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -1023,6 +1082,19 @@ class Fighter {
                     isSoapBlast: true,
                     rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
+            }
+            // Glitch Swarm — 5 erratic glitch fragments
+            else if (atk.special === 'glitchSwarm') {
+                for (let b = 0; b < 5; b++) {
+                    projectiles.push({
+                        x: this.x + dir * 30, y: this.y - this.height * 0.55 + (Math.random() - 0.5) * 30,
+                        vx: dir * (atk.speed + Math.random() * 4), vy: (Math.random() - 0.5) * 5,
+                        radius: atk.radius + Math.random() * 6, owner: this, target: opponent,
+                        atk, styleData, life: 180, trail: [],
+                        isGlitch: true, glitchOffset: Math.random() * 100,
+                        rageVfx: this.rageActive && index === 3 ? this.style : null,
+                    });
+                }
             }
             // Bubble Barrage — 5 bubbles in a spread
             else if (atk.special === 'bubbleBarrage') {
@@ -1130,6 +1202,8 @@ class Fighter {
         else if (vfx === 'voidGate') { visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 }); triggerScreenFlash('#e056de', 0.5); }
         else if (vfx === 'spinCycle') { visualEffects.push({ type: 'spinCycle', x: this.x, y: this.y - this.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#87ceeb', 0.2); }
         else if (vfx === 'floodRinse') { visualEffects.push({ type: 'floodRinse', life: 45, maxLife: 45 }); triggerScreenFlash('#87ceeb', 0.4); }
+        else if (vfx === 'decayPulse') { visualEffects.push({ type: 'decayPulse', x: opponent.x, y: groundY, life: 35, maxLife: 35 }); triggerScreenFlash('#ff0055', 0.25); }
+        else if (vfx === 'totalCorruption') { visualEffects.push({ type: 'totalCorruption', life: 50, maxLife: 50 }); triggerScreenFlash('#ff0055', 0.5); }
     }
 
     draw() {
@@ -1513,6 +1587,7 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'shadow') { visualEffects.push({ type: 'screenShadow', life: 55, maxLife: 55 }); triggerScreenFlash('#000', 0.5); }
     else if (style === 'portal') { visualEffects.push({ type: 'screenPortal', x, y, life: 55, maxLife: 55 }); triggerScreenFlash('#e056de', 0.6); }
     else if (style === 'washingmachine') { visualEffects.push({ type: 'screenFlood', life: 55, maxLife: 55 }); triggerScreenFlash('#87ceeb', 0.5); }
+    else if (style === 'corruption') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff0055', 0.7); }
 }
 
 function spawnScreenMeltdown(x, y) {
@@ -2566,6 +2641,121 @@ function drawVisualEffects() {
             }
         }
 
+        // ── Corruption VFX ──
+        if (vfx.type === 'decayPulse') {
+            const prog = 1 - a; const r = Math.min(prog * 4, 1) * 140;
+            ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 25;
+            // Corrupted ground spreading
+            ctx.globalAlpha = a * 0.7; ctx.fillStyle = '#1a0010';
+            ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+            // Glowing corruption veins
+            ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                const ca = (i / 8) * Math.PI * 2;
+                const cr = r * (0.5 + Math.sin(Date.now() * 0.01 + i * 2) * 0.3);
+                ctx.globalAlpha = a * 0.6;
+                ctx.beginPath(); ctx.moveTo(vfx.x, vfx.y);
+                ctx.quadraticCurveTo(vfx.x + Math.cos(ca) * cr * 0.6, vfx.y + Math.sin(ca) * cr * 0.15,
+                    vfx.x + Math.cos(ca) * cr, vfx.y + Math.sin(ca) * cr * 0.25); ctx.stroke();
+            }
+            // Glitchy pixels rising from corruption
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 4; i++) {
+                particles.push({ x: vfx.x + (Math.random() - 0.5) * r * 2, y: vfx.y,
+                    vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 5,
+                    life: 10 + Math.random() * 8, maxLife: 18,
+                    color: Math.random() > 0.5 ? '#ff0055' : '#ff3377' });
+            }} ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'totalCorruption') {
+            const prog = 1 - a;
+            // Screen distortion — horizontal scan lines
+            ctx.globalAlpha = a * 0.4;
+            ctx.fillStyle = '#1a0010'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Glitch scan lines
+            ctx.globalAlpha = a * 0.6;
+            for (let i = 0; i < 20; i++) {
+                const ly = (Date.now() * 0.5 + i * 47) % canvas.height;
+                const lh = 2 + Math.random() * 4;
+                const shift = (Math.random() - 0.5) * 30 * a;
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,0,85,0.3)' : 'rgba(0,255,200,0.2)';
+                ctx.fillRect(shift, ly, canvas.width, lh);
+            }
+            // RGB split blocks
+            ctx.globalAlpha = a * 0.3;
+            for (let i = 0; i < 8; i++) {
+                const bx = Math.random() * canvas.width;
+                const by = Math.random() * canvas.height;
+                const bw = 30 + Math.random() * 80;
+                const bh = 5 + Math.random() * 20;
+                ctx.fillStyle = ['#ff0000', '#00ff00', '#0000ff', '#ff0055'][Math.floor(Math.random() * 4)];
+                ctx.fillRect(bx, by, bw, bh);
+            }
+            // Corruption particles everywhere
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 6; i++) {
+                particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
+                    life: 8 + Math.random() * 8, maxLife: 16,
+                    color: Math.random() > 0.5 ? '#ff0055' : '#00ffcc' });
+            }}
+        }
+        if (vfx.type === 'corruptionBeam') {
+            const prog = 1 - a;
+            const reveal = Math.min(prog * 5, 1);
+            const beamLen = (vfx.x2 - vfx.x1) * reveal;
+            const endX = vfx.x1 + beamLen;
+            // Glitchy beam — shifts position
+            const glitchY = vfx.y1 + Math.sin(Date.now() * 0.05) * 4;
+            ctx.globalAlpha = a * 0.4;
+            ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 35 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, glitchY + 3); ctx.lineTo(endX, glitchY + 3); ctx.stroke();
+            ctx.globalAlpha = a * 0.5;
+            ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 28 * a; ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 40;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, glitchY - 2); ctx.lineTo(endX, glitchY - 2); ctx.stroke();
+            ctx.globalAlpha = a * 0.8;
+            ctx.strokeStyle = '#ff3377'; ctx.lineWidth = 14 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, glitchY); ctx.lineTo(endX, glitchY); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, glitchY); ctx.lineTo(endX, glitchY); ctx.stroke();
+            // Glitch blocks along beam
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 4; i++) {
+                const px = vfx.x1 + Math.random() * beamLen;
+                ctx.globalAlpha = a * 0.5;
+                ctx.fillStyle = Math.random() > 0.5 ? '#ff0055' : '#00ffcc';
+                ctx.fillRect(px - 8, glitchY - 10 - Math.random() * 15, 16 + Math.random() * 20, 4 + Math.random() * 8);
+            }}
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'screenCorruption') {
+            const prog = 1 - a;
+            // Heavy screen distortion
+            ctx.globalAlpha = a * 0.5;
+            ctx.fillStyle = '#0a0005'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Massive glitch scan lines
+            ctx.globalAlpha = a * 0.7;
+            for (let i = 0; i < 30; i++) {
+                const ly = (Date.now() * 0.8 + i * 37) % canvas.height;
+                const lh = 1 + Math.random() * 6;
+                const shift = (Math.random() - 0.5) * 50 * a;
+                ctx.fillStyle = ['rgba(255,0,85,0.4)', 'rgba(0,255,200,0.3)', 'rgba(255,255,255,0.2)'][Math.floor(Math.random() * 3)];
+                ctx.fillRect(shift, ly, canvas.width, lh);
+            }
+            // Large corruption blocks
+            ctx.globalAlpha = a * 0.35;
+            for (let i = 0; i < 12; i++) {
+                const bx = Math.random() * canvas.width;
+                const by = Math.random() * canvas.height;
+                ctx.fillStyle = ['#ff0055', '#00ffcc', '#ff0000', '#0000ff'][Math.floor(Math.random() * 4)];
+                ctx.fillRect(bx, by, 40 + Math.random() * 120, 3 + Math.random() * 25);
+            }
+            // Corruption particles
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 8; i++) {
+                particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10,
+                    life: 6 + Math.random() * 8, maxLife: 14,
+                    color: Math.random() > 0.5 ? '#ff0055' : '#00ffcc' });
+            }}
+        }
+
         // ── Acid Rain ──
         if (vfx.type === 'acidRain') {
             const prog = 1 - a;
@@ -3135,6 +3325,8 @@ function updateProjectiles() {
             continue;
         }
 
+        // Glitch fragments move erratically
+        if (p.isGlitch) { p.vy += (Math.random() - 0.5) * 1.5; p.vy *= 0.95; }
         p.trail.push({ x: p.x, y: p.y, alpha: 1 });
         if (p.trail.length > 35) p.trail.shift();
         for (const t of p.trail) t.alpha *= 0.87;
@@ -4307,6 +4499,51 @@ function drawProjectiles() {
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
             }
         }
+        // ─── CORRUPTION: Tainted Shot ───
+        else if (draw === 'taintedShot') {
+            // Glitchy corrupted trail — squares instead of circles
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.5;
+                const s = p.radius * (0.3 + t.alpha * 0.4);
+                ctx.fillStyle = Math.random() > 0.5 ? '#ff0055' : '#00ffcc';
+                ctx.fillRect(t.x - s / 2 + (Math.random() - 0.5) * 4, t.y - s / 2 + (Math.random() - 0.5) * 4, s, s);
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 25;
+            // Core — flickering between positions
+            const gx = p.x + Math.sin(Date.now() * 0.08) * 3;
+            const gy = p.y + Math.cos(Date.now() * 0.06) * 3;
+            const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, p.radius * 1.3);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.2, '#ff3377'); g.addColorStop(0.5, '#ff0055');
+            g.addColorStop(0.8, 'rgba(255,0,85,0.3)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(gx, gy, p.radius * 1.3, 0, Math.PI * 2); ctx.fill();
+            // RGB split ghost
+            ctx.globalAlpha = 0.3; ctx.fillStyle = '#00ffcc';
+            ctx.beginPath(); ctx.arc(gx + 4, gy - 2, p.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            // Corrupted pixel particles
+            if (Math.random() < 0.6) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 12, y: p.y + (Math.random() - 0.5) * 12,
+                    vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+                    life: 6 + Math.random() * 5, maxLife: 11, color: Math.random() > 0.5 ? '#ff0055' : '#00ffcc' });
+            }
+        }
+        // ─── CORRUPTION: Glitch Fragment ───
+        else if (draw === 'glitchFragment') {
+            ctx.globalAlpha = 0.85;
+            const gx = p.x + Math.sin(Date.now() * 0.1 + (p.glitchOffset || 0)) * 5;
+            const gy = p.y + Math.cos(Date.now() * 0.08 + (p.glitchOffset || 0)) * 5;
+            // Flickering square shape
+            ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#ff0055';
+            const s = p.radius * 1.5;
+            ctx.save(); ctx.translate(gx, gy); ctx.rotate(Date.now() * 0.015 + (p.glitchOffset || 0));
+            ctx.fillRect(-s / 2, -s / 2, s, s);
+            // Inner cyan ghost
+            ctx.globalAlpha = 0.4; ctx.fillStyle = '#00ffcc';
+            ctx.fillRect(-s / 2 + 2, -s / 2 - 2, s, s);
+            ctx.restore(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        }
+
         // ─── WASHING MACHINE: Soap Blast ───
         else if (draw === 'soapBlast') {
             for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#b0e0e6';
