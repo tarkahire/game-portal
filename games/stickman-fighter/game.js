@@ -160,12 +160,18 @@ class Fighter {
         this.rageActive = false;
         this.rageTimer = 0;
         this.rageUsed = false;
+        this.punchTimer = 0;
+        this.kickTimer = 0;
+        this.meleeCooldown = 0;
     }
 
     update(opponent) {
         this.facing = this.x < opponent.x ? 1 : -1;
         if (this.hitTimer > 0) { this.hitTimer--; this.hit = this.hitTimer > 0; }
         if (this.castTimer > 0) { this.castTimer--; this.casting = this.castTimer > 0; }
+        if (this.punchTimer > 0) this.punchTimer--;
+        if (this.kickTimer > 0) this.kickTimer--;
+        if (this.meleeCooldown > 0) this.meleeCooldown--;
         for (let i = 0; i < 4; i++) { if (this.cooldowns[i] > 0) this.cooldowns[i]--; }
 
         // Rage system
@@ -194,6 +200,51 @@ class Fighter {
             this.walkTimer++;
             if (this.walkTimer > 8) { this.walkTimer = 0; this.walkFrame = (this.walkFrame + 1) % 4; }
         } else if (this.onGround) { this.walkFrame = 0; }
+    }
+
+    melee(type, opponent) {
+        if (this.meleeCooldown > 0 || this.hit || this.blocking) return;
+        const PUNCH_RANGE = 70;
+        const KICK_RANGE = 85;
+        const PUNCH_DAMAGE = 5;
+        const KICK_DAMAGE = 8;
+        const PUNCH_KB = 5;
+        const KICK_KB = 10;
+        const range = type === 'punch' ? PUNCH_RANGE : KICK_RANGE;
+        const dmg = type === 'punch' ? PUNCH_DAMAGE : KICK_DAMAGE;
+        const kb = type === 'punch' ? PUNCH_KB : KICK_KB;
+
+        if (type === 'punch') { this.punchTimer = 12; this.meleeCooldown = 18; }
+        else { this.kickTimer = 15; this.meleeCooldown = 25; }
+
+        const dist = Math.abs(this.x - opponent.x);
+        const dir = this.facing;
+        if (dist < range) {
+            let damage = dmg;
+            if (this.rageActive) damage = Math.floor(damage * 1.5);
+            let knockback = kb;
+            if (opponent.blocking) {
+                damage = Math.floor(damage * 0.3);
+                knockback *= 0.3;
+            }
+            opponent.health = Math.max(0, opponent.health - damage);
+            opponent.hitTimer = 8;
+            opponent.hit = true;
+            opponent.x += dir * knockback;
+            if (type === 'kick') { opponent.vy = -4; opponent.onGround = false; }
+            triggerScreenShake(type === 'punch' ? 3 : 5, type === 'punch' ? 5 : 8);
+            triggerHitstop(type === 'punch' ? 3 : 5);
+            // Hit particles
+            const hitX = this.x + dir * (range * 0.6);
+            const hitY = type === 'punch' ? this.y - this.height * 0.65 : this.y - this.height * 0.3;
+            for (let i = 0; i < 8; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const s = 2 + Math.random() * 4;
+                particles.push({ x: hitX, y: hitY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#fff' });
+            }
+            visualEffects.push({ type: 'impactRing', x: hitX, y: hitY, life: 12, maxLife: 12, color: '#fff' });
+        }
     }
 
     activateRage() {
@@ -375,7 +426,17 @@ class Fighter {
         ctx.beginPath(); ctx.moveTo(0, bodyTopY); ctx.lineTo(0, bodyBottomY); ctx.stroke();
 
         const armY = bodyTopY + 10;
-        if (this.casting) {
+        if (this.punchTimer > 0) {
+            // Punching — one arm extended forward
+            const ext = Math.sin(this.punchTimer / 12 * Math.PI);
+            ctx.beginPath(); ctx.moveTo(0, armY); ctx.lineTo(20 + ext * 30, armY - 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, armY); ctx.lineTo(-8, armY + 15); ctx.stroke();
+            // Fist circle
+            if (ext > 0.3) {
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(20 + ext * 30, armY - 5, 5, 0, Math.PI * 2); ctx.fill();
+            }
+        } else if (this.casting) {
             const s = Math.sin(this.castTimer / 15 * Math.PI);
             ctx.beginPath(); ctx.moveTo(0, armY); ctx.lineTo(20 + s * 25, armY - 10); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, armY); ctx.lineTo(15 + s * 20, armY + 5); ctx.stroke();
@@ -389,7 +450,17 @@ class Fighter {
         }
 
         const legY = bodyBottomY;
-        if (!this.onGround) {
+        if (this.kickTimer > 0) {
+            // Kicking — one leg extended forward
+            const ext = Math.sin(this.kickTimer / 15 * Math.PI);
+            ctx.beginPath(); ctx.moveTo(0, legY); ctx.lineTo(15 + ext * 35, legY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, legY); ctx.lineTo(-5, 0); ctx.stroke();
+            // Foot
+            if (ext > 0.3) {
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(15 + ext * 35, legY + 5, 4, 0, Math.PI * 2); ctx.fill();
+            }
+        } else if (!this.onGround) {
             ctx.beginPath(); ctx.moveTo(0, legY); ctx.lineTo(10, legY + 20); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, legY); ctx.lineTo(-10, legY + 20); ctx.stroke();
         } else {
@@ -1955,6 +2026,8 @@ function handleInput() {
     if (keys['c']) { player1.useAttack(2, player2); keys['c'] = false; }
     if (keys['v']) { player1.useAttack(3, player2); keys['v'] = false; }
     if (keys['e']) { player1.activateRage(); keys['e'] = false; }
+    if (keys['f']) { player1.melee('punch', player2); keys['f'] = false; }
+    if (keys['g']) { player1.melee('kick', player2); keys['g'] = false; }
 
     if (!aiMode) {
         player2.vx = 0; player2.blocking = false;
@@ -1969,6 +2042,8 @@ function handleInput() {
         if (keys['.'])  { player2.useAttack(2, player1); keys['.'] = false; }
         if (keys[','])  { player2.useAttack(3, player1); keys[','] = false; }
         if (keys['m'])  { player2.activateRage(); keys['m'] = false; }
+        if (keys['0'])  { player2.melee('punch', player1); keys['0'] = false; }
+        if (keys['1'])  { player2.melee('kick', player1); keys['1'] = false; }
     }
 }
 
@@ -2020,6 +2095,10 @@ function handleAI() {
             player2.vx = dir * MOVE_SPEED; break;
     }
     if (player1.casting && dist < 120 && Math.random() < 0.3) player2.blocking = true;
+    // AI melee when close
+    if (dist < 80 && player2.meleeCooldown <= 0 && Math.random() < 0.15) {
+        player2.melee(Math.random() < 0.5 ? 'punch' : 'kick', player1);
+    }
     // AI activates rage when available and health is low
     if (player2.rageAvailable && !player2.rageActive && player2.health <= MAX_HEALTH * 0.4) {
         player2.activateRage();
