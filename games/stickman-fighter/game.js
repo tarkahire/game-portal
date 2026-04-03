@@ -180,7 +180,9 @@ function drawScreenFlash() {
 let groundY, gameState, timer, timerInterval;
 let p1Wins = 0, p2Wins = 0, currentRound = 1;
 let aiMode = false;
+let trainingMode = false;
 let p1Style = null, p2Style = null;
+const damageNumbers = [];
 
 const keys = {};
 const projectiles = [];
@@ -383,6 +385,7 @@ class Fighter {
                 knockback *= 0.3;
             }
             opponent.health = Math.max(0, opponent.health - damage);
+            spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#fff');
             this.addCombo();
             opponent.hitTimer = 8;
             opponent.hit = true;
@@ -1078,6 +1081,7 @@ class Fighter {
                         kb *= (1 - atk.blockReduction);
                     }
                     opponent.health = Math.max(0, opponent.health - damage);
+                    spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
                     owner.addCombo();
                     opponent.hitTimer = 12;
                     opponent.hit = true;
@@ -3134,6 +3138,7 @@ function updateProjectiles() {
                 kb *= (1 - p.atk.blockReduction);
             }
             p.target.health = Math.max(0, p.target.health - damage);
+            spawnDamageNumber(p.target.x, p.target.y - p.target.height - 10, damage, p.styleData.color);
             p.owner.addCombo();
             p.target.hitTimer = 15;
             p.target.hit = true;
@@ -4645,6 +4650,33 @@ function drawCooldownBar(x, y, w, h, ratio, name, color, maxCd) {
 
 // ── Rage Bars ──
 // ── Combo Meter ──
+// ── Damage Numbers ──
+function spawnDamageNumber(x, y, damage, color) {
+    damageNumbers.push({ x, y, damage, color: color || '#fff', life: 50, vy: -2 });
+}
+
+function updateDamageNumbers() {
+    for (let i = damageNumbers.length - 1; i >= 0; i--) {
+        const d = damageNumbers[i];
+        d.y += d.vy; d.vy *= 0.97; d.life--;
+        if (d.life <= 0) damageNumbers.splice(i, 1);
+    }
+}
+
+function drawDamageNumbers() {
+    for (const d of damageNumbers) {
+        const a = d.life / 50;
+        ctx.globalAlpha = a;
+        ctx.font = `bold ${16 + d.damage}px "Segoe UI",Arial,sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.shadowColor = d.color; ctx.shadowBlur = 8;
+        ctx.fillStyle = d.color;
+        ctx.fillText('-' + d.damage, d.x, d.y);
+        ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
+}
+
 function drawComboMeters() {
     drawComboMeter(player1, 32, 165);
     drawComboMeter(player2, canvas.width - 132, 165);
@@ -4787,10 +4819,22 @@ function gameLoop() {
     }
 
     handleInput();
-    if (aiMode) handleAI();
+    if (aiMode || trainingMode) handleAI();
     player1.update(player2); player2.update(player1);
     updateParticles(); updateProjectiles(); updateVisualEffects();
+    updateDamageNumbers();
     updateScreenShake();
+
+    // Training mode: opponent auto-regens health slowly
+    if (trainingMode) {
+        if (player2.health < MAX_HEALTH && player2.health > 0) {
+            player2.health = Math.min(MAX_HEALTH, player2.health + 0.15);
+        }
+        if (player2.health <= 0) {
+            player2.health = MAX_HEALTH; // instant full heal on KO
+            player2.hitTimer = 0; player2.hit = false;
+        }
+    }
 
     // Apply screen shake
     ctx.save();
@@ -4799,11 +4843,21 @@ function gameLoop() {
     drawBackground();
     player1.draw(); player2.draw();
     drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawComboMeters();
+    drawDamageNumbers();
 
     ctx.restore();
 
     drawScreenFlash();
-    updateUI(); checkRoundEnd();
+    updateUI();
+    if (!trainingMode) checkRoundEnd();
+
+    // Training mode HUD
+    if (trainingMode) {
+        ctx.font = '14px "Segoe UI",Arial,sans-serif';
+        ctx.textAlign = 'center'; ctx.fillStyle = '#2ecc71'; ctx.globalAlpha = 0.6;
+        ctx.fillText('TRAINING MODE — Opponent auto-heals', canvas.width / 2, groundY + 30);
+        ctx.globalAlpha = 1;
+    }
 }
 
 // ── Style Selection ──
@@ -4836,12 +4890,13 @@ document.querySelectorAll('.style-btn').forEach(btn => {
     });
 });
 
-function goToSelect(useAI) {
+function goToSelect(useAI, isTraining) {
     aiMode = useAI;
+    trainingMode = isTraining || false;
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('select-screen').classList.remove('hidden');
     setupStyleSelect();
-    document.getElementById('p2-select-title').textContent = aiMode ? 'AI (Blue)' : 'Player 2 (Blue)';
+    document.getElementById('p2-select-title').textContent = trainingMode ? 'Training Dummy' : aiMode ? 'AI (Blue)' : 'Player 2 (Blue)';
     if (aiMode) {
         const names = Object.keys(STYLES);
         const rs = names[Math.floor(Math.random() * names.length)];
@@ -4863,11 +4918,18 @@ function startFight() {
     document.getElementById('select-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('ui-overlay').style.display = 'block';
-    startTimer();
+    damageNumbers.length = 0;
+    if (trainingMode) {
+        document.getElementById('timer').textContent = '∞';
+        document.getElementById('round-info').textContent = 'TRAINING MODE';
+    } else {
+        startTimer();
+    }
 }
 
 document.getElementById('start-2p-btn').addEventListener('click', () => goToSelect(false));
 document.getElementById('start-ai-btn').addEventListener('click', () => goToSelect(true));
+document.getElementById('start-train-btn').addEventListener('click', () => goToSelect(true, true));
 document.getElementById('fight-btn').addEventListener('click', startFight);
 document.getElementById('rematch-btn').addEventListener('click', startFight);
 document.getElementById('reselect-btn').addEventListener('click', () => {

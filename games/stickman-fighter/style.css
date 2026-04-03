@@ -152,6 +152,14 @@ button:hover {
     box-shadow: 0 0 30px rgba(52, 152, 219, 0.5);
 }
 
+#start-train-btn {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+#start-train-btn:hover {
+    box-shadow: 0 0 30px rgba(46, 204, 113, 0.5);
+}
+
 #fight-btn {
     margin-top: 24px;
     font-size: 28px;
