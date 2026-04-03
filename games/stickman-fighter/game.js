@@ -145,14 +145,14 @@ const STYLES = {
         ],
     },
     selfie: {
-        name: 'Selfie',
-        color: '#00d4ff',
-        hue: 190,
+        name: 'Face',
+        color: '#ffaa88',
+        hue: 20,
         attacks: [
-            { name: 'Flash Shot',   type: 'projectile', damage: 6,  cooldown: 100,  speed: 14, radius: 20, knockback: 6,  blockReduction: 0.5, draw: 'flashShot' },
-            { name: 'Filter Wave',  type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'filterWave' },
-            { name: 'Phone Yeet',   type: 'projectile', damage: 14, cooldown: 340,  speed: 9,  radius: 28, knockback: 14, blockReduction: 0.3, draw: 'phoneYeet' },
-            { name: 'Going Viral',  type: 'instant',    damage: 18, cooldown: 580,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'goingViral' },
+            { name: 'Face Shot',   type: 'projectile', damage: 6,  cooldown: 100,  speed: 12, radius: 22, knockback: 6,  blockReduction: 0.5, draw: 'faceShot' },
+            { name: 'Grin Beam',   type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'grinBeam' },
+            { name: 'Head Slam',   type: 'projectile', damage: 14, cooldown: 360,  speed: 0,  radius: 55, knockback: 16, blockReduction: 0.3, draw: 'headSlam', special: 'headSlam' },
+            { name: 'THE FACE',    type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'theFace' },
         ],
     },
 };
@@ -998,46 +998,47 @@ class Fighter {
             }
         }
 
-        // ── Selfie Rage Upgrades ──
+        // ── Face Rage Upgrades ──
         if (this.rageActive && this.style === 'selfie') {
             if (index === 0) {
-                // PAPARAZZI — rapid flash beam across screen
-                let damage = Math.floor(atk.damage * 1.5);
-                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
-                opponent.health = Math.max(0, opponent.health - damage);
-                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#00d4ff');
-                this.addCombo();
-                opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
-                const beamY = this.y - this.height * 0.55;
-                visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 25, maxLife: 25 });
-                triggerScreenShake(10, 14); triggerHitstop(8); triggerScreenFlash('#fff', 0.7);
-                return;
-            }
-            if (index === 1) {
-                // CANCEL CULTURE — massive filter blast
-                let damage = Math.floor(atk.damage * 1.5);
-                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
-                opponent.health = Math.max(0, opponent.health - damage);
-                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#00d4ff');
-                this.addCombo();
-                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
-                visualEffects.push({ type: 'filterWave', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 });
-                visualEffects.push({ type: 'goingViral', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 });
-                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#fff', 0.6);
-                return;
-            }
-            if (index === 2) {
-                // PHONE STORM — 5 spinning phones
+                // FACE BARRAGE — 5 flying faces in a spread
                 for (let b = -2; b <= 2; b++) {
                     projectiles.push({
-                        x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 16,
                         vx: dir * (atk.speed + Math.random() * 3), vy: b * 1.5,
                         radius: atk.radius, owner: this, target: opponent,
                         atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
                         life: 250, trail: [], rageVfx: null,
                     });
                 }
-                triggerScreenFlash('#00d4ff', 0.2);
+                triggerScreenFlash('#ffaa88', 0.2);
+                return;
+            }
+            if (index === 1) {
+                // MEGA GRIN — massive grin beam + THE FACE
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#ffaa88');
+                this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
+                visualEffects.push({ type: 'grinBeam', x1: this.x, y1: this.y - this.height * 0.8, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 35, maxLife: 35 });
+                visualEffects.push({ type: 'theFace', x: opponent.x, y: canvas.height * 0.4, life: 45, maxLife: 45 });
+                triggerScreenShake(16, 20); triggerHitstop(12); triggerScreenFlash('#ffaa88', 0.6);
+                return;
+            }
+            if (index === 2) {
+                // HEAD RAIN — 3 giant heads drop from sky
+                for (let h = -1; h <= 1; h++) {
+                    projectiles.push({
+                        x: opponent.x + h * 80, y: -80 - Math.abs(h) * 40,
+                        vx: 0, vy: 8 + Math.random() * 3,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5), draw: 'headSlam' }, styleData,
+                        life: 200, trail: [], isHeadSlam: true, rageVfx: null,
+                    });
+                }
+                triggerScreenShake(6, 8);
                 return;
             }
         }
@@ -1126,6 +1127,23 @@ class Fighter {
                     dir: dir,
                     rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
+            }
+            // Head Slam — giant face drops from sky onto opponent
+            else if (atk.special === 'headSlam') {
+                const spawnX = opponent.x;
+                const spawnY = -80;
+                const dx = opponent.x - spawnX;
+                const dy = (groundY - 30) - spawnY;
+                const d = Math.sqrt(dx * dx + dy * dy) || 1;
+                projectiles.push({
+                    x: spawnX, y: spawnY,
+                    vx: 0, vy: 8,
+                    radius: atk.radius, owner: this, target: opponent,
+                    atk, styleData, life: 200, trail: [],
+                    isHeadSlam: true,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null,
+                });
+                triggerScreenShake(4, 6);
             }
             // Soap Blast — leaves soapy puddle on expire
             else if (atk.special === 'soapBlast') {
@@ -1259,8 +1277,8 @@ class Fighter {
         else if (vfx === 'floodRinse') { visualEffects.push({ type: 'floodRinse', life: 45, maxLife: 45 }); triggerScreenFlash('#87ceeb', 0.4); }
         else if (vfx === 'decayPulse') { visualEffects.push({ type: 'decayPulse', x: opponent.x, y: groundY, life: 35, maxLife: 35 }); triggerScreenFlash('#ff0055', 0.25); }
         else if (vfx === 'totalCorruption') { visualEffects.push({ type: 'totalCorruption', life: 50, maxLife: 50 }); triggerScreenFlash('#ff0055', 0.5); }
-        else if (vfx === 'filterWave') { visualEffects.push({ type: 'filterWave', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenFlash('#00d4ff', 0.3); }
-        else if (vfx === 'goingViral') { visualEffects.push({ type: 'goingViral', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 55, maxLife: 55 }); triggerScreenFlash('#fff', 0.6); }
+        else if (vfx === 'grinBeam') { visualEffects.push({ type: 'grinBeam', x1: this.x, y1: this.y - this.height * 0.8, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 28, maxLife: 28 }); triggerScreenFlash('#ffaa88', 0.3); }
+        else if (vfx === 'theFace') { visualEffects.push({ type: 'theFace', x: opponent.x, y: canvas.height * 0.4, life: 60, maxLife: 60 }); triggerScreenFlash('#ffaa88', 0.5); }
     }
 
     draw() {
@@ -2814,80 +2832,107 @@ function drawVisualEffects() {
             }}
         }
 
-        // ── Selfie VFX ──
-        if (vfx.type === 'filterWave') {
-            const prog = 1 - a; const r = 30 + prog * 160;
-            ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 25;
-            // Expanding filter ring with rainbow shimmer
-            ctx.globalAlpha = a * 0.6;
-            for (let i = 0; i < 3; i++) {
-                const hue = (Date.now() * 0.3 + i * 120) % 360;
-                ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${0.6 - i * 0.15})`; ctx.lineWidth = (6 - i * 2) * a;
-                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r - i * 12, 0, Math.PI * 2); ctx.stroke();
-            }
-            // Beauty sparkles
-            if (vfx.life % 3 === 0) { for (let i = 0; i < 4; i++) {
-                const sa = Math.random() * Math.PI * 2; const sr = Math.random() * r;
-                particles.push({ x: vfx.x + Math.cos(sa) * sr, y: vfx.y + Math.sin(sa) * sr,
-                    vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2,
-                    life: 10 + Math.random() * 8, maxLife: 18,
-                    color: `hsl(${Math.random() * 360}, 80%, 70%)` });
-            }} ctx.shadowBlur = 0;
+        // ── Face VFX ──
+        if (vfx.type === 'grinBeam') {
+            const prog = 1 - a; const reveal = Math.min(prog * 4, 1);
+            // Giant grinning face at the origin
+            const faceR = 35;
+            ctx.globalAlpha = a * 0.9; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 20;
+            // Face
+            ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(vfx.x1, vfx.y1, faceR, 0, Math.PI * 2); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(vfx.x1 - 10, vfx.y1 - 8, 8, 10, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(vfx.x1 + 10, vfx.y1 - 8, 8, 10, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(vfx.x1 - 10, vfx.y1 - 7, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(vfx.x1 + 10, vfx.y1 - 7, 4, 0, Math.PI * 2); ctx.fill();
+            // GIANT GRIN — mouth opens wide
+            const mouthOpen = 8 + Math.sin(Date.now() * 0.015) * 3;
+            ctx.fillStyle = '#cc4444'; ctx.beginPath(); ctx.ellipse(vfx.x1, vfx.y1 + 10, 18, mouthOpen, 0, 0, Math.PI * 2); ctx.fill();
+            // Teeth
+            ctx.fillStyle = '#fff';
+            for (let t = -3; t <= 3; t++) { ctx.fillRect(vfx.x1 + t * 5 - 2, vfx.y1 + 10 - mouthOpen + 1, 4, 4); }
+            // BEAM from the mouth
+            ctx.globalAlpha = a * 0.5;
+            const beamEndX = vfx.x1 + vfx.dir * canvas.width * reveal;
+            ctx.strokeStyle = '#ffcc66'; ctx.lineWidth = 30 * a; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1 + 10); ctx.lineTo(beamEndX, vfx.y1 + 10); ctx.stroke();
+            ctx.strokeStyle = '#ffddaa'; ctx.lineWidth = 16 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1 + 10); ctx.lineTo(beamEndX, vfx.y1 + 10); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 6 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1 + 10); ctx.lineTo(beamEndX, vfx.y1 + 10); ctx.stroke();
+            ctx.shadowBlur = 0;
         }
-        if (vfx.type === 'goingViral') {
+        if (vfx.type === 'theFace') {
             const prog = 1 - a;
-            // Screen flash like a camera
-            if (prog < 0.1) { ctx.globalAlpha = (0.1 - prog) / 0.1 * 0.8; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-            // Floating notification popups
-            ctx.globalAlpha = a * 0.8; ctx.font = 'bold 16px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
-            const notifications = ['LIKED!', 'SHARED!', 'VIRAL!', 'OMG!', 'SLAY!', 'W', 'NO WAY'];
-            for (let i = 0; i < 7; i++) {
-                const nx = (i * 173 + Date.now() * 0.05) % canvas.width;
-                const ny = ((i * 97 + prog * 300) % (groundY * 0.8)) + 30;
-                const hue = (i * 51 + Date.now() * 0.2) % 360;
-                ctx.fillStyle = `hsl(${hue}, 80%, 65%)`;
-                ctx.fillText(notifications[i], nx, ny);
+            const scaleIn = Math.min(prog * 4, 1);
+            const faceR = scaleIn * 180;
+            const fx = canvas.width / 2, fy = vfx.y;
+            // Darken background
+            ctx.globalAlpha = a * 0.4; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // THE MASSIVE FACE
+            ctx.globalAlpha = a * 0.9; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 50;
+            // Head
+            ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(fx, fy, faceR, 0, Math.PI * 2); ctx.fill();
+            // Cheeks
+            ctx.fillStyle = 'rgba(255,150,150,0.3)';
+            ctx.beginPath(); ctx.arc(fx - faceR * 0.55, fy + faceR * 0.15, faceR * 0.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(fx + faceR * 0.55, fy + faceR * 0.15, faceR * 0.2, 0, Math.PI * 2); ctx.fill();
+            // Eyes — big and staring at the opponent
+            const eyeDir = vfx.x < fx ? -1 : 1;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.ellipse(fx - faceR * 0.28, fy - faceR * 0.2, faceR * 0.18, faceR * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(fx + faceR * 0.28, fy - faceR * 0.2, faceR * 0.18, faceR * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+            // Pupils — look at opponent
+            ctx.fillStyle = '#222';
+            ctx.beginPath(); ctx.arc(fx - faceR * 0.28 + eyeDir * 4, fy - faceR * 0.18, faceR * 0.09, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(fx + faceR * 0.28 + eyeDir * 4, fy - faceR * 0.18, faceR * 0.09, 0, Math.PI * 2); ctx.fill();
+            // Pupil highlights
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(fx - faceR * 0.28 + eyeDir * 4 + 3, fy - faceR * 0.22, faceR * 0.03, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(fx + faceR * 0.28 + eyeDir * 4 + 3, fy - faceR * 0.22, faceR * 0.03, 0, Math.PI * 2); ctx.fill();
+            // Eyebrows — raised
+            ctx.strokeStyle = '#996633'; ctx.lineWidth = faceR * 0.04; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(fx - faceR * 0.42, fy - faceR * 0.42); ctx.lineTo(fx - faceR * 0.14, fy - faceR * 0.46); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(fx + faceR * 0.42, fy - faceR * 0.42); ctx.lineTo(fx + faceR * 0.14, fy - faceR * 0.46); ctx.stroke();
+            // Nose
+            ctx.strokeStyle = '#dda870'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(fx, fy - faceR * 0.05); ctx.lineTo(fx - faceR * 0.06, fy + faceR * 0.08); ctx.lineTo(fx + faceR * 0.04, fy + faceR * 0.08); ctx.stroke();
+            // MASSIVE GRIN
+            const mouthW = faceR * 0.55, mouthH = faceR * 0.2 + Math.sin(Date.now() * 0.01) * faceR * 0.05;
+            ctx.fillStyle = '#cc3333';
+            ctx.beginPath(); ctx.ellipse(fx, fy + faceR * 0.35, mouthW, mouthH, 0, 0, Math.PI * 2); ctx.fill();
+            // Teeth rows
+            ctx.fillStyle = '#fff';
+            const numTeeth = 8;
+            for (let t = 0; t < numTeeth; t++) {
+                const tx = fx - mouthW * 0.8 + t * (mouthW * 1.6 / numTeeth) + 2;
+                ctx.fillRect(tx, fy + faceR * 0.35 - mouthH + 2, mouthW * 1.4 / numTeeth, mouthH * 0.5);
+                ctx.fillRect(tx, fy + faceR * 0.35 + mouthH * 0.3, mouthW * 1.4 / numTeeth, mouthH * 0.4);
             }
-            // Heart emojis rising
-            ctx.font = '20px sans-serif';
-            for (let i = 0; i < 5; i++) {
-                const hx = vfx.x + (i - 2) * 60 + Math.sin(Date.now() * 0.005 + i) * 20;
-                const hy = vfx.y - prog * 200 - i * 30;
-                ctx.globalAlpha = a * 0.7;
-                ctx.fillStyle = '#ff4466';
-                // Draw a heart shape
-                ctx.beginPath();
-                ctx.moveTo(hx, hy + 4);
-                ctx.bezierCurveTo(hx - 8, hy - 6, hx - 14, hy + 4, hx, hy + 14);
-                ctx.bezierCurveTo(hx + 14, hy + 4, hx + 8, hy - 6, hx, hy + 4);
-                ctx.fill();
+            // Impact shockwave from mouth
+            if (prog > 0.3 && prog < 0.7) {
+                const shockR = (prog - 0.3) / 0.4 * 300;
+                ctx.globalAlpha = a * 0.4; ctx.strokeStyle = '#ffaa88'; ctx.lineWidth = 8;
+                ctx.beginPath(); ctx.arc(fx, fy + faceR * 0.35, shockR, 0, Math.PI * 2); ctx.stroke();
             }
-            // Like counter
-            ctx.globalAlpha = a * 0.6; ctx.font = 'bold 28px "Segoe UI",Arial,sans-serif';
-            ctx.fillStyle = '#00d4ff';
-            const likes = Math.floor(prog * 999999);
-            ctx.fillText(likes.toLocaleString() + ' likes', canvas.width / 2, canvas.height * 0.3);
+            ctx.shadowBlur = 0;
         }
         if (vfx.type === 'screenViral') {
             const prog = 1 - a;
-            // Camera flash
-            if (prog < 0.05) { ctx.globalAlpha = 0.9; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-            // Notification storm
-            ctx.globalAlpha = a * 0.7; ctx.font = 'bold 18px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
-            const words = ['LIKE', 'SHARE', 'FOLLOW', 'SUBSCRIBE', 'VIRAL', 'TRENDING', 'W RIZZ', 'SLAY', 'GOATED', 'NO CAP'];
-            for (let i = 0; i < 12; i++) {
-                const wx = (i * 137 + Date.now() * 0.08) % canvas.width;
-                const wy = (i * 89 + Date.now() * 0.06) % canvas.height;
-                ctx.fillStyle = `hsl(${(i * 36 + Date.now() * 0.1) % 360}, 80%, 65%)`;
-                ctx.fillText(words[i % words.length], wx, wy);
+            // Multiple faces floating across screen
+            ctx.globalAlpha = a * 0.15; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = a * 0.5;
+            for (let i = 0; i < 8; i++) {
+                const fx = (i * 163 + Date.now() * 0.04) % canvas.width;
+                const fy = (i * 97 + Date.now() * 0.03) % canvas.height;
+                const fr = 20 + Math.sin(i * 2.3) * 8;
+                ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#222';
+                ctx.beginPath(); ctx.arc(fx - fr * 0.25, fy - fr * 0.15, fr * 0.12, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(fx + fr * 0.25, fy - fr * 0.15, fr * 0.12, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#cc3333'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(fx, fy + fr * 0.2, fr * 0.3, 0.2, Math.PI - 0.2); ctx.stroke();
             }
-            // Hearts and thumbs ups raining
-            if (vfx.life % 2 === 0) { for (let i = 0; i < 4; i++) {
-                particles.push({ x: Math.random() * canvas.width, y: -10,
-                    vx: (Math.random() - 0.5) * 3, vy: 3 + Math.random() * 5,
-                    life: 20 + Math.random() * 15, maxLife: 35,
-                    color: Math.random() > 0.5 ? '#ff4466' : '#00d4ff' });
-            }}
         }
 
         // ── Acid Rain ──
@@ -4633,64 +4678,71 @@ function drawProjectiles() {
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
             }
         }
-        // ─── SELFIE: Flash Shot ───
-        else if (draw === 'flashShot') {
-            // Bright camera flash projectile
-            for (const t of p.trail) {
-                ctx.globalAlpha = t.alpha * 0.4;
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.3, 0, Math.PI * 2); ctx.fill();
-            }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 30;
-            // Bright white core
-            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.5);
-            g.addColorStop(0, '#fff'); g.addColorStop(0.3, '#ccf8ff'); g.addColorStop(0.6, '#00d4ff');
-            g.addColorStop(1, 'rgba(0,212,255,0)');
-            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.5, 0, Math.PI * 2); ctx.fill();
-            // Lens flare rays
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
-            for (let i = 0; i < 4; i++) {
-                const ra = Date.now() * 0.008 + i * 1.57;
-                ctx.beginPath(); ctx.moveTo(p.x + Math.cos(ra) * p.radius * 0.5, p.y + Math.sin(ra) * p.radius * 0.5);
-                ctx.lineTo(p.x + Math.cos(ra) * p.radius * 2, p.y + Math.sin(ra) * p.radius * 2); ctx.stroke();
-            }
-            ctx.shadowBlur = 0;
-            if (Math.random() < 0.4) {
-                particles.push({ x: p.x + (Math.random() - 0.5) * 10, y: p.y + (Math.random() - 0.5) * 10,
-                    vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3,
-                    life: 5 + Math.random() * 4, maxLife: 9, color: '#fff' });
-            }
-        }
-        // ─── SELFIE: Phone Yeet ───
-        else if (draw === 'phoneYeet') {
+        // ─── FACE: Face Shot (flying face) ───
+        else if (draw === 'faceShot') {
             const dir = p.vx > 0 ? 1 : -1;
-            ctx.save(); ctx.translate(p.x, p.y);
-            ctx.rotate(Date.now() * 0.02 * dir); // spinning phone
-            ctx.globalAlpha = 1; ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 12;
-            // Phone body
-            ctx.fillStyle = '#222'; ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.roundRect(-10, -16, 20, 32, 3); ctx.fill(); ctx.stroke();
-            // Screen
-            ctx.fillStyle = '#00d4ff';
-            ctx.fillRect(-7, -12, 14, 22);
-            // Screen content — tiny selfie face (circle + smile)
-            ctx.fillStyle = '#ffcc88';
-            ctx.beginPath(); ctx.arc(0, -4, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.arc(0, -2, 3, 0.2, Math.PI - 0.2); ctx.stroke(); // smile
-            ctx.fillStyle = '#333';
-            ctx.beginPath(); ctx.arc(-2, -5, 1, 0, Math.PI * 2); ctx.fill(); // eye
-            ctx.beginPath(); ctx.arc(2, -5, 1, 0, Math.PI * 2); ctx.fill(); // eye
-            // Home button
-            ctx.fillStyle = '#444';
-            ctx.beginPath(); ctx.arc(0, 13, 2, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0; ctx.restore();
-            // Trail sparkles
-            if (Math.random() < 0.5) {
-                particles.push({ x: p.x - dir * 10, y: p.y + (Math.random() - 0.5) * 15,
-                    vx: -dir * 2, vy: (Math.random() - 0.5) * 2,
-                    life: 6 + Math.random() * 4, maxLife: 10, color: '#00d4ff' });
+            // Trail of smaller faces
+            for (const t of p.trail) {
+                if (t.alpha < 0.3) continue;
+                ctx.globalAlpha = t.alpha * 0.3;
+                ctx.fillStyle = '#ffcc99';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill();
             }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 15;
+            ctx.save(); ctx.translate(p.x, p.y);
+            ctx.rotate(Math.sin(Date.now() * 0.01) * 0.3); // slight wobble
+            const r = p.radius;
+            // Head
+            ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 0.2, r * 0.18, r * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(r * 0.3, -r * 0.2, r * 0.18, r * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#222';
+            ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.15, r * 0.1, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(r * 0.3, -r * 0.15, r * 0.1, 0, Math.PI * 2); ctx.fill();
+            // Big grin
+            ctx.fillStyle = '#cc3333';
+            ctx.beginPath(); ctx.arc(0, r * 0.2, r * 0.4, 0, Math.PI); ctx.fill();
+            ctx.fillStyle = '#fff'; // teeth
+            for (let t = -2; t <= 2; t++) ctx.fillRect(t * r * 0.12 - r * 0.04, r * 0.2, r * 0.08, r * 0.12);
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── FACE: Head Slam (giant face dropping from sky) ───
+        else if (draw === 'headSlam') {
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 25;
+            ctx.save(); ctx.translate(p.x, p.y);
+            const r = p.radius;
+            // Shadow on ground
+            ctx.restore(); ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath(); ctx.ellipse(p.x, groundY + 3, r * 0.7, 10, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.save(); ctx.translate(p.x, p.y);
+            // Giant head
+            ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+            // Eyes — wide and menacing
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.ellipse(-r * 0.28, -r * 0.2, r * 0.16, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(r * 0.28, -r * 0.2, r * 0.16, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#222';
+            ctx.beginPath(); ctx.arc(-r * 0.28, -r * 0.17, r * 0.08, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(r * 0.28, -r * 0.17, r * 0.08, 0, Math.PI * 2); ctx.fill();
+            // Angry eyebrows
+            ctx.strokeStyle = '#996633'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(-r * 0.45, -r * 0.3); ctx.lineTo(-r * 0.15, -r * 0.42); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(r * 0.45, -r * 0.3); ctx.lineTo(r * 0.15, -r * 0.42); ctx.stroke();
+            // Open mouth screaming
+            ctx.fillStyle = '#990000';
+            ctx.beginPath(); ctx.ellipse(0, r * 0.25, r * 0.35, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff';
+            for (let t = -3; t <= 3; t++) ctx.fillRect(t * r * 0.08 - r * 0.03, r * 0.25 - r * 0.2, r * 0.06, r * 0.08);
+            ctx.restore(); ctx.shadowBlur = 0;
+            // Speed lines
+            ctx.globalAlpha = 0.4; ctx.strokeStyle = '#ffaa88'; ctx.lineWidth = 2;
+            for (let s = 0; s < 4; s++) {
+                const sx = p.x + (Math.random() - 0.5) * r;
+                ctx.beginPath(); ctx.moveTo(sx, p.y - r); ctx.lineTo(sx, p.y - r - 20 - Math.random() * 30); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
         }
 
         // ─── CORRUPTION: Tainted Shot ───
