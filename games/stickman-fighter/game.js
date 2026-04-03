@@ -1351,6 +1351,7 @@ class Fighter {
             const rageActive = this.rageActive;
             const isUlt = index === 3;
             setTimeout(() => {
+                if (gameState !== 'playing') return; // Don't fire after round/game end
                 // Check if opponent is still near the targeted spot
                 const dx = opponent.x - targetX;
                 const dy = (opponent.y - opponent.height * 0.5) - targetY;
@@ -3583,9 +3584,11 @@ function updateProjectiles() {
             }
         }
 
-        p.x += p.vx;
-        p.y += (p.vy || 0);
-        p.life--;
+        if (!p.isAcidMonster && !p.isRageTornado && !p.isTornadoDebris) {
+            p.x += p.vx;
+            p.y += (p.vy || 0);
+            p.life--;
+        }
 
         // Skip trail/hit for boulders (handled above)
         if (p.isBoulder) {
@@ -3761,7 +3764,7 @@ function updateProjectiles() {
         // Hit detection
         const hitY = p.isMeteor ? p.y : (p.target.y - p.target.height * 0.5);
         const dx = p.x - p.target.x;
-        const dy = (p.isMeteor ? p.y : p.y) - hitY;
+        const dy = p.y - hitY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < p.radius + 30) {
@@ -5215,6 +5218,8 @@ function resetPositions() {
     player1.reset(); player2.reset();
     projectiles.length = 0;
     visualEffects.length = 0;
+    particles.length = 0;
+    damageNumbers.length = 0;
 }
 
 // ── Input ──
@@ -5418,7 +5423,7 @@ function drawHellBackground(alpha) {
 function updateUI() {
     document.getElementById('p1-health').style.width = (player1.health / MAX_HEALTH * 100) + '%';
     document.getElementById('p2-health').style.width = (player2.health / MAX_HEALTH * 100) + '%';
-    document.getElementById('round-info').textContent = `Round ${currentRound}  |  ${p1Wins} - ${p2Wins}`;
+    document.getElementById('round-info').textContent = trainingMode ? 'TRAINING MODE' : `Round ${currentRound}  |  ${p1Wins} - ${p2Wins}`;
 }
 
 function drawCooldowns() {
@@ -5584,12 +5589,14 @@ function endRound() {
     clearInterval(timerInterval);
     if (player1.health > player2.health) p1Wins++;
     else if (player2.health > player1.health) p2Wins++;
+    else p1Wins++; // tie-breaker: P1 wins draws to prevent endless games
     if (p1Wins >= ROUNDS_TO_WIN) endGame('Player 1 Wins!');
     else if (p2Wins >= ROUNDS_TO_WIN) endGame('Player 2 Wins!');
     else { currentRound++; resetPositions(); startTimer(); }
 }
 function endGame(text) {
     gameState = 'result';
+    clearInterval(timerInterval);
     document.getElementById('result-text').textContent = text;
     document.getElementById('result-screen').classList.remove('hidden');
     document.getElementById('ui-overlay').style.display = 'none';
@@ -5715,6 +5722,7 @@ function startFight() {
     if (!p1Style || !p2Style) return;
     player1.style = p1Style; player2.style = p2Style;
     gameState = 'playing'; p1Wins = 0; p2Wins = 0; currentRound = 1;
+    clearInterval(timerInterval);
     particles.length = 0; projectiles.length = 0; visualEffects.length = 0;
     resetPositions();
     document.getElementById('p1-name').textContent = 'P1 ' + STYLES[p1Style].name;
