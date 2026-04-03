@@ -3333,43 +3333,45 @@ function updateProjectiles() {
         if (p.trail.length > 35) p.trail.shift();
         for (const t of p.trail) t.alpha *= 0.87;
 
-        // Hit detection — in team mode check all enemies, not just p.target
-        const hitTargets = teamMode
-            ? (p.owner === player1 || p.owner === player2 ? [aiFighter1, aiFighter2] : [player1, player2])
-            : [p.target];
-        let hitSomeone = false;
-        for (const ht of hitTargets) {
-            if (ht.health <= 0) continue;
-            const hitY = p.isMeteor ? p.y : (ht.y - ht.height * 0.5);
-            const dx = p.x - ht.x;
-            const dy = (p.isMeteor ? p.y : p.y) - hitY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < p.radius + 30) {
-                let damage = p.atk.damage;
-                if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
-                damage = p.owner.applyComboBonus(damage);
-                let kb = p.atk.knockback;
-                if (ht.blocking) {
-                    damage = Math.floor(damage * (1 - p.atk.blockReduction));
-                    kb *= (1 - p.atk.blockReduction);
-                }
-                ht.health = Math.max(0, ht.health - damage);
-                spawnDamageNumber(ht.x, ht.y - ht.height - 10, damage, p.styleData.color);
-                p.owner.addCombo();
-                ht.hitTimer = 15; ht.hit = true;
-                ht.x += (p.vx > 0 ? 1 : p.vx < 0 ? -1 : p.owner.facing) * kb;
-                spawnElementParticles(p.x, p.y, p.styleData, p.owner.rageActive ? 100 : 60);
-                if (p.rageVfx) triggerRageUltVFX(p.rageVfx, p.x, p.y, p.owner.facing);
-                const impactPow = p.atk.damage;
-                triggerScreenShake(Math.min(impactPow * 1.2, 28), Math.min(impactPow * 1.0, 30));
-                triggerHitstop(Math.max(3, Math.floor(impactPow / 5)));
-                triggerScreenFlash(p.styleData.color, Math.min(impactPow / 35, 0.6));
-                visualEffects.push({ type: 'impactRing', x: p.x, y: p.y, life: 25, maxLife: 25, color: p.styleData.color });
-                if (p.isMeteor) { triggerScreenShake(40, 45); triggerHitstop(14); triggerScreenFlash('#ff4400', 0.85); spawnMeteorImpact(p.x, p.y); }
-                hitSomeone = true; break;
+        // Hit detection
+        const hitY = p.isMeteor ? p.y : (p.target.y - p.target.height * 0.5);
+        const dx = p.x - p.target.x;
+        const dy = (p.isMeteor ? p.y : p.y) - hitY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < p.radius + 30) {
+            let damage = p.atk.damage;
+            if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
+            damage = p.owner.applyComboBonus(damage);
+            let kb = p.atk.knockback;
+            if (p.target.blocking) {
+                damage = Math.floor(damage * (1 - p.atk.blockReduction));
+                kb *= (1 - p.atk.blockReduction);
             }
+            p.target.health = Math.max(0, p.target.health - damage);
+            spawnDamageNumber(p.target.x, p.target.y - p.target.height - 10, damage, p.styleData.color);
+            p.owner.addCombo();
+            p.target.hitTimer = 15;
+            p.target.hit = true;
+            p.target.x += (p.vx > 0 ? 1 : p.vx < 0 ? -1 : p.owner.facing) * kb;
+
+            spawnElementParticles(p.x, p.y, p.styleData, p.owner.rageActive ? 100 : 60);
+            if (p.rageVfx) triggerRageUltVFX(p.rageVfx, p.x, p.y, p.owner.facing);
+            // Impact effects scale with damage
+            const impactPow = p.atk.damage;
+            triggerScreenShake(Math.min(impactPow * 1.2, 28), Math.min(impactPow * 1.0, 30));
+            triggerHitstop(Math.max(3, Math.floor(impactPow / 5)));
+            triggerScreenFlash(p.styleData.color, Math.min(impactPow / 35, 0.6));
+            visualEffects.push({ type: 'impactRing', x: p.x, y: p.y, life: 25, maxLife: 25, color: p.styleData.color });
+            if (p.isMeteor) {
+                triggerScreenShake(40, 45);
+                triggerHitstop(14);
+                triggerScreenFlash('#ff4400', 0.85);
+                spawnMeteorImpact(p.x, p.y);
+            }
+            projectiles.splice(i, 1);
+            continue;
         }
-        if (hitSomeone) { projectiles.splice(i, 1); continue; }
 
         // Meteor hits ground (missed)
         if (p.isMeteor && p.y >= groundY) {
@@ -4919,68 +4921,9 @@ function drawHellBackground(alpha) {
 }
 
 function updateUI() {
-    if (teamMode) {
-        // In team mode, hide HTML health bars and use canvas-drawn ones
-        document.getElementById('p1-health').style.width = '0%';
-        document.getElementById('p2-health').style.width = '0%';
-        document.getElementById('p1-name').textContent = '';
-        document.getElementById('p2-name').textContent = '';
-        document.getElementById('round-info').textContent = `Round ${currentRound}  |  Players ${p1Wins} - ${p2Wins} AI`;
-    } else {
-        document.getElementById('p1-health').style.width = (player1.health / MAX_HEALTH * 100) + '%';
-        document.getElementById('p2-health').style.width = (player2.health / MAX_HEALTH * 100) + '%';
-        document.getElementById('round-info').textContent = `Round ${currentRound}  |  ${p1Wins} - ${p2Wins}`;
-    }
-}
-
-function drawTeamHealthBars() {
-    if (!teamMode) return;
-    const barW = 180, barH = 16, gap = 24, startX = 32, startY = 16;
-
-    // ── Left side: Human Team ──
-    // Player 1
-    ctx.font = 'bold 12px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'left';
-    ctx.fillStyle = '#e74c3c'; ctx.fillText('P1 ' + (player1.style ? STYLES[player1.style].name : ''), startX, startY);
-    ctx.fillStyle = '#222'; ctx.fillRect(startX, startY + 4, barW, barH);
-    ctx.fillStyle = player1.health > 0 ? '#e74c3c' : '#444';
-    ctx.fillRect(startX, startY + 4, barW * Math.max(0, player1.health / MAX_HEALTH), barH);
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(startX, startY + 4, barW, barH);
-    if (player1.health <= 0) { ctx.fillStyle = '#ff4444'; ctx.font = 'bold 10px sans-serif'; ctx.fillText('KO', startX + barW - 20, startY + 16); }
-
-    // Player 2
-    const p2y = startY + gap + barH;
-    ctx.font = 'bold 12px "Segoe UI",Arial,sans-serif';
-    ctx.fillStyle = '#3498db'; ctx.fillText('P2 ' + (player2.style ? STYLES[player2.style].name : ''), startX, p2y);
-    ctx.fillStyle = '#222'; ctx.fillRect(startX, p2y + 4, barW, barH);
-    ctx.fillStyle = player2.health > 0 ? '#3498db' : '#444';
-    ctx.fillRect(startX, p2y + 4, barW * Math.max(0, player2.health / MAX_HEALTH), barH);
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(startX, p2y + 4, barW, barH);
-    if (player2.health <= 0) { ctx.fillStyle = '#ff4444'; ctx.font = 'bold 10px sans-serif'; ctx.fillText('KO', startX + barW - 20, p2y + 16); }
-
-    // ── Right side: AI Team ──
-    const rX = canvas.width - 32 - barW;
-    ctx.textAlign = 'right';
-    // AI 1
-    ctx.font = 'bold 12px "Segoe UI",Arial,sans-serif';
-    ctx.fillStyle = '#e67e22'; ctx.fillText('AI1 ' + (aiFighter1.style ? STYLES[aiFighter1.style].name : ''), rX + barW, startY);
-    ctx.fillStyle = '#222'; ctx.fillRect(rX, startY + 4, barW, barH);
-    ctx.fillStyle = aiFighter1.health > 0 ? '#e67e22' : '#444';
-    ctx.fillRect(rX + barW - barW * Math.max(0, aiFighter1.health / MAX_HEALTH), startY + 4, barW * Math.max(0, aiFighter1.health / MAX_HEALTH), barH);
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(rX, startY + 4, barW, barH);
-    if (aiFighter1.health <= 0) { ctx.textAlign = 'left'; ctx.fillStyle = '#ff4444'; ctx.font = 'bold 10px sans-serif'; ctx.fillText('KO', rX + 4, startY + 16); }
-
-    // AI 2
-    ctx.textAlign = 'right';
-    const a2y = startY + gap + barH;
-    ctx.font = 'bold 12px "Segoe UI",Arial,sans-serif';
-    ctx.fillStyle = '#9b59b6'; ctx.fillText('AI2 ' + (aiFighter2.style ? STYLES[aiFighter2.style].name : ''), rX + barW, a2y);
-    ctx.fillStyle = '#222'; ctx.fillRect(rX, a2y + 4, barW, barH);
-    ctx.fillStyle = aiFighter2.health > 0 ? '#9b59b6' : '#444';
-    ctx.fillRect(rX + barW - barW * Math.max(0, aiFighter2.health / MAX_HEALTH), a2y + 4, barW * Math.max(0, aiFighter2.health / MAX_HEALTH), barH);
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(rX, a2y + 4, barW, barH);
-    if (aiFighter2.health <= 0) { ctx.textAlign = 'left'; ctx.fillStyle = '#ff4444'; ctx.font = 'bold 10px sans-serif'; ctx.fillText('KO', rX + 4, a2y + 16); }
-
-    ctx.textAlign = 'left';
+    document.getElementById('p1-health').style.width = (player1.health / MAX_HEALTH * 100) + '%';
+    document.getElementById('p2-health').style.width = (player2.health / MAX_HEALTH * 100) + '%';
+    document.getElementById('round-info').textContent = `Round ${currentRound}  |  ${p1Wins} - ${p2Wins}`;
 }
 
 function drawCooldowns() {
@@ -5245,9 +5188,31 @@ function gameLoop() {
     if (teamMode) checkTeamRoundEnd();
     else if (!trainingMode) checkRoundEnd();
 
-    // Team mode: draw all 4 health bars on canvas
+    // Team mode health bars for AI fighters
     if (teamMode) {
-        drawTeamHealthBars();
+        const barW = 100, barH = 10;
+        // AI 1 health bar
+        const a1x = canvas.width - 32 - barW, a1y = 55;
+        ctx.fillStyle = '#333'; ctx.fillRect(a1x, a1y, barW, barH);
+        ctx.fillStyle = '#e67e22'; ctx.fillRect(a1x, a1y, barW * (aiFighter1.health / MAX_HEALTH), barH);
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(a1x, a1y, barW, barH);
+        ctx.font = '10px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = '#e67e22';
+        ctx.fillText('AI1 ' + (aiFighter1.style ? STYLES[aiFighter1.style].name : ''), a1x + barW, a1y - 3);
+        // AI 2 health bar
+        const a2y = a1y + 18;
+        ctx.fillStyle = '#333'; ctx.fillRect(a1x, a2y, barW, barH);
+        ctx.fillStyle = '#9b59b6'; ctx.fillRect(a1x, a2y, barW * (aiFighter2.health / MAX_HEALTH), barH);
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(a1x, a2y, barW, barH);
+        ctx.fillStyle = '#9b59b6'; ctx.textAlign = 'right';
+        ctx.fillText('AI2 ' + (aiFighter2.style ? STYLES[aiFighter2.style].name : ''), a1x + barW, a2y - 3);
+        // P2 health bar (below P1)
+        const p2x = 32, p2y = 55;
+        ctx.fillStyle = '#333'; ctx.fillRect(p2x, p2y, barW, barH);
+        ctx.fillStyle = '#3498db'; ctx.fillRect(p2x, p2y, barW * (player2.health / MAX_HEALTH), barH);
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(p2x, p2y, barW, barH);
+        ctx.textAlign = 'left'; ctx.fillStyle = '#3498db';
+        ctx.fillText('P2 ' + (player2.style ? STYLES[player2.style].name : ''), p2x, p2y - 3);
+
         ctx.font = '14px "Segoe UI",Arial,sans-serif';
         ctx.textAlign = 'center'; ctx.fillStyle = '#f39c12'; ctx.globalAlpha = 0.6;
         ctx.fillText('2v2 TEAM BATTLE', canvas.width / 2, groundY + 30);
@@ -5325,10 +5290,8 @@ function startFight() {
     }
 
     resetPositions();
-    if (!teamMode) {
-        document.getElementById('p1-name').textContent = 'P1 ' + STYLES[p1Style].name;
-        document.getElementById('p2-name').textContent = 'P2 ' + STYLES[p2Style].name;
-    }
+    document.getElementById('p1-name').textContent = 'P1 ' + STYLES[p1Style].name;
+    document.getElementById('p2-name').textContent = teamMode ? 'Team AI' : 'P2 ' + STYLES[p2Style].name;
     document.getElementById('select-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('ui-overlay').style.display = 'block';
