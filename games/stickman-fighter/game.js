@@ -41,7 +41,7 @@ const STYLES = {
         attacks: [
             { name: 'Water Bolt',  type: 'projectile', damage: 8,  cooldown: 100,  speed: 10, radius: 20, knockback: 6,  blockReduction: 0.6, draw: 'waterBolt' },
             { name: 'Tidal Wave',  type: 'projectile', damage: 14, cooldown: 270,  speed: 5,  radius: 55, knockback: 18, blockReduction: 0.4, draw: 'tidalWave' },
-            { name: 'Ice Spike',   type: 'projectile', damage: 22, cooldown: 360,  speed: 16, radius: 22, knockback: 6,  blockReduction: 0.3, draw: 'iceSpike' },
+            { name: 'Ice Spike',   type: 'instant',    damage: 22, cooldown: 360,  range: 350, knockback: 6,  blockReduction: 0.3, vfx: 'iceSpike', launchUp: -20 },
             { name: 'Tsunami',     type: 'projectile', damage: 30, cooldown: 600,  speed: 3,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'tsunami' },
         ],
     },
@@ -257,6 +257,10 @@ class Fighter {
                 opponent.hitTimer = 12;
                 opponent.hit = true;
                 opponent.x += dir * kb;
+                if (atk.launchUp) {
+                    opponent.vy = atk.launchUp;
+                    opponent.onGround = false;
+                }
                 this.spawnInstantVFX(atk, styleData, opponent, dir);
                 spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 55);
                 triggerScreenShake(Math.min(atk.damage * 1.2, 30), Math.min(atk.damage * 1.0, 30));
@@ -278,6 +282,7 @@ class Fighter {
         else if (vfx === 'pillar') spawnFirePillar(opponent.x, groundY);
         else if (vfx === 'gust') spawnWindGust(this.x, this.y - this.height * 0.5, dir);
         else if (vfx === 'cyclone') spawnCyclone(this.x, this.y - this.height * 0.3);
+        else if (vfx === 'iceSpike') spawnIceSpike(opponent.x, groundY);
         else if (vfx === 'earthPillar') spawnEarthPillar(opponent.x, groundY);
     }
 
@@ -416,6 +421,21 @@ function spawnBoulderImpact(x, y) {
             vx: (Math.random() - 0.5) * 12, vy: -6 - Math.random() * 14,
             life: 25 + Math.random() * 15, maxLife: 40,
             color: `hsl(25, 50%, ${20 + Math.random() * 15}%)` });
+    }
+}
+
+function spawnIceSpike(x, y) {
+    visualEffects.push({ type: 'iceSpike', x, y, life: 55, maxLife: 55 });
+    triggerScreenShake(12, 18);
+    triggerScreenFlash('#85c1e9', 0.3);
+    // Ice shards burst
+    for (let i = 0; i < 30; i++) {
+        const a = -Math.PI * 0.15 - Math.random() * Math.PI * 0.7;
+        const s = 2 + Math.random() * 7;
+        particles.push({ x: x + (Math.random() - 0.5) * 40, y,
+            vx: Math.cos(a) * s * (Math.random() > 0.5 ? 1 : -1), vy: -3 - Math.random() * 8,
+            life: 15 + Math.random() * 15, maxLife: 30,
+            color: `hsl(${200 + Math.random() * 15}, ${60 + Math.random() * 30}%, ${60 + Math.random() * 30}%)` });
     }
 }
 
@@ -612,6 +632,95 @@ function drawVisualEffects() {
                     vx: Math.cos(pa + 1.5) * 5, vy: Math.sin(pa + 1.5) * 3 - 2,
                     life: 12 + Math.random() * 8, maxLife: 20,
                     color: `hsl(170, 50%, ${50 + Math.random() * 30}%)` });
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        if (vfx.type === 'iceSpike') {
+            const prog = 1 - a;
+            const spikeH = Math.min(prog * 5, 1) * 380;
+            ctx.globalAlpha = a * 0.95;
+            ctx.shadowColor = '#85c1e9'; ctx.shadowBlur = 30;
+
+            // Main ice spike — huge jagged crystal
+            const grd = ctx.createLinearGradient(vfx.x, vfx.y, vfx.x, vfx.y - spikeH);
+            grd.addColorStop(0, '#2980b9');
+            grd.addColorStop(0.3, '#5dade2');
+            grd.addColorStop(0.6, '#aed6f1');
+            grd.addColorStop(1, '#d6eaf8');
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.moveTo(vfx.x - 40, vfx.y);
+            ctx.lineTo(vfx.x - 25, vfx.y - spikeH * 0.35);
+            ctx.lineTo(vfx.x - 12, vfx.y - spikeH * 0.65);
+            ctx.lineTo(vfx.x, vfx.y - spikeH);
+            ctx.lineTo(vfx.x + 14, vfx.y - spikeH * 0.6);
+            ctx.lineTo(vfx.x + 28, vfx.y - spikeH * 0.3);
+            ctx.lineTo(vfx.x + 40, vfx.y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Inner bright highlight — glassy shine
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.beginPath();
+            ctx.moveTo(vfx.x - 18, vfx.y);
+            ctx.lineTo(vfx.x - 8, vfx.y - spikeH * 0.55);
+            ctx.lineTo(vfx.x, vfx.y - spikeH * 0.9);
+            ctx.lineTo(vfx.x + 10, vfx.y - spikeH * 0.45);
+            ctx.lineTo(vfx.x + 18, vfx.y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Side spikes — smaller crystals
+            const sideH = spikeH * 0.5;
+            ctx.fillStyle = '#85c1e9';
+            // Left side spike
+            ctx.beginPath();
+            ctx.moveTo(vfx.x - 38, vfx.y);
+            ctx.lineTo(vfx.x - 50, vfx.y - sideH * 0.6);
+            ctx.lineTo(vfx.x - 42, vfx.y - sideH);
+            ctx.lineTo(vfx.x - 30, vfx.y - sideH * 0.4);
+            ctx.lineTo(vfx.x - 25, vfx.y);
+            ctx.closePath();
+            ctx.fill();
+            // Right side spike
+            ctx.beginPath();
+            ctx.moveTo(vfx.x + 25, vfx.y);
+            ctx.lineTo(vfx.x + 32, vfx.y - sideH * 0.4);
+            ctx.lineTo(vfx.x + 45, vfx.y - sideH);
+            ctx.lineTo(vfx.x + 52, vfx.y - sideH * 0.55);
+            ctx.lineTo(vfx.x + 40, vfx.y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Bright white edge lines — crystal facets
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(vfx.x - 12, vfx.y - spikeH * 0.65);
+            ctx.lineTo(vfx.x, vfx.y - spikeH);
+            ctx.lineTo(vfx.x + 14, vfx.y - spikeH * 0.6);
+            ctx.stroke();
+
+            // Ground crack / frost spread
+            ctx.strokeStyle = '#85c1e9'; ctx.lineWidth = 3;
+            ctx.shadowColor = '#aed6f1'; ctx.shadowBlur = 15;
+            for (let j = 0; j < 10; j++) {
+                const ca = (j / 10) * Math.PI * 2;
+                const cr = 30 + prog * 100;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x, vfx.y);
+                ctx.lineTo(vfx.x + Math.cos(ca) * cr, vfx.y + Math.sin(ca) * cr * 0.25);
+                ctx.stroke();
+            }
+
+            // Ice dust during eruption
+            if (prog < 0.4 && vfx.life % 2 === 0) {
+                for (let d = 0; d < 5; d++) {
+                    particles.push({ x: vfx.x + (Math.random() - 0.5) * 70, y: vfx.y - Math.random() * spikeH * 0.3,
+                        vx: (Math.random() - 0.5) * 6, vy: -3 - Math.random() * 5,
+                        life: 10 + Math.random() * 10, maxLife: 20,
+                        color: `hsl(${200 + Math.random() * 10}, 70%, ${70 + Math.random() * 25}%)` });
+                }
             }
             ctx.shadowBlur = 0;
         }
