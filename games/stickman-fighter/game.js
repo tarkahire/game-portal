@@ -459,6 +459,9 @@ function drawScreenFlash() {
 
 // ── State ──
 let groundY, gameState, timer, timerInterval;
+let victoryTimer = 0;
+let victoryWinner = null;
+let victoryText = '';
 let p1Wins = 0, p2Wins = 0, currentRound = 1;
 let aiMode = false;
 let trainingMode = false;
@@ -10768,6 +10771,904 @@ function drawDamageNumbers() {
     ctx.globalAlpha = 1;
 }
 
+function drawVictoryDance(fighter, frame) {
+    ctx.save();
+    ctx.translate(fighter.x, fighter.y);
+    ctx.scale(fighter.facing, 1);
+
+    const t = frame / 60; // seconds elapsed
+    const bounce = Math.abs(Math.sin(t * 4)) * 15;
+    const sway = Math.sin(t * 3) * 10;
+    const spin = t * Math.PI * 2;
+    const headY = -fighter.height;
+    const styleColor = STYLES[fighter.style]?.color || fighter.color;
+
+    ctx.strokeStyle = fighter.color;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+
+    switch (fighter.style) {
+        case 'lightning': {
+            // Breakdance with electric sparks — spinning on head
+            const spinAngle = frame * 0.15;
+            ctx.translate(sway, 0);
+            // Head on ground (inverted)
+            ctx.beginPath(); ctx.arc(0, -14, 14, 0, Math.PI * 2); ctx.stroke();
+            // Body spinning upward
+            ctx.save(); ctx.translate(0, -14); ctx.rotate(spinAngle);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -55); ctx.stroke();
+            // Legs spread while spinning
+            ctx.beginPath(); ctx.moveTo(0, -55); ctx.lineTo(-25, -75); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -55); ctx.lineTo(25, -75); ctx.stroke();
+            // Arms out
+            ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-30, -10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(30, -10); ctx.stroke();
+            ctx.restore();
+            // Electric sparks
+            for (let i = 0; i < 3; i++) {
+                ctx.strokeStyle = '#00cfff';
+                ctx.beginPath();
+                const sx = (Math.random() - 0.5) * 60, sy = -Math.random() * 80;
+                ctx.moveTo(sx, sy); ctx.lineTo(sx + (Math.random() - 0.5) * 20, sy + (Math.random() - 0.5) * 20);
+                ctx.stroke();
+            }
+            ctx.strokeStyle = fighter.color;
+            break;
+        }
+        case 'fire': {
+            // Fire spinning dance — arms swing in circles leaving fire trails
+            ctx.translate(0, -bounce * 0.5);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Spinning arms
+            const armAngle = spin * 2;
+            const lx = Math.cos(armAngle) * 30, ly = headY + 25 + Math.sin(armAngle) * 30;
+            const rx = Math.cos(armAngle + Math.PI) * 30, ry = headY + 25 + Math.sin(armAngle + Math.PI) * 30;
+            ctx.beginPath(); ctx.moveTo(0, headY + 25); ctx.lineTo(lx, ly); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 25); ctx.lineTo(rx, ry); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Fire trail particles
+            if (frame % 2 === 0) {
+                particles.push({ x: fighter.x + lx * fighter.facing, y: fighter.y + ly, vx: (Math.random() - 0.5) * 2, vy: -2, life: 15, maxLife: 15, color: '#ff6600' });
+                particles.push({ x: fighter.x + rx * fighter.facing, y: fighter.y + ry, vx: (Math.random() - 0.5) * 2, vy: -2, life: 15, maxLife: 15, color: '#ffcc00' });
+            }
+            break;
+        }
+        case 'water': {
+            // Graceful wave dance — body flows like water
+            const wave = Math.sin(t * 3) * 20;
+            const wave2 = Math.cos(t * 3) * 15;
+            ctx.strokeStyle = '#3498db';
+            ctx.beginPath(); ctx.arc(wave * 0.3, headY - bounce * 0.3, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(wave * 0.3, headY + 14); ctx.quadraticCurveTo(wave2, -70, -wave * 0.3, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(wave * 0.3, headY + 24); ctx.lineTo(wave, headY + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(wave * 0.3, headY + 24); ctx.lineTo(-wave, headY + 40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-wave * 0.3, -40); ctx.lineTo(-10 + wave2 * 0.5, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-wave * 0.3, -40); ctx.lineTo(10 - wave2 * 0.5, 0); ctx.stroke();
+            // Water droplets
+            if (frame % 4 === 0) {
+                particles.push({ x: fighter.x + wave * fighter.facing, y: fighter.y - 50, vx: (Math.random() - 0.5) * 3, vy: -2, life: 20, maxLife: 20, color: '#87ceeb' });
+            }
+            break;
+        }
+        case 'wind': {
+            // Levitates and spins like a top
+            const floatY = -20 - Math.sin(t * 2) * 10;
+            ctx.translate(0, floatY);
+            ctx.save(); ctx.rotate(spin * 1.5);
+            ctx.beginPath(); ctx.arc(0, headY + 50, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 64); ctx.lineTo(0, headY + 110); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 74); ctx.lineTo(-25, headY + 60); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 74); ctx.lineTo(25, headY + 60); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 110); ctx.lineTo(-12, headY + 130); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 110); ctx.lineTo(12, headY + 130); ctx.stroke();
+            ctx.restore();
+            // Wind circles
+            ctx.strokeStyle = 'rgba(26,188,156,0.4)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                const r = 30 + i * 15 + Math.sin(t * 4 + i) * 5;
+                ctx.beginPath(); ctx.arc(0, -50 + floatY, r, spin + i, spin + i + 2); ctx.stroke();
+            }
+            break;
+        }
+        case 'earth': {
+            // Stomps the ground repeatedly, rocks fly up
+            const stompPhase = (frame % 30) / 30;
+            const isStomping = stompPhase < 0.3;
+            const legBend = isStomping ? -10 : 0;
+            ctx.translate(0, isStomping ? 5 : 0);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-15, 0 + legBend); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(15, 0); ctx.stroke();
+            // Rocks fly up on stomp
+            if (frame % 30 === 1) {
+                for (let i = 0; i < 4; i++) {
+                    particles.push({ x: fighter.x + (Math.random() - 0.5) * 40, y: fighter.y, vx: (Math.random() - 0.5) * 4, vy: -5 - Math.random() * 5, life: 25, maxLife: 25, color: '#a0522d' });
+                }
+            }
+            break;
+        }
+        case 'acid': {
+            // Moonwalk — slides backward leaving acid trail
+            const slideX = ((frame % 60) / 60) * 80 - 40;
+            ctx.translate(slideX, 0);
+            const legAnim = Math.sin(t * 6) * 12;
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10 + legAnim, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10 - legAnim, 0); ctx.stroke();
+            // Acid drips trail
+            if (frame % 3 === 0) {
+                particles.push({ x: fighter.x + slideX * fighter.facing, y: fighter.y, vx: 0, vy: -1, life: 30, maxLife: 30, color: '#39ff14' });
+            }
+            break;
+        }
+        case 'light': {
+            // Ascends with golden wings spread, holy rays
+            const ascend = Math.min(t * 15, 25);
+            ctx.translate(0, -ascend);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Arms spread wide (T-pose / divine)
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-35, headY + 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(35, headY + 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Golden wings
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+            const wingFlap = Math.sin(t * 5) * 10;
+            for (let w = 0; w < 4; w++) {
+                ctx.beginPath(); ctx.moveTo(0, headY + 25);
+                ctx.quadraticCurveTo(-30 - w * 8, headY + 10 - wingFlap - w * 5, -50 - w * 5, headY + 20 + w * 3); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 25);
+                ctx.quadraticCurveTo(30 + w * 8, headY + 10 - wingFlap - w * 5, 50 + w * 5, headY + 20 + w * 3); ctx.stroke();
+            }
+            // Holy rays
+            ctx.strokeStyle = 'rgba(255,215,0,0.3)'; ctx.lineWidth = 3;
+            for (let r = 0; r < 8; r++) {
+                const ra = (r / 8) * Math.PI * 2 + t;
+                ctx.beginPath(); ctx.moveTo(0, headY); ctx.lineTo(Math.cos(ra) * 60, headY + Math.sin(ra) * 60); ctx.stroke();
+            }
+            break;
+        }
+        case 'dark': {
+            // Dark lord pose, cape billows, dark energy swirls
+            ctx.translate(0, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Arms raised menacingly
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-12, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(12, 0); ctx.stroke();
+            // Billowing cape
+            ctx.fillStyle = 'rgba(142,68,173,0.4)';
+            ctx.beginPath(); ctx.moveTo(-10, headY + 20);
+            ctx.quadraticCurveTo(-40 + Math.sin(t * 3) * 10, -20, -30 + Math.sin(t * 2) * 15, 10);
+            ctx.lineTo(30 - Math.sin(t * 2) * 15, 10);
+            ctx.quadraticCurveTo(40 - Math.sin(t * 3) * 10, -20, 10, headY + 20);
+            ctx.fill();
+            // Dark energy swirl
+            ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                const a = spin + i * 1.2;
+                const r = 20 + i * 8;
+                ctx.beginPath(); ctx.arc(Math.cos(a) * r, -50 + Math.sin(a) * r * 0.5, 3, 0, Math.PI * 2); ctx.stroke();
+            }
+            break;
+        }
+        case 'shadow': {
+            // Ninja vanish/appear teleport dance, flickering
+            const flicker = Math.sin(frame * 0.5) > 0;
+            const teleportX = Math.sin(t * 4) * 50;
+            if (flicker) {
+                ctx.globalAlpha = 0.8;
+                ctx.translate(teleportX, 0);
+                ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 10); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 10); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+            // Smoke poof
+            if (frame % 15 === 0) {
+                for (let i = 0; i < 3; i++) {
+                    particles.push({ x: fighter.x + teleportX * fighter.facing, y: fighter.y - 50, vx: (Math.random() - 0.5) * 3, vy: -2, life: 15, maxLife: 15, color: '#708090' });
+                }
+            }
+            break;
+        }
+        case 'portal': {
+            // Steps through portals, appears at different spots
+            const portalPhase = (frame % 60) / 60;
+            const appearX = Math.sin(portalPhase * Math.PI * 2) * 60;
+            // Draw portals
+            ctx.strokeStyle = '#e056de'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.ellipse(-50, -50, 20, 35, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(50, -50, 20, 35, 0, 0, Math.PI * 2); ctx.stroke();
+            // Stickman popping out
+            ctx.strokeStyle = fighter.color; ctx.lineWidth = 4;
+            const clipAlpha = Math.abs(Math.sin(portalPhase * Math.PI));
+            ctx.globalAlpha = clipAlpha;
+            ctx.translate(appearX, 0);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 30); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 30); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            ctx.globalAlpha = 1;
+            break;
+        }
+        case 'washingmachine': {
+            // Spins drum wildly, clothes fly out
+            const drumSpin = frame * 0.2;
+            // Machine body
+            ctx.fillStyle = '#ddd'; ctx.strokeStyle = '#999'; ctx.lineWidth = 3;
+            ctx.fillRect(-30, -90, 60, 85); ctx.strokeRect(-30, -90, 60, 85);
+            // Drum window
+            ctx.fillStyle = '#1a3a5c';
+            ctx.beginPath(); ctx.arc(0, -48, 24, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, -48, 24, 0, Math.PI * 2); ctx.stroke();
+            // Spinning clothes
+            const clothes = ['#e74c3c', '#3498db', '#f39c12', '#2ecc71', '#9b59b6'];
+            for (let c = 0; c < clothes.length; c++) {
+                const ca = drumSpin + (c / clothes.length) * Math.PI * 2;
+                ctx.fillStyle = clothes[c];
+                ctx.beginPath(); ctx.arc(Math.cos(ca) * 14, -48 + Math.sin(ca) * 14, 5, 0, Math.PI * 2); ctx.fill();
+            }
+            // Clothes flying out
+            if (frame % 10 === 0) {
+                const clothColor = clothes[Math.floor(Math.random() * clothes.length)];
+                particles.push({ x: fighter.x, y: fighter.y - 48, vx: (Math.random() - 0.5) * 8, vy: -4 - Math.random() * 4, life: 30, maxLife: 30, color: clothColor });
+            }
+            // Wobble
+            ctx.fillStyle = '#999';
+            ctx.fillRect(-25, -5, 8, 5); ctx.fillRect(17, -5, 8, 5);
+            break;
+        }
+        case 'corruption': {
+            // Glitch dance — body teleports/tears
+            const glitchX = (Math.random() - 0.5) * 20;
+            const glitchY = (Math.random() - 0.5) * 10;
+            const slice = Math.floor(frame / 5) % 3;
+            ctx.translate(glitchX, glitchY);
+            ctx.strokeStyle = slice === 0 ? '#ff0055' : (slice === 1 ? '#00ff55' : '#5500ff');
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20 + (Math.random() - 0.5) * 10, headY + 35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20 + (Math.random() - 0.5) * 10, headY + 35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Glitch fragments
+            if (frame % 4 === 0) {
+                particles.push({ x: fighter.x + (Math.random() - 0.5) * 40, y: fighter.y - Math.random() * 80, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 3, life: 10, maxLife: 10, color: '#ff0055' });
+            }
+            break;
+        }
+        case 'crystal': {
+            // Poses while crystals grow around them
+            ctx.translate(0, -bounce * 0.3);
+            // Victory pose — arms crossed
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15, headY + 40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(15, headY + 40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-12, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(12, 0); ctx.stroke();
+            // Growing crystals
+            ctx.strokeStyle = '#00e5ff'; ctx.fillStyle = 'rgba(0,229,255,0.3)'; ctx.lineWidth = 2;
+            const growPhase = Math.min(t, 2) / 2;
+            for (let i = 0; i < 6; i++) {
+                const cx = -50 + i * 20;
+                const ch = (20 + i * 8) * growPhase;
+                ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx - 5, -ch); ctx.lineTo(cx, -ch - 8); ctx.lineTo(cx + 5, -ch); ctx.closePath();
+                ctx.fill(); ctx.stroke();
+            }
+            break;
+        }
+        case 'rubberduck': {
+            // Waddle dance, rubber duck squeaking
+            const waddle = Math.sin(t * 6) * 8;
+            ctx.translate(waddle, -bounce * 0.5);
+            ctx.rotate(Math.sin(t * 6) * 0.15);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Waddling arms
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 35 + Math.sin(t * 6) * 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 35 - Math.sin(t * 6) * 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10 + waddle * 0.5, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10 - waddle * 0.5, 0); ctx.stroke();
+            // "SQUEAK" text
+            if (frame % 30 < 15) {
+                ctx.font = 'bold 16px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillStyle = '#ffeb3b'; ctx.fillText('SQUEAK!', 0, headY - 25);
+            }
+            break;
+        }
+        case 'keyboard': {
+            // Types furiously, "GG" text appears above
+            ctx.translate(sway * 0.3, 0);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Typing arms — rapid movement
+            const typeL = Math.sin(frame * 0.5) * 5;
+            const typeR = Math.cos(frame * 0.5) * 5;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15 + typeL, headY + 45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(15 + typeR, headY + 45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Keyboard
+            ctx.fillStyle = '#444'; ctx.fillRect(-20, headY + 45, 40, 8);
+            // "GG EZ" text rising
+            ctx.font = 'bold 20px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
+            ctx.fillStyle = '#607d8b';
+            const ggY = headY - 20 - (frame % 40) * 0.5;
+            ctx.fillText('GG EZ', 0, ggY);
+            break;
+        }
+        case 'chef': {
+            // Flips pancakes, chef's kiss gesture
+            ctx.translate(0, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Pan arm — flipping
+            const flipAngle = Math.sin(t * 3) * 0.5;
+            ctx.save(); ctx.translate(-20, headY + 30);
+            ctx.rotate(flipAngle);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-15, 5); ctx.stroke();
+            // Pan
+            ctx.fillStyle = '#555'; ctx.fillRect(-20, 0, 20, 4);
+            ctx.restore();
+            // Chef kiss hand
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(15, headY + 10); ctx.stroke();
+            // Pancake flying
+            const pancakeY = headY + 20 - Math.abs(Math.sin(t * 3)) * 40;
+            ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.ellipse(-20, pancakeY, 10, 4, flipAngle, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Chef hat
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-12, headY - 10, 24, 10);
+            ctx.beginPath(); ctx.arc(0, headY - 10, 14, Math.PI, 0); ctx.fill();
+            break;
+        }
+        case 'dj': {
+            // Scratches turntable, speakers blast
+            ctx.translate(0, -bounce * 0.5);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Scratching arm
+            const scratchX = Math.sin(frame * 0.3) * 10;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15 + scratchX, headY + 45); ctx.stroke();
+            // Fist pump arm
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 5 - bounce); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Turntable
+            ctx.fillStyle = '#333'; ctx.beginPath(); ctx.ellipse(-15, headY + 50, 18, 6, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#e040fb'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(-15, headY + 50, 12, 0, spin * 2); ctx.stroke();
+            // Sound waves
+            ctx.strokeStyle = '#e040fb'; ctx.lineWidth = 2;
+            for (let i = 1; i <= 3; i++) {
+                ctx.globalAlpha = 0.5 - i * 0.15;
+                ctx.beginPath(); ctx.arc(30, headY + 30, 10 + i * 8 + Math.sin(t * 8) * 3, -0.5, 0.5); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            break;
+        }
+        case 'pigeon': {
+            // Head bob walk (pigeon strut), pecks ground
+            const walkX = ((frame % 80) / 80) * 80 - 40;
+            const headBob = Math.abs(Math.sin(t * 8)) * 10;
+            ctx.translate(walkX, 0);
+            // Head bobbing forward
+            ctx.beginPath(); ctx.arc(5 + headBob * 0.3, headY + headBob * 0.2, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Wings tucked
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15, headY + 35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(15, headY + 35); ctx.stroke();
+            // Walking legs
+            const legAnim = Math.sin(t * 8) * 10;
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-8 + legAnim, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(8 - legAnim, 0); ctx.stroke();
+            // "Coo" text
+            if (frame % 40 < 20) {
+                ctx.font = '14px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillStyle = '#9e9e9e'; ctx.fillText('Coo!', 0, headY - 20);
+            }
+            break;
+        }
+        case 'samurai': {
+            // Sheathes sword dramatically, wind blows
+            const sheathProgress = Math.min(t / 2, 1);
+            ctx.translate(0, -bounce * 0.2);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Sword arm — sheathing motion
+            const swordAngle = (1 - sheathProgress) * Math.PI * 0.7;
+            ctx.save(); ctx.translate(15, headY + 24);
+            ctx.rotate(-swordAngle);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -40); ctx.stroke();
+            // Sword blade
+            ctx.strokeStyle = '#c8d6e5'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(0, -75); ctx.stroke();
+            ctx.restore();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15, headY + 38); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-12, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(12, 0); ctx.stroke();
+            // Wind lines
+            ctx.strokeStyle = 'rgba(200,214,229,0.4)'; ctx.lineWidth = 1;
+            for (let i = 0; i < 4; i++) {
+                const wy = headY + i * 20;
+                ctx.beginPath(); ctx.moveTo(-60 + frame * 2 % 120, wy); ctx.lineTo(-30 + frame * 2 % 120, wy); ctx.stroke();
+            }
+            break;
+        }
+        case 'selfie': {
+            // Takes selfie, flash goes off, peace sign
+            ctx.translate(sway * 0.3, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Phone hand — selfie stick
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(30, headY - 5); ctx.stroke();
+            ctx.fillStyle = '#333'; ctx.fillRect(26, headY - 15, 10, 16);
+            // Peace sign hand
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15, headY + 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-15, headY + 15); ctx.lineTo(-18, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-15, headY + 15); ctx.lineTo(-12, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Flash effect
+            if (frame % 40 < 5) {
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.beginPath(); ctx.arc(31, headY - 7, 30, 0, Math.PI * 2); ctx.fill();
+            }
+            break;
+        }
+        case 'ice': {
+            // Ice skating spin, graceful twirl
+            ctx.save();
+            ctx.rotate(Math.sin(t * 3) * 0.3);
+            ctx.translate(0, -bounce * 0.4);
+            // One leg out (skating pose)
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-8, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(20, -25); ctx.stroke(); // leg kicked out
+            ctx.restore();
+            // Ice trail
+            ctx.strokeStyle = 'rgba(136,207,255,0.4)'; ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                const ia = spin + i * 2;
+                ctx.beginPath(); ctx.arc(0, -10, 25 + i * 10, ia, ia + 1.5); ctx.stroke();
+            }
+            break;
+        }
+        case 'gravity': {
+            // Floats objects around, meditating pose
+            const floatY = -15 - Math.sin(t * 2) * 8;
+            ctx.translate(0, floatY);
+            // Cross-legged meditation pose
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Hands on knees
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 40); ctx.stroke();
+            // Crossed legs
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-15, -30); ctx.lineTo(-5, -20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(15, -30); ctx.lineTo(5, -20); ctx.stroke();
+            // Floating objects orbiting
+            ctx.fillStyle = '#9b59b6';
+            for (let i = 0; i < 5; i++) {
+                const oa = spin * 0.8 + (i / 5) * Math.PI * 2;
+                const or = 40 + Math.sin(t * 2 + i) * 10;
+                const ox = Math.cos(oa) * or, oy = -50 + Math.sin(oa) * or * 0.4;
+                ctx.beginPath(); ctx.arc(ox, oy, 4, 0, Math.PI * 2); ctx.fill();
+            }
+            break;
+        }
+        case 'time': {
+            // Rewinds/fast-forwards, flickers between poses
+            const pose = Math.floor(frame / 8) % 4;
+            const flicker = frame % 4 < 2 ? 1 : 0.4;
+            ctx.globalAlpha = flicker;
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Different arm positions per pose
+            const armOffsets = [[-25, 10, 25, 10], [-10, -10, 10, 40], [25, 5, -25, 5], [-20, 40, 20, -5]];
+            const [lx2, ly2, rx2, ry2] = armOffsets[pose];
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(lx2, headY + ly2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(rx2, headY + ry2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            ctx.globalAlpha = 1;
+            // Clock hands spinning
+            ctx.strokeStyle = '#f0e68c'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, headY - 25, 12, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY - 25); ctx.lineTo(Math.cos(spin * 3) * 10, headY - 25 + Math.sin(spin * 3) * 10); ctx.stroke();
+            break;
+        }
+        case 'vampire': {
+            // Cape wrap, turns into bats, reforms
+            const batPhase = (frame % 90) / 90;
+            if (batPhase < 0.4) {
+                // Cape wrap
+                ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+                // Cape wrapping around
+                ctx.fillStyle = 'rgba(139,0,0,0.5)';
+                const wrapAmt = batPhase / 0.4;
+                ctx.beginPath(); ctx.moveTo(-15, headY + 14);
+                ctx.quadraticCurveTo(-30 * wrapAmt, -40, -10 * wrapAmt, 0);
+                ctx.lineTo(10 * wrapAmt, 0);
+                ctx.quadraticCurveTo(30 * wrapAmt, -40, 15, headY + 14);
+                ctx.fill();
+            } else {
+                // Bat swarm
+                ctx.fillStyle = '#8b0000';
+                for (let i = 0; i < 7; i++) {
+                    const bx = Math.sin(t * 5 + i * 2) * 40;
+                    const by = -50 + Math.cos(t * 4 + i * 1.5) * 30;
+                    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - 6, by - 4); ctx.lineTo(bx - 3, by);
+                    ctx.lineTo(bx, by + 2); ctx.lineTo(bx + 3, by); ctx.lineTo(bx + 6, by - 4); ctx.closePath(); ctx.fill();
+                }
+            }
+            break;
+        }
+        case 'dragon': {
+            // Breathes fire upward, roars
+            ctx.translate(0, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Arms flexing
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + 15); ctx.lineTo(-20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + 15); ctx.lineTo(20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-12, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(12, 0); ctx.stroke();
+            // Fire breath upward
+            const fireHeight = Math.min(t * 30, 60);
+            for (let i = 0; i < 5; i++) {
+                const fx = (Math.random() - 0.5) * (10 + i * 3);
+                const fy = headY - 14 - i * (fireHeight / 5);
+                const fr = 6 - i;
+                ctx.fillStyle = i < 2 ? '#ff4500' : (i < 4 ? '#ff8c00' : '#ffd700');
+                ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
+            }
+            // Roar text
+            if (frame % 60 < 30) {
+                ctx.font = 'bold 18px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillStyle = '#ff4500'; ctx.fillText('ROAR!', 0, headY - 80);
+            }
+            break;
+        }
+        case 'necro': {
+            // Raises skeleton army, they dance together
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Arms raised summoning
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Mini skeletons dancing
+            ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2;
+            for (let s = 0; s < 3; s++) {
+                const sx = -40 + s * 40;
+                const sdance = Math.sin(t * 5 + s * 2) * 5;
+                const riseY = Math.min(t * 20, 30);
+                ctx.beginPath(); ctx.arc(sx, -riseY + sdance, 6, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(sx, -riseY + 6 + sdance); ctx.lineTo(sx, -riseY + 22 + sdance); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(sx, -riseY + 10 + sdance); ctx.lineTo(sx - 8, -riseY + 16 + sdance * 1.5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(sx, -riseY + 10 + sdance); ctx.lineTo(sx + 8, -riseY + 16 - sdance * 1.5); ctx.stroke();
+            }
+            break;
+        }
+        case 'magnet': {
+            // Objects orbit around, magnetic field visible
+            ctx.translate(0, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Arms out holding magnetic power
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-30, headY + 20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(30, headY + 20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Orbiting metal objects
+            ctx.fillStyle = '#c0c0c0';
+            const objTypes = [5, 7, 4, 6, 3];
+            for (let i = 0; i < objTypes.length; i++) {
+                const oa = spin + (i / objTypes.length) * Math.PI * 2;
+                const or2 = 45 + Math.sin(t + i) * 10;
+                ctx.beginPath(); ctx.arc(Math.cos(oa) * or2, -50 + Math.sin(oa) * or2 * 0.5, objTypes[i], 0, Math.PI * 2); ctx.fill();
+            }
+            // Magnetic field lines
+            ctx.strokeStyle = 'rgba(192,192,192,0.3)'; ctx.lineWidth = 1;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath(); ctx.ellipse(0, -50, 35 + i * 12, 20 + i * 8, 0, 0, Math.PI * 2); ctx.stroke();
+            }
+            break;
+        }
+        case 'mech': {
+            // Robot dance — mechanical jerky moves, jet exhaust
+            const jerkPhase = Math.floor(frame / 10) % 4;
+            const jerkX = [0, 10, 0, -10][jerkPhase];
+            const jerkArmL = [-20, -15, -25, -15][jerkPhase];
+            const jerkArmR = [20, 25, 15, 20][jerkPhase];
+            ctx.translate(jerkX, 0);
+            // Blocky head
+            ctx.strokeStyle = '#708090'; ctx.lineWidth = 4;
+            ctx.strokeRect(-10, headY - 4, 20, 20);
+            // Eye lights
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(-6, headY + 2, 4, 4); ctx.fillRect(2, headY + 2, 4, 4);
+            // Body
+            ctx.beginPath(); ctx.moveTo(0, headY + 16); ctx.lineTo(0, -40); ctx.stroke();
+            // Mechanical arms
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(jerkArmL, headY + 30); ctx.lineTo(jerkArmL - 5, headY + 45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(jerkArmR, headY + 30); ctx.lineTo(jerkArmR + 5, headY + 45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-12, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(12, 0); ctx.stroke();
+            // Jet exhaust
+            if (frame % 3 === 0) {
+                particles.push({ x: fighter.x - 12 * fighter.facing, y: fighter.y, vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 2, life: 12, maxLife: 12, color: '#ff8c00' });
+                particles.push({ x: fighter.x + 12 * fighter.facing, y: fighter.y, vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 2, life: 12, maxLife: 12, color: '#ff8c00' });
+            }
+            break;
+        }
+        case 'pizza': {
+            // Tosses pizza dough, catches it, eats slice
+            ctx.translate(0, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Tossing arm
+            const tossPhase = (frame % 60) / 60;
+            const tossArmY = headY + 24 - Math.sin(tossPhase * Math.PI) * 30;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15, tossArmY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(15, headY + 35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Flying dough
+            const doughY = headY - 10 - Math.sin(tossPhase * Math.PI) * 50;
+            const doughR = 15 + Math.sin(tossPhase * Math.PI) * 8;
+            ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.ellipse(-15, doughY, doughR, doughR * 0.3 + 5, spin * 2, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#c8a060'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(-15, doughY, doughR, doughR * 0.3 + 5, spin * 2, 0, Math.PI * 2); ctx.stroke();
+            break;
+        }
+        case 'cat': {
+            // Licks paw, stretches, knocks something off edge
+            const phase = Math.floor(t) % 3;
+            if (phase === 0) {
+                // Licking paw
+                ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15, headY + 10); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(15, headY + 35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            } else if (phase === 1) {
+                // Stretching
+                ctx.translate(0, 10);
+                ctx.beginPath(); ctx.arc(10, headY + 5, 14, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(10, headY + 19); ctx.lineTo(-5, -25); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-5, -25); ctx.lineTo(-20, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-5, -25); ctx.lineTo(10, 0); ctx.stroke();
+            } else {
+                // Knocking something off edge
+                ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + 30); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15, headY + 35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+                // Falling object
+                const fallY = (t % 1) * 60;
+                ctx.fillStyle = '#dda0dd'; ctx.fillRect(30, headY + 25 + fallY, 8, 8);
+            }
+            break;
+        }
+        case 'banana': {
+            // Peels self, slips on own peel, gets up
+            const phase2 = (frame % 120) / 120;
+            if (phase2 < 0.4) {
+                // Standing proudly
+                ctx.translate(0, -bounce);
+                ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 15); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 15); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            } else if (phase2 < 0.6) {
+                // Slipping!
+                const slipRot = (phase2 - 0.4) / 0.2 * Math.PI * 0.5;
+                ctx.rotate(slipRot);
+                ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 10); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 40); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(15, -10); ctx.stroke();
+            } else {
+                // Getting up
+                const getUp = (phase2 - 0.6) / 0.4;
+                ctx.rotate((1 - getUp) * 0.5);
+                ctx.translate(0, (1 - getUp) * 10);
+                ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 30); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 30); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            }
+            // Banana peel on ground
+            ctx.fillStyle = '#ffe135'; ctx.beginPath();
+            ctx.moveTo(10, -2); ctx.lineTo(15, -8); ctx.lineTo(20, -2); ctx.lineTo(15, 0); ctx.closePath(); ctx.fill();
+            break;
+        }
+        case 'grandma': {
+            // Knits aggressively, yarn flies everywhere
+            ctx.translate(0, -bounce * 0.3);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            // Glasses
+            ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(-5, headY, 4, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(5, headY, 4, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = fighter.color; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Knitting arms — fast clicking needles
+            const knit = Math.sin(frame * 0.4) * 8;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-10 + knit, headY + 40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(10 - knit, headY + 40); ctx.stroke();
+            // Knitting needles
+            ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-10 + knit, headY + 40); ctx.lineTo(-5 + knit, headY + 55); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10 - knit, headY + 40); ctx.lineTo(15 - knit, headY + 55); ctx.stroke();
+            ctx.strokeStyle = fighter.color; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Yarn flying
+            if (frame % 5 === 0) {
+                particles.push({ x: fighter.x, y: fighter.y + headY + 45, vx: (Math.random() - 0.5) * 6, vy: -3 - Math.random() * 3, life: 20, maxLife: 20, color: ['#e74c3c', '#3498db', '#f39c12', '#2ecc71'][Math.floor(Math.random() * 4)] });
+            }
+            break;
+        }
+        case 'painter': {
+            // Paints self-portrait on canvas, admires it
+            ctx.translate(0, -bounce * 0.2);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Painting arm
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + 30); ctx.stroke();
+            // Other arm holding palette
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Canvas/easel
+            ctx.fillStyle = '#f5f5dc'; ctx.fillRect(-50, headY - 5, 25, 30);
+            ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 2; ctx.strokeRect(-50, headY - 5, 25, 30);
+            // Self portrait being drawn
+            const paintProgress = Math.min(t / 2, 1);
+            ctx.strokeStyle = fighter.color; ctx.lineWidth = 1;
+            if (paintProgress > 0.2) { ctx.beginPath(); ctx.arc(-37, headY + 5, 5, 0, Math.PI * 2); ctx.stroke(); }
+            if (paintProgress > 0.5) { ctx.beginPath(); ctx.moveTo(-37, headY + 10); ctx.lineTo(-37, headY + 20); ctx.stroke(); }
+            if (paintProgress > 0.8) {
+                ctx.font = '8px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff69b4';
+                ctx.fillText(':)', -37, headY + 28);
+            }
+            break;
+        }
+        case 'bee': {
+            // Waggle dance (actual bee dance), buzzes
+            const waggle = Math.sin(t * 10) * 12;
+            const walkDir = Math.sin(t * 1.5);
+            ctx.translate(waggle * 0.5 + walkDir * 20, -bounce * 0.5);
+            ctx.rotate(Math.sin(t * 10) * 0.2);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Wings flapping
+            const wingFlap2 = Math.sin(frame * 0.6) * 15;
+            ctx.strokeStyle = 'rgba(255,193,7,0.5)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.ellipse(-15, headY + 20, 12, 6 + wingFlap2 * 0.5, -0.3, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(15, headY + 20, 12, 6 - wingFlap2 * 0.5, 0.3, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = fighter.color; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-15, headY + 35 + waggle * 0.3); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(15, headY + 35 - waggle * 0.3); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // "BZZZ" text
+            if (frame % 20 < 10) {
+                ctx.font = '12px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillStyle = '#ffc107'; ctx.fillText('BZZZ', 0, headY - 20);
+            }
+            break;
+        }
+        case 'teacher': {
+            // Writes "A+" on chalkboard, slaps ruler
+            ctx.translate(0, -bounce * 0.2);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Writing arm
+            const writeX = -30 + (frame % 40) * 0.5;
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(writeX, headY + 20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(15, headY + 35); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Chalkboard
+            ctx.fillStyle = '#2a5a2a'; ctx.fillRect(-50, headY - 10, 40, 35);
+            ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 2; ctx.strokeRect(-50, headY - 10, 40, 35);
+            // "A+" text appearing
+            const writeProgress = Math.min(t / 1.5, 1);
+            ctx.font = 'bold 18px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
+            ctx.fillStyle = '#fff';
+            if (writeProgress > 0.3) ctx.fillText('A', -35, headY + 12);
+            if (writeProgress > 0.7) ctx.fillText('+', -24, headY + 10);
+            // Ruler slap
+            if (frame % 60 > 40 && frame % 60 < 50) {
+                ctx.strokeStyle = '#deb887'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(15, headY + 35); ctx.lineTo(15, headY + 55); ctx.stroke();
+            }
+            break;
+        }
+        case 'plumber': {
+            // Fixes pipe, water sprays, thumbs up
+            ctx.translate(0, -bounce * 0.2);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Wrench arm
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 38); ctx.stroke();
+            // Thumbs up arm
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 10); ctx.stroke();
+            // Thumb
+            ctx.beginPath(); ctx.moveTo(20, headY + 10); ctx.lineTo(20, headY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Pipe
+            ctx.strokeStyle = '#888'; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.moveTo(-35, headY + 40); ctx.lineTo(-35, headY + 60); ctx.lineTo(-20, headY + 60); ctx.stroke();
+            // Water spraying from pipe
+            if (frame % 2 === 0) {
+                for (let i = 0; i < 2; i++) {
+                    particles.push({ x: fighter.x - 25 * fighter.facing, y: fighter.y + headY + 40, vx: (Math.random() - 0.5) * 4, vy: -3 - Math.random() * 3, life: 15, maxLife: 15, color: '#4169e1' });
+                }
+            }
+            // Cap
+            ctx.fillStyle = '#4169e1';
+            ctx.beginPath(); ctx.arc(0, headY - 8, 16, Math.PI, 0); ctx.fill();
+            break;
+        }
+        default: {
+            // Generic celebration: jumping with arms up
+            ctx.translate(sway, -bounce);
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(20, headY + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            break;
+        }
+    }
+    ctx.restore();
+}
+
 function drawComboMeters() {
     drawComboMeter(player1, 32, 165);
     drawComboMeter(player2, canvas.width - 132, 165);
@@ -10910,11 +11811,17 @@ function endRound() {
     else { currentRound++; resetPositions(); startTimer(); }
 }
 function endGame(text) {
-    gameState = 'result';
+    gameState = 'victory';
     clearInterval(timerInterval);
-    document.getElementById('result-text').textContent = text;
-    document.getElementById('result-screen').classList.remove('hidden');
-    document.getElementById('ui-overlay').style.display = 'none';
+    victoryText = text;
+    victoryTimer = 180; // 3 seconds at 60fps
+    victoryWinner = text.includes('Player 1') ? player1 : player2;
+    // Move winner to center
+    victoryWinner.vx = 0; victoryWinner.vy = 0;
+    victoryWinner.hit = false; victoryWinner.hitTimer = 0;
+    victoryWinner.blocking = false;
+    // Clear projectiles/effects
+    projectiles.length = 0;
 }
 function checkRoundEnd() {
     if (player1.health <= 0) { p2Wins++; if (p2Wins >= ROUNDS_TO_WIN) endGame('Player 2 Wins!'); else { currentRound++; resetPositions(); clearInterval(timerInterval); startTimer(); } }
@@ -10925,6 +11832,60 @@ function checkRoundEnd() {
 function gameLoop() {
     requestAnimationFrame(gameLoop);
 
+    if (gameState === 'victory') {
+        drawBackground();
+        // Slowly move winner toward center
+        const centerX = canvas.width / 2;
+        victoryWinner.x += (centerX - victoryWinner.x) * 0.05;
+        victoryWinner.y = groundY;
+        victoryWinner.onGround = true;
+
+        // Draw both players (loser faded)
+        const loser = victoryWinner === player1 ? player2 : player1;
+        ctx.globalAlpha = 0.3;
+        loser.draw();
+        ctx.globalAlpha = 1;
+
+        // Draw victory dance
+        drawVictoryDance(victoryWinner, 180 - victoryTimer);
+
+        // Confetti particles
+        if (victoryTimer % 3 === 0) {
+            for (let i = 0; i < 5; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width, y: -10,
+                    vx: (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 3,
+                    life: 60 + Math.random() * 40, maxLife: 100,
+                    color: `hsl(${Math.random() * 360}, 80%, 60%)`
+                });
+            }
+        }
+        updateParticles();
+        drawParticles();
+
+        // Victory text
+        const prog = Math.min((180 - victoryTimer) / 30, 1);
+        ctx.globalAlpha = prog;
+        ctx.font = `bold ${48 + Math.sin(Date.now() * 0.005) * 4}px "Segoe UI",Arial,sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const victStyleData = STYLES[victoryWinner.style];
+        ctx.fillStyle = victStyleData?.color || '#f39c12';
+        ctx.shadowColor = victStyleData?.color || '#f39c12'; ctx.shadowBlur = 20;
+        ctx.fillText(victoryText, canvas.width / 2, canvas.height * 0.2);
+        ctx.font = 'bold 24px "Segoe UI",Arial,sans-serif';
+        ctx.fillStyle = '#fff'; ctx.shadowColor = '#000';
+        ctx.fillText(victStyleData?.name || '', canvas.width / 2, canvas.height * 0.2 + 50);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+        victoryTimer--;
+        if (victoryTimer <= 0) {
+            gameState = 'result';
+            document.getElementById('result-text').textContent = victoryText;
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('ui-overlay').style.display = 'none';
+        }
+        return;
+    }
     if (gameState !== 'playing') {
         drawBackground();
         return;
