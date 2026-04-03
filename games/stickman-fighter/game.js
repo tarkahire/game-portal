@@ -1029,34 +1029,54 @@ class Fighter {
                 });
             }
         } else if (atk.type === 'instant') {
-            const dist = Math.abs(this.x - opponent.x);
-            if (dist < atk.range) {
-                let damage = atk.damage;
-                if (this.rageActive) damage = Math.floor(damage * 1.5);
-                let kb = atk.knockback;
-                if (opponent.blocking) {
-                    damage = Math.floor(damage * (1 - atk.blockReduction));
-                    kb *= (1 - atk.blockReduction);
+            // Lock-on targets where opponent IS NOW — but damage is delayed so they can dodge
+            const targetX = opponent.x;
+            const targetY = opponent.y - opponent.height * 0.5;
+            const HIT_DELAY = 20; // frames before damage lands
+            const HIT_RADIUS = 80; // how close opponent must still be to get hit
+            // Spawn a warning marker at the target position
+            visualEffects.push({
+                type: 'instantTarget', x: targetX, y: targetY,
+                life: HIT_DELAY + 5, maxLife: HIT_DELAY + 5,
+                color: styleData.color, hitRadius: HIT_RADIUS,
+            });
+            // Schedule the delayed hit
+            const owner = this;
+            const rageActive = this.rageActive;
+            const isUlt = index === 3;
+            setTimeout(() => {
+                // Check if opponent is still near the targeted spot
+                const dx = opponent.x - targetX;
+                const dy = (opponent.y - opponent.height * 0.5) - targetY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < HIT_RADIUS) {
+                    let damage = atk.damage;
+                    if (rageActive) damage = Math.floor(damage * 1.5);
+                    let kb = atk.knockback;
+                    if (opponent.blocking) {
+                        damage = Math.floor(damage * (1 - atk.blockReduction));
+                        kb *= (1 - atk.blockReduction);
+                    }
+                    opponent.health = Math.max(0, opponent.health - damage);
+                    opponent.hitTimer = 12;
+                    opponent.hit = true;
+                    opponent.x += dir * kb;
+                    if (atk.launchUp) {
+                        opponent.vy = atk.launchUp;
+                        opponent.onGround = false;
+                    }
+                    spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, rageActive ? 90 : 55);
+                    triggerScreenShake(Math.min(atk.damage * 1.2, 30), Math.min(atk.damage * 1.0, 30));
+                    triggerHitstop(Math.max(3, Math.floor(atk.damage / 6)));
+                    visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: styleData.color });
+                    if (rageActive && isUlt) {
+                        triggerRageUltVFX(owner.style, opponent.x, opponent.y - opponent.height * 0.5, dir);
+                    }
                 }
-                opponent.health = Math.max(0, opponent.health - damage);
-                opponent.hitTimer = 12;
-                opponent.hit = true;
-                opponent.x += dir * kb;
-                if (atk.launchUp) {
-                    opponent.vy = atk.launchUp;
-                    opponent.onGround = false;
-                }
-                this.spawnInstantVFX(atk, styleData, opponent, dir);
-                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, this.rageActive ? 90 : 55);
-                triggerScreenShake(Math.min(atk.damage * 1.2, 30), Math.min(atk.damage * 1.0, 30));
-                triggerHitstop(Math.max(3, Math.floor(atk.damage / 6)));
+                // VFX always plays at target position regardless of hit
+                owner.spawnInstantVFX(atk, styleData, opponent, dir);
                 triggerScreenFlash(styleData.color, Math.min(atk.damage / 40, 0.6));
-                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: styleData.color });
-                // Rage ultimate VFX for instant attacks
-                if (this.rageActive && index === 3) {
-                    triggerRageUltVFX(this.style, opponent.x, opponent.y - opponent.height * 0.5, dir);
-                }
-            }
+            }, HIT_DELAY * 16); // ~16ms per frame
         }
     }
 
@@ -1903,6 +1923,26 @@ function drawVisualEffects() {
                 ctx.fillStyle = fg;
                 ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 90, 0, Math.PI * 2); ctx.fill();
             }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Instant Attack Target Warning ──
+        if (vfx.type === 'instantTarget') {
+            const prog = 1 - a;
+            const pulse = Math.sin(Date.now() * 0.03) * 0.3 + 0.5;
+            // Warning circle shrinking toward target
+            ctx.globalAlpha = a * pulse;
+            ctx.strokeStyle = vfx.color; ctx.lineWidth = 2;
+            ctx.shadowColor = vfx.color; ctx.shadowBlur = 12;
+            const r = vfx.hitRadius * (1.5 - prog * 0.8);
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            // Crosshair lines
+            ctx.globalAlpha = a * 0.4;
+            ctx.beginPath(); ctx.moveTo(vfx.x - r, vfx.y); ctx.lineTo(vfx.x + r, vfx.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(vfx.x, vfx.y - r); ctx.lineTo(vfx.x, vfx.y + r); ctx.stroke();
+            // Inner dot
+            ctx.globalAlpha = a * 0.6; ctx.fillStyle = vfx.color;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 4, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
         }
 
