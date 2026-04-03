@@ -15,7 +15,7 @@ const AI_COUNT = 5;
 
 // ── State ──
 let gameState = 'menu';
-let raceMode = 'race'; // 'race' or 'timetrial'
+let raceMode = 'race'; // 'race', 'timetrial', or 'crash'
 let raceTime = 0;
 let countdown = 0;
 let countdownTimer = 0;
@@ -87,9 +87,16 @@ class Car {
         this.drifting = false;
         this.driftTrail = [];
         this.finishTime = 0;
+        this.health = 100;
+        this.dead = false;
+        this.hitFlash = 0;
     }
 
     reset(startIndex) {
+        if (raceMode === 'crash') {
+            this.resetArena(startIndex);
+            return;
+        }
         const p = trackPoints[startIndex % trackPoints.length];
         const nextP = trackPoints[(startIndex + 1) % trackPoints.length];
         this.x = p.x;
@@ -103,9 +110,27 @@ class Car {
         this.drifting = false;
         this.driftTrail = [];
         this.finishTime = 0;
+        this.health = 100;
+        this.dead = false;
+        this.hitFlash = 0;
+    }
+
+    resetArena(index) {
+        const cx = canvas.width / 2, cy = canvas.height / 2;
+        const r = Math.min(canvas.width, canvas.height) * 0.3;
+        const a = (index / (AI_COUNT + 1)) * Math.PI * 2;
+        this.x = cx + Math.cos(a) * r;
+        this.y = cy + Math.sin(a) * r;
+        this.angle = Math.atan2(cy - this.y, cx - this.x);
+        this.speed = 0;
+        this.lap = 0; this.checkpoint = 0; this.lastCheckpoint = 0;
+        this.finished = false; this.drifting = false; this.driftTrail = [];
+        this.finishTime = 0; this.health = 100; this.dead = false; this.hitFlash = 0;
     }
 
     update() {
+        if (this.dead) return;
+        if (this.hitFlash > 0) this.hitFlash--;
         if (this.finished) {
             this.speed *= 0.95;
             this.x += Math.cos(this.angle) * this.speed;
@@ -123,8 +148,14 @@ class Car {
         this.x += Math.cos(this.angle) * this.speed;
         this.y += Math.sin(this.angle) * this.speed;
 
-        // Track boundary — push car back onto track
-        this.constrainToTrack();
+        // Boundaries
+        if (raceMode === 'crash') {
+            this.constrainToArena();
+        } else {
+            this.constrainToTrack();
+        }
+
+        if (raceMode === 'crash') return; // skip lap logic in crash mode
 
         // Update checkpoint
         const newCp = getCheckpointIndex(this);
@@ -192,6 +223,12 @@ class Car {
 
     handleAI() {
         if (countdown > 0) return;
+
+        if (raceMode === 'crash') {
+            this.handleCrashAI();
+            return;
+        }
+
         // Look ahead on track and steer toward it
         const lookAhead = 8;
         const targetIdx = (this.checkpoint + lookAhead) % trackPoints.length;
@@ -218,6 +255,37 @@ class Car {
         this.drifting = turnSharpness > 0.8 && this.speed > 3;
     }
 
+    handleCrashAI() {
+        // Find closest alive enemy to ram
+        let closest = null, closestDist = Infinity;
+        for (const car of allCars) {
+            if (car === this || car.dead) continue;
+            const dx = car.x - this.x, dy = car.y - this.y;
+            const d = dx * dx + dy * dy;
+            if (d < closestDist) { closestDist = d; closest = car; }
+        }
+        if (!closest) return;
+
+        const dx = closest.x - this.x, dy = closest.y - this.y;
+        const targetAngle = Math.atan2(dy, dx);
+
+        let angleDiff = targetAngle - this.angle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+        const steer = 0.055 + Math.random() * 0.015;
+        if (angleDiff > 0.05) this.angle += steer;
+        else if (angleDiff < -0.05) this.angle -= steer;
+
+        // Full speed toward target
+        this.speed = Math.min(this.speed + ACCELERATION, MAX_SPEED * 0.9);
+
+        // Occasionally dodge
+        if (Math.sqrt(closestDist) < 80 && Math.random() < 0.02) {
+            this.angle += (Math.random() > 0.5 ? 1 : -1) * 0.5;
+        }
+    }
+
     constrainToTrack() {
         // Find closest track point
         let closest = 0, closestDist = Infinity;
@@ -238,7 +306,41 @@ class Car {
         }
     }
 
+    constrainToArena() {
+        const pad = 60;
+        const bounceForce = 0.7;
+        if (this.x < pad) { this.x = pad; this.speed *= -bounceForce; this.takeDamage(3); }
+        if (this.x > canvas.width - pad) { this.x = canvas.width - pad; this.speed *= -bounceForce; this.takeDamage(3); }
+        if (this.y < pad) { this.y = pad; this.speed *= -bounceForce; this.takeDamage(3); }
+        if (this.y > canvas.height - pad) { this.y = canvas.height - pad; this.speed *= -bounceForce; this.takeDamage(3); }
+    }
+
+    takeDamage(amount) {
+        this.health -= amount;
+        this.hitFlash = 8;
+        if (this.health <= 0) {
+            this.health = 0;
+            this.dead = true;
+            // Explosion particles
+            for (let i = 0; i < 20; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const s = 2 + Math.random() * 5;
+                crashParticles.push({ x: this.x, y: this.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+                    life: 20 + Math.random() * 20, maxLife: 40,
+                    color: Math.random() > 0.5 ? '#ff6600' : '#ffcc00' });
+            }
+            // Debris
+            for (let i = 0; i < 10; i++) {
+                crashParticles.push({ x: this.x, y: this.y,
+                    vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
+                    life: 30 + Math.random() * 20, maxLife: 50,
+                    color: this.color });
+            }
+        }
+    }
+
     draw() {
+        if (this.dead) return;
         // Drift trail
         for (const t of this.driftTrail) {
             ctx.globalAlpha = t.life / 40 * 0.3;
@@ -302,6 +404,7 @@ for (let i = 0; i < AI_COUNT; i++) {
     aiCars.push(new Car(AI_COLORS[i % AI_COLORS.length], false));
 }
 const allCars = [playerCar, ...aiCars];
+const crashParticles = [];
 
 function resetRace() {
     trackPoints = buildTrack();
@@ -315,6 +418,116 @@ function resetRace() {
 }
 
 // ── Drawing ──
+function handleCrashCollisions() {
+    for (let i = 0; i < allCars.length; i++) {
+        for (let j = i + 1; j < allCars.length; j++) {
+            const a = allCars[i], b = allCars[j];
+            if (a.dead || b.dead) continue;
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 28) {
+                // Collision! Damage based on relative speed
+                const relSpeed = Math.abs(a.speed) + Math.abs(b.speed);
+                const damage = Math.max(3, relSpeed * 3);
+                a.takeDamage(damage);
+                b.takeDamage(damage);
+
+                // Bounce apart
+                const nx = dx / dist, ny = dy / dist;
+                const pushForce = 4;
+                a.x -= nx * pushForce; a.y -= ny * pushForce;
+                b.x += nx * pushForce; b.y += ny * pushForce;
+
+                // Exchange speed
+                const tempSpeed = a.speed;
+                a.speed = b.speed * 0.7;
+                b.speed = tempSpeed * 0.7;
+
+                // Spark particles at collision point
+                const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+                for (let p = 0; p < 8; p++) {
+                    const pa = Math.random() * Math.PI * 2;
+                    const ps = 2 + Math.random() * 4;
+                    crashParticles.push({ x: cx, y: cy, vx: Math.cos(pa) * ps, vy: Math.sin(pa) * ps,
+                        life: 10 + Math.random() * 10, maxLife: 20,
+                        color: Math.random() > 0.5 ? '#ffcc00' : '#ff8800' });
+                }
+            }
+        }
+    }
+}
+
+function updateCrashParticles() {
+    for (let i = crashParticles.length - 1; i >= 0; i--) {
+        const p = crashParticles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.vx *= 0.96; p.vy *= 0.96;
+        p.life--;
+        if (p.life <= 0) crashParticles.splice(i, 1);
+    }
+}
+
+function drawCrashParticles() {
+    for (const p of crashParticles) {
+        ctx.globalAlpha = p.life / p.maxLife;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2 + (p.life / p.maxLife) * 4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawArena() {
+    // Dark ground
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Arena floor
+    const pad = 60;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(pad, pad, canvas.width - pad * 2, canvas.height - pad * 2);
+
+    // Tire marks / dirt texture
+    ctx.fillStyle = '#3a3a3a';
+    for (let i = 0; i < 20; i++) {
+        const rx = pad + Math.random() * (canvas.width - pad * 2);
+        const ry = pad + Math.random() * (canvas.height - pad * 2);
+        ctx.beginPath(); ctx.arc(rx, ry, 5 + Math.random() * 15, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Barriers — red/white stripes
+    const stripeW = 30;
+    for (let x = 0; x < canvas.width; x += stripeW) {
+        ctx.fillStyle = (Math.floor(x / stripeW) % 2 === 0) ? '#cc0000' : '#fff';
+        ctx.fillRect(x, 0, stripeW, pad * 0.6);
+        ctx.fillRect(x, canvas.height - pad * 0.6, stripeW, pad * 0.6);
+    }
+    for (let y = 0; y < canvas.height; y += stripeW) {
+        ctx.fillStyle = (Math.floor(y / stripeW) % 2 === 0) ? '#cc0000' : '#fff';
+        ctx.fillRect(0, y, pad * 0.6, stripeW);
+        ctx.fillRect(canvas.width - pad * 0.6, y, pad * 0.6, stripeW);
+    }
+
+    // Corner posts
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath(); ctx.arc(pad, pad, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(canvas.width - pad, pad, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pad, canvas.height - pad, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(canvas.width - pad, canvas.height - pad, 10, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawHealthBars() {
+    if (raceMode !== 'crash') return;
+    const barW = 30, barH = 4;
+    for (const car of allCars) {
+        if (car.dead) continue;
+        const hpRatio = car.health / 100;
+        const bx = car.x - barW / 2, by = car.y - 22;
+        ctx.fillStyle = '#333'; ctx.fillRect(bx, by, barW, barH);
+        ctx.fillStyle = hpRatio > 0.5 ? '#2ecc71' : hpRatio > 0.25 ? '#f39c12' : '#e74c3c';
+        ctx.fillRect(bx, by, barW * hpRatio, barH);
+    }
+}
+
 function drawTrack() {
     // Grass background
     ctx.fillStyle = '#2d5a1e';
@@ -481,26 +694,53 @@ function gameLoop() {
     // Update all cars
     for (const car of allCars) car.update();
 
-    // Check race end
-    if (playerCar.finished) {
-        endRace();
-        return;
-    }
-    // In race mode, end if all AI finish and player hasn't
-    if (raceMode === 'race') {
-        const allAIDone = aiCars.every(c => c.finished);
-        if (allAIDone && !playerCar.finished) {
-            playerCar.finished = true;
-            playerCar.finishTime = raceTime;
+    // Crash mode collision detection
+    if (raceMode === 'crash') {
+        handleCrashCollisions();
+        updateCrashParticles();
+
+        // Check crash mode end — last car standing
+        const alive = allCars.filter(c => !c.dead);
+        if (playerCar.dead || alive.length <= 1) {
             endRace();
             return;
         }
     }
 
+    // Check race end (non-crash modes)
+    if (raceMode !== 'crash') {
+        if (playerCar.finished) {
+            endRace();
+            return;
+        }
+        if (raceMode === 'race') {
+            const allAIDone = aiCars.every(c => c.finished);
+            if (allAIDone && !playerCar.finished) {
+                playerCar.finished = true;
+                playerCar.finishTime = raceTime;
+                endRace();
+                return;
+            }
+        }
+    }
+
     // Draw
-    drawTrack();
+    if (raceMode === 'crash') {
+        drawArena();
+    } else {
+        drawTrack();
+    }
     for (const car of allCars) car.draw();
-    drawMinimap();
+    if (raceMode === 'crash') {
+        drawCrashParticles();
+        drawHealthBars();
+        // Cars remaining counter
+        const alive = allCars.filter(c => !c.dead).length;
+        ctx.font = 'bold 20px "Segoe UI",sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#e74c3c'; ctx.fillText(alive + ' cars remaining', canvas.width / 2, 30);
+    } else {
+        drawMinimap();
+    }
     drawCountdown();
     updateHUD();
 }
@@ -509,13 +749,22 @@ function endRace() {
     gameState = 'result';
     document.getElementById('hud').style.display = 'none';
     document.getElementById('result-screen').classList.remove('hidden');
-    if (raceMode === 'race') {
+    if (raceMode === 'crash') {
+        if (!playerCar.dead) {
+            document.getElementById('result-text').textContent = 'LAST CAR STANDING!';
+        } else {
+            const alive = allCars.filter(c => !c.dead).length;
+            document.getElementById('result-text').textContent = `WRECKED! ${alive} car${alive !== 1 ? 's' : ''} left`;
+        }
+        document.getElementById('result-time').textContent = `Survived: ${formatTime(raceTime)}`;
+    } else if (raceMode === 'race') {
         const pos = getPlayerPosition();
         document.getElementById('result-text').textContent = pos === '1st' ? 'YOU WIN!' : `You finished ${pos}`;
+        document.getElementById('result-time').textContent = `Time: ${formatTime(playerCar.finishTime || raceTime)}`;
     } else {
         document.getElementById('result-text').textContent = 'TIME TRIAL COMPLETE';
+        document.getElementById('result-time').textContent = `Time: ${formatTime(playerCar.finishTime || raceTime)}`;
     }
-    document.getElementById('result-time').textContent = `Time: ${formatTime(playerCar.finishTime || raceTime)}`;
 }
 
 function startRace(mode) {
@@ -536,6 +785,7 @@ function startRace(mode) {
             allCars.push(car);
         }
     }
+    crashParticles.length = 0;
     resetRace();
     gameState = 'racing';
     document.getElementById('start-screen').classList.add('hidden');
@@ -546,6 +796,7 @@ function startRace(mode) {
 // ── Event Listeners ──
 document.getElementById('start-race-btn').addEventListener('click', () => startRace('race'));
 document.getElementById('start-time-btn').addEventListener('click', () => startRace('timetrial'));
+document.getElementById('start-crash-btn').addEventListener('click', () => startRace('crash'));
 document.getElementById('restart-btn').addEventListener('click', () => {
     document.getElementById('result-screen').classList.add('hidden');
     startRace(raceMode);
