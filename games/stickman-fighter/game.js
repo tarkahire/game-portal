@@ -747,8 +747,6 @@ class Fighter {
                     visualEffects.push({ type: 'impactRing', x: st.opponent.x, y: groundY - 20, life: 20, maxLife: 20, color: '#228b22' });
                     spawnElementParticles(st.opponent.x, groundY - 30, STYLES[this.style], 30);
                 }
-                // Timeout — don't slide forever
-                if (st.timer >= 40) { st.phase = 'hit'; st.timer = 0; }
             } else if (st.phase === 'hit') {
                 // Recovery — get back up
                 if (st.timer >= 12) { this.slideTackle = null; }
