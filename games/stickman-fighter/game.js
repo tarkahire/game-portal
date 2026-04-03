@@ -4170,52 +4170,55 @@ class Fighter {
         if (this.health < MAX_HEALTH && this.style === 'washingmachine') {
             const wobble = Math.sin(Date.now() * 0.02) * 3;
             const drumAngle = Date.now() * 0.015;
+            const t = Date.now() * 0.004;
             ctx.translate(wobble, 0);
-            // Machine body
-            ctx.fillStyle = '#ddd'; ctx.strokeStyle = '#999'; ctx.lineWidth = 3;
-            ctx.fillRect(-30, -90, 60, 85);
-            ctx.strokeRect(-30, -90, 60, 85);
-            // Control panel top
-            ctx.fillStyle = '#bbb';
-            ctx.fillRect(-30, -90, 60, 18);
-            ctx.strokeRect(-30, -90, 60, 18);
-            // Buttons
+            ctx.shadowColor = '#3498db'; ctx.shadowBlur = 15;
+            const bodyGrad = ctx.createLinearGradient(-30, -90, 30, -5);
+            bodyGrad.addColorStop(0, '#e8e8e8'); bodyGrad.addColorStop(0.5, '#d0d0d0'); bodyGrad.addColorStop(1, '#b8b8b8');
+            ctx.fillStyle = bodyGrad; ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.roundRect(-30, -90, 60, 85, 4); ctx.fill(); ctx.stroke();
+            const panelGrad = ctx.createLinearGradient(-30, -90, -30, -72);
+            panelGrad.addColorStop(0, '#ccc'); panelGrad.addColorStop(0.5, '#aaa'); panelGrad.addColorStop(1, '#bbb');
+            ctx.fillStyle = panelGrad;
+            ctx.fillRect(-30, -90, 60, 18); ctx.strokeRect(-30, -90, 60, 18);
             ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(-15, -81, 4, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#2ecc71'; ctx.beginPath(); ctx.arc(0, -81, 4, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.arc(15, -81, 4, 0, Math.PI * 2); ctx.fill();
-            // Drum window
-            ctx.fillStyle = '#1a3a5c';
+            const drumGrad = ctx.createRadialGradient(0, -48, 4, 0, -48, 24);
+            drumGrad.addColorStop(0, '#0d2137'); drumGrad.addColorStop(0.7, '#1a3a5c'); drumGrad.addColorStop(1, '#0a1929');
+            ctx.fillStyle = drumGrad;
             ctx.beginPath(); ctx.arc(0, -48, 24, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+            ctx.strokeStyle = '#777'; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.arc(0, -48, 24, 0, Math.PI * 2); ctx.stroke();
-            // Spinning clothes inside drum
             const clothes = ['#e74c3c', '#3498db', '#f39c12', '#2ecc71', '#9b59b6'];
             for (let c = 0; c < clothes.length; c++) {
-                const ca = drumAngle + (c / clothes.length) * Math.PI * 2;
-                ctx.fillStyle = clothes[c];
-                ctx.beginPath(); ctx.arc(Math.cos(ca) * 14, -48 + Math.sin(ca) * 14, 5, 0, Math.PI * 2); ctx.fill();
+            const ca = drumAngle + (c / clothes.length) * Math.PI * 2;
+            ctx.fillStyle = clothes[c]; ctx.globalAlpha = 0.8;
+            ctx.beginPath(); ctx.arc(Math.cos(ca) * 14, -48 + Math.sin(ca) * 14, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 0.2;
+            ctx.beginPath(); ctx.arc(Math.cos(ca - 0.3) * 14, -48 + Math.sin(ca - 0.3) * 14, 4, 0, Math.PI * 2); ctx.fill();
             }
-            // Glass reflection
-            ctx.globalAlpha = 0.2; ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(-6, -54, 10, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 1;
-            // Legs
-            ctx.fillStyle = '#999';
-            ctx.fillRect(-25, -5, 8, 5);
-            ctx.fillRect(17, -5, 8, 5);
-            // Soap suds floating around
+            ctx.globalAlpha = 0.25; ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(-6, -54, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 0.1; ctx.beginPath(); ctx.arc(8, -42, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#888'; ctx.fillRect(-25, -5, 8, 5); ctx.fillRect(17, -5, 8, 5);
             if (Math.random() < 0.5) {
-                particles.push({ x: this.x + (Math.random() - 0.5) * 60, y: this.y - 20 - Math.random() * 70,
-                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
-                    life: 12 + Math.random() * 10, maxLife: 22, color: '#e8f4f8' });
+            particles.push({ x: this.x + (Math.random() - 0.5) * 60, y: this.y - 20 - Math.random() * 70,
+            vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+            life: 12 + Math.random() * 10, maxLife: 22, color: '#e8f4f8' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
-            return;
+            ctx.shadowBlur = 0; ctx.restore(); return;
         }
 
         // ── Lightning Rage: electric humanoid ──
         if (this.health < MAX_HEALTH && this.style === 'lightning') {
             const t = Date.now() * 0.01;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             ctx.shadowColor = '#00cfff'; ctx.shadowBlur = 25;
             // Electric body outline — jagged lines
             ctx.strokeStyle = '#00cfff'; ctx.lineWidth = 3;
@@ -4254,13 +4257,17 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 2,
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#00cfff' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Fire Rage: fire elemental ──
         if (this.health < MAX_HEALTH && this.style === 'fire') {
             const t = Date.now() * 0.008;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.12; ctx.fillStyle = '#ff4500';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 30;
             // Flame body — gradient oval
             const fg = ctx.createRadialGradient(0, -this.height * 0.5, 5, 0, -this.height * 0.5, 50);
@@ -4286,14 +4293,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 2, vy: -3 - Math.random() * 2,
                     life: 15 + Math.random() * 10, maxLife: 25, color: Math.random() > 0.5 ? '#ff4500' : '#ffa500' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Water Rage: water elemental ──
         if (this.health < MAX_HEALTH && this.style === 'water') {
             const t = Date.now() * 0.005;
-            ctx.shadowColor = '#00bfff'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#00bfff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#00bfff'; ctx.shadowBlur = 25;
             // Flowing water body
             const wg = ctx.createLinearGradient(0, -this.height, 0, 0);
             wg.addColorStop(0, 'rgba(0,100,200,0.8)'); wg.addColorStop(0.5, 'rgba(0,180,255,0.6)');
@@ -4323,14 +4334,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
                     life: 10 + Math.random() * 8, maxLife: 18, color: '#00bfff' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Wind Rage: tornado/wind spirit ──
         if (this.health < MAX_HEALTH && this.style === 'wind') {
             const t = Date.now() * 0.006;
-            ctx.shadowColor = '#a0f0a0'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#a0f0a0';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#a0f0a0'; ctx.shadowBlur = 20;
             // Tornado funnel — stacked ellipses getting wider toward bottom
             for (let i = 0; i < 8; i++) {
                 const y = -this.height + i * (this.height / 8);
@@ -4358,14 +4373,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 6, vy: -1 - Math.random() * 3,
                     life: 10 + Math.random() * 8, maxLife: 18, color: '#c0ffc0' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Earth Rage: rock golem ──
         if (this.health < MAX_HEALTH && this.style === 'earth') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff8c00';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 15;
             // Blocky stone body
             ctx.fillStyle = '#6b5b4f'; ctx.strokeStyle = '#4a3a2f'; ctx.lineWidth = 2;
             // Torso — large rectangle
@@ -4392,14 +4411,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 3,
                     life: 10 + Math.random() * 10, maxLife: 20, color: '#8b7355' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Acid Rage: acid blob monster ──
         if (this.health < MAX_HEALTH && this.style === 'acid') {
             const t = Date.now() * 0.006;
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#39ff14';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 25;
             // Amorphous blob body
             const ag = ctx.createRadialGradient(0, -this.height * 0.45, 5, 0, -this.height * 0.45, 45);
             ag.addColorStop(0, '#7fff00'); ag.addColorStop(0.5, '#39ff14'); ag.addColorStop(1, 'rgba(0,100,0,0.3)');
@@ -4431,7 +4454,7 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 1, vy: 2 + Math.random() * 2,
                     life: 12 + Math.random() * 8, maxLife: 20, color: '#39ff14' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
@@ -4473,7 +4496,7 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 1.5, vy: -1 - Math.random() * 2,
                     life: 12 + Math.random() * 8, maxLife: 20, color: '#ffd700' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
@@ -4513,14 +4536,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
                     life: 10 + Math.random() * 8, maxLife: 18, color: '#8b00ff' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Shadow Rage: shadow ninja ──
         if (this.health < MAX_HEALTH && this.style === 'shadow') {
             const t = Date.now() * 0.006;
-            ctx.shadowColor = '#222'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.05; ctx.fillStyle = '#222';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#222'; ctx.shadowBlur = 20;
             // Sleek dark silhouette
             ctx.fillStyle = '#0a0a0a';
             // Body — slim shape
@@ -4534,7 +4561,7 @@ class Fighter {
             ctx.beginPath(); ctx.moveTo(5, -this.height * 0.85);
             ctx.quadraticCurveTo(20 + scarfWave, -this.height * 0.7, 15 + scarfWave * 1.5, -this.height * 0.5); ctx.stroke();
             // Red glowing eyes
-            ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
+            ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 15;
             ctx.beginPath(); ctx.arc(-5, -this.height + 3, 2.5, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(5, -this.height + 3, 2.5, 0, Math.PI * 2); ctx.fill();
             // Shadow afterimages
@@ -4554,7 +4581,11 @@ class Fighter {
         // ── Portal Rage: dimensional being ──
         if (this.health < MAX_HEALTH && this.style === 'portal') {
             const t = Date.now() * 0.005;
-            ctx.shadowColor = '#9b59b6'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#9b59b6';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#9b59b6'; ctx.shadowBlur = 25;
             // Body outline — shimmering rift
             const pg = ctx.createLinearGradient(-20, -this.height, 20, 0);
             pg.addColorStop(0, '#9b59b6'); pg.addColorStop(0.3, '#3498db');
@@ -4585,14 +4616,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3,
                     life: 10 + Math.random() * 8, maxLife: 18, color: pc });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Corruption Rage: glitched figure ──
         if (this.health < MAX_HEALTH && this.style === 'corruption') {
             const t = Date.now();
-            ctx.shadowColor = '#ff0040'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#ff0040';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff0040'; ctx.shadowBlur = 20;
             // Main body — shifts randomly
             const glitchX = (Math.random() - 0.5) * 8;
             ctx.fillStyle = '#1a1a2e';
@@ -4626,14 +4661,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 3,
                     life: 6 + Math.random() * 6, maxLife: 12, color: '#ff0040' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Crystal Rage: crystal golem ──
         if (this.health < MAX_HEALTH && this.style === 'crystal') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#00ffff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 25;
             // Crystal body — faceted polygon shapes
             const drawCrystal = (cx, cy, w, h, color) => {
                 ctx.fillStyle = color; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
@@ -4669,14 +4708,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
                     life: 12 + Math.random() * 8, maxLife: 20, color: '#00ffff' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Samurai Rage: armored samurai ──
         if (this.health < MAX_HEALTH && this.style === 'samurai') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#ff4444';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 20;
             // Armor body
             ctx.fillStyle = '#2c2c3e'; ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 2;
             // Shoulder armor (sode)
@@ -4707,7 +4750,7 @@ class Fighter {
             ctx.fillRect(-15, -35, 12, 35); ctx.strokeRect(-15, -35, 12, 35);
             ctx.fillRect(3, -35, 12, 35); ctx.strokeRect(3, -35, 12, 35);
             // Glowing katana
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 15;
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 20;
             const sAngle = -0.5 + Math.sin(t) * 0.3;
             ctx.beginPath(); ctx.moveTo(25, -70);
             ctx.lineTo(25 + Math.cos(sAngle) * 55, -70 + Math.sin(sAngle) * 55); ctx.stroke();
@@ -4721,8 +4764,12 @@ class Fighter {
         // ── Rubber Duck Rage: giant rubber duck ──
         if (this.health < MAX_HEALTH && this.style === 'rubberduck') {
             const t = Date.now() * 0.004;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#ffdd00';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             const bob = Math.sin(t) * 3;
-            ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 20;
             // Duck body — large yellow oval
             ctx.fillStyle = '#ffdd00';
             ctx.beginPath(); ctx.ellipse(0, -35 + bob, 30, 28, 0, 0, Math.PI * 2); ctx.fill();
@@ -4754,14 +4801,18 @@ class Fighter {
             for (let i = 0; i < 3; i++) {
                 ctx.beginPath(); ctx.ellipse(0, -5, 25 + i * 8 + Math.sin(t + i) * 3, 4, 0, 0, Math.PI * 2); ctx.stroke();
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Keyboard Rage: keyboard mech ──
         if (this.health < MAX_HEALTH && this.style === 'keyboard') {
             const t = Date.now() * 0.005;
-            ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#00ff88';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20;
             // Body — keyboard-shaped rectangle
             ctx.fillStyle = '#2a2a2a'; ctx.strokeStyle = '#444'; ctx.lineWidth = 2;
             ctx.fillRect(-28, -85, 56, 55); ctx.strokeRect(-28, -85, 56, 55);
@@ -4792,14 +4843,18 @@ class Fighter {
             // Legs
             ctx.fillStyle = '#333';
             ctx.fillRect(-15, -30, 10, 30); ctx.fillRect(5, -30, 10, 30);
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Chef Rage: giant chef ──
         if (this.health < MAX_HEALTH && this.style === 'chef') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#fff'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 15;
             // Chef hat (toque)
             ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.5;
             ctx.fillRect(-14, -this.height - 30, 28, 28);
@@ -4843,14 +4898,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 1.5, vy: -2 - Math.random() * 2,
                     life: 10 + Math.random() * 8, maxLife: 18, color: '#ddd' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── DJ Rage: DJ booth form ──
         if (this.health < MAX_HEALTH && this.style === 'dj') {
             const t = Date.now() * 0.006;
-            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff00ff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 25;
             // DJ booth base
             ctx.fillStyle = '#1a1a2e'; ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
             ctx.fillRect(-30, -55, 60, 50); ctx.strokeRect(-30, -55, 60, 50);
@@ -4902,15 +4961,19 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 3,
                     life: 8 + Math.random() * 6, maxLife: 14, color: Math.random() > 0.5 ? '#ff00ff' : '#00ffff' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Pigeon Rage: actual pigeon ──
         if (this.health < MAX_HEALTH && this.style === 'pigeon') {
             const t = Date.now() * 0.005;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.05; ctx.fillStyle = '#aaa';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             const bob = Math.sin(t * 2) * 2;
-            ctx.shadowColor = '#aaa'; ctx.shadowBlur = 8;
+            ctx.shadowColor = '#aaa'; ctx.shadowBlur = 13;
             // Body — plump oval
             ctx.fillStyle = '#8e8e8e';
             ctx.beginPath(); ctx.ellipse(0, -35 + bob, 25, 22, 0.1, 0, Math.PI * 2); ctx.fill();
@@ -4955,7 +5018,7 @@ class Fighter {
                     vx: this.facing * 2, vy: -1,
                     life: 10 + Math.random() * 6, maxLife: 16, color: '#ddd' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
@@ -4963,7 +5026,7 @@ class Fighter {
         if (this.health < MAX_HEALTH && this.style === 'selfie') {
             const t = Date.now() * 0.004;
             const bob = Math.sin(t) * 3;
-            ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 25;
             // Giant floating head
             const headR = 40;
             const cy = -this.height * 0.5 + bob;
@@ -5000,14 +5063,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
                     life: 10 + Math.random() * 8, maxLife: 18, color: '#ff69b4' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Ice Rage: ice giant ──
         if (this.health < MAX_HEALTH && this.style === 'ice') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#87ceeb';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#87ceeb'; ctx.shadowBlur = 25;
             // Frozen crystalline body
             ctx.fillStyle = 'rgba(135,206,235,0.6)'; ctx.strokeStyle = '#b0e0ff'; ctx.lineWidth = 1.5;
             // Torso — angular ice
@@ -5042,13 +5109,17 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 1.5, vy: -0.5 - Math.random() * 1.5,
                     life: 15 + Math.random() * 10, maxLife: 25, color: Math.random() > 0.5 ? '#b0e0ff' : '#fff' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Gravity Rage: dark matter sphere with orbiting rings ──
         if (this.health < MAX_HEALTH && this.style === 'gravity') {
             const t = Date.now() * 0.004;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.12; ctx.fillStyle = '#6a0dad';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             ctx.shadowColor = '#6a0dad'; ctx.shadowBlur = 25;
             const cy = -this.height * 0.5;
             // Dark matter core
@@ -5087,14 +5158,18 @@ class Fighter {
                     vx: -Math.cos(angle) * 2, vy: -Math.sin(angle) * 2,
                     life: 10 + Math.random() * 8, maxLife: 18, color: '#6a0dad' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Time Rage: clockwork being ──
         if (this.health < MAX_HEALTH && this.style === 'time') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#daa520'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#daa520';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#daa520'; ctx.shadowBlur = 20;
             // Gear body — large central gear
             ctx.fillStyle = '#b8860b'; ctx.strokeStyle = '#8b6914'; ctx.lineWidth = 2;
             // Torso gear
@@ -5152,14 +5227,18 @@ class Fighter {
             ctx.fillStyle = '#daa520';
             ctx.beginPath(); ctx.arc(-8 + Math.sin(pendulumA) * 10, 0, 4, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(8 + Math.sin(pendulumA + 1) * 10, 0, 4, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Vampire Rage: vampire bat form ──
         if (this.health < MAX_HEALTH && this.style === 'vampire') {
             const t = Date.now() * 0.006;
-            ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#8b0000';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 25;
             const wingFlap = Math.sin(t * 2) * 0.3;
             // Body — dark oval
             ctx.fillStyle = '#1a0a0a';
@@ -5170,7 +5249,7 @@ class Fighter {
             ctx.beginPath(); ctx.moveTo(-8, -88); ctx.lineTo(-14, -100); ctx.lineTo(-4, -90); ctx.closePath(); ctx.fill();
             ctx.beginPath(); ctx.moveTo(8, -88); ctx.lineTo(14, -100); ctx.lineTo(4, -90); ctx.closePath(); ctx.fill();
             // Red eyes
-            ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8;
+            ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 13;
             ctx.beginPath(); ctx.arc(-5, -82, 2.5, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(5, -82, 2.5, 0, Math.PI * 2); ctx.fill();
             // Fangs
@@ -5210,6 +5289,10 @@ class Fighter {
         // ── Dragon Rage: full dragon ──
         if (this.health < MAX_HEALTH && this.style === 'dragon') {
             const t = Date.now() * 0.005;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#ff4500';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 25;
             const wingFlap = Math.sin(t * 1.5) * 0.25;
             // Main body — large muscular torso
@@ -5286,14 +5369,18 @@ class Fighter {
                     vx: this.facing * (3 + Math.random() * 3), vy: (Math.random() - 0.5) * 2,
                     life: 10 + Math.random() * 8, maxLife: 18, color: Math.random() > 0.5 ? '#ff4500' : '#ffa500' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Necro Rage: lich/skeleton ──
         if (this.health < MAX_HEALTH && this.style === 'necro') {
             const t = Date.now() * 0.005;
-            ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#00ff00';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 20;
             // Robes
             ctx.fillStyle = '#1a0a2e';
             ctx.beginPath(); ctx.moveTo(-18, -30); ctx.lineTo(-22, -75);
@@ -5308,7 +5395,7 @@ class Fighter {
             ctx.fillStyle = '#000';
             ctx.beginPath(); ctx.arc(-5, -this.height + 1, 4, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(5, -this.height + 1, 4, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#00ff00'; ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 10;
+            ctx.fillStyle = '#00ff00'; ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 15;
             ctx.beginPath(); ctx.arc(-5, -this.height + 1, 2, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(5, -this.height + 1, 2, 0, Math.PI * 2); ctx.fill();
             // Jaw
@@ -5344,7 +5431,11 @@ class Fighter {
         // ── Magnet Rage: metallic humanoid with magnetic field ──
         if (this.health < MAX_HEALTH && this.style === 'magnet') {
             const t = Date.now() * 0.005;
-            ctx.shadowColor = '#c0c0c0'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#c0c0c0';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#c0c0c0'; ctx.shadowBlur = 20;
             // Metallic body
             const mg = ctx.createLinearGradient(-15, -this.height, 15, 0);
             mg.addColorStop(0, '#d0d0d0'); mg.addColorStop(0.3, '#808080');
@@ -5383,14 +5474,18 @@ class Fighter {
                 ctx.fillStyle = '#888';
                 ctx.fillRect(Math.cos(da) * dr - 3, -this.height * 0.5 + Math.sin(da) * dr - 3, 6, 6);
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Mech Rage: full mech suit ──
         if (this.health < MAX_HEALTH && this.style === 'mech') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#00aaff'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#00aaff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#00aaff'; ctx.shadowBlur = 20;
             // Bulky robot body
             ctx.fillStyle = '#4a5568'; ctx.strokeStyle = '#2d3748'; ctx.lineWidth = 2;
             // Torso — wide rectangle
@@ -5405,7 +5500,7 @@ class Fighter {
             ctx.fillStyle = '#2d3748';
             ctx.fillRect(-14, -this.height - 3, 28, 22); ctx.strokeRect(-14, -this.height - 3, 28, 22);
             // Visor slit
-            ctx.fillStyle = '#00aaff'; ctx.shadowColor = '#00aaff'; ctx.shadowBlur = 8;
+            ctx.fillStyle = '#00aaff'; ctx.shadowColor = '#00aaff'; ctx.shadowBlur = 13;
             ctx.fillRect(-10, -this.height + 3, 20, 5);
             ctx.shadowBlur = 0;
             // Arms — bulky with shoulder pads
@@ -5440,7 +5535,11 @@ class Fighter {
         // ── Pizza Rage: pizza monster ──
         if (this.health < MAX_HEALTH && this.style === 'pizza') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#ff8c00';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 17;
             // Circular pizza body
             const pizzaR = 35;
             const cy = -this.height * 0.5;
@@ -5489,15 +5588,19 @@ class Fighter {
             ctx.fillStyle = '#d4a050';
             ctx.fillRect(-10, cy + pizzaR - 5, 8, 20 + (cy + pizzaR - 5 > -20 ? 0 : -(cy + pizzaR - 5 + 20)));
             ctx.fillRect(2, cy + pizzaR - 5, 8, 20 + (cy + pizzaR - 5 > -20 ? 0 : -(cy + pizzaR - 5 + 20)));
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Cat Rage: giant cat ──
         if (this.health < MAX_HEALTH && this.style === 'cat') {
             const t = Date.now() * 0.004;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#ffa500';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             const purr = Math.sin(t * 3) * 1.5;
-            ctx.shadowColor = '#ffa500'; ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ffa500'; ctx.shadowBlur = 15;
             // Body — sitting cat oval
             ctx.fillStyle = '#ff8c42';
             ctx.beginPath(); ctx.ellipse(0, -35 + purr, 25, 28, 0, 0, Math.PI * 2); ctx.fill();
@@ -5549,15 +5652,19 @@ class Fighter {
             // Tail tip
             ctx.strokeStyle = '#cc6622'; ctx.lineWidth = 5;
             ctx.beginPath(); ctx.moveTo(-32, -55 + purr); ctx.lineTo(-30, -60 + purr); ctx.stroke();
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Banana Rage: banana person ──
         if (this.health < MAX_HEALTH && this.style === 'banana') {
             const t = Date.now() * 0.004;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#ffdd00';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             const sway = Math.sin(t) * 3;
-            ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 12;
+            ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 17;
             // Banana body — curved shape
             ctx.fillStyle = '#ffe135';
             ctx.beginPath();
@@ -5596,14 +5703,18 @@ class Fighter {
             ctx.fillStyle = '#8b4513';
             ctx.beginPath(); ctx.ellipse(-12, 11, 5, 3, -0.2, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(12, 11, 5, 3, 0.2, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Grandma Rage: super grandma ──
         if (this.health < MAX_HEALTH && this.style === 'grandma') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#ff69b4';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 20;
             // Cape — flowing behind
             ctx.fillStyle = '#c0392b';
             ctx.beginPath(); ctx.moveTo(-10, -80); ctx.quadraticCurveTo(-30 + Math.sin(t) * 5, -50, -25 + Math.sin(t) * 8, -5);
@@ -5636,7 +5747,7 @@ class Fighter {
             ctx.fillRect(20, -55, 16, 14); ctx.strokeRect(20, -55, 16, 14);
             ctx.beginPath(); ctx.arc(28, -55, 6, Math.PI, 0); ctx.stroke(); // handle
             // Purse glow
-            ctx.fillStyle = 'rgba(255,215,0,0.5)'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 10;
+            ctx.fillStyle = 'rgba(255,215,0,0.5)'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 15;
             ctx.beginPath(); ctx.arc(28, -48, 10, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
             // Giant slippers
@@ -5660,7 +5771,11 @@ class Fighter {
         // ── Painter Rage: paint elemental ──
         if (this.health < MAX_HEALTH && this.style === 'painter') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#ff6eb4'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff6eb4';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff6eb4'; ctx.shadowBlur = 20;
             const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#e91e63', '#00bcd4'];
             // Body — constantly color-shifting blob
             const bodyColor = colors[Math.floor(t * 0.5) % colors.length];
@@ -5698,15 +5813,19 @@ class Fighter {
                     life: 10 + Math.random() * 8, maxLife: 18,
                     color: colors[Math.floor(Math.random() * colors.length)] });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Bee Rage: giant bee ──
         if (this.health < MAX_HEALTH && this.style === 'bee') {
             const t = Date.now() * 0.006;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#ffdd00';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             const buzz = Math.sin(t * 6) * 2;
-            ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 15;
             // Wings — translucent, fast flapping
             ctx.fillStyle = 'rgba(200,230,255,0.4)'; ctx.strokeStyle = 'rgba(150,200,255,0.6)'; ctx.lineWidth = 1;
             const wingAngle = Math.sin(t * 8) * 0.4;
@@ -5763,14 +5882,18 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 2,
                     life: 6 + Math.random() * 4, maxLife: 10, color: '#ffdd00' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Teacher Rage: strict teacher form ──
         if (this.health < MAX_HEALTH && this.style === 'teacher') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#8b0000';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 15;
             // Body — suit/blazer
             ctx.fillStyle = '#2c3e50';
             ctx.fillRect(-18, -80, 36, 50); ctx.strokeStyle = '#1a252f'; ctx.lineWidth = 1.5; ctx.stroke();
@@ -5819,14 +5942,18 @@ class Fighter {
             // Shoes
             ctx.fillStyle = '#111';
             ctx.fillRect(-14, -3, 13, 5); ctx.fillRect(1, -3, 13, 5);
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Plumber Rage: plumber mech ──
         if (this.health < MAX_HEALTH && this.style === 'plumber') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#3498db'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#3498db';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#3498db'; ctx.shadowBlur = 17;
             // Pipe armor body — chunky cylindrical look
             ctx.fillStyle = '#7f8c8d'; ctx.strokeStyle = '#5d6d7e'; ctx.lineWidth = 2;
             // Torso — pipe sections
@@ -5879,15 +6006,19 @@ class Fighter {
                     vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
                     life: 10 + Math.random() * 6, maxLife: 16, color: '#3498db' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Football: footballer in kit ──
         if (this.health < MAX_HEALTH && this.style === 'football') {
             const t = Date.now() * 0.005;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#228b22';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             const run = Math.sin(t * 8) * 5;
-            ctx.shadowColor = '#228b22'; ctx.shadowBlur = 10;
+            ctx.shadowColor = '#228b22'; ctx.shadowBlur = 15;
             // Head
             ctx.fillStyle = '#f4c48e'; ctx.beginPath(); ctx.arc(0, -this.height + 2, 13, 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke();
@@ -5929,20 +6060,24 @@ class Fighter {
                     vx: (Math.random()-0.5)*3, vy: -1 - Math.random()*2,
                     life: 8 + Math.random()*6, maxLife: 14, color: '#228b22' });
             }
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.shadowBlur = 5; ctx.restore();
             return;
         }
 
         // ── Magma: molten lava golem ──
         if (this.health < MAX_HEALTH && this.style === 'magma') {
             const t = Date.now() * 0.004;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.12; ctx.fillStyle = '#ff4500';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 25;
             // Body — dark rock with glowing lava cracks
             ctx.fillStyle = '#2d1b0e';
             ctx.fillRect(-22, -82, 44, 48);
             // Lava cracks on body
             ctx.strokeStyle = '#ff4500'; ctx.lineWidth = 2;
-            ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 12;
+            ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 17;
             ctx.beginPath(); ctx.moveTo(-15, -80); ctx.lineTo(-5, -60); ctx.lineTo(-12, -40); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(10, -78); ctx.lineTo(5, -55); ctx.lineTo(14, -38); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(-8, -65); ctx.lineTo(8, -58); ctx.stroke();
@@ -5988,7 +6123,11 @@ class Fighter {
         // ── POISON: Toxic mutant ──
         if (this.health < MAX_HEALTH && this.style === 'poison') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.12; ctx.fillStyle = '#39ff14';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 25;
             // Body — green mutant
             ctx.fillStyle = '#1a5e1a'; ctx.fillRect(-18, -80, 36, 46);
             // Dripping slime
@@ -6001,7 +6140,7 @@ class Fighter {
             ctx.fillStyle = '#2d5a2d'; ctx.beginPath(); ctx.arc(0, -this.height+2, 14, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, -this.height+6, 8, 0, Math.PI, false); ctx.fill();
             // Goggle eyes
-            ctx.fillStyle = '#39ff14'; ctx.shadowBlur = 8;
+            ctx.fillStyle = '#39ff14'; ctx.shadowBlur = 13;
             ctx.beginPath(); ctx.arc(-6, -this.height, 4, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(6, -this.height, 4, 0, Math.PI*2); ctx.fill();
             // Arms
@@ -6019,7 +6158,11 @@ class Fighter {
         // ── SOUND: Boombox body ──
         if (this.health < MAX_HEALTH && this.style === 'sound') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff00ff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 20;
             // Body — speaker/boombox shape
             ctx.fillStyle = '#222'; ctx.fillRect(-22, -80, 44, 50);
             ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 2; ctx.strokeRect(-22, -80, 44, 50);
@@ -6042,13 +6185,17 @@ class Fighter {
                     vx: (Math.random()-0.5)*3, vy: -2-Math.random()*3, life: 15+Math.random()*8, maxLife: 23,
                     color: `hsl(${300+Math.random()*60},100%,60%)` });
             }
-            ctx.shadowBlur = 0; ctx.restore(); return;
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── SAND: Sand elemental ──
         if (this.health < MAX_HEALTH && this.style === 'sand') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#d2a54b'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#d2a54b';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#d2a54b'; ctx.shadowBlur = 20;
             // Body — grainy shifting
             ctx.fillStyle = '#c19a49';
             for (let i = 0; i < 8; i++) {
@@ -6066,12 +6213,16 @@ class Fighter {
                     vx: (Math.random()-0.5)*3, vy: 1+Math.random()*2, life: 8+Math.random()*6, maxLife: 14,
                     color: `hsl(35,${50+Math.random()*20}%,${50+Math.random()*15}%)` });
             }
-            ctx.shadowBlur = 0; ctx.restore(); return;
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── PLASMA: Plasma being ──
         if (this.health < MAX_HEALTH && this.style === 'plasma') {
             const t = Date.now() * 0.005;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.12; ctx.fillStyle = '#00ffff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 25;
             // Body — cyan energy
             const grad = ctx.createLinearGradient(0, -85, 0, 0);
@@ -6095,13 +6246,17 @@ class Fighter {
                     vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 8+Math.random()*6, maxLife: 14,
                     color: '#00e5ff' });
             }
-            ctx.shadowBlur = 0; ctx.restore(); return;
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── NATURE: Tree person ──
         if (this.health < MAX_HEALTH && this.style === 'nature') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#27ae60'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#27ae60';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#27ae60'; ctx.shadowBlur = 17;
             // Body — tree trunk
             ctx.fillStyle = '#5a3a1a'; ctx.fillRect(-14, -80, 28, 48);
             // Bark texture
@@ -6126,13 +6281,17 @@ class Fighter {
                     vx: (Math.random()-0.5)*2, vy: 0.5+Math.random(), life: 15+Math.random()*10, maxLife: 25,
                     color: '#2ecc71' });
             }
-            ctx.shadowBlur = 0; ctx.restore(); return;
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── STORM: Storm cloud form ──
         if (this.health < MAX_HEALTH && this.style === 'storm') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#5b6abf'; ctx.shadowBlur = 20;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#5b6abf';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#5b6abf'; ctx.shadowBlur = 25;
             // Cloud body
             ctx.fillStyle = '#34495e';
             ctx.beginPath(); ctx.arc(0, -60, 20, 0, Math.PI*2); ctx.fill();
@@ -6140,7 +6299,7 @@ class Fighter {
             ctx.beginPath(); ctx.arc(14, -50, 15, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(0, -45, 18, 0, Math.PI*2); ctx.fill();
             // Lightning bolts
-            ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2; ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 10;
+            ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2; ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 15;
             if (Math.sin(t*8) > 0.3) {
                 ctx.beginPath(); ctx.moveTo(-5, -35); ctx.lineTo(-8, -20); ctx.lineTo(-2, -22); ctx.lineTo(-6, -8); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(5, -35); ctx.lineTo(8, -18); ctx.lineTo(2, -20); ctx.lineTo(6, -5); ctx.stroke();
@@ -6160,8 +6319,12 @@ class Fighter {
         // ── LAVALAMP: Blob shifting colors ──
         if (this.health < MAX_HEALTH && this.style === 'lavalamp') {
             const t = Date.now() * 0.003;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#ff00ff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             const hue = (Date.now() * 0.05) % 360;
-            ctx.shadowColor = `hsl(${hue},100%,50%)`; ctx.shadowBlur = 20;
+            ctx.shadowColor = `hsl(${hue},100%,50%)`; ctx.shadowBlur = 25;
             // Lamp body outline
             ctx.fillStyle = '#333';
             ctx.beginPath(); ctx.moveTo(-12, 0); ctx.quadraticCurveTo(-18, -40, -10, -80);
@@ -6175,13 +6338,23 @@ class Fighter {
             // Head/cap
             ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(0, -this.height+2, 10, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = `hsl(${hue},100%,70%)`; ctx.beginPath(); ctx.arc(0, -this.height+2, 5, 0, Math.PI*2); ctx.fill();
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#ff00ff' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── WEREWOLF: Wolf form ──
         if (this.health < MAX_HEALTH && this.style === 'werewolf') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#8B4513'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#8B4513';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#8B4513'; ctx.shadowBlur = 17;
             // Furry body
             ctx.fillStyle = '#5c3a1e'; ctx.fillRect(-18, -78, 36, 46);
             // Fur texture
@@ -6207,13 +6380,23 @@ class Fighter {
             // Tail
             ctx.strokeStyle = '#5c3a1e'; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.moveTo(16, -40); ctx.quadraticCurveTo(30, -50+Math.sin(t)*8, 28, -60); ctx.stroke();
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#8B4513' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── ZOMBIE: Undead form ──
         if (this.health < MAX_HEALTH && this.style === 'zombie') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#556b2f'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#556b2f';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#556b2f'; ctx.shadowBlur = 17;
             // Body — torn clothes
             ctx.fillStyle = '#556b2f'; ctx.fillRect(-16, -78, 32, 46);
             ctx.fillStyle = '#3a4a20'; // torn patches
@@ -6231,13 +6414,23 @@ class Fighter {
             ctx.fillStyle = '#6b8e23'; ctx.fillRect(-30, -72, 10, 30); ctx.fillRect(22, -68, 10, 34);
             // Legs — one dragging
             ctx.fillRect(-14, -32, 10, 32); ctx.fillRect(4, -32, 10, 34);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#556b2f' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── CUPID: Cherub form ──
         if (this.health < MAX_HEALTH && this.style === 'cupid') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff69b4';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 20;
             // Body — chubby pink
             ctx.fillStyle = '#ffcccb'; ctx.fillRect(-14, -72, 28, 38);
             // Wings
@@ -6266,13 +6459,17 @@ class Fighter {
                     vx: (Math.random()-0.5)*2, vy: -1-Math.random()*2, life: 12+Math.random()*8, maxLife: 20,
                     color: '#ff69b4' });
             }
-            ctx.shadowBlur = 0; ctx.restore(); return;
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── MINOTAUR: Bull-man ──
         if (this.health < MAX_HEALTH && this.style === 'minotaur') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#8B4513'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#8B4513';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#8B4513'; ctx.shadowBlur = 17;
             // Muscular body
             ctx.fillStyle = '#6b3a1f'; ctx.fillRect(-20, -80, 40, 50);
             // Chest definition
@@ -6296,13 +6493,23 @@ class Fighter {
             // Hoof legs
             ctx.fillRect(-16, -30, 12, 30); ctx.fillRect(4, -30, 12, 30);
             ctx.fillStyle = '#333'; ctx.fillRect(-17, -2, 14, 4); ctx.fillRect(3, -2, 14, 4);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#8B4513' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── KRAKEN: Tentacle creature ──
         if (this.health < MAX_HEALTH && this.style === 'kraken') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#1a5276'; ctx.shadowBlur = 18;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#1a5276';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#1a5276'; ctx.shadowBlur = 23;
             // Body — bulbous
             ctx.fillStyle = '#2471a3'; ctx.beginPath(); ctx.ellipse(0, -55, 22, 28, 0, 0, Math.PI*2); ctx.fill();
             // Single large eye
@@ -6321,13 +6528,23 @@ class Fighter {
             // Suction cups
             ctx.fillStyle = '#85c1e9';
             for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(-10+i*7+Math.sin(t+i)*3, -15+Math.sin(t+i)*4, 2, 0, Math.PI*2); ctx.fill(); }
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#1a5276' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── REAPER: Grim reaper ──
         if (this.health < MAX_HEALTH && this.style === 'reaper') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#4a0060'; ctx.shadowBlur = 18;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.12; ctx.fillStyle = '#4a0060';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#4a0060'; ctx.shadowBlur = 23;
             // Hooded robe
             ctx.fillStyle = '#1a1a2e';
             ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(-18, -75); ctx.quadraticCurveTo(0, -90, 18, -75);
@@ -6349,13 +6566,17 @@ class Fighter {
                     vx: (Math.random()-0.5)*1.5, vy: -1-Math.random(), life: 12+Math.random()*8, maxLife: 20,
                     color: 'rgba(100,0,150,0.5)' });
             }
-            ctx.shadowBlur = 0; ctx.restore(); return;
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── BOXING: Boxer ──
         if (this.health < MAX_HEALTH && this.style === 'boxing') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#e74c3c';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 15;
             // Body — shorts
             ctx.fillStyle = '#c0392b'; ctx.fillRect(-14, -52, 28, 20);
             // Torso
@@ -6380,13 +6601,23 @@ class Fighter {
             ctx.fillRect(2, -32, 10, 16);
             // Boots
             ctx.fillStyle = '#333'; ctx.fillRect(-13, -16, 12, 16); ctx.fillRect(1, -16, 12, 16);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#e74c3c' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── BASKETBALL: Basketball player ──
         if (this.health < MAX_HEALTH && this.style === 'basketball') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#e67e22'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#e67e22';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#e67e22'; ctx.shadowBlur = 15;
             // Jersey
             ctx.fillStyle = '#e67e22'; ctx.fillRect(-16, -78, 32, 36);
             ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
@@ -6405,13 +6636,23 @@ class Fighter {
             ctx.fillStyle = '#d4a574'; ctx.fillRect(-12, -26, 10, 26); ctx.fillRect(2, -26, 10, 26);
             // Sneakers
             ctx.fillStyle = '#e74c3c'; ctx.fillRect(-14, -2, 14, 4); ctx.fillRect(0, -2, 14, 4);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#e67e22' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── TENNIS: Tennis player ──
         if (this.health < MAX_HEALTH && this.style === 'tennis') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#a4de02'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#a4de02';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#a4de02'; ctx.shadowBlur = 15;
             // Polo shirt
             ctx.fillStyle = '#fff'; ctx.fillRect(-14, -78, 28, 34);
             ctx.fillStyle = '#a4de02'; ctx.fillRect(-14, -78, 28, 6);
@@ -6434,13 +6675,23 @@ class Fighter {
             // Legs
             ctx.fillStyle = '#d4a574'; ctx.fillRect(-10, -30, 8, 24); ctx.fillRect(2, -30, 8, 24);
             ctx.fillStyle = '#fff'; ctx.fillRect(-12, -6, 12, 8); ctx.fillRect(0, -6, 12, 8);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#a4de02' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── WRESTLING: Wrestler ──
         if (this.health < MAX_HEALTH && this.style === 'wrestling') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#8e44ad';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 17;
             // Body — muscular
             ctx.fillStyle = '#d4a574'; ctx.fillRect(-18, -78, 36, 34);
             // Trunks
@@ -6461,13 +6712,23 @@ class Fighter {
             ctx.fillStyle = '#d4a574'; ctx.fillRect(-32, -74, 12, 32); ctx.fillRect(20, -74, 12, 32);
             // Boots
             ctx.fillStyle = '#8e44ad'; ctx.fillRect(-14, -30, 12, 30); ctx.fillRect(2, -30, 12, 30);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#8e44ad' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── ARCHERY: Archer ──
         if (this.health < MAX_HEALTH && this.style === 'archery') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#27ae60'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#27ae60';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#27ae60'; ctx.shadowBlur = 15;
             // Tunic
             ctx.fillStyle = '#27ae60'; ctx.fillRect(-14, -78, 28, 40);
             // Head
@@ -6491,13 +6752,23 @@ class Fighter {
             ctx.fillStyle = '#27ae60'; ctx.fillRect(-10, -38, 8, 22);
             ctx.fillRect(2, -38, 8, 22);
             ctx.fillStyle = '#5a3a1a'; ctx.fillRect(-12, -16, 12, 16); ctx.fillRect(0, -16, 12, 16);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#27ae60' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── WIFI: Router/signal tower ──
         if (this.health < MAX_HEALTH && this.style === 'wifi') {
             const t = Date.now() * 0.005;
-            ctx.shadowColor = '#00bcd4'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#00bcd4';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#00bcd4'; ctx.shadowBlur = 20;
             // Router body
             ctx.fillStyle = '#333'; ctx.fillRect(-18, -50, 36, 20);
             ctx.fillStyle = '#222'; ctx.fillRect(-16, -48, 32, 16);
@@ -6519,13 +6790,23 @@ class Fighter {
             ctx.globalAlpha = 1;
             // Legs/stand
             ctx.fillStyle = '#333'; ctx.fillRect(-12, -30, 8, 30); ctx.fillRect(4, -30, 8, 30);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#00bcd4' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── BABY: Giant baby ──
         if (this.health < MAX_HEALTH && this.style === 'baby') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#ffb6c1'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#ffb6c1';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ffb6c1'; ctx.shadowBlur = 17;
             // Diaper body
             ctx.fillStyle = '#fff'; ctx.fillRect(-16, -50, 32, 24);
             ctx.fillStyle = '#87ceeb'; ctx.beginPath(); ctx.arc(-8, -40, 2, 0, Math.PI*2); ctx.fill();
@@ -6546,13 +6827,23 @@ class Fighter {
             ctx.fillStyle = '#ffdab9';
             ctx.fillRect(-24, -68, 8, 16); ctx.fillRect(16, -68, 8, 16);
             ctx.fillRect(-10, -26, 8, 26); ctx.fillRect(2, -26, 8, 26);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#ffb6c1' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── TOILET: Toilet form ──
         if (this.health < MAX_HEALTH && this.style === 'toilet') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#ecf0f1'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#ecf0f1';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ecf0f1'; ctx.shadowBlur = 15;
             // Tank
             ctx.fillStyle = '#ecf0f1'; ctx.fillRect(-14, -82, 28, 24);
             ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 1; ctx.strokeRect(-14, -82, 28, 24);
@@ -6571,13 +6862,23 @@ class Fighter {
             ctx.fillStyle = '#333'; ctx.fillRect(-6, -76, 4, 4); ctx.fillRect(2, -76, 4, 4);
             // Legs
             ctx.fillStyle = '#ecf0f1'; ctx.fillRect(-10, -30, 8, 30); ctx.fillRect(2, -30, 8, 30);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#ecf0f1' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── CLOWN: Clown ──
         if (this.health < MAX_HEALTH && this.style === 'clown') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#e74c3c';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 17;
             // Colorful outfit
             ctx.fillStyle = '#f1c40f'; ctx.fillRect(-16, -78, 32, 24);
             ctx.fillStyle = '#3498db'; ctx.fillRect(-16, -54, 32, 22);
@@ -6604,13 +6905,23 @@ class Fighter {
             ctx.fillStyle = '#f1c40f'; ctx.fillRect(-28, -70, 10, 24); ctx.fillRect(18, -70, 10, 24);
             // Legs
             ctx.fillStyle = '#3498db'; ctx.fillRect(-10, -32, 8, 30); ctx.fillRect(2, -32, 8, 30);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#e74c3c' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── FRIDGE: Fridge form ──
         if (this.health < MAX_HEALTH && this.style === 'fridge') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#bdc3c7'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#bdc3c7';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#bdc3c7'; ctx.shadowBlur = 15;
             // Main body
             ctx.fillStyle = '#ddd'; ctx.fillRect(-18, -84, 36, 60);
             ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1; ctx.strokeRect(-18, -84, 36, 60);
@@ -6628,13 +6939,23 @@ class Fighter {
             ctx.fillStyle = '#333'; ctx.fillRect(-6, -78, 4, 4); ctx.fillRect(2, -78, 4, 4);
             // Legs
             ctx.fillStyle = '#bbb'; ctx.fillRect(-12, -24, 8, 24); ctx.fillRect(4, -24, 8, 24);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#bdc3c7' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── ROOMBA: Roomba disc ──
         if (this.health < MAX_HEALTH && this.style === 'roomba') {
             const t = Date.now() * 0.005;
-            ctx.shadowColor = '#2ecc71'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#2ecc71';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#2ecc71'; ctx.shadowBlur = 17;
             // Flat disc body
             ctx.fillStyle = '#555'; ctx.beginPath(); ctx.ellipse(0, -30, 28, 10, 0, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#444'; ctx.beginPath(); ctx.ellipse(0, -32, 26, 8, 0, 0, Math.PI*2); ctx.fill();
@@ -6649,13 +6970,23 @@ class Fighter {
             ctx.fillStyle = '#fff'; ctx.fillRect(-6, -36, 4, 3); ctx.fillRect(2, -36, 4, 3);
             // Wheels
             ctx.fillStyle = '#333'; ctx.fillRect(-22, -28, 6, 4); ctx.fillRect(16, -28, 6, 4);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#2ecc71' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── CACTUS: Cactus form ──
         if (this.health < MAX_HEALTH && this.style === 'cactus') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#27ae60'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#27ae60';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#27ae60'; ctx.shadowBlur = 15;
             // Main body
             ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.roundRect(-12, -80, 24, 56, 8); ctx.fill();
             // Arms
@@ -6681,13 +7012,23 @@ class Fighter {
             ctx.fillStyle = '#333'; ctx.fillRect(-5, -this.height+8, 3, 3); ctx.fillRect(2, -this.height+8, 3, 3);
             // Legs
             ctx.fillStyle = '#27ae60'; ctx.fillRect(-10, -24, 8, 24); ctx.fillRect(2, -24, 8, 24);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#27ae60' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── NINJA: Ninja ──
         if (this.health < MAX_HEALTH && this.style === 'ninja') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#333'; ctx.shadowBlur = 8;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.05; ctx.fillStyle = '#333';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#333'; ctx.shadowBlur = 13;
             // Body — all black
             ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-14, -78, 28, 44);
             // Belt
@@ -6708,13 +7049,23 @@ class Fighter {
             ctx.fillRect(-12, -34, 10, 34); ctx.fillRect(2, -34, 10, 34);
             // Tabi boots
             ctx.fillStyle = '#333'; ctx.fillRect(-13, -2, 12, 4); ctx.fillRect(1, -2, 12, 4);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#333' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── COWBOY: Cowboy ──
         if (this.health < MAX_HEALTH && this.style === 'cowboy') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#c19a49'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#c19a49';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#c19a49'; ctx.shadowBlur = 15;
             // Poncho
             ctx.fillStyle = '#c19a49';
             ctx.beginPath(); ctx.moveTo(-24, -70); ctx.lineTo(24, -70); ctx.lineTo(20, -38); ctx.lineTo(-20, -38); ctx.closePath(); ctx.fill();
@@ -6737,13 +7088,23 @@ class Fighter {
             // Boots
             ctx.fillStyle = '#5a3a1a'; ctx.fillRect(-12, -28, 10, 28); ctx.fillRect(2, -28, 10, 28);
             ctx.fillStyle = '#8B4513'; ctx.fillRect(-14, -8, 14, 10); ctx.fillRect(0, -8, 14, 10);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#c19a49' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── PIRATE: Pirate ──
         if (this.health < MAX_HEALTH && this.style === 'pirate') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#c0392b'; ctx.shadowBlur = 10;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.08; ctx.fillStyle = '#c0392b';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#c0392b'; ctx.shadowBlur = 15;
             // Coat
             ctx.fillStyle = '#c0392b'; ctx.fillRect(-16, -78, 32, 40);
             ctx.fillStyle = '#f1c40f'; ctx.fillRect(-16, -78, 32, 3); // Gold trim
@@ -6772,13 +7133,23 @@ class Fighter {
             ctx.fillStyle = '#333'; ctx.fillRect(-12, -38, 10, 38);
             ctx.fillStyle = '#8B4513'; ctx.fillRect(4, -38, 4, 38);
             ctx.fillStyle = '#333'; ctx.fillRect(2, -38, 8, 12);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#c0392b' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── ASTRONAUT: Astronaut ──
         if (this.health < MAX_HEALTH && this.style === 'astronaut') {
             const t = Date.now() * 0.003;
-            ctx.shadowColor = '#ecf0f1'; ctx.shadowBlur = 12;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.06; ctx.fillStyle = '#ecf0f1';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ecf0f1'; ctx.shadowBlur = 17;
             // Space suit body
             ctx.fillStyle = '#ecf0f1'; ctx.fillRect(-18, -78, 36, 46);
             // Chest panel
@@ -6805,13 +7176,23 @@ class Fighter {
             ctx.fillStyle = '#ecf0f1'; ctx.fillRect(-14, -32, 12, 32); ctx.fillRect(2, -32, 12, 32);
             // Boots
             ctx.fillStyle = '#bbb'; ctx.fillRect(-16, -4, 16, 6); ctx.fillRect(0, -4, 16, 6);
-            ctx.shadowBlur = 0; ctx.restore(); return;
+
+            if (Math.random() < 0.25) {
+                particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20 - Math.random() * 60,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#ecf0f1' });
+            }
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── ROCKSTAR: Rockstar ──
         if (this.health < MAX_HEALTH && this.style === 'rockstar') {
             const t = Date.now() * 0.004;
-            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 15;
+            // Enhanced aura glow
+            ctx.globalAlpha = 0.1; ctx.fillStyle = '#ff00ff';
+            ctx.beginPath(); ctx.ellipse(0, -this.height * 0.5, 42, 52, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 20;
             // Leather jacket
             ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-16, -78, 32, 38);
             // Jacket lapels
@@ -6852,7 +7233,7 @@ class Fighter {
                     vx: (Math.random()-0.5)*3, vy: -2-Math.random()*2, life: 10+Math.random()*8, maxLife: 18,
                     color: `hsl(${300+Math.random()*60},100%,60%)` });
             }
-            ctx.shadowBlur = 0; ctx.restore(); return;
+            ctx.shadowBlur = 5; ctx.restore(); return;
         }
 
         // ── Phoenix Dive: draw fireball instead of stickman ──
