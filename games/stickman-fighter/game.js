@@ -384,6 +384,7 @@ class Fighter {
                 if (sd.timer >= 12) {
                     sd.phase = 'dash'; sd.timer = 0;
                     sd.targetX = sd.opponent.x; // re-target current position
+                    sd.dir = sd.targetX > this.x ? 1 : -1; // update direction
                     sd.startX = this.x;
                     triggerScreenFlash('#c8d6e5', 0.2);
                 }
@@ -550,6 +551,8 @@ class Fighter {
                 let kb = atk.knockback * 1.5;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 15; opponent.hit = true;
                 opponent.x += dir * kb;
                 this.castTimer = 20;
@@ -581,6 +584,8 @@ class Fighter {
                 const dist = Math.abs(this.x - opponent.x);
                 if (dist < atk.range) {
                     opponent.health = Math.max(0, opponent.health - damage);
+                    spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                    this.addCombo();
                     opponent.hitTimer = 18; opponent.hit = true;
                     opponent.x += dir * kb;
                     opponent.vy = -8; opponent.onGround = false;
@@ -602,6 +607,8 @@ class Fighter {
                 let kb = atk.knockback * 2;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 12; opponent.hit = true;
                 opponent.x += dir * kb;
                 spawnWindGust(this.x, this.y - this.height * 0.5, dir);
@@ -616,6 +623,8 @@ class Fighter {
                 let kb = atk.knockback * 1.5;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 15; opponent.hit = true;
                 opponent.x += dir * kb;
                 opponent.vy = -8; opponent.onGround = false;
@@ -653,6 +662,8 @@ class Fighter {
                 let kb = atk.knockback * 2;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 15; opponent.hit = true;
                 opponent.x += dir * kb;
                 this.castTimer = 20;
@@ -670,6 +681,8 @@ class Fighter {
                 let kb = atk.knockback * 1.5;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 20; opponent.hit = true;
                 opponent.x += dir * kb;
                 opponent.vy = -6; opponent.onGround = false;
@@ -686,6 +699,8 @@ class Fighter {
                 const dist = Math.abs(this.x - opponent.x);
                 if (dist < 9999) {
                     opponent.health = Math.max(0, opponent.health - damage);
+                    spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                    this.addCombo();
                     opponent.hitTimer = 18; opponent.hit = true;
                     opponent.vy = -16; opponent.onGround = false;
                     opponent.x += dir * kb;
@@ -705,6 +720,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 14; opponent.hit = true;
                 opponent.x += dir * atk.knockback * 1.5;
                 // Multiple lightning bolts
@@ -724,6 +741,8 @@ class Fighter {
                 let kb = atk.knockback * 2;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 20; opponent.hit = true;
                 opponent.x += dir * kb;
                 opponent.vy = -10; opponent.onGround = false;
@@ -739,6 +758,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 18; opponent.hit = true;
                 opponent.vy = -8; opponent.onGround = false;
                 visualEffects.push({ type: 'plasmaField', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 });
@@ -785,6 +806,8 @@ class Fighter {
                 let kb = atk.knockback * 1.5;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 20; opponent.hit = true;
                 opponent.vy = -14; opponent.onGround = false;
                 opponent.x += dir * kb;
@@ -801,6 +824,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 18; opponent.hit = true;
                 opponent.vy = -10; opponent.onGround = false;
                 visualEffects.push({ type: 'earthquake', life: 50, maxLife: 50 });
@@ -839,6 +864,8 @@ class Fighter {
                 let kb = atk.knockback * 1.5;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 18; opponent.hit = true;
                 opponent.x += dir * kb;
                 spawnAcidRain(opponent.x, groundY);
@@ -855,6 +882,8 @@ class Fighter {
                 let kb = atk.knockback * 1.5;
                 if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 18; opponent.hit = true;
                 opponent.x += dir * kb;
                 // Two crossing slashes
@@ -877,8 +906,10 @@ class Fighter {
                 opponent.health = Math.max(0, opponent.health - damage);
                 opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
                 const beamY = this.y - this.height * 0.55;
-                visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 28, maxLife: 28, color: '#ffd700' });
+                visualEffects.push({ type: 'holyBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 28, maxLife: 28 });
                 triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#ffd700', 0.5);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#ffd700');
+                this.addCombo();
                 spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
                 return;
             }
@@ -887,6 +918,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
                 visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 });
                 visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 28, maxLife: 28 });
@@ -899,6 +932,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -8; opponent.onGround = false;
                 for (let j = -1; j <= 1; j++) {
                     spawnLightningBolt(opponent.x + j * 80, 0, groundY, 8);
@@ -918,8 +953,10 @@ class Fighter {
                 opponent.health = Math.max(0, opponent.health - damage);
                 opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
                 const beamY = this.y - this.height * 0.55;
-                visualEffects.push({ type: 'hydroCannon', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 28, maxLife: 28 });
+                visualEffects.push({ type: 'darkBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 28, maxLife: 28 });
                 triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#8e44ad', 0.5);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#8e44ad');
+                this.addCombo();
                 spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
                 return;
             }
@@ -928,6 +965,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 20; opponent.hit = true;
                 visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 });
                 visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 35, maxLife: 35 });
@@ -940,6 +979,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -12; opponent.onGround = false;
                 visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 });
                 triggerScreenShake(20, 28); triggerHitstop(12); triggerScreenFlash('#000', 0.6);
@@ -955,6 +996,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 14; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
                 visualEffects.push({ type: 'phantomSlash', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, life: 18, maxLife: 18 });
                 visualEffects.push({ type: 'phantomSlash', x: opponent.x + 20, y: opponent.y - opponent.height * 0.3, dir: -dir, life: 15, maxLife: 15 });
@@ -967,6 +1010,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -6; opponent.onGround = false;
                 for (let s = 0; s < 3; s++) {
                     setTimeout(() => {
@@ -1000,6 +1045,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
                 visualEffects.push({ type: 'warpPortal', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 });
                 triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#e056de', 0.4);
@@ -1011,6 +1058,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
                 for (let j = -1; j <= 1; j++) {
                     visualEffects.push({ type: 'warpPortal', x: opponent.x + j * 70, y: opponent.y - opponent.height * 0.5 + j * 20, life: 25, maxLife: 25 });
@@ -1024,6 +1073,8 @@ class Fighter {
                 let damage = Math.floor(atk.damage * 1.5);
                 if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
                 opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color);
+                this.addCombo();
                 opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -12; opponent.onGround = false;
                 visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 50, maxLife: 50 });
                 triggerScreenShake(22, 28); triggerHitstop(12); triggerScreenFlash('#e056de', 0.6);
@@ -2357,6 +2408,47 @@ function drawVisualEffects() {
                 ctx.beginPath(); ctx.arc(vfx.x1, vfx.y1, 50, 0, Math.PI * 2); ctx.fill();
             }
             ctx.shadowBlur = 0;
+        }
+
+        // ── Holy Beam (Light Rage) ──
+        if (vfx.type === 'holyBeam') {
+            const prog = 1 - a; const reveal = Math.min(prog * 5, 1);
+            const beamLen = (vfx.x2 - vfx.x1) * reveal; const endX = vfx.x1 + beamLen;
+            ctx.globalAlpha = a * 0.4; ctx.strokeStyle = '#b8960c'; ctx.lineWidth = 45 * a;
+            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 60;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.globalAlpha = a * 0.7; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 24 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.globalAlpha = a * 0.9; ctx.strokeStyle = '#fffacd'; ctx.lineWidth = 12 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 5 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 4; i++) {
+                const px = vfx.x1 + Math.random() * beamLen;
+                particles.push({ x: px, y: vfx.y1 + (Math.random() - 0.5) * 20,
+                    vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#ffd700' });
+            }} ctx.shadowBlur = 0;
+        }
+        // ── Dark Beam (Dark Rage) ──
+        if (vfx.type === 'darkBeam') {
+            const prog = 1 - a; const reveal = Math.min(prog * 5, 1);
+            const beamLen = (vfx.x2 - vfx.x1) * reveal; const endX = vfx.x1 + beamLen;
+            ctx.globalAlpha = a * 0.4; ctx.strokeStyle = '#1a0030'; ctx.lineWidth = 45 * a;
+            ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 60;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.globalAlpha = a * 0.7; ctx.strokeStyle = '#6c3483'; ctx.lineWidth = 24 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.globalAlpha = a * 0.9; ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 12 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.strokeStyle = '#bb88dd'; ctx.lineWidth = 4 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 4; i++) {
+                const px = vfx.x1 + Math.random() * beamLen;
+                particles.push({ x: px, y: vfx.y1 + (Math.random() - 0.5) * 20,
+                    vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#8e44ad' });
+            }} ctx.shadowBlur = 0;
         }
 
         // ── Hydro Cannon (Water Rage) ──
@@ -4040,44 +4132,6 @@ function drawProjectiles() {
         }
 
         // ─── WATER: Ice Spike ───
-        else if (draw === 'iceSpike') {
-            const dir = p.vx > 0 ? 1 : -1;
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(dir > 0 ? 0 : Math.PI);
-            ctx.globalAlpha = 1;
-            ctx.shadowColor = '#85c1e9'; ctx.shadowBlur = 22;
-            // Sharp crystalline shard
-            ctx.fillStyle = '#aed6f1';
-            ctx.beginPath();
-            ctx.moveTo(20, 0);
-            ctx.lineTo(-8, -7);
-            ctx.lineTo(-14, 0);
-            ctx.lineTo(-8, 7);
-            ctx.closePath();
-            ctx.fill();
-            // Inner bright edge
-            ctx.fillStyle = '#d6eaf8';
-            ctx.beginPath();
-            ctx.moveTo(18, 0);
-            ctx.lineTo(-4, -4);
-            ctx.lineTo(-8, 0);
-            ctx.lineTo(-4, 4);
-            ctx.closePath();
-            ctx.fill();
-            // Bright tip
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(16, 0, 3, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.restore();
-            // Ice sparkle particles
-            if (Math.random() < 0.5) {
-                particles.push({ x: p.x, y: p.y + (Math.random() - 0.5) * 8,
-                    vx: -dir * Math.random() * 2, vy: (Math.random() - 0.5) * 2,
-                    life: 6 + Math.random() * 4, maxLife: 10, color: '#d4efdf' });
-            }
-        }
-
         // ─── WATER: Tsunami ───
         else if (draw === 'tsunami') {
             const dir = p.vx > 0 ? 1 : -1;
