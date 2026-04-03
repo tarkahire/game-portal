@@ -1571,31 +1571,40 @@ function updateProjectiles() {
         if (p.isAcidMonster) {
             p.phaseTimer++;
             if (p.phase === 'rise') {
-                // Monster rises from the ground
-                p.vy = -2.5;
-                // Acid bubbles from ground
-                if (p.phaseTimer % 3 === 0) {
-                    for (let d = 0; d < 3; d++) {
-                        particles.push({ x: p.x + (Math.random() - 0.5) * 80, y: groundY,
-                            vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
-                            life: 10 + Math.random() * 8, maxLife: 18,
-                            color: `hsl(${110 + Math.random() * 15}, 100%, ${40 + Math.random() * 30}%)` });
+                // Monster slowly rises from the ground — menacing
+                p.vy = -2;
+                // Continuous rumble shake
+                if (p.phaseTimer % 5 === 0) triggerScreenShake(6, 6);
+                // Lots of acid erupting from ground
+                if (p.phaseTimer % 2 === 0) {
+                    for (let d = 0; d < 5; d++) {
+                        particles.push({ x: p.x + (Math.random() - 0.5) * 180, y: groundY,
+                            vx: (Math.random() - 0.5) * 6, vy: -3 - Math.random() * 7,
+                            life: 12 + Math.random() * 12, maxLife: 24,
+                            color: `hsl(${110 + Math.random() * 15}, 100%, ${35 + Math.random() * 35}%)` });
                     }
                 }
-                if (p.phaseTimer >= 30) {
+                // Roar flash at start
+                if (p.phaseTimer === 1) {
+                    triggerScreenShake(15, 15);
+                    triggerScreenFlash('#39ff14', 0.3);
+                }
+                if (p.phaseTimer >= 40) {
                     p.phase = 'punch';
                     p.phaseTimer = 0;
                     p.vy = 0;
+                    triggerScreenShake(10, 10);
                 }
             } else if (p.phase === 'punch') {
                 p.vy = 0; p.vx = 0;
                 // Punch hits at frame 12
                 if (p.phaseTimer === 12) {
-                    triggerScreenShake(25, 30);
-                    triggerHitstop(10);
+                    triggerScreenShake(40, 40);
+                    triggerHitstop(14);
+                    triggerScreenFlash('#39ff14', 0.5);
                     spawnAcidMonsterImpact(p.target.x, p.target.y - p.target.height * 0.5);
                     const hitDist = Math.abs(p.x - p.target.x);
-                    if (hitDist < p.radius + 60) {
+                    if (hitDist < p.radius + 120) {
                         let damage = p.atk.damage;
                         if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
                         let kb = p.atk.knockback;
@@ -2283,70 +2292,193 @@ function drawProjectiles() {
             ctx.save();
             ctx.translate(p.x, p.y);
 
-            // Acid pool on ground
-            ctx.fillStyle = 'rgba(57, 255, 20, 0.3)';
-            ctx.beginPath();
-            ctx.ellipse(0, groundY - p.y + 3, 80, 12, 0, 0, Math.PI * 2);
-            ctx.fill();
+            const bodyH = 280;
+            const bodyW = 140;
+            const breathe = Math.sin(Date.now() * 0.005) * 4;
 
-            // Monster body — large blobby shape
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 30;
-            const bodyH = 120;
-            const bodyW = 70;
-            // Main blob
-            const bg = ctx.createRadialGradient(0, -bodyH * 0.4, 10, 0, -bodyH * 0.4, bodyW);
-            bg.addColorStop(0, '#1a8a0a'); bg.addColorStop(0.5, '#0d5e05');
-            bg.addColorStop(0.8, '#0a4a03'); bg.addColorStop(1, 'rgba(10,74,3,0)');
+            // Massive toxic acid pool spreading on ground
+            ctx.fillStyle = 'rgba(57, 255, 20, 0.35)';
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 25;
+            ctx.beginPath();
+            ctx.ellipse(0, groundY - p.y + 3, 160 + breathe, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Bubbling in the pool
+            ctx.fillStyle = '#7fff00';
+            for (let b = 0; b < 8; b++) {
+                const bx = (Math.random() - 0.5) * 280;
+                const br = 3 + Math.random() * 5;
+                ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+                ctx.beginPath(); ctx.arc(bx, groundY - p.y + Math.random() * 5, br, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            // Dark menacing aura behind the monster
+            const auraG = ctx.createRadialGradient(0, -bodyH * 0.4, 20, 0, -bodyH * 0.4, bodyW * 1.5);
+            auraG.addColorStop(0, 'rgba(0, 40, 0, 0.4)');
+            auraG.addColorStop(0.5, 'rgba(0, 20, 0, 0.2)');
+            auraG.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = auraG;
+            ctx.beginPath(); ctx.arc(0, -bodyH * 0.4, bodyW * 1.5, 0, Math.PI * 2); ctx.fill();
+
+            // Monster body — massive hulking shape
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 40;
+            const bg = ctx.createLinearGradient(0, 0, 0, -bodyH);
+            bg.addColorStop(0, '#0a3a02');
+            bg.addColorStop(0.3, '#0d5e05');
+            bg.addColorStop(0.6, '#1a8a0a');
+            bg.addColorStop(0.85, '#0d5e05');
+            bg.addColorStop(1, '#082a01');
             ctx.fillStyle = bg;
             ctx.beginPath();
-            ctx.moveTo(-bodyW * 0.7, 0);
-            ctx.quadraticCurveTo(-bodyW, -bodyH * 0.3, -bodyW * 0.6, -bodyH * 0.7);
-            ctx.quadraticCurveTo(-bodyW * 0.2, -bodyH * 1.1, bodyW * 0.2, -bodyH * 0.75);
-            ctx.quadraticCurveTo(bodyW * 0.6, -bodyH * 0.5, bodyW * 0.7, 0);
+            ctx.moveTo(-bodyW * 0.8, 0);
+            // Left side — bulging shoulder
+            ctx.quadraticCurveTo(-bodyW * 1.1, -bodyH * 0.2, -bodyW * 1.2 - breathe, -bodyH * 0.45);
+            ctx.quadraticCurveTo(-bodyW * 0.9, -bodyH * 0.65, -bodyW * 0.5, -bodyH * 0.8);
+            // Head — wide with horns
+            ctx.quadraticCurveTo(-bodyW * 0.35, -bodyH * 1.05, -bodyW * 0.15, -bodyH * 1.1);
+            ctx.lineTo(-bodyW * 0.08, -bodyH * 1.25); // left horn
+            ctx.lineTo(0, -bodyH * 1.05);
+            ctx.lineTo(bodyW * 0.08, -bodyH * 1.25);  // right horn
+            ctx.lineTo(bodyW * 0.15, -bodyH * 1.1);
+            ctx.quadraticCurveTo(bodyW * 0.35, -bodyH * 1.05, bodyW * 0.5, -bodyH * 0.8);
+            // Right side — bulging shoulder
+            ctx.quadraticCurveTo(bodyW * 0.9, -bodyH * 0.65, bodyW * 1.2 + breathe, -bodyH * 0.45);
+            ctx.quadraticCurveTo(bodyW * 1.1, -bodyH * 0.2, bodyW * 0.8, 0);
             ctx.closePath();
             ctx.fill();
 
-            // Glowing eyes
-            const eyeY = -bodyH * 0.65;
-            ctx.fillStyle = '#39ff14';
-            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 15;
-            ctx.beginPath(); ctx.arc(-15, eyeY, 6, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(15, eyeY, 6, 0, Math.PI * 2); ctx.fill();
-            // Eye pupils
-            ctx.fillStyle = '#000';
-            ctx.shadowBlur = 0;
-            ctx.beginPath(); ctx.arc(-15, eyeY, 3, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(15, eyeY, 3, 0, Math.PI * 2); ctx.fill();
-
-            // Mouth — jagged
-            ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(-20, -bodyH * 0.45);
-            for (let t = 0; t < 6; t++) {
-                ctx.lineTo(-15 + t * 7, -bodyH * 0.45 + (t % 2 === 0 ? 5 : -3));
+            // Slimy texture veins across body
+            ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.25;
+            for (let v = 0; v < 8; v++) {
+                const vx = (Math.random() - 0.5) * bodyW * 1.4;
+                const vy1 = -Math.random() * bodyH * 0.7;
+                ctx.beginPath(); ctx.moveTo(vx, vy1);
+                ctx.quadraticCurveTo(vx + (Math.random() - 0.5) * 30, vy1 - 40, vx + (Math.random() - 0.5) * 20, vy1 - 80);
+                ctx.stroke();
             }
-            ctx.stroke();
+            ctx.globalAlpha = 1;
 
-            // Punch arm during punch phase
+            // Multiple glowing eyes — 6 eyes in two rows
+            const eyeCY = -bodyH * 0.85;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 20;
+            // Top row — 2 big main eyes
+            ctx.fillStyle = '#39ff14';
+            ctx.beginPath(); ctx.ellipse(-22, eyeCY, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(22, eyeCY, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+            // Bottom row — 4 smaller eyes
+            ctx.beginPath(); ctx.arc(-35, eyeCY + 18, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-12, eyeCY + 20, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(12, eyeCY + 20, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(35, eyeCY + 18, 5, 0, Math.PI * 2); ctx.fill();
+            // Slit pupils — all staring at opponent
+            ctx.fillStyle = '#000'; ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.ellipse(-22, eyeCY, 4, 9, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(22, eyeCY, 4, 9, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-35, eyeCY + 18, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-12, eyeCY + 20, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(12, eyeCY + 20, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(35, eyeCY + 18, 2.5, 0, Math.PI * 2); ctx.fill();
+
+            // Gaping mouth with jagged fangs
+            const mouthY = -bodyH * 0.6;
+            ctx.fillStyle = '#040d01';
+            ctx.beginPath();
+            ctx.moveTo(-40, mouthY);
+            ctx.quadraticCurveTo(0, mouthY + 35 + breathe, 40, mouthY);
+            ctx.closePath();
+            ctx.fill();
+            // Upper fangs
+            ctx.fillStyle = '#c8ffb0';
+            const fangs = [-32, -18, -5, 8, 20, 34];
+            for (const fx of fangs) {
+                const fh = 10 + Math.random() * 8;
+                ctx.beginPath();
+                ctx.moveTo(fx - 4, mouthY + 2);
+                ctx.lineTo(fx, mouthY + fh);
+                ctx.lineTo(fx + 4, mouthY + 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+            // Lower fangs
+            for (let f = 0; f < 4; f++) {
+                const fx = -25 + f * 16;
+                const fh = 6 + Math.random() * 5;
+                ctx.beginPath();
+                ctx.moveTo(fx - 3, mouthY + 25);
+                ctx.lineTo(fx, mouthY + 25 - fh);
+                ctx.lineTo(fx + 3, mouthY + 25);
+                ctx.closePath();
+                ctx.fill();
+            }
+            // Acid drool from mouth
+            ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 3; ctx.globalAlpha = 0.6;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 8;
+            for (let d = 0; d < 3; d++) {
+                const dx = -15 + d * 15;
+                const droolLen = 15 + Math.sin(Date.now() * 0.008 + d) * 10;
+                ctx.beginPath(); ctx.moveTo(dx, mouthY + 28);
+                ctx.lineTo(dx + (Math.random() - 0.5) * 4, mouthY + 28 + droolLen);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+
+            // Massive punch arm during punch phase
             if (p.phase === 'punch') {
                 const ext = Math.min(p.phaseTimer / 12, 1);
-                const fistX = p.dir * (20 + ext * 70);
-                const fistY = -bodyH * 0.4;
-                ctx.strokeStyle = '#0d5e05'; ctx.lineWidth = 14;
-                ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 10;
-                ctx.beginPath(); ctx.moveTo(p.dir * bodyW * 0.5, -bodyH * 0.35);
-                ctx.lineTo(fistX, fistY); ctx.stroke();
-                // Fist
+                const fistX = p.dir * (40 + ext * 150);
+                const fistY = -bodyH * 0.45;
+                const shoulderX = p.dir * bodyW * 0.9;
+                const shoulderY = -bodyH * 0.45;
+                // Thick arm
+                ctx.strokeStyle = '#0d5e05'; ctx.lineWidth = 28;
+                ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 15;
+                ctx.beginPath(); ctx.moveTo(shoulderX, shoulderY);
+                ctx.quadraticCurveTo(shoulderX + p.dir * 40, fistY - 20, fistX, fistY);
+                ctx.stroke();
+                // Giant fist with claws
                 ctx.fillStyle = '#1a8a0a';
-                ctx.beginPath(); ctx.arc(fistX, fistY, 16, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(fistX, fistY, 28, 0, Math.PI * 2); ctx.fill();
+                // Claws
+                ctx.fillStyle = '#c8ffb0';
+                for (let c = -2; c <= 2; c++) {
+                    const ca = (c * 0.3) + (p.dir > 0 ? 0 : Math.PI);
+                    ctx.beginPath();
+                    ctx.moveTo(fistX + Math.cos(ca) * 22, fistY + Math.sin(ca) * 22);
+                    ctx.lineTo(fistX + Math.cos(ca) * 40, fistY + Math.sin(ca) * 40 + c * 2);
+                    ctx.lineTo(fistX + Math.cos(ca + 0.15) * 22, fistY + Math.sin(ca + 0.15) * 22);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                // Speed lines during punch extension
+                if (ext > 0.3) {
+                    ctx.globalAlpha = 0.4;
+                    ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2;
+                    for (let sl = 0; sl < 6; sl++) {
+                        const slx = fistX - p.dir * (20 + Math.random() * 50);
+                        const sly = fistY + (Math.random() - 0.5) * 40;
+                        ctx.beginPath(); ctx.moveTo(slx, sly);
+                        ctx.lineTo(slx - p.dir * (20 + Math.random() * 30), sly);
+                        ctx.stroke();
+                    }
+                    ctx.globalAlpha = 1;
+                }
             }
 
-            // Acid dripping off the monster
-            if (Math.random() < 0.6) {
-                particles.push({ x: p.x + (Math.random() - 0.5) * bodyW, y: p.y - Math.random() * bodyH * 0.5,
-                    vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 3,
-                    life: 8 + Math.random() * 8, maxLife: 16,
-                    color: `hsl(${110 + Math.random() * 15}, 100%, ${40 + Math.random() * 30}%)` });
+            // Heavy acid dripping off the monster body
+            if (Math.random() < 0.85) {
+                for (let d = 0; d < 3; d++) {
+                    particles.push({ x: p.x + (Math.random() - 0.5) * bodyW * 1.5, y: p.y - Math.random() * bodyH * 0.7,
+                        vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4,
+                        life: 10 + Math.random() * 10, maxLife: 20,
+                        color: `hsl(${110 + Math.random() * 15}, 100%, ${35 + Math.random() * 35}%)` });
+                }
+            }
+            // Toxic mist rising around the monster
+            if (Math.random() < 0.4) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 200, y: groundY - Math.random() * 30,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 15 + Math.random() * 10, maxLife: 25,
+                    color: 'rgba(57, 255, 20, 0.4)' });
             }
 
             ctx.shadowBlur = 0;
