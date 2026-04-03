@@ -436,6 +436,341 @@ const STYLES = {
             { name: 'Volcanic Wrath', type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'volcanicWrath' },
         ],
     },
+    // ── Serious ──
+    poison: {
+        name: 'Poison',
+        color: '#9acd32',
+        hue: 80,
+        attacks: [
+            { name: 'Toxic Dart',    type: 'projectile', damage: 6,  cooldown: 90,   speed: 14, radius: 24, knockback: 5,  blockReduction: 0.5, draw: 'toxicDart' },
+            { name: 'Venom Bite',    type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'venomBite' },
+            { name: 'Poison Cloud',  type: 'projectile', damage: 13, cooldown: 360,  speed: 3,  radius: 60, knockback: 8,  blockReduction: 0.3, draw: 'poisonCloud', special: 'poisonCloud' },
+            { name: 'Plague',        type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'plague' },
+        ],
+    },
+    sound: {
+        name: 'Sound',
+        color: '#ff1493',
+        hue: 330,
+        attacks: [
+            { name: 'Sonic Boom',      type: 'projectile', damage: 6,  cooldown: 80,   speed: 16, radius: 30, knockback: 8,  blockReduction: 0.5, draw: 'sonicBoom' },
+            { name: 'Bass Cannon',     type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'bassCannon' },
+            { name: 'Silence Zone',    type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 10, blockReduction: 0.3, vfx: 'silenceZone' },
+            { name: 'Concert Finale',  type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'concertFinale' },
+        ],
+    },
+    sand: {
+        name: 'Sand',
+        color: '#daa520',
+        hue: 43,
+        attacks: [
+            { name: 'Sand Throw',     type: 'projectile', damage: 6,  cooldown: 90,   speed: 12, radius: 33, knockback: 6,  blockReduction: 0.5, draw: 'sandThrow' },
+            { name: 'Quicksand Trap', type: 'instant',    damage: 10, cooldown: 280,  range: 9999, knockback: 4,  blockReduction: 0.4, vfx: 'quicksandTrap' },
+            { name: 'Sandstorm',      type: 'projectile', damage: 13, cooldown: 360,  speed: 3,  radius: 90, knockback: 14, blockReduction: 0.3, draw: 'sandstorm' },
+            { name: 'Desert Burial',  type: 'instant',    damage: 20, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'desertBurial' },
+        ],
+    },
+    plasma: {
+        name: 'Plasma',
+        color: '#00ffff',
+        hue: 180,
+        attacks: [
+            { name: 'Plasma Bolt',   type: 'projectile', damage: 7,  cooldown: 100,  speed: 14, radius: 27, knockback: 6,  blockReduction: 0.5, draw: 'plasmaBolt' },
+            { name: 'Ion Field',     type: 'instant',    damage: 11, cooldown: 300,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'ionField' },
+            { name: 'Rail Gun',      type: 'instant',    damage: 14, cooldown: 370,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'railGun' },
+            { name: 'Fusion Blast',  type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'fusionBlast' },
+        ],
+    },
+    nature: {
+        name: 'Nature',
+        color: '#32cd32',
+        hue: 120,
+        attacks: [
+            { name: 'Vine Whip',    type: 'projectile', damage: 5,  cooldown: 80,   speed: 13, radius: 30, knockback: 6,  blockReduction: 0.5, draw: 'vineWhip' },
+            { name: 'Thorn Burst',  type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'thornBurst' },
+            { name: 'Root Trap',    type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 6,  blockReduction: 0.3, vfx: 'rootTrap' },
+            { name: 'Ancient Tree', type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'ancientTree' },
+        ],
+    },
+    storm: {
+        name: 'Storm',
+        color: '#4682b4',
+        hue: 207,
+        attacks: [
+            { name: 'Rain Shot',      type: 'projectile', damage: 6,  cooldown: 90,   speed: 12, radius: 27, knockback: 6,  blockReduction: 0.5, draw: 'rainShot' },
+            { name: 'Thunder Clap',   type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'thunderClap' },
+            { name: 'Hail Barrage',   type: 'projectile', damage: 13, cooldown: 360,  speed: 5,  radius: 24, knockback: 10, blockReduction: 0.3, draw: 'hailBarrage', special: 'hailBarrage' },
+            { name: 'Hurricane',      type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'hurricane' },
+        ],
+    },
+    lavalamp: {
+        name: 'LavaLamp',
+        color: '#ff6ec7',
+        hue: 320,
+        attacks: [
+            { name: 'Blob Toss',              type: 'projectile', damage: 6,  cooldown: 90,   speed: 10, radius: 36, knockback: 6,  blockReduction: 0.5, draw: 'blobToss' },
+            { name: 'Mesmerize',              type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'mesmerize' },
+            { name: 'Goo Flood',              type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 12, blockReduction: 0.3, vfx: 'gooFlood' },
+            { name: 'Psychedelic Meltdown',   type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'psychedelicMeltdown' },
+        ],
+    },
+    // ── Mythology ──
+    werewolf: {
+        name: 'Werewolf',
+        color: '#8b6914',
+        hue: 40,
+        attacks: [
+            { name: 'Claw Swipe',  type: 'projectile', damage: 7,  cooldown: 80,   speed: 14, radius: 33, knockback: 8,  blockReduction: 0.5, draw: 'clawSwipe' },
+            { name: 'Howl',        type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'howl' },
+            { name: 'Pounce',      type: 'instant',    damage: 14, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'pounce', launchUp: -14 },
+            { name: 'Full Moon',   type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'fullMoon' },
+        ],
+    },
+    zombie: {
+        name: 'Zombie',
+        color: '#6b8e23',
+        hue: 80,
+        attacks: [
+            { name: 'Limb Throw',    type: 'projectile', damage: 6,  cooldown: 100,  speed: 10, radius: 33, knockback: 6,  blockReduction: 0.5, draw: 'limbThrow' },
+            { name: 'Bite',          type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'zombieBite' },
+            { name: 'Zombie Horde',  type: 'projectile', damage: 4,  cooldown: 100,  speed: 4,  radius: 45, knockback: 6,  blockReduction: 0.4, draw: 'zombieHorde', special: 'zombieHorde' },
+            { name: 'Apocalypse',    type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'apocalypse' },
+        ],
+    },
+    cupid: {
+        name: 'Cupid',
+        color: '#ff69b4',
+        hue: 330,
+        attacks: [
+            { name: 'Arrow Shot',   type: 'projectile', damage: 6,  cooldown: 80,   speed: 16, radius: 21, knockback: 5,  blockReduction: 0.5, draw: 'cupidArrow' },
+            { name: 'Love Stun',    type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'loveStun' },
+            { name: 'Heartbreak',   type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'heartbreak' },
+            { name: 'Arrow Rain',   type: 'projectile', damage: 5,  cooldown: 100,  speed: 6,  radius: 21, knockback: 6,  blockReduction: 0.3, draw: 'cupidArrow', special: 'arrowRain' },
+        ],
+    },
+    minotaur: {
+        name: 'Minotaur',
+        color: '#8b4513',
+        hue: 25,
+        attacks: [
+            { name: 'Horn Charge',      type: 'projectile', damage: 7,  cooldown: 100,  speed: 12, radius: 42, knockback: 12, blockReduction: 0.4, draw: 'hornCharge' },
+            { name: 'Stomp',            type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'minotaurStomp', launchUp: -16 },
+            { name: 'Maze Wall',        type: 'projectile', damage: 13, cooldown: 360,  speed: 0,  radius: 68, knockback: 10, blockReduction: 0.3, draw: 'mazeWall', special: 'mazeWall' },
+            { name: 'Labyrinth Crush',  type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'labyrinthCrush' },
+        ],
+    },
+    kraken: {
+        name: 'Kraken',
+        color: '#1e90ff',
+        hue: 210,
+        attacks: [
+            { name: 'Tentacle Slap',  type: 'projectile', damage: 7,  cooldown: 100,  speed: 10, radius: 42, knockback: 10, blockReduction: 0.4, draw: 'tentacleSlap' },
+            { name: 'Ink Cloud',       type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'inkCloud' },
+            { name: 'Whirlpool',       type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: -12, blockReduction: 0.3, vfx: 'whirlpool' },
+            { name: 'Sea Monster',     type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'seaMonster' },
+        ],
+    },
+    reaper: {
+        name: 'Reaper',
+        color: '#2f4f4f',
+        hue: 180,
+        attacks: [
+            { name: 'Scythe Slash',  type: 'projectile', damage: 7,  cooldown: 100,  speed: 12, radius: 36, knockback: 8,  blockReduction: 0.5, draw: 'scytheSlash' },
+            { name: 'Soul Harvest',  type: 'instant',    damage: 11, cooldown: 300,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'soulHarvest' },
+            { name: 'Death Mark',    type: 'instant',    damage: 14, cooldown: 370,  range: 9999, knockback: 12, blockReduction: 0.3, vfx: 'deathMark' },
+            { name: 'Game Over',     type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'gameOver' },
+        ],
+    },
+    // ── Sports ──
+    boxing: {
+        name: 'Boxing',
+        color: '#dc143c',
+        hue: 348,
+        attacks: [
+            { name: 'Jab',           type: 'projectile', damage: 5,  cooldown: 70,   speed: 18, radius: 21, knockback: 4,  blockReduction: 0.6, draw: 'jab' },
+            { name: 'Uppercut',      type: 'instant',    damage: 12, cooldown: 280,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'uppercut', launchUp: -18 },
+            { name: 'Combo Flurry',  type: 'projectile', damage: 4,  cooldown: 100,  speed: 16, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'jab', special: 'comboFlurry' },
+            { name: 'Knockout',      type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 28, blockReduction: 0.2, vfx: 'knockout' },
+        ],
+    },
+    basketball: {
+        name: 'Basketball',
+        color: '#ff8c00',
+        hue: 33,
+        attacks: [
+            { name: 'Ball Throw',    type: 'projectile', damage: 6,  cooldown: 90,   speed: 13, radius: 33, knockback: 8,  blockReduction: 0.5, draw: 'ballThrow' },
+            { name: 'Slam Dunk',     type: 'projectile', damage: 12, cooldown: 300,  speed: 0,  radius: 60, knockback: 16, blockReduction: 0.3, draw: 'slamDunk', special: 'slamDunk' },
+            { name: 'Alley-Oop',     type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'alleyOop' },
+            { name: 'Buzzer Beater', type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'buzzerBeater' },
+        ],
+    },
+    tennis: {
+        name: 'Tennis',
+        color: '#adff2f',
+        hue: 84,
+        attacks: [
+            { name: 'Serve',       type: 'projectile', damage: 6,  cooldown: 80,   speed: 18, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'tennisServe' },
+            { name: 'Lob',         type: 'projectile', damage: 10, cooldown: 280,  speed: 8,  radius: 30, knockback: 10, blockReduction: 0.4, draw: 'tennisLob' },
+            { name: 'Volley',      type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 21, knockback: 5,  blockReduction: 0.5, draw: 'tennisServe', special: 'volley' },
+            { name: 'Match Point', type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'matchPoint' },
+        ],
+    },
+    wrestling: {
+        name: 'Wrestling',
+        color: '#b22222',
+        hue: 0,
+        attacks: [
+            { name: 'Body Slam',      type: 'instant',    damage: 10, cooldown: 260,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'bodySlam' },
+            { name: 'Suplex',         type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'suplex', launchUp: -20 },
+            { name: 'Steel Chair',    type: 'projectile', damage: 13, cooldown: 340,  speed: 10, radius: 42, knockback: 16, blockReduction: 0.3, draw: 'steelChair' },
+            { name: 'Finishing Move', type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'finishingMove' },
+        ],
+    },
+    archery: {
+        name: 'Archery',
+        color: '#228b22',
+        hue: 120,
+        attacks: [
+            { name: 'Quick Shot',       type: 'projectile', damage: 6,  cooldown: 70,   speed: 20, radius: 18, knockback: 4,  blockReduction: 0.6, draw: 'quickShot' },
+            { name: 'Triple Arrow',     type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 18, knockback: 5,  blockReduction: 0.5, draw: 'quickShot', special: 'tripleArrow' },
+            { name: 'Explosive Arrow',  type: 'projectile', damage: 14, cooldown: 360,  speed: 14, radius: 36, knockback: 14, blockReduction: 0.3, draw: 'explosiveArrow' },
+            { name: 'Rain of Arrows',   type: 'projectile', damage: 4,  cooldown: 100,  speed: 6,  radius: 18, knockback: 5,  blockReduction: 0.4, draw: 'quickShot', special: 'arrowRainArch' },
+        ],
+    },
+    // ── Meme ──
+    wifi: {
+        name: 'WiFi',
+        color: '#00bfff',
+        hue: 195,
+        attacks: [
+            { name: 'Signal Pulse',  type: 'projectile', damage: 6,  cooldown: 90,   speed: 14, radius: 27, knockback: 6,  blockReduction: 0.5, draw: 'signalPulse' },
+            { name: 'Disconnect',    type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'disconnect' },
+            { name: 'Lag Spike',     type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'lagSpike' },
+            { name: 'Blue Screen',   type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'wifiBlueScreen' },
+        ],
+    },
+    baby: {
+        name: 'Baby',
+        color: '#ffb6c1',
+        hue: 350,
+        attacks: [
+            { name: 'Rattle Throw',  type: 'projectile', damage: 5,  cooldown: 80,   speed: 12, radius: 24, knockback: 5,  blockReduction: 0.5, draw: 'rattleThrow' },
+            { name: 'Cry Wave',      type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'cryWave' },
+            { name: 'Diaper Bomb',   type: 'projectile', damage: 13, cooldown: 360,  speed: 8,  radius: 42, knockback: 12, blockReduction: 0.3, draw: 'diaperBomb' },
+            { name: 'Tantrum',       type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'tantrum' },
+        ],
+    },
+    toilet: {
+        name: 'Toilet',
+        color: '#f5f5dc',
+        hue: 60,
+        attacks: [
+            { name: 'Plunger Shot',   type: 'projectile', damage: 6,  cooldown: 90,   speed: 12, radius: 30, knockback: 6,  blockReduction: 0.5, draw: 'plungerShot' },
+            { name: 'Flush Vortex',   type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: -12, blockReduction: 0.4, vfx: 'flushVortex' },
+            { name: 'Clog Bomb',      type: 'projectile', damage: 13, cooldown: 360,  speed: 8,  radius: 42, knockback: 12, blockReduction: 0.3, draw: 'clogBomb' },
+            { name: 'Tsunami Flush',  type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'tsunamiFlush' },
+        ],
+    },
+    clown: {
+        name: 'Clown',
+        color: '#ff4500',
+        hue: 16,
+        attacks: [
+            { name: 'Pie Throw',     type: 'projectile', damage: 6,  cooldown: 80,   speed: 12, radius: 33, knockback: 6,  blockReduction: 0.5, draw: 'pieThrow' },
+            { name: 'Balloon Pop',   type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'balloonPop' },
+            { name: 'Honk Blast',    type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'honkBlast' },
+            { name: 'Clown Car',     type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'clownCar' },
+        ],
+    },
+    fridge: {
+        name: 'Fridge',
+        color: '#b0e0e6',
+        hue: 195,
+        attacks: [
+            { name: 'Ice Cube Shot',  type: 'projectile', damage: 6,  cooldown: 90,   speed: 13, radius: 27, knockback: 6,  blockReduction: 0.5, draw: 'iceCubeShot' },
+            { name: 'Door Slam',      type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'doorSlam' },
+            { name: 'Leftovers',      type: 'projectile', damage: 4,  cooldown: 100,  speed: 8,  radius: 24, knockback: 5,  blockReduction: 0.5, draw: 'leftovers', special: 'leftovers' },
+            { name: 'Freezer Burn',   type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'freezerBurn' },
+        ],
+    },
+    roomba: {
+        name: 'Roomba',
+        color: '#696969',
+        hue: 0,
+        attacks: [
+            { name: 'Spin Attack',     type: 'projectile', damage: 6,  cooldown: 90,   speed: 10, radius: 33, knockback: 6,  blockReduction: 0.5, draw: 'spinAttack' },
+            { name: 'Vacuum Pull',     type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: -14, blockReduction: 0.4, vfx: 'vacuumPull' },
+            { name: 'Bump Redirect',   type: 'instant',    damage: 12, cooldown: 340,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'bumpRedirect' },
+            { name: 'Robot Uprising',  type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'robotUprising' },
+        ],
+    },
+    cactus: {
+        name: 'Cactus',
+        color: '#2e8b57',
+        hue: 146,
+        attacks: [
+            { name: 'Needle Shot',   type: 'projectile', damage: 5,  cooldown: 70,   speed: 18, radius: 18, knockback: 4,  blockReduction: 0.6, draw: 'needleShot' },
+            { name: 'Hug',           type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'cactusHug' },
+            { name: 'Tumbleweed',    type: 'projectile', damage: 13, cooldown: 360,  speed: 7,  radius: 45, knockback: 12, blockReduction: 0.3, draw: 'tumbleweed' },
+            { name: 'Desert Bloom',  type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'desertBloom' },
+        ],
+    },
+    // ── Pop Culture ──
+    ninja: {
+        name: 'Ninja',
+        color: '#2f2f2f',
+        hue: 0,
+        attacks: [
+            { name: 'Shuriken',      type: 'projectile', damage: 5,  cooldown: 70,   speed: 20, radius: 18, knockback: 4,  blockReduction: 0.6, draw: 'shuriken' },
+            { name: 'Smoke Bomb',    type: 'instant',    damage: 10, cooldown: 260,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'smokeBomb' },
+            { name: 'Kunai Rush',    type: 'projectile', damage: 4,  cooldown: 100,  speed: 18, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'shuriken', special: 'kunaiRush' },
+            { name: 'Shadow Jutsu',  type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'shadowJutsu' },
+        ],
+    },
+    cowboy: {
+        name: 'Cowboy',
+        color: '#d2691e',
+        hue: 25,
+        attacks: [
+            { name: 'Quick Draw',  type: 'projectile', damage: 6,  cooldown: 70,   speed: 22, radius: 18, knockback: 5,  blockReduction: 0.6, draw: 'quickDraw' },
+            { name: 'Lasso',       type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: -14, blockReduction: 0.4, vfx: 'lasso' },
+            { name: 'Dynamite',    type: 'projectile', damage: 14, cooldown: 370,  speed: 8,  radius: 48, knockback: 16, blockReduction: 0.3, draw: 'dynamite' },
+            { name: 'High Noon',   type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'highNoon' },
+        ],
+    },
+    pirate: {
+        name: 'Pirate',
+        color: '#8b0000',
+        hue: 0,
+        attacks: [
+            { name: 'Cannonball',     type: 'projectile', damage: 7,  cooldown: 100,  speed: 10, radius: 42, knockback: 10, blockReduction: 0.4, draw: 'cannonball' },
+            { name: 'Cutlass Slash',  type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'cutlassSlash' },
+            { name: 'Parrot Attack',  type: 'projectile', damage: 10, cooldown: 340,  speed: 12, radius: 30, knockback: 8,  blockReduction: 0.4, draw: 'parrotAttack' },
+            { name: 'Kraken Summon',  type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'krakenSummon' },
+        ],
+    },
+    astronaut: {
+        name: 'Astronaut',
+        color: '#c0c0c0',
+        hue: 0,
+        attacks: [
+            { name: 'Laser Gun',        type: 'projectile', damage: 6,  cooldown: 80,   speed: 18, radius: 21, knockback: 5,  blockReduction: 0.5, draw: 'laserGun' },
+            { name: 'Zero-G Push',      type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: 20, blockReduction: 0.4, vfx: 'zeroGPush' },
+            { name: 'Satellite Strike', type: 'projectile', damage: 14, cooldown: 370,  speed: 0,  radius: 48, knockback: 14, blockReduction: 0.3, draw: 'satellite', special: 'satellite' },
+            { name: 'Black Hole',       type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: -16, blockReduction: 0.2, vfx: 'blackHole' },
+        ],
+    },
+    rockstar: {
+        name: 'Rockstar',
+        color: '#ff00ff',
+        hue: 300,
+        attacks: [
+            { name: 'Guitar Riff',  type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 30, knockback: 8,  blockReduction: 0.5, draw: 'guitarRiff' },
+            { name: 'Amp Blast',    type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 16, blockReduction: 0.4, vfx: 'ampBlast' },
+            { name: 'Stage Dive',   type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'stageDive', launchUp: -12 },
+            { name: 'Encore',       type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'encore' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -2209,6 +2544,903 @@ class Fighter {
             }
         }
 
+        // ── Poison Rage Upgrades ──
+        if (this.rageActive && this.style === 'poison') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#9acd32', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#9acd32' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#9acd32', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 7; b++) {
+                    projectiles.push({ x: this.x + dir * 30 + (Math.random()-0.5)*20, y: this.y - this.height * 0.55 + (Math.random()-0.5)*30,
+                        vx: dir * (atk.speed + Math.random()*3), vy: (Math.random()-0.5)*4, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 300, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#9acd32', 0.3); return;
+            }
+        }
+
+        // ── Sound Rage Upgrades ──
+        if (this.rageActive && this.style === 'sound') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff1493', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff1493' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#ff1493', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff1493' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ff1493', 0.6); return;
+            }
+        }
+
+        // ── Sand Rage Upgrades ──
+        if (this.rageActive && this.style === 'sand') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#daa520', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#daa520' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#daa520', 0.5); return;
+            }
+            if (index === 2) {
+                projectiles.push({ x: this.x + dir * 40, y: groundY,
+                    vx: dir * 3, vy: 0, radius: 120, owner: this, target: opponent,
+                    atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 400, trail: [], rageVfx: null });
+                triggerScreenShake(10, 14); triggerScreenFlash('#daa520', 0.3); return;
+            }
+        }
+
+        // ── Plasma Rage Upgrades ──
+        if (this.rageActive && this.style === 'plasma') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 4), vy: b * 1.5, radius: atk.radius + 8, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#00ffff', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#00ffff' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#00ffff', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                const beamY = this.y - this.height * 0.55;
+                visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 28, maxLife: 28 });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#00ffff', 0.6); return;
+            }
+        }
+
+        // ── Nature Rage Upgrades ──
+        if (this.rageActive && this.style === 'nature') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#32cd32', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                for (let pp = -1; pp <= 1; pp++) spawnEarthPillar(opponent.x + pp * 80, groundY);
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#32cd32', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#32cd32' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#32cd32', 0.6); return;
+            }
+        }
+
+        // ── Storm Rage Upgrades ──
+        if (this.rageActive && this.style === 'storm') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#4682b4', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                for (let i = 0; i < 5; i++) setTimeout(() => spawnLightningBolt(opponent.x + (Math.random()-0.5)*150, 0, groundY, 6), i * 40);
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#4682b4', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 10; b++) {
+                    projectiles.push({ x: opponent.x + (Math.random()-0.5)*180, y: -50 - Math.random()*60,
+                        vx: (Math.random()-0.5)*3, vy: 6 + Math.random()*4, radius: atk.radius + 5, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#4682b4', 0.3); return;
+            }
+        }
+
+        // ── LavaLamp Rage Upgrades ──
+        if (this.rageActive && this.style === 'lavalamp') {
+            if (index === 0) {
+                for (let b = 0; b < 6; b++) {
+                    const a = (b / 6) * Math.PI * 2;
+                    projectiles.push({ x: this.x, y: this.y - this.height * 0.5,
+                        vx: Math.cos(a) * atk.speed, vy: Math.sin(a) * atk.speed, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff6ec7', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff6ec7' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff6ec7', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff6ec7' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ff6ec7', 0.6); return;
+            }
+        }
+
+        // ── Werewolf Rage Upgrades ──
+        if (this.rageActive && this.style === 'werewolf') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 4), vy: b * 2, radius: atk.radius + 5, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#8b6914', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#8b6914' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#8b6914', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -16; opponent.onGround = false;
+                triggerScreenShake(20, 25); triggerHitstop(12); triggerScreenFlash('#8b6914', 0.6); return;
+            }
+        }
+
+        // ── Zombie Rage Upgrades ──
+        if (this.rageActive && this.style === 'zombie') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#6b8e23', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#6b8e23' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#6b8e23', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 8; b++) {
+                    projectiles.push({ x: this.x + dir * 30 + (Math.random()-0.5)*20, y: this.y - this.height * 0.55 + (Math.random()-0.5)*30,
+                        vx: dir * (atk.speed + Math.random()*3), vy: (Math.random()-0.5)*4, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 300, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#6b8e23', 0.3); return;
+            }
+        }
+
+        // ── Cupid Rage Upgrades ──
+        if (this.rageActive && this.style === 'cupid') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 12,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff69b4', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff69b4' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff69b4', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff69b4' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ff69b4', 0.6); return;
+            }
+        }
+
+        // ── Minotaur Rage Upgrades ──
+        if (this.rageActive && this.style === 'minotaur') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 4), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#8b4513', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 22; opponent.hit = true; opponent.vy = -20; opponent.onGround = false;
+                for (let pp = -1; pp <= 1; pp++) spawnEarthPillar(opponent.x + pp * 90, groundY);
+                triggerScreenShake(20, 25); triggerHitstop(14); triggerScreenFlash('#8b4513', 0.6); return;
+            }
+            if (index === 2) {
+                projectiles.push({ x: opponent.x, y: groundY + 20, vx: 0, vy: -8,
+                    radius: atk.radius + 20, owner: this, target: opponent, atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
+                    life: 200, trail: [], rageVfx: null });
+                triggerScreenShake(12, 16); triggerScreenFlash('#8b4513', 0.3); return;
+            }
+        }
+
+        // ── Kraken Rage Upgrades ──
+        if (this.rageActive && this.style === 'kraken') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#1e90ff', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#1e90ff' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#1e90ff', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 120, life: 40, maxLife: 40 });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#1e90ff', 0.6); return;
+            }
+        }
+
+        // ── Reaper Rage Upgrades ──
+        if (this.rageActive && this.style === 'reaper') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#2f4f4f', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                this.health = Math.min(MAX_HEALTH, this.health + Math.floor(damage * 0.5));
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#2f4f4f', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 40, maxLife: 40 });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#2f4f4f', 0.6); return;
+            }
+        }
+
+        // ── Boxing Rage Upgrades ──
+        if (this.rageActive && this.style === 'boxing') {
+            if (index === 0) {
+                for (let b = 0; b < 5; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                            vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*3, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                    }, b * 40);
+                }
+                triggerScreenFlash('#dc143c', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 22; opponent.hit = true; opponent.vy = -22; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#dc143c' });
+                triggerScreenShake(20, 25); triggerHitstop(14); triggerScreenFlash('#dc143c', 0.6); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 8; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                            vx: dir * (atk.speed + Math.random()*5), vy: (Math.random()-0.5)*4, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 180, trail: [], rageVfx: null });
+                    }, b * 30);
+                }
+                triggerScreenFlash('#dc143c', 0.3); return;
+            }
+        }
+
+        // ── Basketball Rage Upgrades ──
+        if (this.rageActive && this.style === 'basketball') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff8c00', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -14; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff8c00' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#ff8c00', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff8c00' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ff8c00', 0.6); return;
+            }
+        }
+
+        // ── Tennis Rage Upgrades ──
+        if (this.rageActive && this.style === 'tennis') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 16,
+                        vx: dir * (atk.speed + 5), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#adff2f', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -12; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#adff2f' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#adff2f', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 6; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                            vx: dir * (atk.speed + Math.random()*6), vy: (Math.random()-0.5)*3, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 180, trail: [], rageVfx: null });
+                    }, b * 40);
+                }
+                triggerScreenFlash('#adff2f', 0.3); return;
+            }
+        }
+
+        // ── Wrestling Rage Upgrades ──
+        if (this.rageActive && this.style === 'wrestling') {
+            if (index === 0) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#b22222' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#b22222', 0.5); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 22; opponent.hit = true; opponent.vy = -24; opponent.onGround = false;
+                triggerScreenShake(22, 28); triggerHitstop(14); triggerScreenFlash('#b22222', 0.6); return;
+            }
+            if (index === 2) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#b22222', 0.3); return;
+            }
+        }
+
+        // ── Archery Rage Upgrades ──
+        if (this.rageActive && this.style === 'archery') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 10,
+                        vx: dir * (atk.speed + 3), vy: b * 1, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#228b22', 0.2); return;
+            }
+            if (index === 1) {
+                for (let b = -3; b <= 3; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 10,
+                        vx: dir * (atk.speed + 2), vy: b * 1.2, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#228b22', 0.3); return;
+            }
+            if (index === 2) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 4), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#228b22', 0.3); return;
+            }
+        }
+
+        // ── WiFi Rage Upgrades ──
+        if (this.rageActive && this.style === 'wifi') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#00bfff', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#00bfff' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#00bfff', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#00bfff' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#00bfff', 0.6); return;
+            }
+        }
+
+        // ── Baby Rage Upgrades ──
+        if (this.rageActive && this.style === 'baby') {
+            if (index === 0) {
+                for (let b = 0; b < 6; b++) {
+                    const a = (b / 6) * Math.PI * 2;
+                    projectiles.push({ x: this.x, y: this.y - this.height * 0.5,
+                        vx: Math.cos(a) * atk.speed, vy: Math.sin(a) * atk.speed, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ffb6c1', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ffb6c1' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#ffb6c1', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ffb6c1', 0.3); return;
+            }
+        }
+
+        // ── Toilet Rage Upgrades ──
+        if (this.rageActive && this.style === 'toilet') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#f5f5dc', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 100, life: 30, maxLife: 30 });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#f5f5dc', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#f5f5dc', 0.3); return;
+            }
+        }
+
+        // ── Clown Rage Upgrades ──
+        if (this.rageActive && this.style === 'clown') {
+            if (index === 0) {
+                for (let b = 0; b < 6; b++) {
+                    const a = (b / 6) * Math.PI * 2;
+                    projectiles.push({ x: this.x, y: this.y - this.height * 0.5,
+                        vx: Math.cos(a) * atk.speed, vy: Math.sin(a) * atk.speed, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff4500', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff4500' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#ff4500', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff4500' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ff4500', 0.6); return;
+            }
+        }
+
+        // ── Fridge Rage Upgrades ──
+        if (this.rageActive && this.style === 'fridge') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#b0e0e6', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#b0e0e6' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#b0e0e6', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 8; b++) {
+                    projectiles.push({ x: this.x + dir * 30 + (Math.random()-0.5)*20, y: this.y - this.height * 0.55 + (Math.random()-0.5)*30,
+                        vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#b0e0e6', 0.3); return;
+            }
+        }
+
+        // ── Roomba Rage Upgrades ──
+        if (this.rageActive && this.style === 'roomba') {
+            if (index === 0) {
+                for (let b = 0; b < 8; b++) {
+                    const a = (b / 8) * Math.PI * 2;
+                    projectiles.push({ x: this.x, y: this.y - this.height * 0.5,
+                        vx: Math.cos(a) * atk.speed, vy: Math.sin(a) * atk.speed, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#696969', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                opponent.x += (this.x - opponent.x) * 0.7;
+                visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 80, life: 25, maxLife: 25 });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#696969', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#696969' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#696969', 0.6); return;
+            }
+        }
+
+        // ── Cactus Rage Upgrades ──
+        if (this.rageActive && this.style === 'cactus') {
+            if (index === 0) {
+                for (let b = -3; b <= 3; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                        vx: dir * (atk.speed + 1), vy: b * 2, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#2e8b57', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#2e8b57' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#2e8b57', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#2e8b57', 0.3); return;
+            }
+        }
+
+        // ── Ninja Rage Upgrades ──
+        if (this.rageActive && this.style === 'ninja') {
+            if (index === 0) {
+                for (let b = -3; b <= 3; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                        vx: dir * (atk.speed + 2), vy: b * 2, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#2f2f2f', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                visualEffects.push({ type: 'phantomSlash', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, life: 18, maxLife: 18 });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#2f2f2f', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 8; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                            vx: dir * (atk.speed + Math.random()*5), vy: (Math.random()-0.5)*4, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 180, trail: [], rageVfx: null });
+                    }, b * 30);
+                }
+                triggerScreenFlash('#2f2f2f', 0.3); return;
+            }
+        }
+
+        // ── Cowboy Rage Upgrades ──
+        if (this.rageActive && this.style === 'cowboy') {
+            if (index === 0) {
+                for (let b = 0; b < 5; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                            vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*3, radius: atk.radius, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                    }, b * 40);
+                }
+                triggerScreenFlash('#d2691e', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                opponent.x += (this.x - opponent.x) * 0.6;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#d2691e' });
+                triggerScreenShake(14, 18); triggerHitstop(10); triggerScreenFlash('#d2691e', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#d2691e', 0.3); return;
+            }
+        }
+
+        // ── Pirate Rage Upgrades ──
+        if (this.rageActive && this.style === 'pirate') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 18,
+                        vx: dir * (atk.speed + 3), vy: b * 1.5, radius: atk.radius + 10, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#8b0000', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true;
+                for (let s = 0; s < 3; s++) visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random()-0.5)*30, y: opponent.y - opponent.height * 0.5 + (s-1)*20, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#8b0000', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 4), vy: b * 1.5, radius: atk.radius + 5, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#8b0000', 0.3); return;
+            }
+        }
+
+        // ── Astronaut Rage Upgrades ──
+        if (this.rageActive && this.style === 'astronaut') {
+            if (index === 0) {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 16,
+                        vx: dir * (atk.speed + 5), vy: b * 1, radius: atk.radius + 5, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#c0c0c0', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2.5;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#c0c0c0' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#c0c0c0', 0.5); return;
+            }
+            if (index === 2) {
+                for (let b = 0; b < 5; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: opponent.x + (Math.random()-0.5)*120, y: -50 - Math.random()*40,
+                            vx: (Math.random()-0.5)*2, vy: 8 + Math.random()*4, radius: atk.radius + 5, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                    }, b * 60);
+                }
+                triggerScreenFlash('#c0c0c0', 0.3); return;
+            }
+        }
+
+        // ── Rockstar Rage Upgrades ──
+        if (this.rageActive && this.style === 'rockstar') {
+            if (index === 0) {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 3), vy: b * 2, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff00ff', 0.2); return;
+            }
+            if (index === 1) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 18; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff00ff' });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#ff00ff', 0.5); return;
+            }
+            if (index === 2) {
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -14; opponent.onGround = false;
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff00ff' });
+                triggerScreenShake(18, 22); triggerHitstop(12); triggerScreenFlash('#ff00ff', 0.6); return;
+            }
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -2446,6 +3678,134 @@ class Fighter {
                         rageVfx: this.rageActive && index === 3 ? this.style : null });
                 }
             }
+            // Poison Cloud — 5 slow clouds in a spread
+            else if (atk.special === 'poisonCloud') {
+                for (let b = -2; b <= 2; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 12,
+                        vx: dir * (atk.speed + Math.random()*2), vy: b * 1 + (Math.random()-0.5)*2,
+                        radius: atk.radius + Math.random()*10, owner: this, target: opponent,
+                        atk, styleData, life: 300, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Hail Barrage — 6 hailstones from sky
+            else if (atk.special === 'hailBarrage') {
+                for (let b = 0; b < 6; b++) {
+                    projectiles.push({ x: opponent.x + (Math.random()-0.5)*150, y: -50 - Math.random()*60,
+                        vx: (Math.random()-0.5)*3, vy: 6 + Math.random()*4,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Zombie Horde — 5 slow shambling projectiles
+            else if (atk.special === 'zombieHorde') {
+                for (let b = 0; b < 5; b++) {
+                    projectiles.push({ x: this.x + dir * 30 + (Math.random()-0.5)*20, y: this.y - this.height * 0.55 + (Math.random()-0.5)*30,
+                        vx: dir * (atk.speed + Math.random()*2), vy: (Math.random()-0.5)*3,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 300, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Arrow Rain (cupid) — 8 arrows from sky
+            else if (atk.special === 'arrowRain') {
+                for (let b = 0; b < 8; b++) {
+                    projectiles.push({ x: opponent.x + (Math.random()-0.5)*160, y: -50 - Math.random()*60,
+                        vx: (Math.random()-0.5)*3, vy: 7 + Math.random()*4,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Maze Wall — ground eruption at opponent
+            else if (atk.special === 'mazeWall') {
+                projectiles.push({ x: opponent.x, y: groundY + 20, vx: 0, vy: -6,
+                    radius: atk.radius, owner: this, target: opponent, atk, styleData,
+                    life: 180, trail: [], rageVfx: this.rageActive && index === 3 ? this.style : null });
+            }
+            // Combo Flurry — 5 fast jabs
+            else if (atk.special === 'comboFlurry') {
+                for (let b = 0; b < 5; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + (Math.random()-0.5)*20,
+                            vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*3,
+                            radius: atk.radius, owner: this, target: opponent,
+                            atk, styleData, life: 180, trail: [],
+                            rageVfx: this.rageActive && index === 3 ? this.style : null });
+                    }, b * 40);
+                }
+            }
+            // Slam Dunk — drops from above
+            else if (atk.special === 'slamDunk') {
+                projectiles.push({ x: opponent.x, y: -80,
+                    vx: 0, vy: 8, radius: atk.radius, owner: this, target: opponent,
+                    atk, styleData, life: 200, trail: [],
+                    isHeadSlam: true,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null });
+                triggerScreenShake(4, 6);
+            }
+            // Volley — 3 fast returns
+            else if (atk.special === 'volley') {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * (atk.speed + 2), vy: b * 1.5,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Triple Arrow — 3 arrows in spread
+            else if (atk.special === 'tripleArrow') {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 14,
+                        vx: dir * atk.speed, vy: b * 2,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Rain of Arrows (archery) — 10 from sky
+            else if (atk.special === 'arrowRainArch') {
+                for (let b = 0; b < 10; b++) {
+                    projectiles.push({ x: opponent.x + (Math.random()-0.5)*180, y: -50 - Math.random()*60,
+                        vx: (Math.random()-0.5)*3, vy: 7 + Math.random()*4,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Leftovers — 5 random food items
+            else if (atk.special === 'leftovers') {
+                for (let b = 0; b < 5; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + (Math.random()-0.5)*30,
+                        vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*5,
+                        radius: atk.radius + Math.random()*8, owner: this, target: opponent,
+                        atk, styleData, life: 200, trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null });
+                }
+            }
+            // Kunai Rush — 5 fast kunai
+            else if (atk.special === 'kunaiRush') {
+                for (let b = 0; b < 5; b++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55 + (Math.random()-0.5)*20,
+                            vx: dir * (atk.speed + Math.random()*4), vy: (Math.random()-0.5)*3,
+                            radius: atk.radius, owner: this, target: opponent,
+                            atk, styleData, life: 180, trail: [],
+                            rageVfx: this.rageActive && index === 3 ? this.style : null });
+                    }, b * 35);
+                }
+            }
+            // Satellite Strike — drops from sky
+            else if (atk.special === 'satellite') {
+                projectiles.push({ x: opponent.x, y: -80,
+                    vx: 0, vy: 8, radius: atk.radius, owner: this, target: opponent,
+                    atk, styleData, life: 200, trail: [],
+                    isHeadSlam: true,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null });
+                triggerScreenShake(4, 6);
+            }
             else {
                 // Flyers (pigeon/bee) aim projectiles directly at opponent
                 const isFlyer = true; // all characters aim projectiles at opponent
@@ -2636,6 +3996,104 @@ class Fighter {
         // ── Football VFX ──
         else if (vfx === 'slideTackle') { visualEffects.push({ type: 'slideTackleVfx', x: opponent.x, y: groundY, dir, life: 25, maxLife: 25 }); triggerScreenShake(10, 14); triggerScreenFlash('#228b22', 0.3); }
         else if (vfx === 'redCard') { visualEffects.push({ type: 'redCardVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#ff0000', 0.6); }
+        // ── Poison VFX ──
+        else if (vfx === 'venomBite') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#9acd32' }); triggerScreenFlash('#9acd32', 0.3); }
+        else if (vfx === 'plague') { visualEffects.push({ type: 'decayPulse', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(14, 18); triggerScreenFlash('#9acd32', 0.6); }
+        // ── Sound VFX ──
+        else if (vfx === 'bassCannon') { visualEffects.push({ type: 'bassDrop', x: this.x, y: this.y - this.height * 0.4, life: 30, maxLife: 30 }); triggerScreenFlash('#ff1493', 0.3); }
+        else if (vfx === 'silenceZone') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff1493' }); triggerScreenFlash('#ff1493', 0.3); }
+        else if (vfx === 'concertFinale') { visualEffects.push({ type: 'dropTheBeat', life: 55, maxLife: 55 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff1493', 0.6); }
+        // ── Sand VFX ──
+        else if (vfx === 'quicksandTrap') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: groundY, radius: 80, life: 30, maxLife: 30 }); triggerScreenFlash('#daa520', 0.3); }
+        else if (vfx === 'desertBurial') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#daa520', 0.6); }
+        // ── Plasma VFX ──
+        else if (vfx === 'ionField') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#00ffff', 0.3); }
+        else if (vfx === 'railGun') { const beamY = this.y - this.height * 0.55; visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 22, maxLife: 22 }); triggerScreenFlash('#00ffff', 0.4); }
+        else if (vfx === 'fusionBlast') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#00ffff', 0.7); }
+        // ── Nature VFX ──
+        else if (vfx === 'thornBurst') { spawnEarthPillar(opponent.x, groundY); triggerScreenFlash('#32cd32', 0.3); }
+        else if (vfx === 'rootTrap') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: groundY, radius: 80, life: 30, maxLife: 30 }); triggerScreenFlash('#32cd32', 0.3); }
+        else if (vfx === 'ancientTree') { for (let pp = -1; pp <= 1; pp++) spawnEarthPillar(opponent.x + pp * 80, groundY); triggerScreenShake(16, 20); triggerScreenFlash('#32cd32', 0.6); }
+        // ── Storm VFX ──
+        else if (vfx === 'thunderClap') { spawnLightningBolt(opponent.x, 0, groundY, 8); triggerScreenShake(8, 12); triggerScreenFlash('#4682b4', 0.4); }
+        else if (vfx === 'hurricane') { spawnCyclone(opponent.x, opponent.y - opponent.height * 0.3); for (let i = 0; i < 5; i++) setTimeout(() => spawnLightningBolt(opponent.x + (Math.random()-0.5)*150, 0, groundY, 6), i * 50); triggerScreenShake(20, 25); triggerScreenFlash('#4682b4', 0.6); }
+        // ── LavaLamp VFX ──
+        else if (vfx === 'mesmerize') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff6ec7' }); triggerScreenFlash('#ff6ec7', 0.3); }
+        else if (vfx === 'gooFlood') { visualEffects.push({ type: 'floodRinse', life: 40, maxLife: 40 }); triggerScreenFlash('#ff6ec7', 0.4); }
+        else if (vfx === 'psychedelicMeltdown') { visualEffects.push({ type: 'totalCorruption', life: 50, maxLife: 50 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff6ec7', 0.6); }
+        // ── Werewolf VFX ──
+        else if (vfx === 'howl') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 30, maxLife: 30, color: '#8b6914' }); triggerScreenShake(8, 12); triggerScreenFlash('#8b6914', 0.3); }
+        else if (vfx === 'pounce') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#8b6914' }); triggerScreenFlash('#8b6914', 0.4); }
+        else if (vfx === 'fullMoon') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenShake(16, 20); triggerScreenFlash('#8b6914', 0.6); }
+        // ── Zombie VFX ──
+        else if (vfx === 'zombieBite') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#6b8e23' }); triggerScreenFlash('#6b8e23', 0.3); }
+        else if (vfx === 'apocalypse') { visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 50, maxLife: 50 }); for (let i = 0; i < 3; i++) visualEffects.push({ type: 'skeletonRiseVfx', x: opponent.x + (i-1)*60, y: groundY, life: 50, maxLife: 50 }); triggerScreenShake(20, 25); triggerScreenFlash('#6b8e23', 0.6); }
+        // ── Cupid VFX ──
+        else if (vfx === 'loveStun') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff69b4' }); triggerScreenFlash('#ff69b4', 0.3); }
+        else if (vfx === 'heartbreak') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#ff69b4', 0.4); }
+        // ── Minotaur VFX ──
+        else if (vfx === 'minotaurStomp') { spawnEarthPillar(opponent.x, groundY); triggerScreenShake(14, 18); triggerScreenFlash('#8b4513', 0.4); }
+        else if (vfx === 'labyrinthCrush') { for (let pp = -2; pp <= 2; pp++) spawnEarthPillar(opponent.x + pp * 70, groundY); triggerScreenShake(22, 28); triggerScreenFlash('#8b4513', 0.7); }
+        // ── Kraken VFX ──
+        else if (vfx === 'inkCloud') { visualEffects.push({ type: 'abyss', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenFlash('#1e90ff', 0.3); }
+        else if (vfx === 'whirlpool') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 100, life: 35, maxLife: 35 }); triggerScreenFlash('#1e90ff', 0.4); }
+        else if (vfx === 'seaMonster') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(18, 22); triggerScreenFlash('#1e90ff', 0.6); }
+        // ── Reaper VFX ──
+        else if (vfx === 'soulHarvest') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); this.health = Math.min(MAX_HEALTH, this.health + 5); triggerScreenFlash('#2f4f4f', 0.3); }
+        else if (vfx === 'deathMark') { visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 35, maxLife: 35 }); triggerScreenFlash('#2f4f4f', 0.4); }
+        else if (vfx === 'gameOver') { visualEffects.push({ type: 'eclipse', life: 45, maxLife: 45 }); triggerScreenShake(20, 25); triggerScreenFlash('#000', 0.7); }
+        // ── Boxing VFX ──
+        else if (vfx === 'uppercut') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#dc143c' }); triggerScreenShake(10, 14); triggerScreenFlash('#dc143c', 0.4); }
+        else if (vfx === 'knockout') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenShake(22, 28); triggerScreenFlash('#dc143c', 0.7); }
+        // ── Basketball VFX ──
+        else if (vfx === 'alleyOop') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff8c00' }); triggerScreenFlash('#ff8c00', 0.3); }
+        else if (vfx === 'buzzerBeater') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff8c00', 0.6); }
+        // ── Tennis VFX ──
+        else if (vfx === 'matchPoint') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenShake(16, 20); triggerScreenFlash('#adff2f', 0.6); }
+        // ── Wrestling VFX ──
+        else if (vfx === 'bodySlam') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#b22222' }); triggerScreenShake(10, 14); triggerScreenFlash('#b22222', 0.3); }
+        else if (vfx === 'suplex') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#b22222' }); triggerScreenShake(14, 18); triggerScreenFlash('#b22222', 0.5); }
+        else if (vfx === 'finishingMove') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 }); triggerScreenShake(24, 30); triggerScreenFlash('#b22222', 0.7); }
+        // ── WiFi VFX ──
+        else if (vfx === 'disconnect') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#00bfff' }); triggerScreenFlash('#00bfff', 0.3); }
+        else if (vfx === 'lagSpike') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#00bfff' }); triggerScreenShake(8, 12); triggerScreenFlash('#00bfff', 0.4); }
+        else if (vfx === 'wifiBlueScreen') { visualEffects.push({ type: 'blueScreen', life: 55, maxLife: 55 }); triggerScreenFlash('#0078d7', 0.6); }
+        // ── Baby VFX ──
+        else if (vfx === 'cryWave') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 30, maxLife: 30, color: '#ffb6c1' }); triggerScreenShake(8, 12); triggerScreenFlash('#ffb6c1', 0.3); }
+        else if (vfx === 'tantrum') { visualEffects.push({ type: 'meteorImpact', x: this.x, y: this.y - this.height * 0.5, life: 40, maxLife: 40 }); triggerScreenShake(18, 22); triggerScreenFlash('#ffb6c1', 0.6); }
+        // ── Toilet VFX ──
+        else if (vfx === 'flushVortex') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 80, life: 30, maxLife: 30 }); triggerScreenFlash('#f5f5dc', 0.3); }
+        else if (vfx === 'tsunamiFlush') { visualEffects.push({ type: 'floodRinse', life: 50, maxLife: 50 }); triggerScreenShake(18, 22); triggerScreenFlash('#f5f5dc', 0.6); }
+        // ── Clown VFX ──
+        else if (vfx === 'balloonPop') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#ff4500', 0.3); }
+        else if (vfx === 'honkBlast') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#ff4500' }); triggerScreenShake(8, 12); triggerScreenFlash('#ff4500', 0.4); }
+        else if (vfx === 'clownCar') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff4500', 0.6); }
+        // ── Fridge VFX ──
+        else if (vfx === 'doorSlam') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#b0e0e6' }); triggerScreenShake(10, 14); triggerScreenFlash('#b0e0e6', 0.4); }
+        else if (vfx === 'freezerBurn') { visualEffects.push({ type: 'frostNova', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenShake(14, 18); triggerScreenFlash('#b0e0e6', 0.6); }
+        // ── Roomba VFX ──
+        else if (vfx === 'vacuumPull') { visualEffects.push({ type: 'gravityWell', x: this.x, y: this.y - this.height * 0.5, radius: 80, life: 25, maxLife: 25 }); triggerScreenFlash('#696969', 0.3); }
+        else if (vfx === 'bumpRedirect') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#696969' }); triggerScreenFlash('#696969', 0.3); }
+        else if (vfx === 'robotUprising') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 }); triggerScreenShake(16, 20); triggerScreenFlash('#696969', 0.6); }
+        // ── Cactus VFX ──
+        else if (vfx === 'cactusHug') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#2e8b57' }); triggerScreenFlash('#2e8b57', 0.3); }
+        else if (vfx === 'desertBloom') { for (let pp = -1; pp <= 1; pp++) spawnEarthPillar(opponent.x + pp * 80, groundY); triggerScreenShake(14, 18); triggerScreenFlash('#2e8b57', 0.6); }
+        // ── Ninja VFX ──
+        else if (vfx === 'smokeBomb') { visualEffects.push({ type: 'abyss', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenFlash('#2f2f2f', 0.3); }
+        else if (vfx === 'shadowJutsu') { visualEffects.push({ type: 'eclipse', life: 40, maxLife: 40 }); for (let s = 0; s < 4; s++) visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random()-0.5)*40, y: opponent.y - opponent.height * 0.5 + (Math.random()-0.5)*30, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 }); triggerScreenShake(16, 20); triggerScreenFlash('#2f2f2f', 0.6); }
+        // ── Cowboy VFX ──
+        else if (vfx === 'lasso') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 60, life: 25, maxLife: 25 }); triggerScreenFlash('#d2691e', 0.3); }
+        else if (vfx === 'highNoon') { const beamY = this.y - this.height * 0.55; visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 25, maxLife: 25 }); triggerScreenShake(18, 22); triggerScreenFlash('#d2691e', 0.7); }
+        // ── Pirate VFX ──
+        else if (vfx === 'cutlassSlash') { for (let s = 0; s < 3; s++) visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random()-0.5)*30, y: opponent.y - opponent.height * 0.5 + (s-1)*20, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 }); triggerScreenFlash('#8b0000', 0.3); }
+        else if (vfx === 'krakenSummon') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 50, maxLife: 50 }); triggerScreenShake(22, 28); triggerScreenFlash('#8b0000', 0.7); }
+        // ── Astronaut VFX ──
+        else if (vfx === 'zeroGPush') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#c0c0c0' }); triggerScreenFlash('#c0c0c0', 0.3); }
+        else if (vfx === 'blackHole') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 150, life: 50, maxLife: 50 }); triggerScreenShake(16, 20); triggerScreenFlash('#000', 0.6); }
+        // ── Rockstar VFX ──
+        else if (vfx === 'ampBlast') { visualEffects.push({ type: 'bassDrop', x: this.x, y: this.y - this.height * 0.4, life: 30, maxLife: 30 }); triggerScreenFlash('#ff00ff', 0.3); }
+        else if (vfx === 'stageDive') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#ff00ff' }); triggerScreenFlash('#ff00ff', 0.4); }
+        else if (vfx === 'encore') { visualEffects.push({ type: 'dropTheBeat', life: 55, maxLife: 55 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff00ff', 0.7); }
     }
 
     draw() {
@@ -4879,6 +6337,37 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'plumber') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#4169e1', 0.7); }
     else if (style === 'football') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#228b22', 0.8); }
     else if (style === 'magma') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#ff4500', 0.85); }
+    // ── New 30 Styles Rage Ult VFX ──
+    else if (style === 'poison') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#9acd32', 0.7); }
+    else if (style === 'sound') { visualEffects.push({ type: 'dropTheBeat', life: 60, maxLife: 60 }); triggerScreenFlash('#ff1493', 0.8); }
+    else if (style === 'sand') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#daa520', 0.7); }
+    else if (style === 'plasma') { visualEffects.push({ type: 'screenLightningStorm', life: 60, maxLife: 60 }); triggerScreenFlash('#00ffff', 0.8); }
+    else if (style === 'nature') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#32cd32', 0.7); }
+    else if (style === 'storm') { visualEffects.push({ type: 'screenLightningStorm', life: 60, maxLife: 60 }); triggerScreenFlash('#4682b4', 0.8); }
+    else if (style === 'lavalamp') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff6ec7', 0.8); }
+    else if (style === 'werewolf') { visualEffects.push({ type: 'screenDarkness', life: 55, maxLife: 55 }); triggerScreenFlash('#8b6914', 0.7); }
+    else if (style === 'zombie') { visualEffects.push({ type: 'screenDarkness', life: 60, maxLife: 60 }); triggerScreenFlash('#6b8e23', 0.7); }
+    else if (style === 'cupid') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#ff69b4', 0.8); }
+    else if (style === 'minotaur') { visualEffects.push({ type: 'screenShatter', x, y, cracks: [], life: 55, maxLife: 55 }); triggerScreenFlash('#8b4513', 0.7); }
+    else if (style === 'kraken') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#1e90ff', 0.8); }
+    else if (style === 'reaper') { visualEffects.push({ type: 'screenDarkness', life: 60, maxLife: 60 }); triggerScreenFlash('#000', 0.8); }
+    else if (style === 'boxing') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenFlash('#dc143c', 0.8); }
+    else if (style === 'basketball') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#ff8c00', 0.7); }
+    else if (style === 'tennis') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#adff2f', 0.7); }
+    else if (style === 'wrestling') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#b22222', 0.8); }
+    else if (style === 'archery') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#228b22', 0.7); }
+    else if (style === 'wifi') { visualEffects.push({ type: 'blueScreen', life: 60, maxLife: 60 }); triggerScreenFlash('#0078d7', 0.8); }
+    else if (style === 'baby') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenFlash('#ffb6c1', 0.7); }
+    else if (style === 'toilet') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#f5f5dc', 0.7); }
+    else if (style === 'clown') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff4500', 0.8); }
+    else if (style === 'fridge') { visualEffects.push({ type: 'frostOverlay', life: 60, maxLife: 60 }); triggerScreenFlash('#b0e0e6', 0.7); }
+    else if (style === 'roomba') { visualEffects.push({ type: 'screenLightningStorm', life: 55, maxLife: 55 }); triggerScreenFlash('#696969', 0.7); }
+    else if (style === 'cactus') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#2e8b57', 0.7); }
+    else if (style === 'ninja') { visualEffects.push({ type: 'screenShadow', life: 60, maxLife: 60 }); triggerScreenFlash('#000', 0.7); }
+    else if (style === 'cowboy') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenFlash('#d2691e', 0.7); }
+    else if (style === 'pirate') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#8b0000', 0.7); }
+    else if (style === 'astronaut') { visualEffects.push({ type: 'screenDarkness', life: 60, maxLife: 60 }); triggerScreenFlash('#c0c0c0', 0.8); }
+    else if (style === 'rockstar') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff00ff', 0.8); }
 }
 
 function spawnScreenMeltdown(x, y) {

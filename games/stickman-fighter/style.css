@@ -465,6 +465,156 @@ button:hover {
     box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
 }
 
+.style-btn[data-style="poison"].selected {
+    border-color: #9acd32;
+    box-shadow: 0 0 20px rgba(154, 205, 50, 0.4);
+}
+
+.style-btn[data-style="sound"].selected {
+    border-color: #ff1493;
+    box-shadow: 0 0 20px rgba(255, 20, 147, 0.4);
+}
+
+.style-btn[data-style="sand"].selected {
+    border-color: #daa520;
+    box-shadow: 0 0 20px rgba(218, 165, 32, 0.4);
+}
+
+.style-btn[data-style="plasma"].selected {
+    border-color: #00ffff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+}
+
+.style-btn[data-style="nature"].selected {
+    border-color: #32cd32;
+    box-shadow: 0 0 20px rgba(50, 205, 50, 0.4);
+}
+
+.style-btn[data-style="storm"].selected {
+    border-color: #4682b4;
+    box-shadow: 0 0 20px rgba(70, 130, 180, 0.4);
+}
+
+.style-btn[data-style="lavalamp"].selected {
+    border-color: #ff6ec7;
+    box-shadow: 0 0 20px rgba(255, 110, 199, 0.4);
+}
+
+.style-btn[data-style="werewolf"].selected {
+    border-color: #8b6914;
+    box-shadow: 0 0 20px rgba(139, 105, 20, 0.4);
+}
+
+.style-btn[data-style="zombie"].selected {
+    border-color: #6b8e23;
+    box-shadow: 0 0 20px rgba(107, 142, 35, 0.4);
+}
+
+.style-btn[data-style="cupid"].selected {
+    border-color: #ff69b4;
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.4);
+}
+
+.style-btn[data-style="minotaur"].selected {
+    border-color: #8b4513;
+    box-shadow: 0 0 20px rgba(139, 69, 19, 0.4);
+}
+
+.style-btn[data-style="kraken"].selected {
+    border-color: #1e90ff;
+    box-shadow: 0 0 20px rgba(30, 144, 255, 0.4);
+}
+
+.style-btn[data-style="reaper"].selected {
+    border-color: #2f4f4f;
+    box-shadow: 0 0 20px rgba(47, 79, 79, 0.4);
+}
+
+.style-btn[data-style="boxing"].selected {
+    border-color: #dc143c;
+    box-shadow: 0 0 20px rgba(220, 20, 60, 0.4);
+}
+
+.style-btn[data-style="basketball"].selected {
+    border-color: #ff8c00;
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+}
+
+.style-btn[data-style="tennis"].selected {
+    border-color: #adff2f;
+    box-shadow: 0 0 20px rgba(173, 255, 47, 0.4);
+}
+
+.style-btn[data-style="wrestling"].selected {
+    border-color: #b22222;
+    box-shadow: 0 0 20px rgba(178, 34, 34, 0.4);
+}
+
+.style-btn[data-style="archery"].selected {
+    border-color: #228b22;
+    box-shadow: 0 0 20px rgba(34, 139, 34, 0.4);
+}
+
+.style-btn[data-style="wifi"].selected {
+    border-color: #00bfff;
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
+}
+
+.style-btn[data-style="baby"].selected {
+    border-color: #ffb6c1;
+    box-shadow: 0 0 20px rgba(255, 182, 193, 0.4);
+}
+
+.style-btn[data-style="toilet"].selected {
+    border-color: #f5f5dc;
+    box-shadow: 0 0 20px rgba(245, 245, 220, 0.4);
+}
+
+.style-btn[data-style="clown"].selected {
+    border-color: #ff4500;
+    box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+}
+
+.style-btn[data-style="fridge"].selected {
+    border-color: #b0e0e6;
+    box-shadow: 0 0 20px rgba(176, 224, 230, 0.4);
+}
+
+.style-btn[data-style="roomba"].selected {
+    border-color: #696969;
+    box-shadow: 0 0 20px rgba(105, 105, 105, 0.4);
+}
+
+.style-btn[data-style="cactus"].selected {
+    border-color: #2e8b57;
+    box-shadow: 0 0 20px rgba(46, 139, 87, 0.4);
+}
+
+.style-btn[data-style="ninja"].selected {
+    border-color: #2f2f2f;
+    box-shadow: 0 0 20px rgba(47, 47, 47, 0.4);
+}
+
+.style-btn[data-style="cowboy"].selected {
+    border-color: #d2691e;
+    box-shadow: 0 0 20px rgba(210, 105, 30, 0.4);
+}
+
+.style-btn[data-style="pirate"].selected {
+    border-color: #8b0000;
+    box-shadow: 0 0 20px rgba(139, 0, 0, 0.4);
+}
+
+.style-btn[data-style="astronaut"].selected {
+    border-color: #c0c0c0;
+    box-shadow: 0 0 20px rgba(192, 192, 192, 0.4);
+}
+
+.style-btn[data-style="rockstar"].selected {
+    border-color: #ff00ff;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
+}
+
 .stage-btn {
     padding: 8px 14px;
     font-size: 12px;
