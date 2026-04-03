@@ -155,7 +155,7 @@ const STYLES = {
         color: '#c8d6e5',
         hue: 215,
         attacks: [
-            { name: 'Oni Giri',       type: 'projectile', damage: 8,  cooldown: 120,  speed: 14, radius: 30, knockback: 8,  blockReduction: 0.4, draw: 'oniGiri' },
+            { name: 'Oni Giri',       type: 'projectile', damage: 15, cooldown: 180,  speed: 0,  radius: 30, knockback: 16, blockReduction: 0.3, draw: 'oniGiri', special: 'oniGiri' },
             { name: 'Shishi Sonson',  type: 'instant',    damage: 14, cooldown: 300,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'shishiSonson' },
             { name: 'Dragon Twister', type: 'projectile', damage: 10, cooldown: 340,  speed: 4,  radius: 45, knockback: 12, blockReduction: 0.3, draw: 'dragonTwister' },
             { name: 'Ashura',         type: 'instant',    damage: 22, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'ashura' },
@@ -271,6 +271,7 @@ class Fighter {
         this.kickTimer = 0;
         this.meleeCooldown = 0;
         this.phoenixDive = null;
+        this.samuraiDash = null;
         this.combo = 0;
         this.comboTimer = 0;
         this.maxCombo = 0;
@@ -373,6 +374,70 @@ class Fighter {
             return;
         }
 
+        // ── Samurai Dash (Oni Giri) ──
+        if (this.samuraiDash) {
+            const sd = this.samuraiDash;
+            sd.timer++;
+            if (sd.phase === 'windup') {
+                // Brief crouch/prepare (character stays still)
+                this.vx = 0;
+                if (sd.timer >= 12) {
+                    sd.phase = 'dash'; sd.timer = 0;
+                    sd.targetX = sd.opponent.x; // re-target current position
+                    sd.startX = this.x;
+                    triggerScreenFlash('#c8d6e5', 0.2);
+                }
+            } else if (sd.phase === 'dash') {
+                // Lightning-fast dash toward opponent
+                const dashDur = 8;
+                const t = Math.min(sd.timer / dashDur, 1);
+                this.x = sd.startX + (sd.targetX - sd.startX) * t;
+                this.vx = 0;
+                // Afterimage trail
+                for (let i = 0; i < 3; i++) {
+                    particles.push({ x: this.x - sd.dir * (10 + Math.random() * 20), y: this.y - this.height * 0.5 + (Math.random() - 0.5) * 40,
+                        vx: -sd.dir * (2 + Math.random() * 3), vy: (Math.random() - 0.5) * 2,
+                        life: 6 + Math.random() * 4, maxLife: 10, color: '#c8d6e5' });
+                }
+                if (t >= 1) {
+                    sd.phase = 'slash'; sd.timer = 0;
+                    // SLASH — deal damage
+                    triggerScreenShake(12, 15); triggerHitstop(10);
+                    triggerScreenFlash('#fff', 0.4);
+                    const hitDist = Math.abs(this.x - sd.opponent.x);
+                    if (hitDist < 100) {
+                        let damage = sd.damage;
+                        if (this.rageActive) damage = Math.floor(damage * 1.5);
+                        damage = this.applyComboBonus(damage);
+                        if (sd.opponent.blocking) {
+                            damage = Math.floor(damage * (1 - sd.blockReduction));
+                        }
+                        sd.opponent.health = Math.max(0, sd.opponent.health - damage);
+                        spawnDamageNumber(sd.opponent.x, sd.opponent.y - sd.opponent.height - 10, damage, '#c8d6e5');
+                        this.addCombo();
+                        sd.opponent.hitTimer = 18; sd.opponent.hit = true;
+                        sd.opponent.x += sd.dir * sd.knockback;
+                        sd.opponent.vy = -6; sd.opponent.onGround = false;
+                        visualEffects.push({ type: 'impactRing', x: sd.opponent.x, y: sd.opponent.y - sd.opponent.height * 0.5, life: 20, maxLife: 20, color: '#c8d6e5' });
+                    }
+                    // Slash VFX — 3 crossing lines at opponent
+                    for (let s = 0; s < 3; s++) {
+                        const sa = -0.5 + s * 0.5;
+                        visualEffects.push({ type: 'shishiSonson', x1: this.x - sd.dir * 30, y1: this.y - this.height * 0.5 + (s - 1) * 15, x2: this.x + sd.dir * 80, y2: this.y - this.height * 0.5 + (s - 1) * 15 + (s - 1) * 20, dir: sd.dir, life: 18, maxLife: 18 });
+                    }
+                    spawnElementParticles(this.x + sd.dir * 30, this.y - this.height * 0.5, STYLES[this.style], 40);
+                }
+            } else if (sd.phase === 'slash') {
+                // Brief recovery after slash
+                if (sd.timer >= 15) { this.samuraiDash = null; }
+            }
+            this.x = Math.max(this.width / 2, Math.min(canvas.width - this.width / 2, this.x));
+            // Still apply gravity during dash
+            this.vy += GRAVITY; this.y += this.vy;
+            if (this.y >= groundY) { this.y = groundY; this.vy = 0; this.onGround = true; }
+            return;
+        }
+
         if (!this.hit) this.x += this.vx;
         this.vy += GRAVITY;
         this.y += this.vy;
@@ -398,7 +463,7 @@ class Fighter {
     }
 
     melee(type, opponent) {
-        if (this.meleeCooldown > 0 || this.hit || this.blocking || this.phoenixDive) return;
+        if (this.meleeCooldown > 0 || this.hit || this.blocking || this.phoenixDive || this.samuraiDash) return;
         const PUNCH_RANGE = 70;
         const KICK_RANGE = 85;
         const PUNCH_DAMAGE = 3;
@@ -468,7 +533,7 @@ class Fighter {
     }
 
     useAttack(index, opponent) {
-        if (!this.style || this.cooldowns[index] > 0 || this.hit || this.blocking || this.phoenixDive) return;
+        if (!this.style || this.cooldowns[index] > 0 || this.hit || this.blocking || this.phoenixDive || this.samuraiDash) return;
         const atk = STYLES[this.style].attacks[index];
         const styleData = STYLES[this.style];
         this.cooldowns[index] = this.rageActive ? Math.floor(atk.cooldown * 0.5) : atk.cooldown;
@@ -1018,17 +1083,15 @@ class Fighter {
         // ── Samurai Rage Upgrades ──
         if (this.rageActive && this.style === 'samurai') {
             if (index === 0) {
-                // NINE SWORD STYLE — 9 slash projectiles in a fan
-                for (let b = -4; b <= 4; b++) {
-                    projectiles.push({
-                        x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 8,
-                        vx: dir * (atk.speed + Math.random() * 2), vy: b * 1.2,
-                        radius: atk.radius * 0.8, owner: this, target: opponent,
-                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
-                        life: 200, trail: [], rageVfx: null,
-                    });
-                }
-                triggerScreenFlash('#c8d6e5', 0.3);
+                // NINE SWORD STYLE — rage dash that hits even harder
+                this.samuraiDash = {
+                    phase: 'windup', timer: 0, opponent,
+                    damage: Math.floor(atk.damage * 2),
+                    knockback: atk.knockback * 1.5,
+                    blockReduction: atk.blockReduction,
+                    startX: this.x, targetX: opponent.x, dir,
+                };
+                this.casting = false; this.castTimer = 0;
                 return;
             }
             if (index === 1) {
@@ -1190,6 +1253,19 @@ class Fighter {
                     dir: dir,
                     rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
+            }
+            // Oni Giri — samurai dash attack toward opponent
+            else if (atk.special === 'oniGiri') {
+                this.samuraiDash = {
+                    phase: 'windup', timer: 0, opponent,
+                    damage: atk.damage,
+                    knockback: atk.knockback,
+                    blockReduction: atk.blockReduction,
+                    startX: this.x,
+                    targetX: opponent.x,
+                    dir: dir,
+                };
+                this.casting = false; this.castTimer = 0;
             }
             // Head Slam — giant face drops from sky onto opponent
             else if (atk.special === 'headSlam') {
@@ -1526,6 +1602,39 @@ class Fighter {
         if (this.blocking) {
             ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.arc(10, -this.height * 0.5, 25, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+        }
+        // Samurai sword in hand
+        if (this.style === 'samurai') {
+            const armY = -this.height + 35;
+            const swordAngle = this.casting ? -0.8 - Math.sin(this.castTimer / 15 * Math.PI) * 1.2 : -0.3;
+            const handX = this.casting ? 20 + Math.sin(this.castTimer / 15 * Math.PI) * 25 : 15;
+            const handY = armY + (this.casting ? -10 : 20);
+            const sLen = 45;
+            // Blade
+            ctx.strokeStyle = '#e8eef4'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.moveTo(handX, handY);
+            ctx.lineTo(handX + Math.cos(swordAngle) * sLen, handY + Math.sin(swordAngle) * sLen);
+            ctx.stroke();
+            // Blade shine
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(handX + 2, handY);
+            ctx.lineTo(handX + 2 + Math.cos(swordAngle) * sLen * 0.7, handY + Math.sin(swordAngle) * sLen * 0.7);
+            ctx.stroke();
+            // Guard (tsuba)
+            ctx.strokeStyle = '#b08030'; ctx.lineWidth = 3; ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.moveTo(handX + Math.cos(swordAngle + Math.PI / 2) * 5, handY + Math.sin(swordAngle + Math.PI / 2) * 5);
+            ctx.lineTo(handX + Math.cos(swordAngle - Math.PI / 2) * 5, handY + Math.sin(swordAngle - Math.PI / 2) * 5);
+            ctx.stroke();
+            // Handle (tsuka)
+            ctx.strokeStyle = '#4a3020'; ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(handX, handY);
+            ctx.lineTo(handX - Math.cos(swordAngle) * 12, handY - Math.sin(swordAngle) * 12);
+            ctx.stroke();
         }
         ctx.shadowBlur = 0;
         ctx.restore();
