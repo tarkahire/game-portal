@@ -10,6 +10,41 @@ Step-by-step instructions to set up the full infrastructure from scratch.
 - A GitHub repository connected to Vercel for auto-deployment
 - A modern browser for development/testing
 
+## External APIs Required
+
+| API | Purpose | Setup Location | Required For |
+|-----|---------|---------------|--------------|
+| **Supabase** | Auth, database, real-time, game ticks, edge functions | [supabase.com](https://supabase.com) | Everything — this IS the backend |
+| **Google OAuth** | Google sign-in for players | [Google Cloud Console](https://console.cloud.google.com) | Auth (login with Google) |
+| **Custom SMTP** (production) | Reliable auth emails (confirmation, password reset) | Resend/SendGrid/Mailgun | Production email delivery |
+| **Stripe** (future) | Premium subscriptions, server entry fees | [stripe.com](https://stripe.com) | Monetization (Phase 4+) |
+
+### Google OAuth Setup (Required)
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project (or use existing)
+3. Go to **APIs & Services** → **Credentials**
+4. Click **Create Credentials** → **OAuth 2.0 Client ID**
+5. Application type: **Web application**
+6. Authorized JavaScript origins: add your Vercel domain (e.g., `https://your-app.vercel.app`)
+7. Authorized redirect URIs: `https://your-project.supabase.co/auth/v1/callback`
+8. Copy the **Client ID** and **Client Secret**
+9. In Supabase Dashboard → Authentication → Providers → Google:
+   - Enable Google provider
+   - Paste Client ID and Client Secret
+   - Save
+
+### Custom SMTP Setup (Recommended for Production)
+Supabase's built-in email works for development but has low deliverability for production. Options:
+- **Resend** (recommended): [resend.com](https://resend.com) — free tier: 3,000 emails/month
+- **SendGrid**: [sendgrid.com](https://sendgrid.com) — free tier: 100 emails/day
+- **Mailgun**: [mailgun.com](https://mailgun.com)
+
+To configure in Supabase:
+1. Dashboard → Project Settings → Auth → SMTP Settings
+2. Enable "Custom SMTP"
+3. Enter SMTP host, port, username, password from your provider
+4. Set sender email and name
+
 ---
 
 ## 1. Supabase Project Setup
