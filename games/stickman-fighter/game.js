@@ -174,6 +174,7 @@ class Fighter {
         this.punchTimer = 0;
         this.kickTimer = 0;
         this.meleeCooldown = 0;
+        this.phoenixDive = null;
     }
 
     update(opponent) {
@@ -201,6 +202,76 @@ class Fighter {
             }
         }
 
+        // ── Phoenix Dive (Fire Rage) overrides normal movement ──
+        if (this.phoenixDive) {
+            const pd = this.phoenixDive;
+            pd.timer++;
+            if (pd.phase === 'rise') {
+                this.y -= 12;
+                this.onGround = false;
+                for (let i = 0; i < 4; i++) {
+                    particles.push({ x: this.x + (Math.random() - 0.5) * 20, y: this.y + 15,
+                        vx: (Math.random() - 0.5) * 3, vy: 3 + Math.random() * 6,
+                        life: 10 + Math.random() * 8, maxLife: 18,
+                        color: `hsl(${15 + Math.random() * 25}, 100%, ${50 + Math.random() * 30}%)` });
+                }
+                if (pd.timer >= 20) { pd.phase = 'hover'; pd.timer = 0; triggerScreenFlash('#e67e22', 0.35); }
+            } else if (pd.phase === 'hover') {
+                this.y += Math.sin(pd.timer * 0.3) * 0.5;
+                for (let i = 0; i < 6; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const s = 2 + Math.random() * 5;
+                    particles.push({ x: this.x + Math.cos(a) * 25, y: this.y - this.height * 0.5 + Math.sin(a) * 25,
+                        vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+                        life: 8 + Math.random() * 8, maxLife: 16,
+                        color: `hsl(${10 + Math.random() * 30}, 100%, ${45 + Math.random() * 40}%)` });
+                }
+                if (pd.timer >= 15) {
+                    pd.phase = 'dive'; pd.timer = 0;
+                    pd.targetX = pd.opponent.x;
+                    pd.startX = this.x; pd.startY = this.y;
+                    triggerScreenFlash('#ff4400', 0.4);
+                }
+            } else if (pd.phase === 'dive') {
+                const dur = 16;
+                const t = Math.min(pd.timer / dur, 1);
+                const ease = t * t * t;
+                this.x = pd.startX + (pd.targetX - pd.startX) * ease;
+                this.y = pd.startY + (groundY - pd.startY) * ease;
+                for (let i = 0; i < 8; i++) {
+                    particles.push({ x: this.x + (Math.random() - 0.5) * 35, y: this.y + (Math.random() - 0.5) * 35,
+                        vx: (Math.random() - 0.5) * 7, vy: -3 - Math.random() * 7,
+                        life: 10 + Math.random() * 10, maxLife: 20,
+                        color: `hsl(${8 + Math.random() * 25}, 100%, ${40 + Math.random() * 40}%)` });
+                }
+                if (t >= 1) {
+                    pd.phase = 'impact'; pd.timer = 0;
+                    this.y = groundY; this.onGround = true;
+                    triggerScreenShake(45, 50);
+                    triggerHitstop(15);
+                    triggerScreenFlash('#ff4400', 0.8);
+                    spawnMeteorImpact(this.x, groundY);
+                    const hitDist = Math.abs(this.x - pd.opponent.x);
+                    if (hitDist < 140) {
+                        let damage = pd.damage;
+                        if (pd.opponent.blocking) damage = Math.floor(damage * (1 - pd.blockReduction));
+                        pd.opponent.health = Math.max(0, pd.opponent.health - damage);
+                        pd.opponent.hitTimer = 22;
+                        pd.opponent.hit = true;
+                        pd.opponent.vy = -14;
+                        pd.opponent.onGround = false;
+                        const kdir = this.x < pd.opponent.x ? 1 : -1;
+                        pd.opponent.x += kdir * pd.knockback;
+                        visualEffects.push({ type: 'impactRing', x: this.x, y: groundY - 30, life: 25, maxLife: 25, color: '#e67e22' });
+                    }
+                }
+            } else if (pd.phase === 'impact') {
+                if (pd.timer >= 22) this.phoenixDive = null;
+            }
+            this.x = Math.max(this.width / 2, Math.min(canvas.width - this.width / 2, this.x));
+            return;
+        }
+
         if (!this.hit) this.x += this.vx;
         this.vy += GRAVITY;
         this.y += this.vy;
@@ -214,7 +285,7 @@ class Fighter {
     }
 
     melee(type, opponent) {
-        if (this.meleeCooldown > 0 || this.hit || this.blocking) return;
+        if (this.meleeCooldown > 0 || this.hit || this.blocking || this.phoenixDive) return;
         const PUNCH_RANGE = 70;
         const KICK_RANGE = 85;
         const PUNCH_DAMAGE = 5;
@@ -281,7 +352,7 @@ class Fighter {
     }
 
     useAttack(index, opponent) {
-        if (!this.style || this.cooldowns[index] > 0 || this.hit || this.blocking) return;
+        if (!this.style || this.cooldowns[index] > 0 || this.hit || this.blocking || this.phoenixDive) return;
         const atk = STYLES[this.style].attacks[index];
         const styleData = STYLES[this.style];
         this.cooldowns[index] = this.rageActive ? Math.floor(atk.cooldown * 0.5) : atk.cooldown;
@@ -289,6 +360,58 @@ class Fighter {
         this.castTimer = 15;
         spawnElementParticles(this.x + this.facing * 20, this.y - this.height * 0.5, styleData, this.rageActive ? 25 : 12);
         const dir = this.facing;
+
+        // ── Fire Rage Upgrades ──
+        if (this.rageActive && this.style === 'fire') {
+            if (index === 0) {
+                // INFERNO LASER — replaces Fireball
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 1.5;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 15; opponent.hit = true;
+                opponent.x += dir * kb;
+                this.castTimer = 20;
+                const beamY = this.y - this.height * 0.55;
+                const beamEndX = dir > 0 ? canvas.width + 50 : -50;
+                visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: beamEndX, y2: beamY, dir, life: 28, maxLife: 28 });
+                triggerScreenShake(15, 20); triggerHitstop(10); triggerScreenFlash('#ff4400', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 20, maxLife: 20, color: '#e67e22' });
+                return;
+            }
+            if (index === 1) {
+                // PHOENIX DIVE — replaces Flame Burst
+                this.phoenixDive = {
+                    phase: 'rise', timer: 0, opponent,
+                    damage: Math.floor(atk.damage * 1.5),
+                    knockback: atk.knockback * 1.5,
+                    blockReduction: atk.blockReduction,
+                };
+                this.casting = false; this.castTimer = 0;
+                triggerScreenFlash('#e67e22', 0.3);
+                return;
+            }
+            if (index === 2) {
+                // INFERNO ERUPTION — replaces Fire Pillar (3 pillars)
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                const dist = Math.abs(this.x - opponent.x);
+                if (dist < atk.range) {
+                    opponent.health = Math.max(0, opponent.health - damage);
+                    opponent.hitTimer = 18; opponent.hit = true;
+                    opponent.x += dir * kb;
+                    opponent.vy = -8; opponent.onGround = false;
+                }
+                for (let pp = -1; pp <= 1; pp++) spawnFirePillar(opponent.x + pp * 110, groundY);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                triggerScreenShake(20, 25); triggerHitstop(10); triggerScreenFlash('#e67e22', 0.6);
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#e67e22' });
+                return;
+            }
+            // Index 3 (Meteor) falls through to normal logic — already has rage VFX
+        }
 
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
@@ -461,6 +584,36 @@ class Fighter {
             ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 55, 0, Math.PI * 2); ctx.stroke();
             ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
+        }
+
+        // ── Phoenix Dive: draw fireball instead of stickman ──
+        if (this.phoenixDive && (this.phoenixDive.phase === 'hover' || this.phoenixDive.phase === 'dive')) {
+            const r = this.phoenixDive.phase === 'dive' ? 50 : 38;
+            const cy = -this.height * 0.5;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 80;
+            // Outer fire glow
+            const og = ctx.createRadialGradient(0, cy, 0, 0, cy, r * 2.2);
+            og.addColorStop(0, 'rgba(255,100,0,0.5)'); og.addColorStop(0.5, 'rgba(231,76,60,0.2)'); og.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = og;
+            ctx.beginPath(); ctx.arc(0, cy, r * 2.2, 0, Math.PI * 2); ctx.fill();
+            // Core fireball
+            const fg = ctx.createRadialGradient(0, cy, 0, 0, cy, r);
+            fg.addColorStop(0, '#fff'); fg.addColorStop(0.15, '#ffe066');
+            fg.addColorStop(0.35, '#f39c12'); fg.addColorStop(0.6, '#e67e22');
+            fg.addColorStop(0.85, '#e74c3c'); fg.addColorStop(1, 'rgba(231,76,60,0)');
+            ctx.fillStyle = fg;
+            ctx.beginPath(); ctx.arc(0, cy, r, 0, Math.PI * 2); ctx.fill();
+            // Flickering flame wisps
+            for (let f = 0; f < 5; f++) {
+                const fa = (f / 5) * Math.PI * 2 + Date.now() * 0.012;
+                const fr = r * (0.8 + Math.sin(Date.now() * 0.015 + f) * 0.3);
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = '#f39c12';
+                ctx.beginPath(); ctx.arc(Math.cos(fa) * fr * 0.6, cy + Math.sin(fa) * fr * 0.6, 6 + Math.random() * 4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            ctx.restore();
+            return;
         }
 
         const headY = -this.height;
@@ -1153,6 +1306,49 @@ function drawVisualEffects() {
                 fg.addColorStop(1, 'rgba(0,0,0,0)');
                 ctx.fillStyle = fg;
                 ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 90, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Inferno Laser Beam (Fire Rage) ──
+        if (vfx.type === 'laserBeam') {
+            const prog = 1 - a;
+            const reveal = Math.min(prog * 5, 1);
+            const beamLen = (vfx.x2 - vfx.x1) * reveal;
+            const endX = vfx.x1 + beamLen;
+            // Outer red glow
+            ctx.globalAlpha = a * 0.4;
+            ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 40 * a;
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 60;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            // Mid orange beam
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 22 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            // Main bright beam
+            ctx.globalAlpha = a * 0.9;
+            ctx.strokeStyle = '#f39c12'; ctx.lineWidth = 12 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            // White-hot core
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 5 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            // Heat shimmer particles along beam
+            if (vfx.life % 2 === 0) {
+                for (let i = 0; i < 5; i++) {
+                    const px = vfx.x1 + Math.random() * beamLen;
+                    particles.push({ x: px, y: vfx.y1 + (Math.random() - 0.5) * 20,
+                        vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
+                        life: 8 + Math.random() * 8, maxLife: 16,
+                        color: `hsl(${10 + Math.random() * 30}, 100%, ${50 + Math.random() * 35}%)` });
+                }
+            }
+            // Bright origin point
+            if (prog < 0.3) {
+                ctx.globalAlpha = (0.3 - prog) / 0.3 * 0.8;
+                const og = ctx.createRadialGradient(vfx.x1, vfx.y1, 0, vfx.x1, vfx.y1, 50);
+                og.addColorStop(0, '#fff'); og.addColorStop(0.3, '#f39c12'); og.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = og;
+                ctx.beginPath(); ctx.arc(vfx.x1, vfx.y1, 50, 0, Math.PI * 2); ctx.fill();
             }
             ctx.shadowBlur = 0;
         }
