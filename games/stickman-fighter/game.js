@@ -7266,6 +7266,19 @@ function updateProjectiles() {
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const p = projectiles[i];
 
+        // ── Aim at opponent on first frame (fire-and-forget, no lock-on) ──
+        if (!p._aimed && p.target && !p.isBoulder && !p.isAcidMonster && !p.isHeadSlam && !p.isTornadoDebris) {
+            p._aimed = true;
+            const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+            if (spd > 0) {
+                const dx = p.target.x - p.x;
+                const dy = (p.target.y - p.target.height * 0.5) - p.y;
+                const d = Math.sqrt(dx * dx + dy * dy) || 1;
+                p.vx = (dx / d) * spd;
+                p.vy = (dy / d) * spd;
+            }
+        }
+
         // ── Boulder Crush phased movement ──
         if (p.isBoulder) {
             p.phaseTimer++;
@@ -7515,20 +7528,7 @@ function updateProjectiles() {
         // Glitch fragments move erratically
         if (p.isGlitch) { p.vy += (Math.random() - 0.5) * 1.5; p.vy *= 0.95; }
 
-        // All projectiles gently steer toward opponent
-        if (p.target && !p.isBoulder && !p.isAcidMonster && !p.isHeadSlam) {
-            const tdx = p.target.x - p.x;
-            const tdy = (p.target.y - p.target.height * 0.5) - p.y;
-            const td = Math.sqrt(tdx * tdx + tdy * tdy) || 1;
-            const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
-            const steer = 0.04; // gentle tracking
-            p.vx += (tdx / td) * spd * steer;
-            p.vy += (tdy / td) * spd * steer;
-            // Maintain original speed
-            const newSpd = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
-            p.vx = (p.vx / newSpd) * spd;
-            p.vy = (p.vy / newSpd) * spd;
-        }
+
 
         p.trail.push({ x: p.x, y: p.y, alpha: 1 });
         if (p.trail.length > 35) p.trail.shift();
