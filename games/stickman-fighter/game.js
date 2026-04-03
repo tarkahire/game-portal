@@ -29,8 +29,8 @@ const STYLES = {
         hue: 25,
         attacks: [
             { name: 'Fireball',    type: 'projectile', damage: 7,  cooldown: 150,  speed: 9,  radius: 28, knockback: 8,  blockReduction: 0.5, draw: 'fireball' },
-            { name: 'Flame Burst', type: 'instant',    damage: 12, cooldown: 300,  range: 200, knockback: 12, blockReduction: 0.4, vfx: 'burst' },
-            { name: 'Fire Pillar', type: 'instant',    damage: 15, cooldown: 420,  range: 400, knockback: 10, blockReduction: 0.3, vfx: 'pillar' },
+            { name: 'Flame Burst', type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'burst' },
+            { name: 'Fire Pillar', type: 'instant',    damage: 15, cooldown: 420,  range: 9999, knockback: 10, blockReduction: 0.3, vfx: 'pillar' },
             { name: 'Meteor',      type: 'projectile', damage: 24, cooldown: 660,  speed: 7,  radius: 80, knockback: 22, blockReduction: 0.2, draw: 'meteor', special: 'meteor' },
         ],
     },
@@ -41,7 +41,7 @@ const STYLES = {
         attacks: [
             { name: 'Water Bolt',  type: 'projectile', damage: 5,  cooldown: 100,  speed: 10, radius: 20, knockback: 6,  blockReduction: 0.6, draw: 'waterBolt' },
             { name: 'Tidal Wave',  type: 'projectile', damage: 8,  cooldown: 270,  speed: 5,  radius: 55, knockback: 18, blockReduction: 0.4, draw: 'tidalWave' },
-            { name: 'Ice Spike',   type: 'instant',    damage: 13, cooldown: 360,  range: 350, knockback: 6,  blockReduction: 0.3, vfx: 'iceSpike', launchUp: -20 },
+            { name: 'Ice Spike',   type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 6,  blockReduction: 0.3, vfx: 'iceSpike', launchUp: -20 },
             { name: 'Tsunami',     type: 'projectile', damage: 18, cooldown: 600,  speed: 3,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'tsunami' },
         ],
     },
@@ -51,9 +51,9 @@ const STYLES = {
         hue: 170,
         attacks: [
             { name: 'Air Slash',     type: 'projectile', damage: 5,  cooldown: 90,   speed: 14, radius: 24, knockback: 6,  blockReduction: 0.6, draw: 'airSlash' },
-            { name: 'Gust',          type: 'instant',    damage: 3,  cooldown: 180,  range: 300, knockback: 24, blockReduction: 0.5, vfx: 'gust' },
+            { name: 'Gust',          type: 'instant',    damage: 3,  cooldown: 180,  range: 9999, knockback: 24, blockReduction: 0.5, vfx: 'gust' },
             { name: 'Tornado',       type: 'projectile', damage: 10, cooldown: 360,  speed: 3,  radius: 50, knockback: 12, blockReduction: 0.3, draw: 'tornado' },
-            { name: 'Cyclone Burst', type: 'instant',    damage: 16, cooldown: 540,  range: 260, knockback: 26, blockReduction: 0.2, vfx: 'cyclone' },
+            { name: 'Cyclone Burst', type: 'instant',    damage: 16, cooldown: 540,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'cyclone' },
         ],
     },
     earth: {
@@ -62,7 +62,7 @@ const STYLES = {
         hue: 30,
         attacks: [
             { name: 'Rock Shot',     type: 'projectile', damage: 6,  cooldown: 110,  speed: 11, radius: 32, knockback: 8,  blockReduction: 0.5, draw: 'rockShot' },
-            { name: 'Earth Pillar',  type: 'instant',    damage: 12, cooldown: 300,  range: 360, knockback: 14, blockReduction: 0.3, vfx: 'earthPillar' },
+            { name: 'Earth Pillar',  type: 'instant',    damage: 12, cooldown: 300,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'earthPillar' },
             { name: 'Seismic Wave',  type: 'projectile', damage: 10, cooldown: 360,  speed: 5,  radius: 60, knockback: 16, blockReduction: 0.3, draw: 'seismicWave' },
             { name: 'Boulder Crush', type: 'projectile', damage: 22, cooldown: 600,  speed: 0,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'boulderCrush', special: 'boulderCrush' },
         ],
@@ -84,7 +84,7 @@ const STYLES = {
         hue: 45,
         attacks: [
             { name: 'Holy Bolt',     type: 'projectile', damage: 6,  cooldown: 110,  speed: 14, radius: 18, knockback: 5,  blockReduction: 0.5, draw: 'holyBolt' },
-            { name: 'Radiant Burst', type: 'instant',    damage: 10, cooldown: 280,  range: 280, knockback: 10, blockReduction: 0.4, vfx: 'radiantBurst' },
+            { name: 'Radiant Burst', type: 'instant',    damage: 10, cooldown: 280,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'radiantBurst' },
             { name: 'Divine Ray',    type: 'projectile', damage: 13, cooldown: 380,  speed: 8,  radius: 35, knockback: 12, blockReduction: 0.3, draw: 'divineRay' },
             { name: 'Judgment',      type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'judgment' },
         ],
@@ -95,9 +95,9 @@ const STYLES = {
         hue: 280,
         attacks: [
             { name: 'Shadow Bolt',  type: 'projectile', damage: 7,  cooldown: 120,  speed: 11, radius: 22, knockback: 6,  blockReduction: 0.5, draw: 'shadowBolt' },
-            { name: 'Void Grip',    type: 'instant',    damage: 11, cooldown: 300,  range: 320, knockback: 8,  blockReduction: 0.4, vfx: 'voidGrip' },
+            { name: 'Void Grip',    type: 'instant',    damage: 11, cooldown: 300,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'voidGrip' },
             { name: 'Dark Orb',     type: 'projectile', damage: 12, cooldown: 360,  speed: 4,  radius: 45, knockback: 14, blockReduction: 0.3, draw: 'darkOrb' },
-            { name: 'Abyss',        type: 'instant',    damage: 18, cooldown: 580,  range: 380, knockback: 16, blockReduction: 0.2, vfx: 'abyss' },
+            { name: 'Abyss',        type: 'instant',    damage: 18, cooldown: 580,  range: 9999, knockback: 16, blockReduction: 0.2, vfx: 'abyss' },
         ],
     },
     shadow: {
@@ -106,9 +106,9 @@ const STYLES = {
         hue: 210,
         attacks: [
             { name: 'Shadow Strike', type: 'projectile', damage: 5,  cooldown: 80,   speed: 17, radius: 16, knockback: 4,  blockReduction: 0.6, draw: 'shadowStrike' },
-            { name: 'Phantom Step',  type: 'instant',    damage: 9,  cooldown: 240,  range: 300, knockback: 10, blockReduction: 0.4, vfx: 'phantomStep' },
+            { name: 'Phantom Step',  type: 'instant',    damage: 9,  cooldown: 240,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'phantomStep' },
             { name: 'Shadow Clone',  type: 'projectile', damage: 11, cooldown: 340,  speed: 6,  radius: 40, knockback: 12, blockReduction: 0.3, draw: 'shadowClone' },
-            { name: 'Eclipse',       type: 'instant',    damage: 17, cooldown: 560,  range: 350, knockback: 20, blockReduction: 0.2, vfx: 'eclipse' },
+            { name: 'Eclipse',       type: 'instant',    damage: 17, cooldown: 560,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'eclipse' },
         ],
     },
     portal: {
@@ -128,9 +128,9 @@ const STYLES = {
         hue: 197,
         attacks: [
             { name: 'Soap Blast',      type: 'projectile', damage: 5,  cooldown: 100,  speed: 10, radius: 22, knockback: 5,  blockReduction: 0.5, draw: 'soapBlast', special: 'soapBlast' },
-            { name: 'Spin Cycle',      type: 'instant',    damage: 9,  cooldown: 260,  range: 220, knockback: 14, blockReduction: 0.4, vfx: 'spinCycle' },
+            { name: 'Spin Cycle',      type: 'instant',    damage: 9,  cooldown: 260,  range: 9999, knockback: 14, blockReduction: 0.4, vfx: 'spinCycle' },
             { name: 'Bubble Barrage',  type: 'projectile', damage: 3,  cooldown: 90,   speed: 7,  radius: 14, knockback: 3,  blockReduction: 0.5, draw: 'bubbleBarrage', special: 'bubbleBarrage' },
-            { name: 'Flood Rinse',     type: 'instant',    damage: 16, cooldown: 560,  range: 380, knockback: 20, blockReduction: 0.2, vfx: 'floodRinse' },
+            { name: 'Flood Rinse',     type: 'instant',    damage: 16, cooldown: 560,  range: 9999, knockback: 20, blockReduction: 0.2, vfx: 'floodRinse' },
         ],
     },
 };
