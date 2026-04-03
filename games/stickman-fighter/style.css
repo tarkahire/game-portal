@@ -328,6 +328,11 @@ button:hover {
     box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
 }
 
+.style-btn[data-style="selfie"].selected {
+    border-color: #00d4ff;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
 .style-icon {
     font-size: 28px;
 }
