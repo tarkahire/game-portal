@@ -30,7 +30,7 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 
 ### Frontend — Auth & Navigation
 - [ ] index.html entry point with Supabase SDK
-- [ ] Login/register screen (email + Google OAuth)
+- [ ] Login/register screen (email/password only)
 - [ ] Server select screen (list available servers, player count)
 - [ ] Alignment picker (7 nations with descriptions and bonuses)
 - [ ] Scene manager (state machine for switching between screens)
@@ -130,3 +130,10 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 - [ ] UI/UX polish, animations, sound
 - [ ] Mobile responsiveness
 - [ ] Pay-to-play monetization implementation
+
+---
+
+## Future Integrations (Optional, No Phase Assigned)
+
+- [ ] **Google OAuth sign-in** — Add "Sign in with Google" as an alternative login method. Requires: Google Cloud Console OAuth credentials, enable Google provider in Supabase, uncomment Google button in index.html/main.js/AuthManager.js. See setup.md for full steps.
+- [ ] **Stripe integration** — Premium subscriptions and server entry fees for monetization

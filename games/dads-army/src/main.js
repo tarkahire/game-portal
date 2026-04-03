@@ -48,7 +48,7 @@ const dom = {
   registerPassword: $('register-password'),
   registerName:     $('register-name'),
   btnLogin:         $('btn-login'),
-  btnGoogle:        $('btn-google'),
+  // btnGoogle:        $('btn-google'),  // Google OAuth deferred
   btnRegister:      $('btn-register'),
   showRegister:     $('show-register'),
   showLogin:        $('show-login'),
@@ -197,18 +197,9 @@ dom.btnRegister.addEventListener('click', async () => {
   // Auth state listener will handle the scene transition
 });
 
-// Google OAuth button
-dom.btnGoogle.addEventListener('click', async () => {
-  hideAuthError();
-  setButtonLoading(dom.btnGoogle, true);
-  const { error } = await auth.signInWithGoogle();
-  setButtonLoading(dom.btnGoogle, false, 'Sign in with Google');
-
-  if (error) {
-    showAuthError(error.message || 'Google sign-in failed.');
-  }
-  // On success, browser redirects to Google; no further action here
-});
+// Google OAuth — deferred to future integration (see todo.md)
+// When re-enabling: uncomment btn-google in index.html, uncomment btnGoogle in dom,
+// and restore this event listener.
 
 // Allow Enter key to submit login/register forms
 dom.loginPassword.addEventListener('keydown', (e) => {

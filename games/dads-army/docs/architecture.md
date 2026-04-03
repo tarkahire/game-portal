@@ -18,7 +18,7 @@ How the game works under the hood. Supabase schema, game tick logic, RLS policie
 ┌─────────────────────────────┐
 │   Supabase                   │
 │   ┌───────────────────────┐ │
-│   │  Auth                  │ │  ← Email/password + Google OAuth
+│   │  Auth                  │ │  ← Email/password (Google OAuth deferred)
 │   ├───────────────────────┤ │
 │   │  PostgreSQL Database   │ │  ← All game state
 │   │  ├─ pg_cron           │ │  ← Game tick every 60s

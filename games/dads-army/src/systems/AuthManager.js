@@ -1,7 +1,7 @@
 // ==========================================================================
 // AuthManager — Wraps Supabase Auth for Dad's Army
 //
-// Provides sign-up, sign-in (email + Google OAuth), sign-out, session
+// Provides sign-up, sign-in (email/password), sign-out, session
 // management, and auth state change subscriptions.
 // ==========================================================================
 
@@ -75,34 +75,19 @@ export class AuthManager {
     }
   }
 
-  // ---------- Sign In (Google OAuth) ----------
-
-  /**
-   * Initiate Google OAuth sign-in via redirect.
-   * The user will be redirected to Google and back to the app.
-   *
-   * @returns {Promise<{error: object|null}>}
-   */
-  async signInWithGoogle() {
-    try {
-      const { error } = await this._supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + window.location.pathname,
-        },
-      });
-
-      if (error) {
-        return { error };
-      }
-
-      // Redirect happens automatically; no return value needed on success
-      return { error: null };
-    } catch (err) {
-      console.error('[AuthManager] signInWithGoogle failed:', err);
-      return { error: { message: err.message } };
-    }
-  }
+  // ---------- Sign In (Google OAuth) — DEFERRED ----------
+  // Google OAuth is not currently integrated. To enable in the future:
+  // 1. Set up Google Cloud Console OAuth credentials
+  // 2. Enable Google provider in Supabase Auth settings
+  // 3. Uncomment this method and the btn-google in index.html + main.js
+  //
+  // async signInWithGoogle() {
+  //   const { error } = await this._supabase.auth.signInWithOAuth({
+  //     provider: 'google',
+  //     options: { redirectTo: window.location.origin + window.location.pathname },
+  //   });
+  //   return { error: error || null };
+  // }
 
   // ---------- Sign Out ----------
 

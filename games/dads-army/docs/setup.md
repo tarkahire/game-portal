@@ -15,11 +15,13 @@ Step-by-step instructions to set up the full infrastructure from scratch.
 | API | Purpose | Setup Location | Required For |
 |-----|---------|---------------|--------------|
 | **Supabase** | Auth, database, real-time, game ticks, edge functions | [supabase.com](https://supabase.com) | Everything — this IS the backend |
-| **Google OAuth** | Google sign-in for players | [Google Cloud Console](https://console.cloud.google.com) | Auth (login with Google) |
+| **Google OAuth** (future) | Google sign-in for players | [Google Cloud Console](https://console.cloud.google.com) | Optional — deferred, see todo.md |
 | **Custom SMTP** (production) | Reliable auth emails (confirmation, password reset) | Resend/SendGrid/Mailgun | Production email delivery |
 | **Stripe** (future) | Premium subscriptions, server entry fees | [stripe.com](https://stripe.com) | Monetization (Phase 4+) |
 
-### Google OAuth Setup (Required)
+### Google OAuth Setup (DEFERRED — Future Integration)
+Google OAuth is **not currently integrated**. The game uses email/password auth only. When ready to add Google sign-in, follow these steps:
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Create a new project (or use existing)
 3. Go to **APIs & Services** → **Credentials**
@@ -32,6 +34,7 @@ Step-by-step instructions to set up the full infrastructure from scratch.
    - Enable Google provider
    - Paste Client ID and Client Secret
    - Save
+10. Uncomment the Google button in `index.html`, `main.js`, and `AuthManager.js`
 
 ### Custom SMTP Setup (Recommended for Production)
 Supabase's built-in email works for development but has low deliverability for production. Options:
@@ -65,11 +68,7 @@ From Project Settings → API:
 ### 1.3 Configure Auth
 1. Go to Authentication → Providers
 2. **Email**: Enabled by default. Confirm "Enable email confirmations" setting (disable for dev, enable for production)
-3. **Google OAuth**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com) → APIs & Services → Credentials
-   - Create OAuth 2.0 Client ID (Web application)
-   - Authorized redirect URI: `https://your-project.supabase.co/auth/v1/callback`
-   - Copy Client ID and Client Secret back into Supabase Google provider settings
+3. **Google OAuth**: SKIPPED — deferred to future integration (see todo.md)
 4. **Auth settings**:
    - Site URL: `https://your-vercel-domain.vercel.app/games/dads-army/`
    - Redirect URLs: add your Vercel domain and `http://localhost` for dev

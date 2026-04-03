@@ -20,10 +20,10 @@ Before testing, the agent must:
 
 ### TP-001: Authentication Flow
 
-**Mechanic**: Players must create an account and log in to access the game. Auth uses Supabase (email/password + Google OAuth).
+**Mechanic**: Players must create an account and log in to access the game. Auth uses Supabase (email/password only — Google OAuth is a future integration, not currently active).
 
 **Steps**:
-1. Navigate to the game URL → **EXPECT**: Login screen displayed with email/password fields and Google sign-in button
+1. Navigate to the game URL → **EXPECT**: Login screen displayed with email/password fields and register option
 2. Click "Register" with email `test_agent_1@test.com`, password `TestAgent1!` → **EXPECT**: Account created, redirect to server select screen
 3. Click logout → **EXPECT**: Return to login screen
 4. Log back in with same credentials → **EXPECT**: Server select screen, previous session data preserved

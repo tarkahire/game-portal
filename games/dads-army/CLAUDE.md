@@ -6,7 +6,7 @@ A persistent, online WW2 strategy game: 999-hex map, depleting resource fields, 
 
 - **Frontend**: Vanilla JS (ES modules), HTML5 Canvas (hex map), HTML/CSS (UI panels)
 - **Backend**: Supabase (PostgreSQL, pg_cron, Auth, Realtime, Edge Functions)
-- **Auth**: Email/password + Google OAuth
+- **Auth**: Email/password (Google OAuth deferred — see todo.md)
 - **Hosting**: Vercel (static frontend), Supabase (backend)
 - **No build step** — CDN dependencies only (Supabase JS SDK)
 
