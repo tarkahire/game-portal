@@ -413,6 +413,57 @@ class Fighter {
             // Index 3 (Meteor) falls through to normal logic — already has rage VFX
         }
 
+        // ── Wind Rage Upgrades ──
+        if (this.rageActive && this.style === 'wind') {
+            if (index === 0) {
+                // GALE SLASH — lock-on instant wind slash
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 2;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 12; opponent.hit = true;
+                opponent.x += dir * kb;
+                spawnWindGust(this.x, this.y - this.height * 0.5, dir);
+                triggerScreenShake(8, 12); triggerHitstop(6);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 50);
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 20, maxLife: 20, color: '#1abc9c' });
+                return;
+            }
+            if (index === 1) {
+                // HURRICANE BLAST — massive wind burst, lock-on
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 1.5;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 15; opponent.hit = true;
+                opponent.x += dir * kb;
+                opponent.vy = -8; opponent.onGround = false;
+                spawnWindGust(this.x, this.y - this.height * 0.5, dir);
+                spawnCyclone(opponent.x, opponent.y - opponent.height * 0.3);
+                triggerScreenShake(14, 20); triggerHitstop(8); triggerScreenFlash('#1abc9c', 0.3);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 70);
+                return;
+            }
+            if (index === 2) {
+                // MEGA TORNADO — huge tornado with spinning figures and cows
+                const figs = [];
+                for (let f = 0; f < 3; f++) figs.push({ type: 'stickman', angle: (f / 3) * Math.PI * 2, height: 0.25 + f * 0.22, dist: 35 + f * 18 });
+                for (let f = 0; f < 2; f++) figs.push({ type: 'cow', angle: Math.PI + (f / 2) * Math.PI, height: 0.15 + f * 0.3, dist: 30 + f * 22 });
+                projectiles.push({
+                    x: this.x + dir * 40, y: groundY,
+                    vx: dir * 2, vy: 0,
+                    radius: 120, owner: this, target: opponent,
+                    atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
+                    life: 360, trail: [],
+                    isRageTornado: true, figures: figs, hitCooldown: 0,
+                    rageVfx: null,
+                });
+                triggerScreenShake(12, 15); triggerScreenFlash('#1abc9c', 0.25);
+                return;
+            }
+            // Index 3 (Cyclone Burst) falls through — already has screen tear rage VFX
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -1836,6 +1887,92 @@ function updateProjectiles() {
             continue;
         }
 
+        // ── Rage Tornado (Wind Rage) ──
+        if (p.isRageTornado) {
+            p.x += p.vx;
+            p.life--;
+            // Spin figures
+            for (const fig of p.figures) fig.angle += 0.09;
+            // Continuous wind particles
+            if (Math.random() < 0.7) {
+                for (let d = 0; d < 3; d++) {
+                    const dy = Math.random() * 300;
+                    particles.push({ x: p.x + (Math.random() - 0.5) * 80, y: groundY - dy,
+                        vx: Math.sin(Date.now() * 0.01) * 5, vy: -2 - Math.random() * 3,
+                        life: 8 + Math.random() * 6, maxLife: 14,
+                        color: `hsl(170, 50%, ${45 + Math.random() * 30}%)` });
+                }
+            }
+            // Rumble shake
+            if (p.life % 10 === 0) triggerScreenShake(4, 4);
+            // Hit detection — can hit repeatedly with cooldown
+            if (p.hitCooldown > 0) p.hitCooldown--;
+            if (p.hitCooldown <= 0) {
+                const dist = Math.abs(p.x - p.target.x);
+                if (dist < p.radius + 40) {
+                    let damage = p.atk.damage;
+                    let kb = 8;
+                    if (p.target.blocking) { damage = Math.floor(damage * (1 - p.atk.blockReduction)); kb *= 0.5; }
+                    p.target.health = Math.max(0, p.target.health - damage);
+                    p.target.hitTimer = 10; p.target.hit = true;
+                    p.target.vy = -6; p.target.onGround = false;
+                    triggerScreenShake(8, 10);
+                    spawnElementParticles(p.target.x, p.target.y - p.target.height * 0.5, p.styleData, 30);
+                    p.hitCooldown = 40;
+                }
+            }
+            // Expire — fling debris (figures and cows)
+            if (p.life <= 0 || p.x < -120 || p.x > canvas.width + 120) {
+                triggerScreenShake(10, 12);
+                for (const fig of p.figures) {
+                    const speed = 8 + Math.random() * 6;
+                    const fAngle = fig.angle + (Math.random() - 0.5) * 0.8;
+                    projectiles.push({
+                        x: p.x + Math.cos(fig.angle) * fig.dist,
+                        y: groundY - fig.height * 280,
+                        vx: Math.cos(fAngle) * speed,
+                        vy: -4 + Math.sin(fAngle) * speed,
+                        radius: 22, owner: p.owner, target: p.target,
+                        atk: { damage: 8, knockback: 12, blockReduction: 0.4 },
+                        styleData: p.styleData, life: 150, trail: [],
+                        isTornadoDebris: true, debrisType: fig.type,
+                        rotation: Math.random() * Math.PI * 2,
+                        rotSpeed: (Math.random() - 0.5) * 0.2,
+                    });
+                }
+                projectiles.splice(i, 1);
+                continue;
+            }
+            continue;
+        }
+
+        // ── Tornado Debris (spinning figures/cows) ──
+        if (p.isTornadoDebris) {
+            p.x += p.vx; p.y += p.vy;
+            p.vy += 0.3; // gravity
+            p.rotation += p.rotSpeed;
+            p.life--;
+            // Hit detection
+            const dx = p.x - p.target.x;
+            const dy = p.y - (p.target.y - p.target.height * 0.5);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < p.radius + 30) {
+                let damage = p.atk.damage;
+                if (p.target.blocking) damage = Math.floor(damage * (1 - p.atk.blockReduction));
+                p.target.health = Math.max(0, p.target.health - damage);
+                p.target.hitTimer = 10; p.target.hit = true;
+                p.target.x += (p.vx > 0 ? 1 : -1) * p.atk.knockback;
+                triggerScreenShake(5, 6);
+                spawnElementParticles(p.x, p.y, p.styleData, 15);
+                visualEffects.push({ type: 'impactRing', x: p.x, y: p.y, life: 12, maxLife: 12, color: '#1abc9c' });
+                projectiles.splice(i, 1); continue;
+            }
+            if (p.life <= 0 || p.y > canvas.height + 50 || p.x < -100 || p.x > canvas.width + 100) {
+                projectiles.splice(i, 1); continue;
+            }
+            continue;
+        }
+
         p.trail.push({ x: p.x, y: p.y, alpha: 1 });
         if (p.trail.length > 35) p.trail.shift();
         for (const t of p.trail) t.alpha *= 0.87;
@@ -2226,30 +2363,91 @@ function drawProjectiles() {
 
         // ─── WIND: Tornado ───
         else if (draw === 'tornado') {
-            const h = 140;
+            const isRage = p.isRageTornado;
+            const h = isRage ? 320 : 140;
+            const baseW = isRage ? 70 : 30;
+            const rings = isRage ? 18 : 10;
             ctx.save();
             ctx.translate(p.x, groundY);
-            ctx.globalAlpha = 0.7;
-            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = 15;
+            ctx.globalAlpha = isRage ? 0.85 : 0.7;
+            ctx.shadowColor = '#1abc9c'; ctx.shadowBlur = isRage ? 35 : 15;
             // Funnel shape — wider at bottom, narrow at top, spinning lines
-            for (let j = 0; j < 10; j++) {
-                const t = j / 10;
+            for (let j = 0; j < rings; j++) {
+                const t = j / rings;
                 const y = -t * h;
-                const w = (1 - t * 0.6) * 30;
+                const w = (1 - t * 0.6) * baseW;
                 const offset = Math.sin(Date.now() * 0.012 + j * 0.8) * w * 0.5;
-                ctx.strokeStyle = `hsla(170, 60%, ${50 + j * 4}%, ${0.4 + t * 0.3})`;
-                ctx.lineWidth = 3 - t * 1.5;
+                ctx.strokeStyle = `hsla(170, 60%, ${50 + j * 2}%, ${0.4 + t * 0.3})`;
+                ctx.lineWidth = isRage ? (5 - t * 2.5) : (3 - t * 1.5);
                 ctx.beginPath();
-                ctx.ellipse(offset, y, w, 6, 0, 0, Math.PI * 2);
+                ctx.ellipse(offset, y, w, isRage ? 12 : 6, 0, 0, Math.PI * 2);
                 ctx.stroke();
             }
+
+            // ── Spinning figures inside rage tornado ──
+            if (isRage && p.figures) {
+                for (const fig of p.figures) {
+                    const fy = -fig.height * h;
+                    const fx = Math.cos(fig.angle) * fig.dist;
+                    const spin = fig.angle * 2;
+                    ctx.globalAlpha = 0.8;
+
+                    if (fig.type === 'stickman') {
+                        // Mini stickman
+                        ctx.save();
+                        ctx.translate(fx, fy);
+                        ctx.rotate(spin);
+                        ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+                        ctx.beginPath(); ctx.arc(0, -14, 5, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(0, 4); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(-8, 1); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(8, 1); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(-6, 14); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(6, 14); ctx.stroke();
+                        ctx.restore();
+                    } else if (fig.type === 'cow') {
+                        // Mini cow
+                        ctx.save();
+                        ctx.translate(fx, fy);
+                        ctx.rotate(spin);
+                        const sc = 0.9;
+                        ctx.scale(sc, sc);
+                        // Body
+                        ctx.fillStyle = '#f5f5f5';
+                        ctx.fillRect(-14, -7, 28, 14);
+                        // Spots
+                        ctx.fillStyle = '#333';
+                        ctx.beginPath(); ctx.arc(-5, -2, 4, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(7, 3, 3, 0, Math.PI * 2); ctx.fill();
+                        // Head
+                        ctx.fillStyle = '#f5f5f5';
+                        ctx.beginPath(); ctx.arc(16, -5, 6, 0, Math.PI * 2); ctx.fill();
+                        // Eyes
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath(); ctx.arc(18, -6, 1.5, 0, Math.PI * 2); ctx.fill();
+                        // Horns
+                        ctx.strokeStyle = '#a08060'; ctx.lineWidth = 1.5;
+                        ctx.beginPath(); ctx.moveTo(14, -10); ctx.lineTo(12, -15); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(18, -10); ctx.lineTo(20, -15); ctx.stroke();
+                        // Legs
+                        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.moveTo(-9, 7); ctx.lineTo(-9, 16); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(-3, 7); ctx.lineTo(-3, 16); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(5, 7); ctx.lineTo(5, 16); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(11, 7); ctx.lineTo(11, 16); ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            }
+
             ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
             ctx.restore();
-            // Debris
-            if (Math.random() < 0.5) {
+            // Debris particles
+            if (Math.random() < (isRage ? 0.8 : 0.5)) {
                 const dy = Math.random() * h;
-                particles.push({ x: p.x + (Math.random() - 0.5) * 40, y: groundY - dy,
-                    vx: Math.sin(Date.now() * 0.01) * 4, vy: -1 - Math.random() * 2,
+                particles.push({ x: p.x + (Math.random() - 0.5) * (isRage ? 90 : 40), y: groundY - dy,
+                    vx: Math.sin(Date.now() * 0.01) * (isRage ? 7 : 4), vy: -1 - Math.random() * (isRage ? 4 : 2),
                     life: 8 + Math.random() * 6, maxLife: 14,
                     color: `hsl(170, 40%, ${45 + Math.random() * 30}%)` });
             }
@@ -2678,6 +2876,40 @@ function drawProjectiles() {
             }
 
             ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        // ─── TORNADO DEBRIS (spinning stickmen/cows) ───
+        else if (p.isTornadoDebris) {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = 0.9;
+            if (p.debrisType === 'stickman') {
+                ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.arc(0, -12, 5, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(0, 5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(-8, 3); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(8, 3); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(-6, 14); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(6, 14); ctx.stroke();
+            } else {
+                ctx.scale(0.9, 0.9);
+                ctx.fillStyle = '#f5f5f5';
+                ctx.fillRect(-14, -7, 28, 14);
+                ctx.fillStyle = '#333';
+                ctx.beginPath(); ctx.arc(-5, -2, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(7, 3, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#f5f5f5';
+                ctx.beginPath(); ctx.arc(16, -5, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath(); ctx.arc(18, -6, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#a08060'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(14, -10); ctx.lineTo(12, -15); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(18, -10); ctx.lineTo(20, -15); ctx.stroke();
+                ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2;
+                for (const lx of [-9, -3, 5, 11]) { ctx.beginPath(); ctx.moveTo(lx, 7); ctx.lineTo(lx, 16); ctx.stroke(); }
+            }
             ctx.restore();
         }
 
