@@ -150,6 +150,17 @@ const STYLES = {
             { name: 'Total Corruption',  type: 'instant',    damage: 18, cooldown: 580,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'totalCorruption' },
         ],
     },
+    tarkavan: {
+        name: 'Tarka Van',
+        color: '#2e5bff',
+        hue: 225,
+        attacks: [
+            { name: 'Van Launch',     type: 'projectile', damage: 8,  cooldown: 130,  speed: 10, radius: 30, knockback: 12, blockReduction: 0.4, draw: 'vanLaunch' },
+            { name: 'Horn Blast',     type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: 18, blockReduction: 0.4, vfx: 'hornBlast' },
+            { name: 'Delivery Drop',  type: 'projectile', damage: 14, cooldown: 350,  speed: 0,  radius: 50, knockback: 16, blockReduction: 0.3, draw: 'deliveryDrop', special: 'deliveryDrop' },
+            { name: 'Fleet Strike',   type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'fleetStrike' },
+        ],
+    },
     samurai: {
         name: 'Samurai',
         color: '#c8d6e5',
@@ -1080,6 +1091,50 @@ class Fighter {
             }
         }
 
+        // ── Tarka Van Rage Upgrades ──
+        if (this.rageActive && this.style === 'tarkavan') {
+            if (index === 0) {
+                // MONSTER TRUCK — 3 big vans in a spread
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({
+                        x: this.x + dir * 30, y: this.y - this.height * 0.55 + b * 20,
+                        vx: dir * 12, vy: b * 1,
+                        radius: 35, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
+                        life: 250, trail: [], rageVfx: null,
+                    });
+                }
+                triggerScreenFlash('#2e5bff', 0.2);
+                return;
+            }
+            if (index === 1) {
+                // SONIC HONK — massive screen-wide honk blast
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, '#2e5bff');
+                this.addCombo();
+                opponent.hitTimer = 20; opponent.hit = true; opponent.x += dir * atk.knockback * 2; opponent.vy = -8; opponent.onGround = false;
+                visualEffects.push({ type: 'hornBlast', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, casterX: this.x, life: 40, maxLife: 40 });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#2e5bff', 0.5);
+                return;
+            }
+            if (index === 2) {
+                // AIR DROP — 3 vans from sky
+                for (let v = -1; v <= 1; v++) {
+                    projectiles.push({
+                        x: opponent.x + v * 70, y: -80 - Math.abs(v) * 40,
+                        vx: 0, vy: 7 + Math.random() * 3,
+                        radius: 50, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5), draw: 'deliveryDrop' }, styleData,
+                        life: 200, trail: [], isDeliveryDrop: true, rageVfx: null,
+                    });
+                }
+                triggerScreenShake(5, 6);
+                return;
+            }
+        }
+
         // ── Samurai Rage Upgrades ──
         if (this.rageActive && this.style === 'samurai') {
             if (index === 0) {
@@ -1254,6 +1309,18 @@ class Fighter {
                     rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
             }
+            // Delivery Drop — van drops from sky
+            else if (atk.special === 'deliveryDrop') {
+                projectiles.push({
+                    x: opponent.x, y: -80,
+                    vx: 0, vy: 7,
+                    radius: atk.radius, owner: this, target: opponent,
+                    atk, styleData, life: 200, trail: [],
+                    isDeliveryDrop: true,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null,
+                });
+                triggerScreenShake(3, 4);
+            }
             // Oni Giri — samurai dash attack toward opponent
             else if (atk.special === 'oniGiri') {
                 this.samuraiDash = {
@@ -1416,6 +1483,8 @@ class Fighter {
         else if (vfx === 'floodRinse') { visualEffects.push({ type: 'floodRinse', life: 45, maxLife: 45 }); triggerScreenFlash('#87ceeb', 0.4); }
         else if (vfx === 'decayPulse') { visualEffects.push({ type: 'decayPulse', x: opponent.x, y: groundY, life: 35, maxLife: 35 }); triggerScreenFlash('#ff0055', 0.25); }
         else if (vfx === 'totalCorruption') { visualEffects.push({ type: 'totalCorruption', life: 50, maxLife: 50 }); triggerScreenFlash('#ff0055', 0.5); }
+        else if (vfx === 'hornBlast') { visualEffects.push({ type: 'hornBlast', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, casterX: this.x, life: 30, maxLife: 30 }); triggerScreenFlash('#2e5bff', 0.3); }
+        else if (vfx === 'fleetStrike') { visualEffects.push({ type: 'fleetStrike', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 55, maxLife: 55 }); triggerScreenFlash('#2e5bff', 0.5); }
         else if (vfx === 'shishiSonson') { visualEffects.push({ type: 'shishiSonson', x1: this.x, y1: this.y - this.height * 0.5, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 22, maxLife: 22 }); triggerScreenFlash('#fff', 0.4); }
         else if (vfx === 'ashura') { visualEffects.push({ type: 'ashura', x: opponent.x, y: opponent.y - opponent.height * 0.5, casterX: this.x, casterY: this.y, life: 50, maxLife: 50 }); triggerScreenFlash('#c8d6e5', 0.6); }
         else if (vfx === 'grinBeam') { visualEffects.push({ type: 'grinBeam', x1: this.x, y1: this.y - this.height * 0.8, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 28, maxLife: 28 }); triggerScreenFlash('#ffaa88', 0.3); }
@@ -1463,6 +1532,39 @@ class Fighter {
             ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 55, 0, Math.PI * 2); ctx.stroke();
             ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
+        }
+
+        // ── Tarka Van Rage: draw van instead of stickman ──
+        if (this.rageActive && this.style === 'tarkavan') {
+            const bounce = Math.sin(Date.now() * 0.015) * 2;
+            ctx.translate(0, bounce);
+            // Van body
+            ctx.fillStyle = '#f0f0f0'; ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
+            ctx.fillRect(-35, -75, 70, 50); ctx.strokeRect(-35, -75, 70, 50);
+            // Blue stripe with text
+            ctx.fillStyle = '#2e5bff'; ctx.fillRect(-35, -55, 70, 18);
+            ctx.font = 'bold 8px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'center';
+            ctx.fillStyle = '#fff'; ctx.fillText('TARKA VAN', 0, -42);
+            ctx.font = '6px sans-serif'; ctx.fillText('HIRE', 0, -35);
+            // Windshield
+            ctx.fillStyle = '#aaccee'; ctx.fillRect(-30, -73, 25, 16);
+            // Headlight
+            ctx.fillStyle = '#ffe066'; ctx.fillRect(26, -68, 6, 6);
+            // Wheels
+            ctx.fillStyle = '#333';
+            ctx.beginPath(); ctx.arc(-20, -25, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(20, -25, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#888';
+            ctx.beginPath(); ctx.arc(-20, -25, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(20, -25, 4, 0, Math.PI * 2); ctx.fill();
+            // Exhaust smoke
+            if (Math.random() < 0.4) {
+                particles.push({ x: this.x - this.facing * 35, y: this.y - 28,
+                    vx: -this.facing * (1 + Math.random() * 2), vy: -1 - Math.random(),
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#aaa' });
+            }
+            ctx.shadowBlur = 0; ctx.restore();
+            return;
         }
 
         // ── Washing Machine Rage: draw washing machine instead of stickman ──
@@ -1837,6 +1939,7 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'portal') { visualEffects.push({ type: 'screenPortal', x, y, life: 55, maxLife: 55 }); triggerScreenFlash('#e056de', 0.6); }
     else if (style === 'washingmachine') { visualEffects.push({ type: 'screenFlood', life: 55, maxLife: 55 }); triggerScreenFlash('#87ceeb', 0.5); }
     else if (style === 'corruption') { visualEffects.push({ type: 'screenCorruption', life: 60, maxLife: 60 }); triggerScreenFlash('#ff0055', 0.7); }
+    else if (style === 'tarkavan') { visualEffects.push({ type: 'screenFleet', life: 60, maxLife: 60 }); triggerScreenFlash('#2e5bff', 0.7); }
     else if (style === 'samurai') { visualEffects.push({ type: 'screenAshura', life: 55, maxLife: 55 }); triggerScreenFlash('#fff', 0.8); }
     else if (style === 'selfie') { visualEffects.push({ type: 'screenViral', life: 60, maxLife: 60 }); triggerScreenFlash('#fff', 0.8); }
 }
@@ -3005,6 +3108,85 @@ function drawVisualEffects() {
                     life: 6 + Math.random() * 8, maxLife: 14,
                     color: Math.random() > 0.5 ? '#ff0055' : '#00ffcc' });
             }}
+        }
+
+        // ── Tarka Van VFX ──
+        if (vfx.type === 'hornBlast') {
+            const prog = 1 - a;
+            // Expanding shockwave rings (sound waves)
+            ctx.shadowColor = '#2e5bff'; ctx.shadowBlur = 20;
+            for (let i = 0; i < 4; i++) {
+                const r = (prog * 250 + i * 40);
+                ctx.globalAlpha = a * (0.5 - i * 0.1);
+                ctx.strokeStyle = i % 2 === 0 ? '#2e5bff' : '#fff'; ctx.lineWidth = (5 - i) * a;
+                ctx.beginPath(); ctx.arc(vfx.casterX, vfx.y, r, -0.6, 0.6); ctx.stroke();
+            }
+            // "HONK" text
+            if (prog < 0.5) {
+                ctx.globalAlpha = a * 0.8; ctx.font = `bold ${40 + prog * 30}px "Segoe UI",Arial,sans-serif`;
+                ctx.textAlign = 'center'; ctx.fillStyle = '#2e5bff';
+                ctx.fillText('HONK!', vfx.casterX + vfx.dir * (60 + prog * 100), vfx.y - 20 - prog * 30);
+            }
+            ctx.shadowBlur = 0;
+        }
+        if (vfx.type === 'fleetStrike') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Multiple vans rushing across screen from both sides
+            ctx.globalAlpha = a * 0.8;
+            for (let v = 0; v < 6; v++) {
+                const fromLeft = v % 2 === 0;
+                const vx = fromLeft ? -60 + prog * (canvas.width + 120) : canvas.width + 60 - prog * (canvas.width + 120);
+                const vy = 100 + v * 70 + Math.sin(v * 2.1) * 20;
+                const vDir = fromLeft ? 1 : -1;
+                ctx.save(); ctx.translate(vx, vy); ctx.scale(vDir, 1);
+                // Van body
+                ctx.fillStyle = '#f0f0f0'; ctx.fillRect(-25, -18, 50, 30);
+                ctx.fillStyle = '#2e5bff'; ctx.fillRect(-25, -8, 50, 12);
+                ctx.font = 'bold 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+                ctx.fillText('TARKA', 0, 1);
+                ctx.fillStyle = '#aaccee'; ctx.fillRect(-22, -16, 18, 10);
+                ctx.fillStyle = '#ffe066'; ctx.fillRect(18, -14, 5, 5);
+                ctx.fillStyle = '#333';
+                ctx.beginPath(); ctx.arc(-14, 12, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(14, 12, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+            // Speed lines
+            ctx.globalAlpha = a * 0.3; ctx.strokeStyle = '#2e5bff'; ctx.lineWidth = 2;
+            for (let i = 0; i < 10; i++) {
+                const ly = 80 + i * 50 + Math.random() * 20;
+                const lx = Math.random() * canvas.width;
+                ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + (Math.random() > 0.5 ? 1 : -1) * (40 + Math.random() * 60), ly); ctx.stroke();
+            }
+        }
+        if (vfx.type === 'screenFleet') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.4; ctx.fillStyle = '#001030'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Absolute chaos — vans everywhere
+            ctx.globalAlpha = a * 0.7;
+            for (let v = 0; v < 10; v++) {
+                const vx = (v * 137 + Date.now() * 0.1 * (v % 2 === 0 ? 1 : -1)) % (canvas.width + 100) - 50;
+                const vy = (v * 89 + Date.now() * 0.06) % (canvas.height * 0.8) + 30;
+                const vDir = v % 2 === 0 ? 1 : -1;
+                const sc = 0.7 + Math.sin(v * 1.7) * 0.3;
+                ctx.save(); ctx.translate(vx, vy); ctx.scale(vDir * sc, sc); ctx.rotate(Math.sin(Date.now() * 0.003 + v) * 0.2);
+                ctx.fillStyle = '#f0f0f0'; ctx.fillRect(-25, -18, 50, 30);
+                ctx.fillStyle = '#2e5bff'; ctx.fillRect(-25, -8, 50, 12);
+                ctx.font = 'bold 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+                ctx.fillText('TARKA', 0, 1);
+                ctx.fillStyle = '#333';
+                ctx.beginPath(); ctx.arc(-14, 12, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(14, 12, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+            // HONK text floating
+            ctx.globalAlpha = a * 0.5; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center';
+            for (let h = 0; h < 4; h++) {
+                const hx = (h * 211 + Date.now() * 0.05) % canvas.width;
+                const hy = (h * 143 + Date.now() * 0.04) % (canvas.height * 0.7) + 50;
+                ctx.fillStyle = '#2e5bff'; ctx.fillText('HONK!', hx, hy);
+            }
         }
 
         // ── Samurai VFX ──
@@ -4925,6 +5107,70 @@ function drawProjectiles() {
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
             }
         }
+        // ─── TARKA VAN: Van Launch ───
+        else if (draw === 'vanLaunch') {
+            const dir = p.vx > 0 ? 1 : -1;
+            // Exhaust trail
+            for (const t of p.trail) {
+                if (t.alpha < 0.2) continue;
+                ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#aaa';
+                ctx.beginPath(); ctx.arc(t.x, t.y, 4 + (1 - t.alpha) * 6, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#2e5bff'; ctx.shadowBlur = 10;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.scale(dir, 1);
+            // Van body
+            ctx.fillStyle = '#f0f0f0'; ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5;
+            ctx.fillRect(-22, -15, 44, 25); ctx.strokeRect(-22, -15, 44, 25);
+            // Blue stripe with text
+            ctx.fillStyle = '#2e5bff'; ctx.fillRect(-22, -5, 44, 10);
+            ctx.font = 'bold 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+            ctx.fillText('TARKA', 0, 3);
+            // Windshield
+            ctx.fillStyle = '#aaccee'; ctx.fillRect(-18, -13, 15, 8);
+            // Headlight
+            ctx.fillStyle = '#ffe066'; ctx.fillRect(16, -11, 4, 4);
+            // Wheels
+            ctx.fillStyle = '#333';
+            ctx.beginPath(); ctx.arc(-12, 10, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(12, 10, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#888';
+            ctx.beginPath(); ctx.arc(-12, 10, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(12, 10, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── TARKA VAN: Delivery Drop (van from sky) ───
+        else if (draw === 'deliveryDrop') {
+            const r = p.radius;
+            // Shadow on ground
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.beginPath(); ctx.ellipse(p.x, groundY + 3, r * 0.6, 8, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1; ctx.shadowColor = '#2e5bff'; ctx.shadowBlur = 15;
+            ctx.save(); ctx.translate(p.x, p.y);
+            // Bigger van
+            ctx.fillStyle = '#f0f0f0'; ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
+            ctx.fillRect(-30, -20, 60, 35); ctx.strokeRect(-30, -20, 60, 35);
+            ctx.fillStyle = '#2e5bff'; ctx.fillRect(-30, -8, 60, 14);
+            ctx.font = 'bold 7px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+            ctx.fillText('TARKA VAN', 0, 2);
+            ctx.font = '5px sans-serif'; ctx.fillText('HIRE', 0, 8);
+            ctx.fillStyle = '#aaccee'; ctx.fillRect(-26, -18, 20, 10);
+            ctx.fillStyle = '#ffe066'; ctx.fillRect(22, -16, 5, 5);
+            ctx.fillStyle = '#333';
+            ctx.beginPath(); ctx.arc(-16, 15, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(16, 15, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#888';
+            ctx.beginPath(); ctx.arc(-16, 15, 3.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(16, 15, 3.5, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+            // Speed lines above
+            ctx.globalAlpha = 0.4; ctx.strokeStyle = '#2e5bff'; ctx.lineWidth = 2;
+            for (let s = 0; s < 3; s++) {
+                const sx = p.x + (Math.random() - 0.5) * 40;
+                ctx.beginPath(); ctx.moveTo(sx, p.y - 25); ctx.lineTo(sx, p.y - 45 - Math.random() * 20); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        }
+
         // ─── SAMURAI: Oni Giri (three crossing slashes) ───
         else if (draw === 'oniGiri') {
             const dir = p.vx > 0 ? 1 : -1;
