@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Racing</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="hud">
+        <div id="speed-display">0 <span>KM/H</span></div>
+        <div id="lap-display">Lap 0/3</div>
+        <div id="time-display">0:00.0</div>
+        <div id="position-display">1st</div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1>2D Racing</h1>
+        <p>Top-Down Racing Game</p>
+        <div class="mode-buttons">
+            <button id="start-race-btn">RACE</button>
+            <button id="start-time-btn">TIME TRIAL</button>
+        </div>
+        <div class="controls-info">
+            <p><kbd>W</kbd> / <kbd>UP</kbd> Accelerate</p>
+            <p><kbd>S</kbd> / <kbd>DOWN</kbd> Brake</p>
+            <p><kbd>A D</kbd> / <kbd>LEFT RIGHT</kbd> Steer</p>
+            <p><kbd>SPACE</kbd> Handbrake / Drift</p>
+        </div>
+        <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="result-screen" class="hidden">
+        <h1 id="result-text"></h1>
+        <p id="result-time"></p>
+        <button id="restart-btn">Race Again</button>
+        <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
