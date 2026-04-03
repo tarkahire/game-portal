@@ -695,9 +695,29 @@ class Fighter {
         }
 
         if (!this.hit) this.x += this.vx;
-        this.vy += GRAVITY;
-        this.y += this.vy;
-        if (this.y >= groundY) { this.y = groundY; this.vy = 0; this.onGround = true; }
+
+        // ── Flying styles (Pigeon & Bee) ──
+        const isFlyer = this.style === 'pigeon' || this.style === 'bee';
+        if (isFlyer) {
+            this.vy += GRAVITY * 0.15; // very low gravity — floaty
+            this.y += this.vy;
+            // Clamp to ceiling and ground
+            const ceiling = 60;
+            if (this.y >= groundY) { this.y = groundY; this.vy = 0; this.onGround = true; }
+            else if (this.y < ceiling) { this.y = ceiling; this.vy = 0; this.onGround = false; }
+            else { this.onGround = false; }
+            // Wing flap particles while airborne
+            if (!this.onGround && Math.random() < 0.3) {
+                const wingColor = this.style === 'bee' ? '#ffc107' : '#ccc';
+                particles.push({ x: this.x + (Math.random() - 0.5) * 20, y: this.y - this.height * 0.3,
+                    vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: wingColor });
+            }
+        } else {
+            this.vy += GRAVITY;
+            this.y += this.vy;
+            if (this.y >= groundY) { this.y = groundY; this.vy = 0; this.onGround = true; }
+        }
         this.x = Math.max(this.width / 2, Math.min(canvas.width - this.width / 2, this.x));
 
         if (Math.abs(this.vx) > 0 && this.onGround) {
@@ -2249,11 +2269,22 @@ class Fighter {
                     life: 180, trail: [], rageVfx: this.rageActive && index === 3 ? this.style : null });
             }
             else {
+                // Flyers (pigeon/bee) aim projectiles directly at opponent
+                const isFlyer = this.style === 'pigeon' || this.style === 'bee';
+                let pvx = dir * atk.speed;
+                let pvy = 0;
+                if (isFlyer) {
+                    const dx = opponent.x - this.x;
+                    const dy = (opponent.y - opponent.height * 0.5) - (this.y - this.height * 0.55);
+                    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+                    pvx = (dx / d) * atk.speed;
+                    pvy = (dy / d) * atk.speed;
+                }
                 projectiles.push({
                     x: this.x + dir * 30,
                     y: this.y - this.height * 0.55,
-                    vx: dir * atk.speed,
-                    vy: 0,
+                    vx: pvx,
+                    vy: pvy,
                     radius: atk.radius,
                     owner: this,
                     target: opponent,
@@ -9232,12 +9263,18 @@ window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; e.pre
 
 function handleInput() {
     player1.vx = 0; player1.blocking = false;
+    const p1Flies = player1.style === 'pigeon' || player1.style === 'bee';
     if (!player1.hit) {
         if (keys['a']) player1.vx = -MOVE_SPEED;
         if (keys['d']) player1.vx = MOVE_SPEED;
-        if (keys['s']) player1.blocking = true;
+        if (p1Flies) {
+            if (keys['w']) { player1.vy = -4; player1.onGround = false; }
+            if (keys['s']) { player1.vy = 3; }
+        } else {
+            if (keys['s']) player1.blocking = true;
+        }
     }
-    if (keys['w'] && player1.onGround && !player1.blocking) { player1.vy = JUMP_FORCE; player1.onGround = false; }
+    if (!p1Flies && keys['w'] && player1.onGround && !player1.blocking) { player1.vy = JUMP_FORCE; player1.onGround = false; }
     if (keys['z']) { player1.useAttack(0, player2); keys['z'] = false; }
     if (keys['x']) { player1.useAttack(1, player2); keys['x'] = false; }
     if (keys['c']) { player1.useAttack(2, player2); keys['c'] = false; }
@@ -9249,12 +9286,18 @@ function handleInput() {
 
     if (!aiMode) {
         player2.vx = 0; player2.blocking = false;
+        const p2Flies = player2.style === 'pigeon' || player2.style === 'bee';
         if (!player2.hit) {
             if (keys['arrowleft']) player2.vx = -MOVE_SPEED;
             if (keys['arrowright']) player2.vx = MOVE_SPEED;
-            if (keys['arrowdown']) player2.blocking = true;
+            if (p2Flies) {
+                if (keys['arrowup']) { player2.vy = -4; player2.onGround = false; }
+                if (keys['arrowdown']) { player2.vy = 3; }
+            } else {
+                if (keys['arrowdown']) player2.blocking = true;
+            }
         }
-        if (keys['arrowup'] && player2.onGround && !player2.blocking) { player2.vy = JUMP_FORCE; player2.onGround = false; }
+        if (!p2Flies && keys['arrowup'] && player2.onGround && !player2.blocking) { player2.vy = JUMP_FORCE; player2.onGround = false; }
         if (keys['\\']) { player2.useAttack(0, player1); keys['\\'] = false; }
         if (keys['/'])  { player2.useAttack(1, player1); keys['/'] = false; }
         if (keys['.'])  { player2.useAttack(2, player1); keys['.'] = false; }
@@ -9309,11 +9352,28 @@ function handleAI() {
             aiAction = 'idle'; break;
         }
         case 'block': player2.blocking = true; break;
-        case 'jump':
-            if (player2.onGround) { player2.vy = JUMP_FORCE; player2.onGround = false; }
+        case 'jump': {
+            const aiFlies = player2.style === 'pigeon' || player2.style === 'bee';
+            if (aiFlies) {
+                // Flyers: fly toward a good altitude and approach
+                const targetAlt = player1.y - 80 - Math.random() * 60;
+                player2.vy = player2.y > targetAlt ? -3.5 : 1.5;
+                player2.onGround = false;
+            } else if (player2.onGround) {
+                player2.vy = JUMP_FORCE; player2.onGround = false;
+            }
             player2.vx = dir * MOVE_SPEED; break;
+        }
     }
-    if (player1.casting && dist < 120 && Math.random() < 0.3) player2.blocking = true;
+    if (player1.casting && dist < 120 && Math.random() < 0.3) {
+        const aiFlies2 = player2.style === 'pigeon' || player2.style === 'bee';
+        if (aiFlies2) { player2.vy = -4; player2.onGround = false; } // dodge by flying up
+        else player2.blocking = true;
+    }
+    // AI flyers: maintain altitude and fly more
+    if ((player2.style === 'pigeon' || player2.style === 'bee') && Math.random() < 0.08) {
+        player2.vy = -3 - Math.random() * 2; player2.onGround = false;
+    }
     // AI melee when close
     if (dist < 80 && player2.meleeCooldown <= 0 && Math.random() < 0.15) {
         player2.melee(Math.random() < 0.5 ? 'punch' : 'kick', player1);
