@@ -467,6 +467,7 @@ let aiMode = false;
 let trainingMode = false;
 let p1Style = null, p2Style = null;
 let selectedStage = 'default';
+let finisherAnim = null; // { attacker, victim, timer, phase, startX, targetX }
 const damageNumbers = [];
 
 const keys = {};
@@ -526,6 +527,7 @@ class Fighter {
         this.comboTimer = 0;
         this.maxCombo = 0;
         this.comboDamageBonus = 0;
+        this.finisherUsed = false;
     }
 
     update(opponent) {
@@ -835,6 +837,24 @@ class Fighter {
         // Domain expansion visual effect
         visualEffects.push({ type: 'domainExpansion', x: this.x, y: this.y - this.height * 0.5,
             style: this.style, life: 60, maxLife: 60, color: styleData?.color || '#fff' });
+    }
+
+    executeFinisher(opponent) {
+        if (this.finisherUsed || this.hit || this.blocking || this.phoenixDive || this.samuraiDash) return;
+        if (opponent.health > MAX_HEALTH * 0.25 || opponent.health <= 0) return;
+        if (finisherAnim) return; // already in progress
+        this.finisherUsed = true;
+        finisherAnim = {
+            attacker: this, victim: opponent,
+            timer: 0, phase: 'lunge', // lunge → slash → split
+            startX: this.x, targetX: opponent.x,
+            dir: this.x < opponent.x ? 1 : -1,
+        };
+        // Freeze both fighters
+        this.vx = 0; this.vy = 0; this.casting = false;
+        opponent.vx = 0; opponent.vy = 0;
+        triggerScreenFlash('#fff', 0.4);
+        triggerHitstop(5);
     }
 
     useAttack(index, opponent) {
@@ -9281,6 +9301,7 @@ function handleInput() {
     if (keys['v']) { player1.useAttack(3, player2); keys['v'] = false; }
     if (keys['e']) { player1.activateRage(); keys['e'] = false; }
     if (keys['q']) { player1.activateDomain(); keys['q'] = false; }
+    if (keys['r']) { player1.executeFinisher(player2); keys['r'] = false; }
     if (keys['f']) { player1.melee('punch', player2); keys['f'] = false; }
     if (keys['g']) { player1.melee('kick', player2); keys['g'] = false; }
 
@@ -9304,6 +9325,7 @@ function handleInput() {
         if (keys[','])  { player2.useAttack(3, player1); keys[','] = false; }
         if (keys['m'])  { player2.activateRage(); keys['m'] = false; }
         if (keys['4'])  { player2.activateDomain(); keys['4'] = false; }
+        if (keys['3'])  { player2.executeFinisher(player1); keys['3'] = false; }
         if (keys['0'])  { player2.melee('punch', player1); keys['0'] = false; }
         if (keys['1'])  { player2.melee('kick', player1); keys['1'] = false; }
     }
@@ -9385,6 +9407,10 @@ function handleAI() {
     // AI activates domain when available
     if (player2.domainAvailable && !player2.domainActive) {
         player2.activateDomain();
+    }
+    // AI uses finisher when opponent is low
+    if (!player2.finisherUsed && player1.health > 0 && player1.health <= MAX_HEALTH * 0.25 && dist < 200 && Math.random() < 0.05) {
+        player2.executeFinisher(player1);
     }
 }
 
@@ -11855,6 +11881,30 @@ function drawDomainBar(player, x, w) {
     ctx.textAlign = 'left'; ctx.globalAlpha = 1;
 }
 
+function drawFinisherIndicators() {
+    // P1 can finish P2?
+    if (!player1.finisherUsed && player2.health > 0 && player2.health <= MAX_HEALTH * 0.25 && !finisherAnim) {
+        const pulse = 0.6 + Math.sin(Date.now() * 0.008) * 0.4;
+        ctx.globalAlpha = pulse;
+        ctx.font = 'bold 14px "Segoe UI",Arial,sans-serif';
+        ctx.textAlign = 'center'; ctx.fillStyle = '#ff0000';
+        ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
+        ctx.fillText('FINISH [R]', player1.x, player1.y - player1.height - 30);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    }
+    // P2 can finish P1?
+    if (!aiMode && !player2.finisherUsed && player1.health > 0 && player1.health <= MAX_HEALTH * 0.25 && !finisherAnim) {
+        const pulse = 0.6 + Math.sin(Date.now() * 0.008) * 0.4;
+        ctx.globalAlpha = pulse;
+        ctx.font = 'bold 14px "Segoe UI",Arial,sans-serif';
+        ctx.textAlign = 'center'; ctx.fillStyle = '#ff0000';
+        ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
+        ctx.fillText('FINISH [3]', player2.x, player2.y - player2.height - 30);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = 'left';
+}
+
 // ── Round / Game Logic ──
 function startTimer() {
     timer = ROUND_TIME;
@@ -11965,6 +12015,156 @@ function gameLoop() {
         return;
     }
 
+    // ── Finisher Animation ──
+    if (finisherAnim) {
+        const fa = finisherAnim;
+        fa.timer++;
+        updateParticles(); updateScreenShake();
+
+        ctx.save(); ctx.translate(shakeOffsetX, shakeOffsetY);
+        drawBackground();
+
+        if (fa.phase === 'lunge') {
+            // Darken screen
+            ctx.globalAlpha = Math.min(fa.timer / 20, 0.6);
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1;
+            // Attacker dashes toward victim
+            const lungeT = Math.min(fa.timer / 18, 1);
+            fa.attacker.x = fa.startX + (fa.targetX - fa.dir * 50 - fa.startX) * (lungeT * lungeT);
+            fa.attacker.y = groundY;
+            // Draw victim frozen
+            fa.victim.draw();
+            // Draw attacker lunging with sword
+            ctx.save(); ctx.translate(fa.attacker.x, fa.attacker.y); ctx.scale(fa.dir, 1);
+            ctx.strokeStyle = fa.attacker.color; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            const lean = lungeT * 0.3;
+            // Body leaning forward
+            ctx.beginPath(); ctx.arc(lean * 15, -100, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(lean * 10, -86); ctx.lineTo(lean * 25, -45); ctx.stroke();
+            // Arm with sword extended
+            ctx.beginPath(); ctx.moveTo(lean * 15, -75); ctx.lineTo(lean * 30 + 25, -80); ctx.stroke();
+            ctx.strokeStyle = '#e8eef4'; ctx.lineWidth = 3;
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.moveTo(lean * 30 + 25, -80); ctx.lineTo(lean * 30 + 70, -75); ctx.stroke();
+            ctx.shadowBlur = 0;
+            // Legs
+            ctx.strokeStyle = fa.attacker.color; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(lean * 25, -45); ctx.lineTo(20, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(lean * 25, -45); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.restore();
+            // Afterimage trail
+            if (fa.timer % 2 === 0) {
+                for (let i = 0; i < 3; i++) {
+                    particles.push({ x: fa.attacker.x - fa.dir * (10 + Math.random() * 30), y: fa.attacker.y - 50 + (Math.random() - 0.5) * 40,
+                        vx: -fa.dir * (2 + Math.random() * 3), vy: (Math.random() - 0.5) * 2,
+                        life: 8 + Math.random() * 6, maxLife: 14, color: fa.attacker.color });
+                }
+            }
+            if (lungeT >= 1) { fa.phase = 'slash'; fa.timer = 0; triggerScreenFlash('#fff', 1.0); triggerScreenShake(30, 35); triggerHitstop(0); }
+        }
+        else if (fa.phase === 'slash') {
+            // White flash slash frame
+            ctx.globalAlpha = 0.7; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalAlpha = 1;
+            // Giant red slash line across screen
+            const slashProg = Math.min(fa.timer / 10, 1);
+            const sx = fa.victim.x - fa.dir * 100;
+            const ex = fa.victim.x + fa.dir * 100;
+            const sy = fa.victim.y - 150;
+            const ey = fa.victim.y + 10;
+            ctx.globalAlpha = (1 - slashProg * 0.5);
+            ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 8 * (1 - slashProg * 0.5);
+            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + (ex - sx) * slashProg, sy + (ey - sy) * slashProg); ctx.stroke();
+            // White core
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + (ex - sx) * slashProg, sy + (ey - sy) * slashProg); ctx.stroke();
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+            // Draw attacker in pose
+            ctx.save(); ctx.translate(fa.attacker.x, fa.attacker.y); ctx.scale(fa.dir, 1);
+            ctx.strokeStyle = fa.attacker.color; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(10, -100, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10, -86); ctx.lineTo(25, -45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(15, -75); ctx.lineTo(50, -90); ctx.stroke(); // sword arm up
+            ctx.strokeStyle = '#e8eef4'; ctx.lineWidth = 3; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 15;
+            ctx.beginPath(); ctx.moveTo(50, -90); ctx.lineTo(90, -50); ctx.stroke(); // sword blade
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = fa.attacker.color; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(25, -45); ctx.lineTo(30, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(25, -45); ctx.lineTo(0, 0); ctx.stroke();
+            ctx.restore();
+            if (fa.timer >= 12) { fa.phase = 'split'; fa.timer = 0; fa.victim.health = 0; triggerScreenShake(40, 50); }
+        }
+        else if (fa.phase === 'split') {
+            ctx.globalAlpha = Math.max(0.4, 0.7 - fa.timer * 0.005); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalAlpha = 1;
+            // Draw attacker standing
+            fa.attacker.draw();
+            // Victim splits in two halves sliding apart
+            const splitDist = Math.min(fa.timer * 2.5, 80);
+            const fallAngle = Math.min(fa.timer * 0.02, 0.4);
+            const vx = fa.victim.x;
+            const vy = fa.victim.y;
+            // Left half
+            ctx.save(); ctx.translate(vx - splitDist, vy); ctx.rotate(-fallAngle);
+            ctx.strokeStyle = fa.victim.color; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath(); ctx.arc(-5, -100, 14, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-5, -86); ctx.lineTo(-5, -45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-5, -75); ctx.lineTo(-25, -55); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-5, -45); ctx.lineTo(-15, 0); ctx.stroke();
+            ctx.restore();
+            // Right half
+            ctx.save(); ctx.translate(vx + splitDist, vy); ctx.rotate(fallAngle);
+            ctx.strokeStyle = fa.victim.color; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath(); ctx.arc(5, -100, 14, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(5, -86); ctx.lineTo(5, -45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(5, -75); ctx.lineTo(25, -55); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(5, -45); ctx.lineTo(15, 0); ctx.stroke();
+            ctx.restore();
+            ctx.globalAlpha = 1;
+            // BLOOD EXPLOSION — red particles erupting from the split
+            if (fa.timer < 40 && fa.timer % 2 === 0) {
+                for (let i = 0; i < 20; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const s = 3 + Math.random() * 10;
+                    particles.push({ x: vx + (Math.random() - 0.5) * 20, y: vy - 50 + (Math.random() - 0.5) * 60,
+                        vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2,
+                        life: 15 + Math.random() * 20, maxLife: 35,
+                        color: `hsl(0, ${70 + Math.random() * 30}%, ${20 + Math.random() * 30}%)` });
+                }
+            }
+            // Blood splatter on ground
+            if (fa.timer < 30 && fa.timer % 4 === 0) {
+                for (let i = 0; i < 6; i++) {
+                    particles.push({ x: vx + (Math.random() - 0.5) * 120, y: groundY - Math.random() * 5,
+                        vx: (Math.random() - 0.5) * 1, vy: -0.5,
+                        life: 40 + Math.random() * 30, maxLife: 70,
+                        color: `hsl(0, 80%, ${15 + Math.random() * 15}%)` });
+                }
+            }
+            // "FINISH" text
+            if (fa.timer > 15) {
+                const textAlpha = Math.min((fa.timer - 15) / 20, 1);
+                ctx.globalAlpha = textAlpha;
+                ctx.font = `bold ${60 + Math.sin(Date.now() * 0.01) * 3}px "Segoe UI",Arial,sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 30;
+                ctx.fillText('FINISH', canvas.width / 2, canvas.height * 0.25);
+                ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+            }
+            if (fa.timer >= 90) {
+                finisherAnim = null;
+                checkRoundEnd();
+            }
+        }
+        drawParticles();
+        drawScreenFlash();
+        updateUI();
+        ctx.restore();
+        return;
+    }
+
     handleInput();
     if (aiMode || trainingMode) handleAI();
     player1.update(player2); player2.update(player1);
@@ -11990,7 +12190,7 @@ function gameLoop() {
     drawBackground();
     player1.draw(); player2.draw();
     drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawDomainBars(); drawComboMeters();
-    drawDamageNumbers();
+    drawDamageNumbers(); drawFinisherIndicators();
 
     ctx.restore();
 
