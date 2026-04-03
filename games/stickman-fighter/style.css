@@ -285,6 +285,11 @@ button:hover {
     box-shadow: 0 0 20px rgba(160, 82, 45, 0.4);
 }
 
+.style-btn[data-style="acid"].selected {
+    border-color: #39ff14;
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+}
+
 .style-icon {
     font-size: 28px;
 }

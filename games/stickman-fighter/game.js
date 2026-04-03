@@ -67,6 +67,17 @@ const STYLES = {
             { name: 'Boulder Crush', type: 'projectile', damage: 38, cooldown: 600,  speed: 0,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'boulderCrush', special: 'boulderCrush' },
         ],
     },
+    acid: {
+        name: 'Acid',
+        color: '#39ff14',
+        hue: 110,
+        attacks: [
+            { name: 'Acid Barrage', type: 'projectile', damage: 7,  cooldown: 100,  speed: 13, radius: 16, knockback: 4,  blockReduction: 0.5, draw: 'acidBarrage', special: 'acidBarrage' },
+            { name: 'Acid Rain',    type: 'instant',    damage: 14, cooldown: 270,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'acidRain' },
+            { name: 'Acid Slash',   type: 'instant',    damage: 20, cooldown: 360,  range: 160, knockback: 14, blockReduction: 0.3, vfx: 'acidSlash' },
+            { name: 'Acid Monster', type: 'projectile', damage: 25, cooldown: 660,  speed: 0,  radius: 90, knockback: 22, blockReduction: 0.2, draw: 'acidMonster', special: 'acidMonster' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -325,6 +336,44 @@ class Fighter {
                     dir: dir,
                     rageVfx: this.rageActive && index === 3 ? this.style : null,
                 });
+            }
+            // Acid Barrage — 3 projectiles in a spread
+            else if (atk.special === 'acidBarrage') {
+                for (let b = -1; b <= 1; b++) {
+                    projectiles.push({
+                        x: this.x + dir * 30,
+                        y: this.y - this.height * 0.55 + b * 15,
+                        vx: dir * atk.speed,
+                        vy: b * 1.5,
+                        radius: atk.radius,
+                        owner: this,
+                        target: opponent,
+                        atk, styleData,
+                        life: 200,
+                        trail: [],
+                        rageVfx: this.rageActive && index === 3 ? this.style : null,
+                    });
+                }
+            }
+            // Acid Monster — rises from ground at opponent, punches them
+            else if (atk.special === 'acidMonster') {
+                triggerScreenShake(8, 12);
+                projectiles.push({
+                    x: opponent.x,
+                    y: groundY,
+                    vx: 0, vy: 0,
+                    radius: atk.radius,
+                    owner: this,
+                    target: opponent,
+                    atk, styleData,
+                    life: 300,
+                    trail: [],
+                    isAcidMonster: true,
+                    phase: 'rise',
+                    phaseTimer: 0,
+                    dir: dir,
+                    rageVfx: this.rageActive && index === 3 ? this.style : null,
+                });
             } else {
                 projectiles.push({
                     x: this.x + dir * 30,
@@ -385,6 +434,8 @@ class Fighter {
         else if (vfx === 'cyclone') spawnCyclone(this.x, this.y - this.height * 0.3);
         else if (vfx === 'iceSpike') spawnIceSpike(opponent.x, groundY);
         else if (vfx === 'earthPillar') spawnEarthPillar(opponent.x, groundY);
+        else if (vfx === 'acidRain') spawnAcidRain(opponent.x, groundY);
+        else if (vfx === 'acidSlash') spawnAcidSlash(this.x + dir * 50, this.y - this.height * 0.4, dir);
     }
 
     draw() {
@@ -596,6 +647,44 @@ function spawnEarthPillar(x, y) {
     }
 }
 
+function spawnAcidRain(x, y) {
+    visualEffects.push({ type: 'acidRain', x, y, life: 45, maxLife: 45 });
+    triggerScreenShake(6, 10);
+    triggerScreenFlash('#39ff14', 0.2);
+    // Acid splash particles
+    for (let i = 0; i < 20; i++) {
+        particles.push({ x: x + (Math.random() - 0.5) * 120, y: y - Math.random() * 30,
+            vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 5,
+            life: 12 + Math.random() * 10, maxLife: 22,
+            color: `hsl(${110 + Math.random() * 20}, 100%, ${40 + Math.random() * 30}%)` });
+    }
+}
+
+function spawnAcidSlash(x, y, dir) {
+    visualEffects.push({ type: 'acidSlash', x, y, dir, life: 22, maxLife: 22 });
+    triggerScreenShake(6, 8);
+    triggerScreenFlash('#39ff14', 0.15);
+    for (let i = 0; i < 15; i++) {
+        const a = (dir > 0 ? -0.5 : 2.5) + Math.random() * 1;
+        const s = 3 + Math.random() * 6;
+        particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+            life: 10 + Math.random() * 10, maxLife: 20,
+            color: `hsl(${110 + Math.random() * 15}, 100%, ${45 + Math.random() * 35}%)` });
+    }
+}
+
+function spawnAcidMonsterImpact(x, y) {
+    visualEffects.push({ type: 'acidMonsterImpact', x, y, life: 35, maxLife: 35 });
+    triggerScreenFlash('#39ff14', 0.4);
+    for (let i = 0; i < 40; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 3 + Math.random() * 8;
+        particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - Math.random() * 4,
+            life: 15 + Math.random() * 15, maxLife: 30,
+            color: `hsl(${105 + Math.random() * 20}, 100%, ${35 + Math.random() * 40}%)` });
+    }
+}
+
 function spawnElementParticles(x, y, styleData, count) {
     for (let i = 0; i < (count || 12); i++) {
         const a = Math.random() * Math.PI * 2;
@@ -618,6 +707,12 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'fire') spawnScreenInferno();
     else if (style === 'wind') spawnScreenTear(x, y, dir);
     else if (style === 'earth') spawnScreenShatter(x, y);
+    else if (style === 'acid') spawnScreenMeltdown(x, y);
+}
+
+function spawnScreenMeltdown(x, y) {
+    visualEffects.push({ type: 'screenMeltdown', x, y, life: 60, maxLife: 60 });
+    triggerScreenFlash('#39ff14', 0.7);
 }
 
 function spawnScreenFracture(x, y) {
@@ -1051,6 +1146,88 @@ function drawVisualEffects() {
             ctx.shadowBlur = 0;
         }
 
+        // ── Acid Rain ──
+        if (vfx.type === 'acidRain') {
+            const prog = 1 - a;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 15;
+            // Falling acid drops
+            ctx.globalAlpha = a * 0.8;
+            for (let j = 0; j < 14; j++) {
+                const dx = (Math.random() - 0.5) * 160;
+                const dropY = -20 + prog * (groundY + 40) * ((j + Math.sin(vfx.life * 0.3 + j)) / 14);
+                const dropLen = 12 + Math.random() * 10;
+                ctx.strokeStyle = `hsl(${110 + Math.random() * 15}, 100%, ${50 + Math.random() * 30}%)`;
+                ctx.lineWidth = 2 + Math.random() * 2;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x + dx, dropY);
+                ctx.lineTo(vfx.x + dx, dropY + dropLen);
+                ctx.stroke();
+            }
+            // Acid puddle on ground
+            if (prog > 0.3) {
+                const puddleW = (prog - 0.3) / 0.7 * 120;
+                ctx.globalAlpha = a * 0.5;
+                ctx.fillStyle = '#39ff14';
+                ctx.beginPath();
+                ctx.ellipse(vfx.x, vfx.y, puddleW, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Bubbles in puddle
+                ctx.fillStyle = '#7fff00';
+                for (let b = 0; b < 5; b++) {
+                    const bx = vfx.x + (Math.random() - 0.5) * puddleW * 1.5;
+                    const br = 2 + Math.random() * 3;
+                    ctx.beginPath(); ctx.arc(bx, vfx.y - Math.random() * 6, br, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Acid Slash ──
+        if (vfx.type === 'acidSlash') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.9;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 25;
+            // Arc slash
+            const startAngle = vfx.dir > 0 ? -Math.PI * 0.7 : Math.PI * 0.3;
+            const sweep = Math.PI * 1.2 * Math.min(prog * 3, 1);
+            ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 8 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 60, startAngle, startAngle + sweep); ctx.stroke();
+            ctx.strokeStyle = '#7fff00'; ctx.lineWidth = 4 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 50, startAngle, startAngle + sweep); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 40, startAngle, startAngle + sweep); ctx.stroke();
+            // Acid drips from the slash
+            if (vfx.life % 2 === 0) {
+                const da = startAngle + Math.random() * sweep;
+                const dr = 50 + Math.random() * 15;
+                particles.push({ x: vfx.x + Math.cos(da) * dr, y: vfx.y + Math.sin(da) * dr,
+                    vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 3,
+                    life: 8 + Math.random() * 6, maxLife: 14,
+                    color: '#39ff14' });
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Acid Monster Impact ──
+        if (vfx.type === 'acidMonsterImpact') {
+            const prog = 1 - a;
+            const r = prog * 180;
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 8;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 40;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#7fff00'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+            if (prog < 0.3) {
+                ctx.globalAlpha = (0.3 - prog) / 0.3 * 0.7;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 100);
+                fg.addColorStop(0, '#fff'); fg.addColorStop(0.3, '#39ff14'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 100, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
         // ── Rage Activation Burst ──
         if (vfx.type === 'rageActivation') {
             const prog = 1 - a;
@@ -1235,6 +1412,35 @@ function drawVisualEffects() {
             }
             ctx.shadowBlur = 0;
         }
+
+        // ── Screen Meltdown (Acid Rage) ──
+        if (vfx.type === 'screenMeltdown') {
+            const prog = 1 - a;
+            // Toxic green overlay
+            ctx.globalAlpha = a * 0.2;
+            ctx.fillStyle = '#39ff14';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Acid dripping from top of screen
+            ctx.globalAlpha = a * 0.7;
+            for (let i = 0; i < 16; i++) {
+                const dx = (i / 16) * canvas.width + Math.sin(Date.now() * 0.003 + i) * 20;
+                const dripH = (Math.sin(Date.now() * 0.005 + i * 1.5) * 0.5 + 0.5) * 200 * prog;
+                const dg = ctx.createLinearGradient(dx, 0, dx, dripH);
+                dg.addColorStop(0, 'rgba(57,255,20,0.6)'); dg.addColorStop(0.7, 'rgba(57,255,20,0.2)');
+                dg.addColorStop(1, 'rgba(57,255,20,0)');
+                ctx.fillStyle = dg;
+                ctx.fillRect(dx - 8, 0, 16, dripH);
+            }
+            // Acid bubbles rising from bottom
+            if (vfx.life % 2 === 0) {
+                for (let i = 0; i < 6; i++) {
+                    particles.push({ x: Math.random() * canvas.width, y: canvas.height,
+                        vx: (Math.random() - 0.5) * 3, vy: -4 - Math.random() * 8,
+                        life: 12 + Math.random() * 12, maxLife: 24,
+                        color: `hsl(${110 + Math.random() * 15}, 100%, ${45 + Math.random() * 35}%)` });
+                }
+            }
+        }
     }
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
@@ -1325,6 +1531,70 @@ function updateProjectiles() {
 
         // Skip trail/hit for boulders (handled above)
         if (p.isBoulder) {
+            if (p.life <= 0) { projectiles.splice(i, 1); }
+            continue;
+        }
+
+        // ── Acid Monster phased movement ──
+        if (p.isAcidMonster) {
+            p.phaseTimer++;
+            if (p.phase === 'rise') {
+                // Monster rises from the ground
+                p.vy = -2.5;
+                // Acid bubbles from ground
+                if (p.phaseTimer % 3 === 0) {
+                    for (let d = 0; d < 3; d++) {
+                        particles.push({ x: p.x + (Math.random() - 0.5) * 80, y: groundY,
+                            vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
+                            life: 10 + Math.random() * 8, maxLife: 18,
+                            color: `hsl(${110 + Math.random() * 15}, 100%, ${40 + Math.random() * 30}%)` });
+                    }
+                }
+                if (p.phaseTimer >= 30) {
+                    p.phase = 'punch';
+                    p.phaseTimer = 0;
+                    p.vy = 0;
+                }
+            } else if (p.phase === 'punch') {
+                p.vy = 0; p.vx = 0;
+                // Punch hits at frame 12
+                if (p.phaseTimer === 12) {
+                    triggerScreenShake(25, 30);
+                    triggerHitstop(10);
+                    spawnAcidMonsterImpact(p.target.x, p.target.y - p.target.height * 0.5);
+                    const hitDist = Math.abs(p.x - p.target.x);
+                    if (hitDist < p.radius + 60) {
+                        let damage = p.atk.damage;
+                        if (p.owner.rageActive) damage = Math.floor(damage * 1.5);
+                        let kb = p.atk.knockback;
+                        if (p.target.blocking) {
+                            damage = Math.floor(damage * (1 - p.atk.blockReduction));
+                            kb *= (1 - p.atk.blockReduction);
+                        }
+                        p.target.health = Math.max(0, p.target.health - damage);
+                        p.target.hitTimer = 20;
+                        p.target.hit = true;
+                        p.target.x += p.dir * kb;
+                        p.target.vy = -8;
+                        p.target.onGround = false;
+                        visualEffects.push({ type: 'impactRing', x: p.target.x, y: p.target.y - p.target.height * 0.5, life: 25, maxLife: 25, color: '#39ff14' });
+                        if (p.rageVfx) triggerRageUltVFX(p.rageVfx, p.target.x, p.target.y - p.target.height * 0.5, p.dir);
+                    }
+                }
+                if (p.phaseTimer >= 25) {
+                    p.phase = 'sink';
+                    p.phaseTimer = 0;
+                }
+            } else if (p.phase === 'sink') {
+                p.vy = 3;
+                if (p.phaseTimer >= 25 || p.y >= groundY + 10) {
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+            }
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life--;
             if (p.life <= 0) { projectiles.splice(i, 1); }
             continue;
         }
@@ -1950,6 +2220,105 @@ function drawProjectiles() {
                 }
                 ctx.globalAlpha = 1;
             }
+        }
+
+        // ─── ACID: Acid Barrage ───
+        else if (draw === 'acidBarrage') {
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.4;
+                ctx.fillStyle = '#39ff14';
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 20;
+            const ag = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.3);
+            ag.addColorStop(0, '#fff'); ag.addColorStop(0.25, '#7fff00');
+            ag.addColorStop(0.6, '#39ff14'); ag.addColorStop(1, 'rgba(57,255,20,0)');
+            ctx.fillStyle = ag;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Acid drips
+            if (Math.random() < 0.4) {
+                particles.push({ x: p.x, y: p.y + p.radius * 0.5,
+                    vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
+                    life: 6 + Math.random() * 4, maxLife: 10, color: '#39ff14' });
+            }
+        }
+
+        // ─── ACID: Acid Monster ───
+        else if (draw === 'acidMonster') {
+            ctx.globalAlpha = 1;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+
+            // Acid pool on ground
+            ctx.fillStyle = 'rgba(57, 255, 20, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, groundY - p.y + 3, 80, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Monster body — large blobby shape
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 30;
+            const bodyH = 120;
+            const bodyW = 70;
+            // Main blob
+            const bg = ctx.createRadialGradient(0, -bodyH * 0.4, 10, 0, -bodyH * 0.4, bodyW);
+            bg.addColorStop(0, '#1a8a0a'); bg.addColorStop(0.5, '#0d5e05');
+            bg.addColorStop(0.8, '#0a4a03'); bg.addColorStop(1, 'rgba(10,74,3,0)');
+            ctx.fillStyle = bg;
+            ctx.beginPath();
+            ctx.moveTo(-bodyW * 0.7, 0);
+            ctx.quadraticCurveTo(-bodyW, -bodyH * 0.3, -bodyW * 0.6, -bodyH * 0.7);
+            ctx.quadraticCurveTo(-bodyW * 0.2, -bodyH * 1.1, bodyW * 0.2, -bodyH * 0.75);
+            ctx.quadraticCurveTo(bodyW * 0.6, -bodyH * 0.5, bodyW * 0.7, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // Glowing eyes
+            const eyeY = -bodyH * 0.65;
+            ctx.fillStyle = '#39ff14';
+            ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 15;
+            ctx.beginPath(); ctx.arc(-15, eyeY, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(15, eyeY, 6, 0, Math.PI * 2); ctx.fill();
+            // Eye pupils
+            ctx.fillStyle = '#000';
+            ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(-15, eyeY, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(15, eyeY, 3, 0, Math.PI * 2); ctx.fill();
+
+            // Mouth — jagged
+            ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-20, -bodyH * 0.45);
+            for (let t = 0; t < 6; t++) {
+                ctx.lineTo(-15 + t * 7, -bodyH * 0.45 + (t % 2 === 0 ? 5 : -3));
+            }
+            ctx.stroke();
+
+            // Punch arm during punch phase
+            if (p.phase === 'punch') {
+                const ext = Math.min(p.phaseTimer / 12, 1);
+                const fistX = p.dir * (20 + ext * 70);
+                const fistY = -bodyH * 0.4;
+                ctx.strokeStyle = '#0d5e05'; ctx.lineWidth = 14;
+                ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.moveTo(p.dir * bodyW * 0.5, -bodyH * 0.35);
+                ctx.lineTo(fistX, fistY); ctx.stroke();
+                // Fist
+                ctx.fillStyle = '#1a8a0a';
+                ctx.beginPath(); ctx.arc(fistX, fistY, 16, 0, Math.PI * 2); ctx.fill();
+            }
+
+            // Acid dripping off the monster
+            if (Math.random() < 0.6) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * bodyW, y: p.y - Math.random() * bodyH * 0.5,
+                    vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 3,
+                    life: 8 + Math.random() * 8, maxLife: 16,
+                    color: `hsl(${110 + Math.random() * 15}, 100%, ${40 + Math.random() * 30}%)` });
+            }
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
         }
 
         // ─── DEFAULT (fallback) ───
