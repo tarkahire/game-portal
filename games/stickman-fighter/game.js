@@ -1,6 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// ── Face Image ──
+const faceImg = new Image();
+faceImg.src = 'face.jpg';
+let faceImgLoaded = false;
+faceImg.onload = () => { faceImgLoaded = true; };
+
 // ── Constants ──
 const GROUND_Y_RATIO = 0.85;
 const GRAVITY = 0.6;
@@ -2835,103 +2841,68 @@ function drawVisualEffects() {
         // ── Face VFX ──
         if (vfx.type === 'grinBeam') {
             const prog = 1 - a; const reveal = Math.min(prog * 4, 1);
-            // Giant grinning face at the origin
-            const faceR = 35;
-            ctx.globalAlpha = a * 0.9; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 20;
-            // Face
-            ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(vfx.x1, vfx.y1, faceR, 0, Math.PI * 2); ctx.fill();
-            // Eyes
-            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(vfx.x1 - 10, vfx.y1 - 8, 8, 10, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(vfx.x1 + 10, vfx.y1 - 8, 8, 10, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(vfx.x1 - 10, vfx.y1 - 7, 4, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(vfx.x1 + 10, vfx.y1 - 7, 4, 0, Math.PI * 2); ctx.fill();
-            // GIANT GRIN — mouth opens wide
-            const mouthOpen = 8 + Math.sin(Date.now() * 0.015) * 3;
-            ctx.fillStyle = '#cc4444'; ctx.beginPath(); ctx.ellipse(vfx.x1, vfx.y1 + 10, 18, mouthOpen, 0, 0, Math.PI * 2); ctx.fill();
-            // Teeth
-            ctx.fillStyle = '#fff';
-            for (let t = -3; t <= 3; t++) { ctx.fillRect(vfx.x1 + t * 5 - 2, vfx.y1 + 10 - mouthOpen + 1, 4, 4); }
-            // BEAM from the mouth
+            const faceR = 40;
+            ctx.globalAlpha = a * 0.9; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 25;
+            // Actual face photo at origin
+            if (faceImgLoaded) {
+                ctx.save(); ctx.beginPath(); ctx.arc(vfx.x1, vfx.y1, faceR, 0, Math.PI * 2); ctx.clip();
+                ctx.drawImage(faceImg, vfx.x1 - faceR, vfx.y1 - faceR, faceR * 2, faceR * 2);
+                ctx.restore();
+            }
+            // BEAM from the face
             ctx.globalAlpha = a * 0.5;
             const beamEndX = vfx.x1 + vfx.dir * canvas.width * reveal;
+            const beamY = vfx.y1 + 10;
             ctx.strokeStyle = '#ffcc66'; ctx.lineWidth = 30 * a; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 30;
-            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1 + 10); ctx.lineTo(beamEndX, vfx.y1 + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(vfx.x1, beamY); ctx.lineTo(beamEndX, beamY); ctx.stroke();
             ctx.strokeStyle = '#ffddaa'; ctx.lineWidth = 16 * a;
-            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1 + 10); ctx.lineTo(beamEndX, vfx.y1 + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(vfx.x1, beamY); ctx.lineTo(beamEndX, beamY); ctx.stroke();
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 6 * a;
-            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1 + 10); ctx.lineTo(beamEndX, vfx.y1 + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(vfx.x1, beamY); ctx.lineTo(beamEndX, beamY); ctx.stroke();
             ctx.shadowBlur = 0;
         }
         if (vfx.type === 'theFace') {
             const prog = 1 - a;
             const scaleIn = Math.min(prog * 4, 1);
-            const faceR = scaleIn * 180;
+            const faceR = scaleIn * 200;
             const fx = canvas.width / 2, fy = vfx.y;
             // Darken background
-            ctx.globalAlpha = a * 0.4; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // THE MASSIVE FACE
-            ctx.globalAlpha = a * 0.9; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 50;
-            // Head
-            ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(fx, fy, faceR, 0, Math.PI * 2); ctx.fill();
-            // Cheeks
-            ctx.fillStyle = 'rgba(255,150,150,0.3)';
-            ctx.beginPath(); ctx.arc(fx - faceR * 0.55, fy + faceR * 0.15, faceR * 0.2, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(fx + faceR * 0.55, fy + faceR * 0.15, faceR * 0.2, 0, Math.PI * 2); ctx.fill();
-            // Eyes — big and staring at the opponent
-            const eyeDir = vfx.x < fx ? -1 : 1;
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.ellipse(fx - faceR * 0.28, fy - faceR * 0.2, faceR * 0.18, faceR * 0.22, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(fx + faceR * 0.28, fy - faceR * 0.2, faceR * 0.18, faceR * 0.22, 0, 0, Math.PI * 2); ctx.fill();
-            // Pupils — look at opponent
-            ctx.fillStyle = '#222';
-            ctx.beginPath(); ctx.arc(fx - faceR * 0.28 + eyeDir * 4, fy - faceR * 0.18, faceR * 0.09, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(fx + faceR * 0.28 + eyeDir * 4, fy - faceR * 0.18, faceR * 0.09, 0, Math.PI * 2); ctx.fill();
-            // Pupil highlights
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(fx - faceR * 0.28 + eyeDir * 4 + 3, fy - faceR * 0.22, faceR * 0.03, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(fx + faceR * 0.28 + eyeDir * 4 + 3, fy - faceR * 0.22, faceR * 0.03, 0, Math.PI * 2); ctx.fill();
-            // Eyebrows — raised
-            ctx.strokeStyle = '#996633'; ctx.lineWidth = faceR * 0.04; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(fx - faceR * 0.42, fy - faceR * 0.42); ctx.lineTo(fx - faceR * 0.14, fy - faceR * 0.46); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(fx + faceR * 0.42, fy - faceR * 0.42); ctx.lineTo(fx + faceR * 0.14, fy - faceR * 0.46); ctx.stroke();
-            // Nose
-            ctx.strokeStyle = '#dda870'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(fx, fy - faceR * 0.05); ctx.lineTo(fx - faceR * 0.06, fy + faceR * 0.08); ctx.lineTo(fx + faceR * 0.04, fy + faceR * 0.08); ctx.stroke();
-            // MASSIVE GRIN
-            const mouthW = faceR * 0.55, mouthH = faceR * 0.2 + Math.sin(Date.now() * 0.01) * faceR * 0.05;
-            ctx.fillStyle = '#cc3333';
-            ctx.beginPath(); ctx.ellipse(fx, fy + faceR * 0.35, mouthW, mouthH, 0, 0, Math.PI * 2); ctx.fill();
-            // Teeth rows
-            ctx.fillStyle = '#fff';
-            const numTeeth = 8;
-            for (let t = 0; t < numTeeth; t++) {
-                const tx = fx - mouthW * 0.8 + t * (mouthW * 1.6 / numTeeth) + 2;
-                ctx.fillRect(tx, fy + faceR * 0.35 - mouthH + 2, mouthW * 1.4 / numTeeth, mouthH * 0.5);
-                ctx.fillRect(tx, fy + faceR * 0.35 + mouthH * 0.3, mouthW * 1.4 / numTeeth, mouthH * 0.4);
+            ctx.globalAlpha = a * 0.5; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // THE MASSIVE ACTUAL FACE PHOTO
+            if (faceImgLoaded && faceR > 10) {
+                ctx.globalAlpha = a * 0.95; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 60;
+                ctx.save();
+                ctx.beginPath(); ctx.arc(fx, fy, faceR, 0, Math.PI * 2); ctx.clip();
+                ctx.drawImage(faceImg, fx - faceR, fy - faceR, faceR * 2, faceR * 2);
+                ctx.restore();
+                // Glowing border
+                ctx.strokeStyle = '#ffaa88'; ctx.lineWidth = 5 * a;
+                ctx.beginPath(); ctx.arc(fx, fy, faceR, 0, Math.PI * 2); ctx.stroke();
             }
-            // Impact shockwave from mouth
+            // Impact shockwave
             if (prog > 0.3 && prog < 0.7) {
-                const shockR = (prog - 0.3) / 0.4 * 300;
+                const shockR = (prog - 0.3) / 0.4 * 350;
                 ctx.globalAlpha = a * 0.4; ctx.strokeStyle = '#ffaa88'; ctx.lineWidth = 8;
-                ctx.beginPath(); ctx.arc(fx, fy + faceR * 0.35, shockR, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(fx, fy, shockR, 0, Math.PI * 2); ctx.stroke();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(fx, fy, shockR * 0.7, 0, Math.PI * 2); ctx.stroke();
             }
             ctx.shadowBlur = 0;
         }
         if (vfx.type === 'screenViral') {
             const prog = 1 - a;
-            // Multiple faces floating across screen
+            // Multiple ACTUAL FACE PHOTOS floating across screen
             ctx.globalAlpha = a * 0.15; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.globalAlpha = a * 0.5;
-            for (let i = 0; i < 8; i++) {
-                const fx = (i * 163 + Date.now() * 0.04) % canvas.width;
-                const fy = (i * 97 + Date.now() * 0.03) % canvas.height;
-                const fr = 20 + Math.sin(i * 2.3) * 8;
-                ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#222';
-                ctx.beginPath(); ctx.arc(fx - fr * 0.25, fy - fr * 0.15, fr * 0.12, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(fx + fr * 0.25, fy - fr * 0.15, fr * 0.12, 0, Math.PI * 2); ctx.fill();
-                ctx.strokeStyle = '#cc3333'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(fx, fy + fr * 0.2, fr * 0.3, 0.2, Math.PI - 0.2); ctx.stroke();
+            if (faceImgLoaded) {
+                for (let i = 0; i < 10; i++) {
+                    const fx = (i * 163 + Date.now() * 0.04) % canvas.width;
+                    const fy = (i * 97 + Date.now() * 0.03) % canvas.height;
+                    const fr = 22 + Math.sin(i * 2.3) * 10;
+                    ctx.globalAlpha = a * 0.5;
+                    ctx.save(); ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.clip();
+                    ctx.drawImage(faceImg, fx - fr, fy - fr, fr * 2, fr * 2);
+                    ctx.restore();
+                }
             }
         }
 
@@ -4678,64 +4649,45 @@ function drawProjectiles() {
                     life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
             }
         }
-        // ─── FACE: Face Shot (flying face) ───
+        // ─── FACE: Face Shot (flying face — actual photo) ───
         else if (draw === 'faceShot') {
-            const dir = p.vx > 0 ? 1 : -1;
             // Trail of smaller faces
-            for (const t of p.trail) {
-                if (t.alpha < 0.3) continue;
-                ctx.globalAlpha = t.alpha * 0.3;
-                ctx.fillStyle = '#ffcc99';
-                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill();
+            if (faceImgLoaded) {
+                for (const t of p.trail) {
+                    if (t.alpha < 0.3) continue;
+                    ctx.globalAlpha = t.alpha * 0.25;
+                    const ts = p.radius * 0.8;
+                    ctx.save(); ctx.beginPath(); ctx.arc(t.x, t.y, ts, 0, Math.PI * 2); ctx.clip();
+                    ctx.drawImage(faceImg, t.x - ts, t.y - ts, ts * 2, ts * 2);
+                    ctx.restore();
+                }
             }
             ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 15;
-            ctx.save(); ctx.translate(p.x, p.y);
-            ctx.rotate(Math.sin(Date.now() * 0.01) * 0.3); // slight wobble
             const r = p.radius;
-            // Head
-            ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-            // Eyes
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 0.2, r * 0.18, r * 0.22, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(r * 0.3, -r * 0.2, r * 0.18, r * 0.22, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#222';
-            ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.15, r * 0.1, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(r * 0.3, -r * 0.15, r * 0.1, 0, Math.PI * 2); ctx.fill();
-            // Big grin
-            ctx.fillStyle = '#cc3333';
-            ctx.beginPath(); ctx.arc(0, r * 0.2, r * 0.4, 0, Math.PI); ctx.fill();
-            ctx.fillStyle = '#fff'; // teeth
-            for (let t = -2; t <= 2; t++) ctx.fillRect(t * r * 0.12 - r * 0.04, r * 0.2, r * 0.08, r * 0.12);
-            ctx.restore(); ctx.shadowBlur = 0;
+            if (faceImgLoaded) {
+                ctx.save(); ctx.translate(p.x, p.y);
+                ctx.rotate(Math.sin(Date.now() * 0.01) * 0.3);
+                ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
+                ctx.drawImage(faceImg, -r, -r, r * 2, r * 2);
+                ctx.restore();
+            }
+            ctx.shadowBlur = 0;
         }
-        // ─── FACE: Head Slam (giant face dropping from sky) ───
+        // ─── FACE: Head Slam (giant face photo dropping from sky) ───
         else if (draw === 'headSlam') {
-            ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 25;
-            ctx.save(); ctx.translate(p.x, p.y);
             const r = p.radius;
             // Shadow on ground
-            ctx.restore(); ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.beginPath(); ctx.ellipse(p.x, groundY + 3, r * 0.7, 10, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.save(); ctx.translate(p.x, p.y);
-            // Giant head
-            ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-            // Eyes — wide and menacing
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.ellipse(-r * 0.28, -r * 0.2, r * 0.16, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(r * 0.28, -r * 0.2, r * 0.16, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#222';
-            ctx.beginPath(); ctx.arc(-r * 0.28, -r * 0.17, r * 0.08, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(r * 0.28, -r * 0.17, r * 0.08, 0, Math.PI * 2); ctx.fill();
-            // Angry eyebrows
-            ctx.strokeStyle = '#996633'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(-r * 0.45, -r * 0.3); ctx.lineTo(-r * 0.15, -r * 0.42); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(r * 0.45, -r * 0.3); ctx.lineTo(r * 0.15, -r * 0.42); ctx.stroke();
-            // Open mouth screaming
-            ctx.fillStyle = '#990000';
-            ctx.beginPath(); ctx.ellipse(0, r * 0.25, r * 0.35, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#fff';
-            for (let t = -3; t <= 3; t++) ctx.fillRect(t * r * 0.08 - r * 0.03, r * 0.25 - r * 0.2, r * 0.06, r * 0.08);
-            ctx.restore(); ctx.shadowBlur = 0;
+            // Giant face photo
+            if (faceImgLoaded) {
+                ctx.globalAlpha = 1; ctx.shadowColor = '#ffaa88'; ctx.shadowBlur = 30;
+                ctx.save(); ctx.translate(p.x, p.y);
+                ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
+                ctx.drawImage(faceImg, -r, -r, r * 2, r * 2);
+                ctx.restore();
+            }
+            ctx.shadowBlur = 0;
             // Speed lines
             ctx.globalAlpha = 0.4; ctx.strokeStyle = '#ffaa88'; ctx.lineWidth = 2;
             for (let s = 0; s < 4; s++) {
