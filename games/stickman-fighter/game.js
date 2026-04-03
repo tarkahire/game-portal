@@ -17,10 +17,10 @@ const STYLES = {
         color: '#f1c40f',
         hue: 50,
         attacks: [
-            { name: 'Spark Bolt',      type: 'projectile', damage: 10, cooldown: 120,  speed: 12, radius: 12,  knockback: 3,  blockReduction: 0.5, draw: 'sparkBolt' },
-            { name: 'Thunder Strike',  type: 'instant',    damage: 18, cooldown: 300,  range: 320, knockback: 6,  blockReduction: 0.4, vfx: 'bolt' },
-            { name: 'Ball Lightning',  type: 'projectile', damage: 22, cooldown: 420,  speed: 4,  radius: 30, knockback: 10, blockReduction: 0.3, draw: 'ballLightning' },
-            { name: 'Lightning Storm', type: 'instant',    damage: 35, cooldown: 600,  range: 400, knockback: 12, blockReduction: 0.2, vfx: 'storm' },
+            { name: 'Spark Bolt',      type: 'projectile', damage: 10, cooldown: 120,  speed: 12, radius: 22,  knockback: 6,  blockReduction: 0.5, draw: 'sparkBolt' },
+            { name: 'Thunder Strike',  type: 'instant',    damage: 18, cooldown: 300,  range: 9999, knockback: 10, blockReduction: 0.4, vfx: 'bolt' },
+            { name: 'Ball Lightning',  type: 'projectile', damage: 22, cooldown: 420,  speed: 4,  radius: 50, knockback: 14, blockReduction: 0.3, draw: 'ballLightning' },
+            { name: 'Lightning Storm', type: 'instant',    damage: 35, cooldown: 600,  range: 9999, knockback: 18, blockReduction: 0.2, vfx: 'storm' },
         ],
     },
     fire: {
@@ -28,10 +28,10 @@ const STYLES = {
         color: '#e67e22',
         hue: 25,
         attacks: [
-            { name: 'Fireball',    type: 'projectile', damage: 12, cooldown: 150,  speed: 9,  radius: 16, knockback: 5,  blockReduction: 0.5, draw: 'fireball' },
-            { name: 'Flame Burst', type: 'instant',    damage: 20, cooldown: 300,  range: 150, knockback: 8,  blockReduction: 0.4, vfx: 'burst' },
-            { name: 'Fire Pillar', type: 'instant',    damage: 25, cooldown: 420,  range: 350, knockback: 6,  blockReduction: 0.3, vfx: 'pillar' },
-            { name: 'Meteor',      type: 'projectile', damage: 40, cooldown: 660,  speed: 7,  radius: 55, knockback: 15, blockReduction: 0.2, draw: 'meteor', special: 'meteor' },
+            { name: 'Fireball',    type: 'projectile', damage: 12, cooldown: 150,  speed: 9,  radius: 28, knockback: 8,  blockReduction: 0.5, draw: 'fireball' },
+            { name: 'Flame Burst', type: 'instant',    damage: 20, cooldown: 300,  range: 200, knockback: 12, blockReduction: 0.4, vfx: 'burst' },
+            { name: 'Fire Pillar', type: 'instant',    damage: 25, cooldown: 420,  range: 400, knockback: 10, blockReduction: 0.3, vfx: 'pillar' },
+            { name: 'Meteor',      type: 'projectile', damage: 40, cooldown: 660,  speed: 7,  radius: 80, knockback: 22, blockReduction: 0.2, draw: 'meteor', special: 'meteor' },
         ],
     },
     water: {
@@ -39,10 +39,10 @@ const STYLES = {
         color: '#3498db',
         hue: 200,
         attacks: [
-            { name: 'Water Bolt',  type: 'projectile', damage: 8,  cooldown: 100,  speed: 10, radius: 12, knockback: 4,  blockReduction: 0.6, draw: 'waterBolt' },
-            { name: 'Tidal Wave',  type: 'projectile', damage: 14, cooldown: 270,  speed: 5,  radius: 40, knockback: 14, blockReduction: 0.4, draw: 'tidalWave' },
-            { name: 'Ice Spike',   type: 'projectile', damage: 22, cooldown: 360,  speed: 16, radius: 14, knockback: 3,  blockReduction: 0.3, draw: 'iceSpike' },
-            { name: 'Tsunami',     type: 'projectile', damage: 30, cooldown: 600,  speed: 3,  radius: 60, knockback: 22, blockReduction: 0.2, draw: 'tsunami' },
+            { name: 'Water Bolt',  type: 'projectile', damage: 8,  cooldown: 100,  speed: 10, radius: 20, knockback: 6,  blockReduction: 0.6, draw: 'waterBolt' },
+            { name: 'Tidal Wave',  type: 'projectile', damage: 14, cooldown: 270,  speed: 5,  radius: 55, knockback: 18, blockReduction: 0.4, draw: 'tidalWave' },
+            { name: 'Ice Spike',   type: 'projectile', damage: 22, cooldown: 360,  speed: 16, radius: 22, knockback: 6,  blockReduction: 0.3, draw: 'iceSpike' },
+            { name: 'Tsunami',     type: 'projectile', damage: 30, cooldown: 600,  speed: 3,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'tsunami' },
         ],
     },
     wind: {
@@ -50,10 +50,10 @@ const STYLES = {
         color: '#1abc9c',
         hue: 170,
         attacks: [
-            { name: 'Air Slash',     type: 'projectile', damage: 9,  cooldown: 90,   speed: 14, radius: 14, knockback: 3,  blockReduction: 0.6, draw: 'airSlash' },
-            { name: 'Gust',          type: 'instant',    damage: 5,  cooldown: 180,  range: 250, knockback: 18, blockReduction: 0.5, vfx: 'gust' },
-            { name: 'Tornado',       type: 'projectile', damage: 18, cooldown: 360,  speed: 3,  radius: 35, knockback: 8,  blockReduction: 0.3, draw: 'tornado' },
-            { name: 'Cyclone Burst', type: 'instant',    damage: 28, cooldown: 540,  range: 200, knockback: 20, blockReduction: 0.2, vfx: 'cyclone' },
+            { name: 'Air Slash',     type: 'projectile', damage: 9,  cooldown: 90,   speed: 14, radius: 24, knockback: 6,  blockReduction: 0.6, draw: 'airSlash' },
+            { name: 'Gust',          type: 'instant',    damage: 5,  cooldown: 180,  range: 300, knockback: 24, blockReduction: 0.5, vfx: 'gust' },
+            { name: 'Tornado',       type: 'projectile', damage: 18, cooldown: 360,  speed: 3,  radius: 50, knockback: 12, blockReduction: 0.3, draw: 'tornado' },
+            { name: 'Cyclone Burst', type: 'instant',    damage: 28, cooldown: 540,  range: 260, knockback: 26, blockReduction: 0.2, vfx: 'cyclone' },
         ],
     },
     earth: {
@@ -61,10 +61,10 @@ const STYLES = {
         color: '#a0522d',
         hue: 30,
         attacks: [
-            { name: 'Rock Shot',     type: 'projectile', damage: 11, cooldown: 110,  speed: 11, radius: 20, knockback: 5,  blockReduction: 0.5, draw: 'rockShot' },
-            { name: 'Earth Pillar',  type: 'instant',    damage: 20, cooldown: 300,  range: 300, knockback: 10, blockReduction: 0.3, vfx: 'earthPillar' },
-            { name: 'Seismic Wave',  type: 'projectile', damage: 18, cooldown: 360,  speed: 5,  radius: 45, knockback: 12, blockReduction: 0.3, draw: 'seismicWave' },
-            { name: 'Boulder Crush', type: 'projectile', damage: 38, cooldown: 600,  speed: 0,  radius: 60, knockback: 22, blockReduction: 0.2, draw: 'boulderCrush', special: 'boulderCrush' },
+            { name: 'Rock Shot',     type: 'projectile', damage: 11, cooldown: 110,  speed: 11, radius: 32, knockback: 8,  blockReduction: 0.5, draw: 'rockShot' },
+            { name: 'Earth Pillar',  type: 'instant',    damage: 20, cooldown: 300,  range: 360, knockback: 14, blockReduction: 0.3, vfx: 'earthPillar' },
+            { name: 'Seismic Wave',  type: 'projectile', damage: 18, cooldown: 360,  speed: 5,  radius: 60, knockback: 16, blockReduction: 0.3, draw: 'seismicWave' },
+            { name: 'Boulder Crush', type: 'projectile', damage: 38, cooldown: 600,  speed: 0,  radius: 85, knockback: 28, blockReduction: 0.2, draw: 'boulderCrush', special: 'boulderCrush' },
         ],
     },
 };
@@ -258,21 +258,21 @@ class Fighter {
                 opponent.hit = true;
                 opponent.x += dir * kb;
                 this.spawnInstantVFX(atk, styleData, opponent, dir);
-                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 35);
-                triggerScreenShake(Math.min(atk.damage * 0.7, 18), Math.min(atk.damage * 0.6, 22));
-                triggerHitstop(Math.floor(atk.damage / 10));
-                if (atk.damage >= 18) triggerScreenFlash(styleData.color, Math.min(atk.damage / 70, 0.45));
-                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 20, maxLife: 20, color: styleData.color });
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 55);
+                triggerScreenShake(Math.min(atk.damage * 1.2, 30), Math.min(atk.damage * 1.0, 30));
+                triggerHitstop(Math.max(3, Math.floor(atk.damage / 6)));
+                triggerScreenFlash(styleData.color, Math.min(atk.damage / 40, 0.6));
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: styleData.color });
             }
         }
     }
 
     spawnInstantVFX(atk, styleData, opponent, dir) {
         const vfx = atk.vfx;
-        if (vfx === 'bolt') spawnLightningBolt(opponent.x, 0, groundY, 4);
+        if (vfx === 'bolt') spawnLightningBolt(opponent.x, 0, groundY, 6);
         else if (vfx === 'storm') {
-            for (let i = 0; i < 6; i++)
-                setTimeout(() => spawnLightningBolt(opponent.x + (Math.random() - 0.5) * 120, 0, groundY, 5), i * 50);
+            for (let i = 0; i < 10; i++)
+                setTimeout(() => spawnLightningBolt(opponent.x + (Math.random() - 0.5) * 200, 0, groundY, 7), i * 40);
         }
         else if (vfx === 'burst') spawnFlameBurst(this.x + dir * 60, this.y - this.height * 0.4);
         else if (vfx === 'pillar') spawnFirePillar(opponent.x, groundY);
@@ -476,7 +476,7 @@ function drawVisualEffects() {
         if (vfx.type === 'meteorImpact') {
             const prog = 1 - a;
             // Massive expanding shockwave ring
-            const r1 = prog * 300;
+            const r1 = prog * 420;
             ctx.globalAlpha = a * 0.8;
             ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 10;
             ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 60;
@@ -515,7 +515,7 @@ function drawVisualEffects() {
 
         if (vfx.type === 'flameBurst') {
             const prog = 1 - a;
-            const r = 40 + prog * 120;
+            const r = 50 + prog * 170;
             ctx.globalAlpha = a * 0.7;
             ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 8;
             ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 40;
@@ -538,7 +538,7 @@ function drawVisualEffects() {
 
         if (vfx.type === 'firePillar') {
             const prog = 1 - a;
-            const pillarH = Math.min(prog * 4, 1) * 350;
+            const pillarH = Math.min(prog * 4, 1) * 450;
             const fadeH = a;
             ctx.globalAlpha = fadeH * 0.8;
             // Wide fiery pillar
@@ -548,15 +548,15 @@ function drawVisualEffects() {
             grd.addColorStop(0.7, '#f39c12');
             grd.addColorStop(1, 'rgba(241,196,15,0)');
             ctx.fillStyle = grd;
-            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 50;
-            ctx.fillRect(vfx.x - 35, vfx.y - pillarH, 70, pillarH);
+            ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 60;
+            ctx.fillRect(vfx.x - 45, vfx.y - pillarH, 90, pillarH);
             // Inner bright core
             const grd2 = ctx.createLinearGradient(vfx.x, vfx.y, vfx.x, vfx.y - pillarH);
             grd2.addColorStop(0, '#fff');
             grd2.addColorStop(0.5, '#f1c40f');
             grd2.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = grd2;
-            ctx.fillRect(vfx.x - 14, vfx.y - pillarH, 28, pillarH);
+            ctx.fillRect(vfx.x - 20, vfx.y - pillarH, 40, pillarH);
             ctx.shadowBlur = 0;
             // Fire particles shooting up
             if (vfx.life % 2 === 0) {
@@ -703,25 +703,31 @@ function drawVisualEffects() {
         if (vfx.type === 'impactRing') {
             const prog = 1 - a;
             ctx.globalAlpha = a * 0.9;
-            ctx.shadowColor = vfx.color; ctx.shadowBlur = 30;
+            ctx.shadowColor = vfx.color; ctx.shadowBlur = 45;
             // Outer expanding ring
-            const r1 = prog * 130;
-            ctx.strokeStyle = vfx.color; ctx.lineWidth = 5 * a;
+            const r1 = prog * 200;
+            ctx.strokeStyle = vfx.color; ctx.lineWidth = 7 * a;
             ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r1, 0, Math.PI * 2); ctx.stroke();
+            // Mid ring
+            const r15 = prog * 150;
+            ctx.strokeStyle = vfx.color; ctx.lineWidth = 4 * a;
+            ctx.globalAlpha = a * 0.5;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r15, 0, Math.PI * 2); ctx.stroke();
             // Inner bright ring
-            const r2 = prog * 80;
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a;
+            ctx.globalAlpha = a * 0.9;
+            const r2 = prog * 100;
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4 * a;
             ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r2, 0, Math.PI * 2); ctx.stroke();
             // Center flash
-            if (prog < 0.3) {
-                const fa = (0.3 - prog) / 0.3;
-                ctx.globalAlpha = fa * 0.7;
-                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 60);
+            if (prog < 0.4) {
+                const fa = (0.4 - prog) / 0.4;
+                ctx.globalAlpha = fa * 0.8;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 90);
                 fg.addColorStop(0, '#fff');
-                fg.addColorStop(0.5, vfx.color);
+                fg.addColorStop(0.4, vfx.color);
                 fg.addColorStop(1, 'rgba(0,0,0,0)');
                 ctx.fillStyle = fg;
-                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 60, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 90, 0, Math.PI * 2); ctx.fill();
             }
             ctx.shadowBlur = 0;
         }
@@ -783,8 +789,8 @@ function updateProjectiles() {
 
                 if (t >= 1 || p.y >= groundY - 5) {
                     // SLAM — massive impact
-                    triggerScreenShake(30, 35);
-                    triggerHitstop(8);
+                    triggerScreenShake(40, 45);
+                    triggerHitstop(12);
                     spawnBoulderImpact(p.x, groundY);
                     // Check if close enough to hit
                     const hitDist = Math.abs(p.x - p.target.x);
@@ -839,17 +845,17 @@ function updateProjectiles() {
             p.target.hit = true;
             p.target.x += (p.vx > 0 ? 1 : p.vx < 0 ? -1 : p.owner.facing) * kb;
 
-            spawnElementParticles(p.x, p.y, p.styleData, 40);
+            spawnElementParticles(p.x, p.y, p.styleData, 60);
             // Impact effects scale with damage
             const impactPow = p.atk.damage;
-            triggerScreenShake(Math.min(impactPow * 0.7, 18), Math.min(impactPow * 0.8, 22));
-            triggerHitstop(Math.max(2, Math.floor(impactPow / 8)));
-            if (impactPow >= 15) triggerScreenFlash(p.styleData.color, Math.min(impactPow / 55, 0.45));
-            visualEffects.push({ type: 'impactRing', x: p.x, y: p.y, life: 20, maxLife: 20, color: p.styleData.color });
+            triggerScreenShake(Math.min(impactPow * 1.2, 28), Math.min(impactPow * 1.0, 30));
+            triggerHitstop(Math.max(3, Math.floor(impactPow / 5)));
+            triggerScreenFlash(p.styleData.color, Math.min(impactPow / 35, 0.6));
+            visualEffects.push({ type: 'impactRing', x: p.x, y: p.y, life: 25, maxLife: 25, color: p.styleData.color });
             if (p.isMeteor) {
-                triggerScreenShake(30, 35);
-                triggerHitstop(10);
-                triggerScreenFlash('#ff4400', 0.7);
+                triggerScreenShake(40, 45);
+                triggerHitstop(14);
+                triggerScreenFlash('#ff4400', 0.85);
                 spawnMeteorImpact(p.x, p.y);
             }
             projectiles.splice(i, 1);
@@ -858,9 +864,9 @@ function updateProjectiles() {
 
         // Meteor hits ground (missed)
         if (p.isMeteor && p.y >= groundY) {
-            triggerScreenShake(20, 25);
-            triggerHitstop(5);
-            triggerScreenFlash('#ff4400', 0.4);
+            triggerScreenShake(30, 30);
+            triggerHitstop(8);
+            triggerScreenFlash('#ff4400', 0.6);
             spawnMeteorImpact(p.x, groundY);
             projectiles.splice(i, 1);
             continue;
