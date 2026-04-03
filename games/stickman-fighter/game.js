@@ -742,6 +742,170 @@ class Fighter {
             // Index 3 (Acid Monster) falls through — already has screen meltdown rage VFX
         }
 
+        // ── Light Rage Upgrades ──
+        if (this.rageActive && this.style === 'light') {
+            if (index === 0) {
+                // DIVINE LANCE — holy beam across screen
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                const beamY = this.y - this.height * 0.55;
+                visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 28, maxLife: 28, color: '#ffd700' });
+                triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#ffd700', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
+                return;
+            }
+            if (index === 1) {
+                // SUPERNOVA — massive expanding light explosion
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
+                visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 });
+                visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 28, maxLife: 28 });
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#fff', 0.7);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 90);
+                return;
+            }
+            if (index === 2) {
+                // ANGEL'S WRATH — 3 divine rays raining down
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -8; opponent.onGround = false;
+                for (let j = -1; j <= 1; j++) {
+                    spawnLightningBolt(opponent.x + j * 80, 0, groundY, 8);
+                    visualEffects.push({ type: 'judgmentPillar', x: opponent.x + j * 80, life: 35, maxLife: 35 });
+                }
+                triggerScreenShake(20, 25); triggerHitstop(10); triggerScreenFlash('#ffd700', 0.6);
+                return;
+            }
+        }
+
+        // ── Dark Rage Upgrades ──
+        if (this.rageActive && this.style === 'dark') {
+            if (index === 0) {
+                // DEATH RAY — dark beam across screen
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                const beamY = this.y - this.height * 0.55;
+                visualEffects.push({ type: 'hydroCannon', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 28, maxLife: 28 });
+                triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#8e44ad', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
+                return;
+            }
+            if (index === 1) {
+                // SOUL CRUSH — massive void grip from all sides
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 20; opponent.hit = true;
+                visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 });
+                visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 35, maxLife: 35 });
+                triggerScreenShake(16, 22); triggerHitstop(12); triggerScreenFlash('#8e44ad', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                return;
+            }
+            if (index === 2) {
+                // BLACK HOLE — massive gravity well
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -12; opponent.onGround = false;
+                visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 });
+                triggerScreenShake(20, 28); triggerHitstop(12); triggerScreenFlash('#000', 0.6);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 90);
+                return;
+            }
+        }
+
+        // ── Shadow Rage Upgrades ──
+        if (this.rageActive && this.style === 'shadow') {
+            if (index === 0) {
+                // ASSASSINATE — instant lock-on teleport slash
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 14; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'phantomSlash', x: opponent.x, y: opponent.y - opponent.height * 0.5, dir, life: 18, maxLife: 18 });
+                visualEffects.push({ type: 'phantomSlash', x: opponent.x + 20, y: opponent.y - opponent.height * 0.3, dir: -dir, life: 15, maxLife: 15 });
+                triggerScreenShake(10, 14); triggerHitstop(8); triggerScreenFlash('#aaa', 0.3);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 50);
+                return;
+            }
+            if (index === 1) {
+                // SHADOW DANCE — triple teleport slashes
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -6; opponent.onGround = false;
+                for (let s = 0; s < 3; s++) {
+                    setTimeout(() => {
+                        visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random() - 0.5) * 40, y: opponent.y - opponent.height * 0.5 + (Math.random() - 0.5) * 30, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 });
+                        triggerScreenShake(5, 5);
+                    }, s * 80);
+                }
+                triggerScreenShake(12, 16); triggerHitstop(8);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
+                return;
+            }
+            if (index === 2) {
+                // SHADOW ARMY — 3 shadow clones converge on opponent
+                for (let s = -1; s <= 1; s++) {
+                    projectiles.push({
+                        x: this.x + s * 60, y: this.y - this.height * 0.55 + s * 20,
+                        vx: dir * (atk.speed + 2), vy: s * 1,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
+                        life: 250, trail: [], rageVfx: null,
+                    });
+                }
+                return;
+            }
+        }
+
+        // ── Portal Rage Upgrades ──
+        if (this.rageActive && this.style === 'portal') {
+            if (index === 0) {
+                // REALITY SHATTER — lock-on dimensional blast
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 15; opponent.hit = true; opponent.x += dir * atk.knockback * 2;
+                visualEffects.push({ type: 'warpPortal', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 });
+                triggerScreenShake(12, 16); triggerHitstop(8); triggerScreenFlash('#e056de', 0.4);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
+                return;
+            }
+            if (index === 1) {
+                // DIMENSIONAL SLAM — portals open around opponent
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 18; opponent.hit = true; opponent.vy = -10; opponent.onGround = false;
+                for (let j = -1; j <= 1; j++) {
+                    visualEffects.push({ type: 'warpPortal', x: opponent.x + j * 70, y: opponent.y - opponent.height * 0.5 + j * 20, life: 25, maxLife: 25 });
+                }
+                triggerScreenShake(16, 20); triggerHitstop(10); triggerScreenFlash('#e056de', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                return;
+            }
+            if (index === 2) {
+                // MULTIVERSE COLLAPSE — massive rift
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 20; opponent.hit = true; opponent.vy = -12; opponent.onGround = false;
+                visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 50, maxLife: 50 });
+                triggerScreenShake(22, 28); triggerHitstop(12); triggerScreenFlash('#e056de', 0.6);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 90);
+                return;
+            }
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -929,15 +1093,33 @@ class Fighter {
         ctx.scale(this.facing, 1);
         ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
 
-        // Red rage aura
+        // Rage aura — white/gold for Light, red for others
         if (this.rageActive) {
             const pulse = 0.4 + Math.sin(Date.now() * 0.006) * 0.2;
-            const auraGrd = ctx.createRadialGradient(0, -this.height * 0.5, 5, 0, -this.height * 0.5, 70);
-            auraGrd.addColorStop(0, `rgba(255, 30, 0, ${pulse * 0.4})`);
-            auraGrd.addColorStop(0.5, `rgba(255, 0, 0, ${pulse * 0.2})`);
-            auraGrd.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            const isLight = this.style === 'light';
+            const auraGrd = ctx.createRadialGradient(0, -this.height * 0.5, 5, 0, -this.height * 0.5, isLight ? 85 : 70);
+            if (isLight) {
+                auraGrd.addColorStop(0, `rgba(255, 255, 240, ${pulse * 0.5})`);
+                auraGrd.addColorStop(0.4, `rgba(255, 215, 0, ${pulse * 0.3})`);
+                auraGrd.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            } else {
+                auraGrd.addColorStop(0, `rgba(255, 30, 0, ${pulse * 0.4})`);
+                auraGrd.addColorStop(0.5, `rgba(255, 0, 0, ${pulse * 0.2})`);
+                auraGrd.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            }
             ctx.fillStyle = auraGrd;
-            ctx.beginPath(); ctx.arc(0, -this.height * 0.5, 70, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -this.height * 0.5, isLight ? 85 : 70, 0, Math.PI * 2); ctx.fill();
+            // Light rage has radiant rays
+            if (isLight) {
+                ctx.globalAlpha = pulse * 0.3;
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+                for (let r = 0; r < 6; r++) {
+                    const ra = Date.now() * 0.003 + (r / 6) * Math.PI * 2;
+                    ctx.beginPath(); ctx.moveTo(Math.cos(ra) * 25, -this.height * 0.5 + Math.sin(ra) * 25);
+                    ctx.lineTo(Math.cos(ra) * 75, -this.height * 0.5 + Math.sin(ra) * 75); ctx.stroke();
+                }
+                ctx.globalAlpha = this.hit ? 0.5 + Math.sin(Date.now() * 0.05) * 0.3 : 1;
+            }
         }
         // Rage available indicator — subtle pulse
         if (this.rageAvailable && !this.rageActive) {
@@ -1030,7 +1212,7 @@ class Fighter {
         const bodyBottomY = -this.height * 0.4;
 
         ctx.strokeStyle = this.color;
-        if (this.rageActive) { ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 18; }
+        if (this.rageActive) { ctx.shadowColor = this.style === 'light' ? '#ffd700' : '#ff0000'; ctx.shadowBlur = 18; }
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -1954,26 +2136,75 @@ function drawVisualEffects() {
 
         // ── Light VFX ──
         if (vfx.type === 'radiantBurst') {
-            const prog = 1 - a; const r = 40 + prog * 120;
-            ctx.globalAlpha = a * 0.7; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 30;
-            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 6 * a;
+            const prog = 1 - a; const r = 40 + prog * 160;
+            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 40;
+            // Expanding golden rings
+            ctx.globalAlpha = a * 0.6; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 8 * a;
             ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#fffacd'; ctx.lineWidth = 4 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.65, 0, Math.PI * 2); ctx.stroke();
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * a;
-            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.5, 0, Math.PI * 2); ctx.stroke();
-            // Rays
-            for (let i = 0; i < 8; i++) { const ra = (i / 8) * Math.PI * 2;
-                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.moveTo(vfx.x + Math.cos(ra) * r * 0.3, vfx.y + Math.sin(ra) * r * 0.3);
-                ctx.lineTo(vfx.x + Math.cos(ra) * r, vfx.y + Math.sin(ra) * r); ctx.stroke();
-            } ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.3, 0, Math.PI * 2); ctx.stroke();
+            // Brilliant light rays shooting outward
+            ctx.globalAlpha = a * 0.7;
+            for (let i = 0; i < 12; i++) {
+                const ra = (i / 12) * Math.PI * 2;
+                const rayLen = r * (0.8 + Math.sin(i * 3.7) * 0.3);
+                ctx.strokeStyle = i % 2 === 0 ? '#ffd700' : '#fff'; ctx.lineWidth = (3 - (i % 3)) * a;
+                ctx.beginPath(); ctx.moveTo(vfx.x + Math.cos(ra) * r * 0.15, vfx.y + Math.sin(ra) * r * 0.15);
+                ctx.lineTo(vfx.x + Math.cos(ra) * rayLen, vfx.y + Math.sin(ra) * rayLen); ctx.stroke();
+            }
+            // Center flash
+            if (prog < 0.3) {
+                ctx.globalAlpha = (0.3 - prog) / 0.3 * 0.7;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 80);
+                fg.addColorStop(0, '#fff'); fg.addColorStop(0.3, '#ffd700'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 80, 0, Math.PI * 2); ctx.fill();
+            }
+            // Sparkle particles
+            if (vfx.life % 2 === 0) {
+                for (let i = 0; i < 4; i++) {
+                    const sa = Math.random() * Math.PI * 2; const ss = 3 + Math.random() * 5;
+                    particles.push({ x: vfx.x, y: vfx.y, vx: Math.cos(sa) * ss, vy: Math.sin(sa) * ss,
+                        life: 8 + Math.random() * 8, maxLife: 16, color: '#ffd700' });
+                }
+            }
+            ctx.shadowBlur = 0;
         }
         if (vfx.type === 'judgmentPillar') {
-            const pillarW = 70 * a; ctx.globalAlpha = a * 0.6;
+            const prog = 1 - a;
+            const pillarW = 90 * a;
+            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 50;
+            // Massive pillar of divine light
+            ctx.globalAlpha = a * 0.7;
             const pg = ctx.createLinearGradient(vfx.x, 0, vfx.x, groundY);
-            pg.addColorStop(0, 'rgba(255,215,0,0)'); pg.addColorStop(0.3, 'rgba(255,215,0,0.5)');
-            pg.addColorStop(0.7, 'rgba(255,255,255,0.7)'); pg.addColorStop(1, '#ffd700');
+            pg.addColorStop(0, 'rgba(255,215,0,0)'); pg.addColorStop(0.2, 'rgba(255,215,0,0.5)');
+            pg.addColorStop(0.5, 'rgba(255,250,200,0.8)'); pg.addColorStop(0.8, 'rgba(255,255,255,0.9)'); pg.addColorStop(1, '#ffd700');
             ctx.fillStyle = pg; ctx.fillRect(vfx.x - pillarW / 2, 0, pillarW, groundY);
-            ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillRect(vfx.x - pillarW / 4, 0, pillarW / 2, groundY);
+            // Inner white-hot core
+            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(vfx.x - pillarW / 4, 0, pillarW / 2, groundY);
+            // Ground impact ring
+            ctx.globalAlpha = a * 0.8;
+            const cr = prog * 200;
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 6; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.arc(vfx.x, groundY, cr, 0, Math.PI * 2); ctx.stroke();
+            // Holy runes/symbols floating up
+            ctx.globalAlpha = a * 0.5; ctx.strokeStyle = '#fffacd'; ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+                const ry = groundY - prog * 300 - i * 60;
+                const rx = vfx.x + Math.sin(Date.now() * 0.005 + i) * 20;
+                ctx.beginPath(); ctx.arc(rx, ry, 8, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(rx, ry - 12); ctx.lineTo(rx, ry + 12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(rx - 10, ry); ctx.lineTo(rx + 10, ry); ctx.stroke();
+            }
+            // Ascending light particles
+            if (vfx.life % 2 === 0) {
+                for (let i = 0; i < 5; i++) {
+                    particles.push({ x: vfx.x + (Math.random() - 0.5) * pillarW, y: groundY - Math.random() * groundY,
+                        vx: (Math.random() - 0.5) * 2, vy: -3 - Math.random() * 4,
+                        life: 10 + Math.random() * 8, maxLife: 18, color: '#ffd700' });
+                }
+            }
             ctx.shadowBlur = 0;
         }
         if (vfx.type === 'screenRadiance') {
@@ -1989,28 +2220,63 @@ function drawVisualEffects() {
 
         // ── Dark VFX ──
         if (vfx.type === 'voidGrip') {
-            const prog = 1 - a; ctx.globalAlpha = a * 0.8; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 20;
-            // Dark tendrils reaching toward center
-            for (let i = 0; i < 6; i++) { const ta = (i / 6) * Math.PI * 2 + Date.now() * 0.005;
-                const tr = 80 * a; ctx.strokeStyle = '#6c3483'; ctx.lineWidth = 4;
+            const prog = 1 - a; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 30;
+            // Dark void center
+            ctx.globalAlpha = a * 0.8;
+            const vg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 40 * a);
+            vg.addColorStop(0, '#000'); vg.addColorStop(0.5, '#1a0a2e'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 40 * a, 0, Math.PI * 2); ctx.fill();
+            // Menacing tendrils reaching from all directions
+            ctx.strokeStyle = '#6c3483'; ctx.lineWidth = 5;
+            for (let i = 0; i < 8; i++) {
+                const ta = (i / 8) * Math.PI * 2 + Date.now() * 0.005;
+                const tr = 100 * a; const reveal = Math.min(prog * 3, 1);
+                ctx.globalAlpha = a * 0.7;
                 ctx.beginPath(); ctx.moveTo(vfx.x + Math.cos(ta) * tr, vfx.y + Math.sin(ta) * tr);
-                ctx.quadraticCurveTo(vfx.x + Math.cos(ta + 0.5) * tr * 0.4, vfx.y + Math.sin(ta + 0.5) * tr * 0.4, vfx.x, vfx.y);
+                ctx.quadraticCurveTo(vfx.x + Math.cos(ta + 0.3) * tr * 0.5 * reveal, vfx.y + Math.sin(ta + 0.3) * tr * 0.5 * reveal, vfx.x, vfx.y);
                 ctx.stroke();
+                // Tendril tips glow
+                ctx.fillStyle = '#8e44ad'; ctx.beginPath();
+                ctx.arc(vfx.x + Math.cos(ta) * tr, vfx.y + Math.sin(ta) * tr, 4, 0, Math.PI * 2); ctx.fill();
             }
-            ctx.fillStyle = '#1a0a2e'; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 25 * a, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
+            // Purple energy pulse
+            ctx.globalAlpha = a * 0.3; ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 30 + prog * 50, 0, Math.PI * 2); ctx.stroke();
+            // Dark mist particles
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 3; i++) {
+                const sa = Math.random() * Math.PI * 2;
+                particles.push({ x: vfx.x + Math.cos(sa) * 60, y: vfx.y + Math.sin(sa) * 60,
+                    vx: -Math.cos(sa) * 3, vy: -Math.sin(sa) * 3,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#6c3483' });
+            }} ctx.shadowBlur = 0;
         }
         if (vfx.type === 'abyss') {
-            const prog = 1 - a; const r = Math.min(prog * 3, 1) * 120;
-            ctx.globalAlpha = a * 0.7; ctx.fillStyle = '#0a0014';
+            const prog = 1 - a; const r = Math.min(prog * 3, 1) * 160;
+            ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 35;
+            // Dark pit in the ground
+            ctx.globalAlpha = a * 0.8; ctx.fillStyle = '#000';
             ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 3; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 20;
-            ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r, r * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
-            // Purple mist rising
-            if (vfx.life % 3 === 0) { for (let i = 0; i < 3; i++) {
+            // Concentric rings
+            for (let i = 0; i < 4; i++) {
+                const rr = r * (1 - i * 0.2);
+                ctx.strokeStyle = `rgba(142,68,173,${0.7 - i * 0.15})`; ctx.lineWidth = 3 - i * 0.5;
+                ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, rr, rr * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+            }
+            // Things being sucked in — spiral lines
+            ctx.strokeStyle = '#6c3483'; ctx.lineWidth = 2;
+            for (let i = 0; i < 6; i++) {
+                const sa = (i / 6) * Math.PI * 2 + Date.now() * 0.008;
+                const spiralR = r * 1.3;
+                ctx.globalAlpha = a * 0.5; ctx.beginPath();
+                ctx.moveTo(vfx.x + Math.cos(sa) * spiralR, vfx.y + Math.sin(sa) * spiralR * 0.3);
+                ctx.quadraticCurveTo(vfx.x + Math.cos(sa + 1) * spiralR * 0.5, vfx.y + Math.sin(sa + 1) * spiralR * 0.15, vfx.x, vfx.y);
+                ctx.stroke();
+            }
+            // Purple mist erupting
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 5; i++) {
                 particles.push({ x: vfx.x + (Math.random() - 0.5) * r * 2, y: vfx.y,
-                    vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 4,
-                    life: 10 + Math.random() * 8, maxLife: 18, color: '#8e44ad' });
+                    vx: (Math.random() - 0.5) * 3, vy: -3 - Math.random() * 6,
+                    life: 12 + Math.random() * 10, maxLife: 22, color: '#8e44ad' });
             }} ctx.shadowBlur = 0;
         }
         if (vfx.type === 'screenDarkness') {
@@ -2025,21 +2291,55 @@ function drawVisualEffects() {
 
         // ── Shadow VFX ──
         if (vfx.type === 'phantomSlash') {
-            const prog = 1 - a; ctx.globalAlpha = a * 0.8; ctx.shadowColor = '#708090'; ctx.shadowBlur = 15;
-            const slashAngle = vfx.dir > 0 ? -0.5 : 2.6;
-            ctx.strokeStyle = '#708090'; ctx.lineWidth = 8 * a;
-            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 55, slashAngle, slashAngle + Math.min(prog * 4, 1) * 1.5); ctx.stroke();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a;
-            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 45, slashAngle, slashAngle + Math.min(prog * 4, 1) * 1.5); ctx.stroke();
-            ctx.shadowBlur = 0;
+            const prog = 1 - a; const reveal = Math.min(prog * 5, 1);
+            ctx.shadowColor = '#aaa'; ctx.shadowBlur = 20;
+            // Multiple afterimage slashes
+            for (let s = 0; s < 3; s++) {
+                const offset = s * 5; const alpha = a * (0.8 - s * 0.2);
+                const slashAngle = vfx.dir > 0 ? -0.6 : 2.5;
+                ctx.globalAlpha = alpha;
+                ctx.strokeStyle = s === 0 ? '#ccc' : '#777'; ctx.lineWidth = (8 - s * 2) * a;
+                ctx.beginPath(); ctx.arc(vfx.x - offset * vfx.dir, vfx.y, 60 + s * 5, slashAngle, slashAngle + reveal * 1.6); ctx.stroke();
+            }
+            // White flash core
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a; ctx.globalAlpha = a * 0.9;
+            const slashAngle = vfx.dir > 0 ? -0.6 : 2.5;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 50, slashAngle, slashAngle + reveal * 1.6); ctx.stroke();
+            // Shadow particles from slash
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 3; i++) {
+                const sa = slashAngle + Math.random() * reveal * 1.6;
+                particles.push({ x: vfx.x + Math.cos(sa) * 55, y: vfx.y + Math.sin(sa) * 55,
+                    vx: Math.cos(sa) * 3, vy: Math.sin(sa) * 3,
+                    life: 6 + Math.random() * 4, maxLife: 10, color: '#888' });
+            }} ctx.shadowBlur = 0;
         }
         if (vfx.type === 'eclipse') {
-            ctx.globalAlpha = a * 0.5; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Dark circle in center with faint rim
-            ctx.globalAlpha = a * 0.8;
-            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height * 0.35, 80, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = '#708090'; ctx.lineWidth = 3; ctx.shadowColor = '#708090'; ctx.shadowBlur = 30;
-            ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height * 0.35, 82, 0, Math.PI * 2); ctx.stroke();
+            const prog = 1 - a;
+            // Darkness spreading across screen
+            ctx.globalAlpha = a * 0.6; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Black sun with corona
+            const sunX = canvas.width / 2, sunY = canvas.height * 0.35, sunR = 80;
+            ctx.globalAlpha = a * 0.9;
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2); ctx.fill();
+            // Silvery corona
+            ctx.shadowColor = '#708090'; ctx.shadowBlur = 50;
+            ctx.strokeStyle = '#aaa'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(sunX, sunY, sunR + 3, 0, Math.PI * 2); ctx.stroke();
+            // Corona rays
+            ctx.strokeStyle = '#888'; ctx.lineWidth = 2;
+            for (let i = 0; i < 16; i++) {
+                const ra = (i / 16) * Math.PI * 2 + Date.now() * 0.002;
+                const rayLen = 20 + Math.sin(Date.now() * 0.008 + i * 2) * 15;
+                ctx.globalAlpha = a * (0.3 + Math.sin(i * 1.5) * 0.15);
+                ctx.beginPath(); ctx.moveTo(sunX + Math.cos(ra) * (sunR + 5), sunY + Math.sin(ra) * (sunR + 5));
+                ctx.lineTo(sunX + Math.cos(ra) * (sunR + 5 + rayLen), sunY + Math.sin(ra) * (sunR + 5 + rayLen)); ctx.stroke();
+            }
+            // Shadow tendrils from the eclipse
+            if (vfx.life % 3 === 0) {
+                particles.push({ x: sunX + (Math.random() - 0.5) * 200, y: sunY + sunR,
+                    vx: (Math.random() - 0.5) * 4, vy: 3 + Math.random() * 5,
+                    life: 15 + Math.random() * 10, maxLife: 25, color: '#444' });
+            }
             ctx.shadowBlur = 0;
         }
         if (vfx.type === 'screenShadow') {
@@ -2055,32 +2355,69 @@ function drawVisualEffects() {
 
         // ── Portal VFX ──
         if (vfx.type === 'warpPortal') {
-            const prog = 1 - a; const r = Math.min(prog * 4, 1) * 50;
-            ctx.globalAlpha = a * 0.8; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 25;
-            // Swirling portal ring
-            for (let i = 0; i < 3; i++) { const ra = Date.now() * 0.01 + i * 2.1;
-                ctx.strokeStyle = i === 0 ? '#e056de' : i === 1 ? '#bb6bd9' : '#fff'; ctx.lineWidth = (3 - i) * a;
-                ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r * (1 - i * 0.15), r * 0.4 * (1 - i * 0.15), ra, 0, Math.PI * 2); ctx.stroke();
+            const prog = 1 - a; const r = Math.min(prog * 4, 1) * 65;
+            ctx.shadowColor = '#e056de'; ctx.shadowBlur = 35;
+            // Dark dimensional void
+            ctx.globalAlpha = a * 0.8;
+            const vg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, r * 0.6);
+            vg.addColorStop(0, '#000'); vg.addColorStop(0.5, '#1a0030'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.6, 0, Math.PI * 2); ctx.fill();
+            // Multiple spinning portal rings
+            for (let i = 0; i < 4; i++) {
+                const ra = Date.now() * 0.012 + i * 1.2;
+                const ringR = r * (1 - i * 0.1);
+                ctx.strokeStyle = `hsla(300, 70%, ${55 + i * 12}%, ${0.8 - i * 0.15})`; ctx.lineWidth = (4 - i) * a;
+                ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, ringR, ringR * 0.4, ra, 0, Math.PI * 2); ctx.stroke();
             }
-            ctx.fillStyle = '#1a0020'; ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r * 0.5, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
+            // Energy burst from portal
+            ctx.strokeStyle = '#e056de'; ctx.lineWidth = 2; ctx.globalAlpha = a * 0.5;
+            for (let i = 0; i < 6; i++) {
+                const ba = (i / 6) * Math.PI * 2 + Date.now() * 0.008;
+                ctx.beginPath(); ctx.moveTo(vfx.x + Math.cos(ba) * r * 0.3, vfx.y + Math.sin(ba) * r * 0.12);
+                ctx.lineTo(vfx.x + Math.cos(ba) * r * 1.2, vfx.y + Math.sin(ba) * r * 0.48); ctx.stroke();
+            }
+            // Portal particles
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 3; i++) {
+                const pa = Math.random() * Math.PI * 2;
+                particles.push({ x: vfx.x + Math.cos(pa) * r, y: vfx.y + Math.sin(pa) * r * 0.4,
+                    vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 2,
+                    life: 6 + Math.random() * 6, maxLife: 12, color: '#e056de' });
+            }} ctx.shadowBlur = 0;
         }
         if (vfx.type === 'voidGate') {
-            const prog = 1 - a; const r = Math.min(prog * 3, 1) * 120;
-            ctx.globalAlpha = a * 0.7; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 40;
-            // Massive portal
-            for (let i = 0; i < 4; i++) { const ra = Date.now() * 0.008 + i * 1.57;
-                ctx.strokeStyle = `hsla(300, 70%, ${50 + i * 10}%, ${0.6 - i * 0.1})`;
-                ctx.lineWidth = (5 - i) * a;
-                ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r * (1 - i * 0.1), r * 0.35 * (1 - i * 0.1), ra, 0, Math.PI * 2); ctx.stroke();
+            const prog = 1 - a; const r = Math.min(prog * 3, 1) * 150;
+            ctx.shadowColor = '#e056de'; ctx.shadowBlur = 50;
+            // Dark screen overlay
+            ctx.globalAlpha = a * 0.15; ctx.fillStyle = '#1a0020'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Massive void center
+            ctx.globalAlpha = a * 0.9;
+            const vg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, r * 0.5);
+            vg.addColorStop(0, '#000'); vg.addColorStop(0.6, '#0a0018'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.5, 0, Math.PI * 2); ctx.fill();
+            // Massive spinning rings
+            for (let i = 0; i < 5; i++) {
+                const ra = Date.now() * 0.006 + i * 1.1;
+                const ringR = r * (1.1 - i * 0.08);
+                ctx.strokeStyle = `hsla(300, 70%, ${45 + i * 10}%, ${0.7 - i * 0.1})`; ctx.lineWidth = (6 - i) * a;
+                ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, ringR, ringR * 0.35, ra, 0, Math.PI * 2); ctx.stroke();
             }
-            ctx.fillStyle = '#0a0010'; ctx.beginPath(); ctx.ellipse(vfx.x, vfx.y, r * 0.6, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
-            // Particles being sucked in
-            if (vfx.life % 3 === 0) { const pa = Math.random() * Math.PI * 2;
-                particles.push({ x: vfx.x + Math.cos(pa) * r, y: vfx.y + Math.sin(pa) * r * 0.35,
-                    vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 2,
-                    life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
-            } ctx.shadowBlur = 0;
+            // Reality distortion lines being sucked in
+            ctx.strokeStyle = '#bb6bd9'; ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                const sa = (i / 8) * Math.PI * 2 + Date.now() * 0.005;
+                ctx.globalAlpha = a * 0.4;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x + Math.cos(sa) * r * 2, vfx.y + Math.sin(sa) * r * 0.7);
+                ctx.quadraticCurveTo(vfx.x + Math.cos(sa + 0.5) * r * 0.8, vfx.y + Math.sin(sa + 0.5) * r * 0.3, vfx.x, vfx.y);
+                ctx.stroke();
+            }
+            // Heavy particle suction
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 5; i++) {
+                const pa = Math.random() * Math.PI * 2;
+                particles.push({ x: vfx.x + Math.cos(pa) * r * 1.5, y: vfx.y + Math.sin(pa) * r * 0.5,
+                    vx: -Math.cos(pa) * 5, vy: -Math.sin(pa) * 2,
+                    life: 8 + Math.random() * 8, maxLife: 16, color: '#e056de' });
+            }} ctx.shadowBlur = 0;
         }
         if (vfx.type === 'screenPortal') {
             ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#1a0020'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -3628,99 +3965,262 @@ function drawProjectiles() {
 
         // ─── LIGHT: Holy Bolt ───
         else if (draw === 'holyBolt') {
-            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#ffd700';
-                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill(); }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 25;
+            // Golden trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.5;
+                const tr = p.radius * (0.3 + t.alpha * 0.5);
+                ctx.fillStyle = `hsl(45, 100%, ${60 + (1 - t.alpha) * 30}%)`;
+                ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 35;
+            // Outer glow
+            const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
+            og.addColorStop(0, 'rgba(255,215,0,0.4)'); og.addColorStop(1, 'rgba(255,215,0,0)');
+            ctx.fillStyle = og; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 2, 0, Math.PI * 2); ctx.fill();
+            // Core
             const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
-            g.addColorStop(0, '#fff'); g.addColorStop(0.4, '#ffd700'); g.addColorStop(1, 'rgba(255,215,0,0)');
+            g.addColorStop(0, '#fff'); g.addColorStop(0.3, '#fffacd'); g.addColorStop(0.6, '#ffd700'); g.addColorStop(1, 'rgba(255,215,0,0)');
             ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            // Spinning light rays
+            ctx.strokeStyle = 'rgba(255,215,0,0.6)'; ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+                const ra = Date.now() * 0.01 + (i / 4) * Math.PI * 2;
+                ctx.beginPath(); ctx.moveTo(p.x + Math.cos(ra) * p.radius * 0.4, p.y + Math.sin(ra) * p.radius * 0.4);
+                ctx.lineTo(p.x + Math.cos(ra) * p.radius * 1.8, p.y + Math.sin(ra) * p.radius * 1.8); ctx.stroke();
+            }
             ctx.shadowBlur = 0;
+            // Sparkle particles
+            if (Math.random() < 0.6) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 15, y: p.y + (Math.random() - 0.5) * 15,
+                    vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3,
+                    life: 6 + Math.random() * 5, maxLife: 11, color: '#ffd700' });
+            }
         }
         // ─── LIGHT: Divine Ray ───
         else if (draw === 'divineRay') {
-            const dir = p.vx > 0 ? 1 : -1;
-            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#ffd700';
-                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.6, 0, Math.PI * 2); ctx.fill(); }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 35;
-            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.4);
-            g.addColorStop(0, '#fff'); g.addColorStop(0.2, '#fffacd'); g.addColorStop(0.5, '#ffd700'); g.addColorStop(1, 'rgba(255,215,0,0)');
-            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.4, 0, Math.PI * 2); ctx.fill();
-            // Light rays
-            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.5;
-            for (let i = 0; i < 4; i++) { const ra = Date.now() * 0.008 + i * 1.57;
-                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + Math.cos(ra) * p.radius * 2, p.y + Math.sin(ra) * p.radius * 2); ctx.stroke();
-            } ctx.shadowBlur = 0;
+            // Brilliant holy trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.6;
+                const tr = p.radius * t.alpha * 0.9;
+                ctx.fillStyle = `hsl(45, 100%, ${55 + (1 - t.alpha) * 35}%)`;
+                ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 60;
+            // Massive outer glow
+            const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2.5);
+            og.addColorStop(0, 'rgba(255,250,205,0.5)'); og.addColorStop(0.4, 'rgba(255,215,0,0.2)'); og.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = og; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 2.5, 0, Math.PI * 2); ctx.fill();
+            // Bright core
+            const fg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.4);
+            fg.addColorStop(0, '#fff'); fg.addColorStop(0.15, '#fffde8'); fg.addColorStop(0.4, '#ffd700');
+            fg.addColorStop(0.7, 'rgba(255,215,0,0.4)'); fg.addColorStop(1, 'rgba(255,215,0,0)');
+            ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.4, 0, Math.PI * 2); ctx.fill();
+            // Radiating light beams
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                const ra = Date.now() * 0.006 + (i / 8) * Math.PI * 2;
+                const r1 = p.radius * 0.5, r2 = p.radius * 2 + Math.sin(Date.now() * 0.015 + i) * 10;
+                ctx.globalAlpha = 0.4 + Math.sin(Date.now() * 0.02 + i) * 0.2;
+                ctx.beginPath(); ctx.moveTo(p.x + Math.cos(ra) * r1, p.y + Math.sin(ra) * r1);
+                ctx.lineTo(p.x + Math.cos(ra) * r2, p.y + Math.sin(ra) * r2); ctx.stroke();
+            }
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            // Holy sparkles
+            if (Math.random() < 0.8) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * p.radius, y: p.y + (Math.random() - 0.5) * p.radius,
+                    vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 3,
+                    life: 8 + Math.random() * 8, maxLife: 16, color: '#fffacd' });
+            }
         }
         // ─── DARK: Shadow Bolt ───
         else if (draw === 'shadowBolt') {
-            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.4; ctx.fillStyle = '#6c3483';
-                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill(); }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 20;
-            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
-            g.addColorStop(0, '#1a0a2e'); g.addColorStop(0.5, '#6c3483'); g.addColorStop(1, 'rgba(142,68,173,0)');
-            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
+            // Dark wispy trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.5;
+                ctx.fillStyle = `rgba(108,52,131,${t.alpha * 0.6})`;
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * (0.3 + t.alpha * 0.4), 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 30;
+            // Void center
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.5);
+            g.addColorStop(0, '#000'); g.addColorStop(0.2, '#1a0a2e'); g.addColorStop(0.5, '#6c3483');
+            g.addColorStop(0.8, 'rgba(142,68,173,0.3)'); g.addColorStop(1, 'rgba(142,68,173,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.5, 0, Math.PI * 2); ctx.fill();
+            // Swirling dark energy
+            ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                const sa = Date.now() * 0.012 + (i / 5) * Math.PI * 2;
+                const sr = p.radius * (0.6 + Math.sin(Date.now() * 0.008 + i) * 0.3);
+                ctx.globalAlpha = 0.5; ctx.beginPath();
+                ctx.arc(p.x + Math.cos(sa) * sr * 0.3, p.y + Math.sin(sa) * sr * 0.3, sr * 0.4, sa, sa + 1.5); ctx.stroke();
+            }
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            // Dark wisps
+            if (Math.random() < 0.5) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 15, y: p.y + (Math.random() - 0.5) * 15,
+                    vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#6c3483' });
+            }
         }
         // ─── DARK: Dark Orb ───
         else if (draw === 'darkOrb') {
-            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 40;
+            ctx.globalAlpha = 1; ctx.shadowColor = '#8e44ad'; ctx.shadowBlur = 50;
+            // Massive dark aura
+            const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
+            og.addColorStop(0, 'rgba(10,0,20,0.5)'); og.addColorStop(0.5, 'rgba(108,52,131,0.2)'); og.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = og; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 2, 0, Math.PI * 2); ctx.fill();
+            // Void sphere
             const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
-            g.addColorStop(0, '#0a0014'); g.addColorStop(0.4, '#1a0a2e'); g.addColorStop(0.8, '#6c3483'); g.addColorStop(1, 'rgba(142,68,173,0)');
+            g.addColorStop(0, '#000'); g.addColorStop(0.3, '#0a0014'); g.addColorStop(0.7, '#3d1560'); g.addColorStop(1, 'rgba(142,68,173,0)');
             ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
-            // Dark tendrils
-            ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 2;
-            for (let i = 0; i < 4; i++) { const ta = Date.now() * 0.008 + i * 1.57;
-                ctx.beginPath(); ctx.moveTo(p.x + Math.cos(ta) * p.radius * 0.5, p.y + Math.sin(ta) * p.radius * 0.5);
-                ctx.lineTo(p.x + Math.cos(ta) * p.radius * 1.3, p.y + Math.sin(ta) * p.radius * 1.3); ctx.stroke();
-            } ctx.shadowBlur = 0;
+            // Orbiting dark tendrils
+            ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 3;
+            for (let i = 0; i < 6; i++) {
+                const ta = Date.now() * 0.008 + (i / 6) * Math.PI * 2;
+                const tr = p.radius * (1 + Math.sin(Date.now() * 0.01 + i * 2) * 0.3);
+                ctx.globalAlpha = 0.6; ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(ta) * p.radius * 0.4, p.y + Math.sin(ta) * p.radius * 0.4);
+                ctx.quadraticCurveTo(p.x + Math.cos(ta + 0.5) * tr, p.y + Math.sin(ta + 0.5) * tr,
+                    p.x + Math.cos(ta + 1) * p.radius * 0.6, p.y + Math.sin(ta + 1) * p.radius * 0.6); ctx.stroke();
+            }
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            // Particles being pulled in
+            if (Math.random() < 0.6) {
+                const pa = Math.random() * Math.PI * 2;
+                particles.push({ x: p.x + Math.cos(pa) * p.radius * 1.8, y: p.y + Math.sin(pa) * p.radius * 1.8,
+                    vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 4,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#8e44ad' });
+            }
         }
         // ─── SHADOW: Shadow Strike ───
         else if (draw === 'shadowStrike') {
             const dir = p.vx > 0 ? 1 : -1;
-            ctx.globalAlpha = 0.8; ctx.shadowColor = '#708090'; ctx.shadowBlur = 10;
+            // Ghost afterimage trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.3;
+                ctx.save(); ctx.translate(t.x, t.y); ctx.rotate(dir > 0 ? -0.3 : Math.PI + 0.3);
+                ctx.fillStyle = '#444'; ctx.beginPath();
+                ctx.moveTo(22, 0); ctx.lineTo(-8, -7); ctx.lineTo(-14, 0); ctx.lineTo(-8, 7); ctx.closePath(); ctx.fill();
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#aaa'; ctx.shadowBlur = 15;
             ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(dir > 0 ? -0.3 : Math.PI + 0.3);
-            ctx.fillStyle = '#555'; ctx.beginPath();
-            ctx.moveTo(18, 0); ctx.lineTo(-6, -5); ctx.lineTo(-10, 0); ctx.lineTo(-6, 5); ctx.closePath(); ctx.fill();
-            ctx.fillStyle = '#999'; ctx.beginPath();
-            ctx.moveTo(16, 0); ctx.lineTo(-3, -3); ctx.lineTo(-5, 0); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
+            // Blade body
+            ctx.fillStyle = '#444'; ctx.beginPath();
+            ctx.moveTo(24, 0); ctx.lineTo(-8, -8); ctx.lineTo(-16, 0); ctx.lineTo(-8, 8); ctx.closePath(); ctx.fill();
+            // Inner bright edge
+            ctx.fillStyle = '#aaa'; ctx.beginPath();
+            ctx.moveTo(22, 0); ctx.lineTo(-4, -4); ctx.lineTo(-8, 0); ctx.lineTo(-4, 4); ctx.closePath(); ctx.fill();
+            // Sharp tip glow
+            ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.arc(20, 0, 3, 0, Math.PI * 2); ctx.fill();
             ctx.restore(); ctx.shadowBlur = 0;
+            // Shadow wisps
+            if (Math.random() < 0.4) {
+                particles.push({ x: p.x - dir * 10, y: p.y + (Math.random() - 0.5) * 10,
+                    vx: -dir * (1 + Math.random() * 2), vy: (Math.random() - 0.5) * 2,
+                    life: 5 + Math.random() * 4, maxLife: 9, color: '#555' });
+            }
         }
         // ─── SHADOW: Shadow Clone ───
         else if (draw === 'shadowClone') {
-            ctx.globalAlpha = 0.6; ctx.shadowColor = '#708090'; ctx.shadowBlur = 15;
-            // Ghost stickman figure
-            ctx.strokeStyle = '#555'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            // Ghostly afterimage trail
+            for (const t of p.trail) {
+                if (t.alpha < 0.3) continue;
+                ctx.globalAlpha = t.alpha * 0.2;
+                ctx.save(); ctx.translate(t.x, t.y);
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.arc(0, -22, 9, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 6); ctx.stroke();
+                ctx.restore();
+            }
+            ctx.globalAlpha = 0.75; ctx.shadowColor = '#708090'; ctx.shadowBlur = 20;
             ctx.save(); ctx.translate(p.x, p.y);
-            ctx.beginPath(); ctx.arc(0, -20, 8, 0, Math.PI * 2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 5); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(-10, 0); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(10, 0); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(-7, 16); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(7, 16); ctx.stroke();
+            // Dark aura around clone
+            const cg = ctx.createRadialGradient(0, -10, 5, 0, -10, 35);
+            cg.addColorStop(0, 'rgba(50,50,50,0.3)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, -10, 35, 0, Math.PI * 2); ctx.fill();
+            // Ghost stickman — detailed
+            ctx.strokeStyle = '#666'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(0, -22, 9, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 6); ctx.stroke();
+            const armSwing = Math.sin(Date.now() * 0.01) * 8;
+            ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(-12 + armSwing, 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(12 - armSwing, 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(-8, 18); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(8, 18); ctx.stroke();
+            // Glowing eyes
+            ctx.fillStyle = '#b0b0b0'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(-4, -23, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(4, -23, 2, 0, Math.PI * 2); ctx.fill();
             ctx.restore(); ctx.shadowBlur = 0;
+            // Shadow particles
+            if (Math.random() < 0.4) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 20, y: p.y + (Math.random() - 0.5) * 30,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random(), life: 8 + Math.random() * 5, maxLife: 13, color: '#555' });
+            }
         }
         // ─── PORTAL: Rift Shot ───
         else if (draw === 'riftShot') {
-            for (const t of p.trail) { ctx.globalAlpha = t.alpha * 0.3; ctx.fillStyle = '#e056de';
-                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.3, 0, Math.PI * 2); ctx.fill(); }
-            ctx.globalAlpha = 1; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 20;
-            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
-            g.addColorStop(0, '#1a0020'); g.addColorStop(0.4, '#e056de'); g.addColorStop(1, 'rgba(224,86,222,0)');
-            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            // Dimensional trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.4;
+                ctx.strokeStyle = '#e056de'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.5 * t.alpha, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 30;
+            // Swirling portal ball
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 1.3);
+            g.addColorStop(0, '#0a0014'); g.addColorStop(0.3, '#6a1b6a'); g.addColorStop(0.6, '#e056de');
+            g.addColorStop(0.85, 'rgba(224,86,222,0.3)'); g.addColorStop(1, 'rgba(224,86,222,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.3, 0, Math.PI * 2); ctx.fill();
+            // Spinning ring
+            ctx.strokeStyle = '#e056de'; ctx.lineWidth = 2;
+            const ringAngle = Date.now() * 0.012;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y, p.radius * 1.1, p.radius * 0.4, ringAngle, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y, p.radius * 0.8, p.radius * 0.3, ringAngle + 1.5, 0, Math.PI * 2); ctx.stroke();
             ctx.shadowBlur = 0;
+            // Dimensional particles
+            if (Math.random() < 0.5) {
+                const pa = Math.random() * Math.PI * 2;
+                particles.push({ x: p.x + Math.cos(pa) * p.radius, y: p.y + Math.sin(pa) * p.radius,
+                    vx: -Math.cos(pa) * 3, vy: -Math.sin(pa) * 3,
+                    life: 6 + Math.random() * 4, maxLife: 10, color: '#e056de' });
+            }
         }
         // ─── PORTAL: Dimensional Rift ───
         else if (draw === 'dimensionalRift') {
-            ctx.globalAlpha = 0.8; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 25;
-            for (let i = 0; i < 3; i++) { const ra = Date.now() * 0.006 + i * 2.1;
-                ctx.strokeStyle = i === 0 ? '#e056de' : i === 1 ? '#bb6bd9' : '#fff'; ctx.lineWidth = (4 - i);
-                ctx.beginPath(); ctx.ellipse(p.x, p.y, p.radius * (1 - i * 0.12), p.radius * 0.35, ra, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = 0.9; ctx.shadowColor = '#e056de'; ctx.shadowBlur = 40;
+            // Dark void center
+            const vg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 0.6);
+            vg.addColorStop(0, '#000'); vg.addColorStop(0.5, '#1a0020'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 0.6, 0, Math.PI * 2); ctx.fill();
+            // Multiple spinning portal rings at different angles
+            for (let i = 0; i < 4; i++) {
+                const ra = Date.now() * 0.006 + i * 1.3;
+                const ringR = p.radius * (1.1 - i * 0.08);
+                ctx.strokeStyle = `hsla(300, 70%, ${50 + i * 10}%, ${0.7 - i * 0.1})`; ctx.lineWidth = (5 - i);
+                ctx.beginPath(); ctx.ellipse(p.x, p.y, ringR, ringR * 0.35, ra, 0, Math.PI * 2); ctx.stroke();
             }
-            ctx.fillStyle = '#0a0014'; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.radius * 0.5, p.radius * 0.15, 0, 0, Math.PI * 2); ctx.fill();
-            if (Math.random() < 0.3) { const pa = Math.random() * Math.PI * 2;
-                particles.push({ x: p.x + Math.cos(pa) * p.radius, y: p.y + Math.sin(pa) * p.radius * 0.35,
-                    vx: -Math.cos(pa) * 3, vy: -Math.sin(pa) * 1.5, life: 6 + Math.random() * 4, maxLife: 10, color: '#e056de' });
-            } ctx.shadowBlur = 0;
+            // Energy wisps being drawn in
+            ctx.strokeStyle = '#bb6bd9'; ctx.lineWidth = 1.5;
+            for (let i = 0; i < 4; i++) {
+                const wa = Date.now() * 0.01 + i * 1.57;
+                const wr = p.radius * 1.5;
+                ctx.globalAlpha = 0.4;
+                ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(wa) * wr, p.y + Math.sin(wa) * wr * 0.4);
+                ctx.quadraticCurveTo(p.x + Math.cos(wa + 0.5) * wr * 0.5, p.y + Math.sin(wa + 0.5) * wr * 0.2, p.x, p.y);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            // Particles spiraling in
+            if (Math.random() < 0.6) {
+                const pa = Math.random() * Math.PI * 2;
+                particles.push({ x: p.x + Math.cos(pa) * p.radius * 1.5, y: p.y + Math.sin(pa) * p.radius * 0.5,
+                    vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 2,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#e056de' });
+            }
         }
         // ─── WASHING MACHINE: Soap Blast ───
         else if (draw === 'soapBlast') {
