@@ -534,6 +534,7 @@ class Fighter {
         this.meleeCooldown = 0;
         this.phoenixDive = null;
         this.samuraiDash = null;
+        this.slideTackle = null;
         this.combo = 0;
         this.comboTimer = 0;
         this.maxCombo = 0;
@@ -707,6 +708,55 @@ class Fighter {
             return;
         }
 
+        // ── Slide Tackle (Football) ──
+        if (this.slideTackle) {
+            const st = this.slideTackle;
+            st.timer++;
+            if (st.phase === 'slide') {
+                // Slide along ground toward opponent, re-tracking their position
+                st.targetX = st.opponent.x;
+                st.dir = st.targetX > this.x ? 1 : -1;
+                const slideSpeed = 12;
+                this.x += st.dir * slideSpeed;
+                this.y = groundY; this.onGround = true; this.vy = 0; this.vx = 0;
+                // Grass/dust trail
+                if (st.timer % 2 === 0) {
+                    for (let i = 0; i < 3; i++) {
+                        particles.push({ x: this.x - st.dir * (5 + Math.random() * 15), y: groundY - Math.random() * 5,
+                            vx: -st.dir * (2 + Math.random() * 4), vy: -1 - Math.random() * 3,
+                            life: 8 + Math.random() * 6, maxLife: 14, color: Math.random() > 0.5 ? '#228b22' : '#8b7b3a' });
+                    }
+                }
+                // Hit detection — lock on and connect
+                const hitDist = Math.abs(this.x - st.opponent.x);
+                if (hitDist < 60) {
+                    st.phase = 'hit'; st.timer = 0;
+                    let damage = st.damage;
+                    if (this.rageActive) damage = Math.floor(damage * 1.5);
+                    if (this.domainActive) damage = Math.floor(damage * 1.4);
+                    damage = this.applyComboBonus(damage);
+                    if (st.opponent.blocking) damage = Math.floor(damage * (1 - st.blockReduction));
+                    st.opponent.health = Math.max(0, st.opponent.health - damage);
+                    spawnDamageNumber(st.opponent.x, st.opponent.y - st.opponent.height - 10, damage, '#228b22');
+                    this.addCombo();
+                    st.opponent.hitTimer = 18; st.opponent.hit = true;
+                    st.opponent.vy = st.launchUp || -8; st.opponent.onGround = false;
+                    st.opponent.x += st.dir * st.knockback;
+                    triggerScreenShake(14, 18); triggerHitstop(10);
+                    triggerScreenFlash('#228b22', 0.4);
+                    visualEffects.push({ type: 'impactRing', x: st.opponent.x, y: groundY - 20, life: 20, maxLife: 20, color: '#228b22' });
+                    spawnElementParticles(st.opponent.x, groundY - 30, STYLES[this.style], 30);
+                }
+                // Timeout — don't slide forever
+                if (st.timer >= 40) { st.phase = 'hit'; st.timer = 0; }
+            } else if (st.phase === 'hit') {
+                // Recovery — get back up
+                if (st.timer >= 12) { this.slideTackle = null; }
+            }
+            this.x = Math.max(this.width / 2, Math.min(canvas.width - this.width / 2, this.x));
+            return;
+        }
+
         if (!this.hit) this.x += this.vx;
 
         // ── Flying styles (Pigeon & Bee) ──
@@ -752,7 +802,7 @@ class Fighter {
     }
 
     melee(type, opponent) {
-        if (this.meleeCooldown > 0 || this.hit || this.blocking || this.phoenixDive || this.samuraiDash) return;
+        if (this.meleeCooldown > 0 || this.hit || this.blocking || this.phoenixDive || this.samuraiDash || this.slideTackle) return;
         const PUNCH_RANGE = 70;
         const KICK_RANGE = 85;
         const PUNCH_DAMAGE = 3;
@@ -851,7 +901,7 @@ class Fighter {
     }
 
     executeFinisher(opponent) {
-        if (this.finisherUsed || this.hit || this.blocking || this.phoenixDive || this.samuraiDash) return;
+        if (this.finisherUsed || this.hit || this.blocking || this.phoenixDive || this.samuraiDash || this.slideTackle) return;
         if (opponent.health > MAX_HEALTH * 0.25 || opponent.health <= 0) return;
         if (finisherAnim) return; // already in progress
         this.finisherUsed = true;
@@ -869,7 +919,7 @@ class Fighter {
     }
 
     useAttack(index, opponent) {
-        if (!this.style || this.cooldowns[index] > 0 || this.hit || this.blocking || this.phoenixDive || this.samuraiDash) return;
+        if (!this.style || this.cooldowns[index] > 0 || this.hit || this.blocking || this.phoenixDive || this.samuraiDash || this.slideTackle) return;
         const atk = STYLES[this.style].attacks[index];
         const styleData = STYLES[this.style];
         this.cooldowns[index] = this.rageActive ? Math.floor(atk.cooldown * 0.5) : atk.cooldown;
@@ -2069,6 +2119,21 @@ class Fighter {
                 visualEffects.push({ type: 'abyssalFlood', dir, life: 50, maxLife: 50 });
                 triggerScreenShake(20, 25); triggerHitstop(12); triggerScreenFlash('#4169e1', 0.6); return;
             }
+        }
+
+        // ── Football Slide Tackle — physical dash attack ──
+        if (this.style === 'football' && index === 1) {
+            this.slideTackle = {
+                phase: 'slide', timer: 0, opponent,
+                damage: this.rageActive ? Math.floor(atk.damage * 1.5) : atk.damage,
+                knockback: atk.knockback,
+                blockReduction: atk.blockReduction,
+                launchUp: atk.launchUp || -8,
+                dir: dir, targetX: opponent.x,
+            };
+            this.casting = false; this.castTimer = 0;
+            triggerScreenFlash('#228b22', 0.15);
+            return;
         }
 
         // ── Football Rage Upgrades ──
