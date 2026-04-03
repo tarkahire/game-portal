@@ -160,6 +160,14 @@ button:hover {
     box-shadow: 0 0 30px rgba(46, 204, 113, 0.5);
 }
 
+#start-team-btn {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+#start-team-btn:hover {
+    box-shadow: 0 0 30px rgba(243, 156, 18, 0.5);
+}
+
 #fight-btn {
     margin-top: 24px;
     font-size: 28px;

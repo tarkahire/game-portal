@@ -192,7 +192,9 @@ let groundY, gameState, timer, timerInterval;
 let p1Wins = 0, p2Wins = 0, currentRound = 1;
 let aiMode = false;
 let trainingMode = false;
+let teamMode = false;
 let p1Style = null, p2Style = null;
+let ai1Style = null, ai2Style = null;
 const damageNumbers = [];
 
 const keys = {};
@@ -4658,11 +4660,34 @@ function drawParticles() {
 // ── Players ──
 const player1 = new Fighter(0, '#e74c3c', 1);
 const player2 = new Fighter(0, '#3498db', -1);
+const aiFighter1 = new Fighter(0, '#e67e22', -1);
+const aiFighter2 = new Fighter(0, '#9b59b6', -1);
+
+function getClosestAliveEnemy(fighter) {
+    const enemies = teamMode
+        ? (fighter === player1 || fighter === player2 ? [aiFighter1, aiFighter2] : [player1, player2])
+        : (fighter === player1 ? [player2] : [player1]);
+    let closest = null, closestDist = Infinity;
+    for (const e of enemies) {
+        if (e.health <= 0) continue;
+        const d = Math.abs(fighter.x - e.x);
+        if (d < closestDist) { closestDist = d; closest = e; }
+    }
+    return closest || enemies[0]; // fallback to first enemy even if KO'd
+}
 
 function resetPositions() {
-    player1.spawnX = canvas.width * 0.3;
-    player2.spawnX = canvas.width * 0.7;
-    player1.reset(); player2.reset();
+    if (teamMode) {
+        player1.spawnX = canvas.width * 0.2;
+        player2.spawnX = canvas.width * 0.35;
+        aiFighter1.spawnX = canvas.width * 0.65;
+        aiFighter2.spawnX = canvas.width * 0.8;
+        player1.reset(); player2.reset(); aiFighter1.reset(); aiFighter2.reset();
+    } else {
+        player1.spawnX = canvas.width * 0.3;
+        player2.spawnX = canvas.width * 0.7;
+        player1.reset(); player2.reset();
+    }
     projectiles.length = 0;
     visualEffects.length = 0;
 }
@@ -4679,15 +4704,16 @@ function handleInput() {
         if (keys['s']) player1.blocking = true;
     }
     if (keys['w'] && player1.onGround && !player1.blocking) { player1.vy = JUMP_FORCE; player1.onGround = false; }
-    if (keys['z']) { player1.useAttack(0, player2); keys['z'] = false; }
-    if (keys['x']) { player1.useAttack(1, player2); keys['x'] = false; }
-    if (keys['c']) { player1.useAttack(2, player2); keys['c'] = false; }
-    if (keys['v']) { player1.useAttack(3, player2); keys['v'] = false; }
+    const p1Target = teamMode ? getClosestAliveEnemy(player1) : player2;
+    if (keys['z']) { player1.useAttack(0, p1Target); keys['z'] = false; }
+    if (keys['x']) { player1.useAttack(1, p1Target); keys['x'] = false; }
+    if (keys['c']) { player1.useAttack(2, p1Target); keys['c'] = false; }
+    if (keys['v']) { player1.useAttack(3, p1Target); keys['v'] = false; }
     if (keys['e']) { player1.activateRage(); keys['e'] = false; }
-    if (keys['f']) { player1.melee('punch', player2); keys['f'] = false; }
-    if (keys['g']) { player1.melee('kick', player2); keys['g'] = false; }
+    if (keys['f']) { player1.melee('punch', p1Target); keys['f'] = false; }
+    if (keys['g']) { player1.melee('kick', p1Target); keys['g'] = false; }
 
-    if (!aiMode) {
+    if (!aiMode || teamMode) {
         player2.vx = 0; player2.blocking = false;
         if (!player2.hit) {
             if (keys['arrowleft']) player2.vx = -MOVE_SPEED;
@@ -4695,13 +4721,14 @@ function handleInput() {
             if (keys['arrowdown']) player2.blocking = true;
         }
         if (keys['arrowup'] && player2.onGround && !player2.blocking) { player2.vy = JUMP_FORCE; player2.onGround = false; }
-        if (keys['\\']) { player2.useAttack(0, player1); keys['\\'] = false; }
-        if (keys['/'])  { player2.useAttack(1, player1); keys['/'] = false; }
-        if (keys['.'])  { player2.useAttack(2, player1); keys['.'] = false; }
-        if (keys[','])  { player2.useAttack(3, player1); keys[','] = false; }
+        const p2Target = teamMode ? getClosestAliveEnemy(player2) : player1;
+        if (keys['\\']) { player2.useAttack(0, p2Target); keys['\\'] = false; }
+        if (keys['/'])  { player2.useAttack(1, p2Target); keys['/'] = false; }
+        if (keys['.'])  { player2.useAttack(2, p2Target); keys['.'] = false; }
+        if (keys[','])  { player2.useAttack(3, p2Target); keys[','] = false; }
         if (keys['m'])  { player2.activateRage(); keys['m'] = false; }
-        if (keys['0'])  { player2.melee('punch', player1); keys['0'] = false; }
-        if (keys['1'])  { player2.melee('kick', player1); keys['1'] = false; }
+        if (keys['0'])  { player2.melee('punch', p2Target); keys['0'] = false; }
+        if (keys['1'])  { player2.melee('kick', p2Target); keys['1'] = false; }
     }
 }
 
@@ -4761,6 +4788,34 @@ function handleAI() {
     if (player2.rageAvailable && !player2.rageActive && player2.health <= MAX_HEALTH * 0.4) {
         player2.activateRage();
     }
+}
+
+function handleTeamAI(aiFighter) {
+    if (aiFighter.health <= 0) return; // KO'd
+    const target = getClosestAliveEnemy(aiFighter);
+    const dist = Math.abs(aiFighter.x - target.x);
+    const dir = aiFighter.x > target.x ? -1 : 1;
+    aiFighter.vx = 0; aiFighter.blocking = false;
+
+    // Simple AI logic
+    const r = Math.random();
+    if (dist > 250) { aiFighter.vx = dir * MOVE_SPEED; }
+    else if (dist > 100) {
+        if (r < 0.3) aiFighter.vx = dir * MOVE_SPEED;
+        else if (r < 0.6) {
+            const ready = [0,1,2,3].filter(i => aiFighter.cooldowns[i] <= 0);
+            if (ready.length > 0) aiFighter.useAttack(ready[Math.floor(Math.random() * ready.length)], target);
+        } else if (r < 0.8) aiFighter.blocking = true;
+    } else {
+        if (r < 0.25) {
+            const ready = [0,1,2,3].filter(i => aiFighter.cooldowns[i] <= 0);
+            if (ready.length > 0) aiFighter.useAttack(ready[Math.floor(Math.random() * ready.length)], target);
+        } else if (r < 0.45) aiFighter.blocking = true;
+        else if (r < 0.55) aiFighter.melee(Math.random() < 0.5 ? 'punch' : 'kick', target);
+        else if (r < 0.7) { aiFighter.vx = -dir * MOVE_SPEED; }
+        else if (r < 0.8 && aiFighter.onGround) { aiFighter.vy = JUMP_FORCE; aiFighter.onGround = false; aiFighter.vx = dir * MOVE_SPEED; }
+    }
+    if (aiFighter.rageAvailable && !aiFighter.rageActive && aiFighter.health <= MAX_HEALTH * 0.4) aiFighter.activateRage();
 }
 
 // ── Drawing ──
@@ -5049,6 +5104,13 @@ function checkRoundEnd() {
     else if (player2.health <= 0) { p1Wins++; if (p1Wins >= ROUNDS_TO_WIN) endGame('Player 1 Wins!'); else { currentRound++; resetPositions(); clearInterval(timerInterval); startTimer(); } }
 }
 
+function checkTeamRoundEnd() {
+    const humansDown = player1.health <= 0 && player2.health <= 0;
+    const aisDown = aiFighter1.health <= 0 && aiFighter2.health <= 0;
+    if (humansDown) { p2Wins++; if (p2Wins >= ROUNDS_TO_WIN) endGame('AI Team Wins!'); else { currentRound++; resetPositions(); clearInterval(timerInterval); startTimer(); } }
+    else if (aisDown) { p1Wins++; if (p1Wins >= ROUNDS_TO_WIN) endGame('Players Win!'); else { currentRound++; resetPositions(); clearInterval(timerInterval); startTimer(); } }
+}
+
 // ── Game Loop ──
 function gameLoop() {
     requestAnimationFrame(gameLoop);
@@ -5064,7 +5126,9 @@ function gameLoop() {
         ctx.save();
         ctx.translate(shakeOffsetX, shakeOffsetY);
         drawBackground();
-        player1.draw(); player2.draw();
+        if (player1.health > 0 || !teamMode) player1.draw();
+        if (player2.health > 0 || !teamMode) player2.draw();
+        if (teamMode) { if (aiFighter1.health > 0) aiFighter1.draw(); if (aiFighter2.health > 0) aiFighter2.draw(); }
         drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawComboMeters();
         ctx.restore();
         drawScreenFlash();
@@ -5074,7 +5138,20 @@ function gameLoop() {
 
     handleInput();
     if (aiMode || trainingMode) handleAI();
-    player1.update(player2); player2.update(player1);
+    if (teamMode) { handleTeamAI(aiFighter1); handleTeamAI(aiFighter2); }
+
+    if (teamMode) {
+        const p1e = getClosestAliveEnemy(player1);
+        const p2e = getClosestAliveEnemy(player2);
+        const a1e = getClosestAliveEnemy(aiFighter1);
+        const a2e = getClosestAliveEnemy(aiFighter2);
+        if (player1.health > 0) player1.update(p1e);
+        if (player2.health > 0) player2.update(p2e);
+        if (aiFighter1.health > 0) aiFighter1.update(a1e);
+        if (aiFighter2.health > 0) aiFighter2.update(a2e);
+    } else {
+        player1.update(player2); player2.update(player1);
+    }
     updateParticles(); updateProjectiles(); updateVisualEffects();
     updateDamageNumbers();
     updateScreenShake();
@@ -5085,7 +5162,7 @@ function gameLoop() {
             player2.health = Math.min(MAX_HEALTH, player2.health + 0.15);
         }
         if (player2.health <= 0) {
-            player2.health = MAX_HEALTH; // instant full heal on KO
+            player2.health = MAX_HEALTH;
             player2.hitTimer = 0; player2.hit = false;
         }
     }
@@ -5095,7 +5172,12 @@ function gameLoop() {
     ctx.translate(shakeOffsetX, shakeOffsetY);
 
     drawBackground();
-    player1.draw(); player2.draw();
+    if (player1.health > 0 || !teamMode) player1.draw();
+    if (player2.health > 0 || !teamMode) player2.draw();
+    if (teamMode) {
+        if (aiFighter1.health > 0) aiFighter1.draw();
+        if (aiFighter2.health > 0) aiFighter2.draw();
+    }
     drawProjectiles(); drawVisualEffects(); drawParticles(); drawCooldowns(); drawRageBars(); drawComboMeters();
     drawDamageNumbers();
 
@@ -5103,7 +5185,39 @@ function gameLoop() {
 
     drawScreenFlash();
     updateUI();
-    if (!trainingMode) checkRoundEnd();
+    if (teamMode) checkTeamRoundEnd();
+    else if (!trainingMode) checkRoundEnd();
+
+    // Team mode health bars for AI fighters
+    if (teamMode) {
+        const barW = 100, barH = 10;
+        // AI 1 health bar
+        const a1x = canvas.width - 32 - barW, a1y = 55;
+        ctx.fillStyle = '#333'; ctx.fillRect(a1x, a1y, barW, barH);
+        ctx.fillStyle = '#e67e22'; ctx.fillRect(a1x, a1y, barW * (aiFighter1.health / MAX_HEALTH), barH);
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(a1x, a1y, barW, barH);
+        ctx.font = '10px "Segoe UI",Arial,sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = '#e67e22';
+        ctx.fillText('AI1 ' + (aiFighter1.style ? STYLES[aiFighter1.style].name : ''), a1x + barW, a1y - 3);
+        // AI 2 health bar
+        const a2y = a1y + 18;
+        ctx.fillStyle = '#333'; ctx.fillRect(a1x, a2y, barW, barH);
+        ctx.fillStyle = '#9b59b6'; ctx.fillRect(a1x, a2y, barW * (aiFighter2.health / MAX_HEALTH), barH);
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(a1x, a2y, barW, barH);
+        ctx.fillStyle = '#9b59b6'; ctx.textAlign = 'right';
+        ctx.fillText('AI2 ' + (aiFighter2.style ? STYLES[aiFighter2.style].name : ''), a1x + barW, a2y - 3);
+        // P2 health bar (below P1)
+        const p2x = 32, p2y = 55;
+        ctx.fillStyle = '#333'; ctx.fillRect(p2x, p2y, barW, barH);
+        ctx.fillStyle = '#3498db'; ctx.fillRect(p2x, p2y, barW * (player2.health / MAX_HEALTH), barH);
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(p2x, p2y, barW, barH);
+        ctx.textAlign = 'left'; ctx.fillStyle = '#3498db';
+        ctx.fillText('P2 ' + (player2.style ? STYLES[player2.style].name : ''), p2x, p2y - 3);
+
+        ctx.font = '14px "Segoe UI",Arial,sans-serif';
+        ctx.textAlign = 'center'; ctx.fillStyle = '#f39c12'; ctx.globalAlpha = 0.6;
+        ctx.fillText('2v2 TEAM BATTLE', canvas.width / 2, groundY + 30);
+        ctx.globalAlpha = 1;
+    }
 
     // Training mode HUD
     if (trainingMode) {
@@ -5147,6 +5261,7 @@ document.querySelectorAll('.style-btn').forEach(btn => {
 function goToSelect(useAI, isTraining) {
     aiMode = useAI;
     trainingMode = isTraining || false;
+    teamMode = false;
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('select-screen').classList.remove('hidden');
     setupStyleSelect();
@@ -5166,9 +5281,17 @@ function startFight() {
     player1.style = p1Style; player2.style = p2Style;
     gameState = 'playing'; p1Wins = 0; p2Wins = 0; currentRound = 1;
     particles.length = 0; projectiles.length = 0; visualEffects.length = 0;
+
+    // Team mode: assign random styles to AI fighters
+    if (teamMode) {
+        const names = Object.keys(STYLES);
+        aiFighter1.style = names[Math.floor(Math.random() * names.length)];
+        aiFighter2.style = names[Math.floor(Math.random() * names.length)];
+    }
+
     resetPositions();
     document.getElementById('p1-name').textContent = 'P1 ' + STYLES[p1Style].name;
-    document.getElementById('p2-name').textContent = 'P2 ' + STYLES[p2Style].name;
+    document.getElementById('p2-name').textContent = teamMode ? 'Team AI' : 'P2 ' + STYLES[p2Style].name;
     document.getElementById('select-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('ui-overlay').style.display = 'block';
@@ -5176,6 +5299,9 @@ function startFight() {
     if (trainingMode) {
         document.getElementById('timer').textContent = '∞';
         document.getElementById('round-info').textContent = 'TRAINING MODE';
+    } else if (teamMode) {
+        document.getElementById('round-info').textContent = `Round ${currentRound} | 2v2 TEAM`;
+        startTimer();
     } else {
         startTimer();
     }
@@ -5184,6 +5310,13 @@ function startFight() {
 document.getElementById('start-2p-btn').addEventListener('click', () => goToSelect(false));
 document.getElementById('start-ai-btn').addEventListener('click', () => goToSelect(true));
 document.getElementById('start-train-btn').addEventListener('click', () => goToSelect(true, true));
+document.getElementById('start-team-btn').addEventListener('click', () => {
+    teamMode = true; aiMode = false; trainingMode = false;
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('select-screen').classList.remove('hidden');
+    setupStyleSelect();
+    document.getElementById('p2-select-title').textContent = 'Player 2 (Blue) — Your Teammate';
+});
 document.getElementById('fight-btn').addEventListener('click', startFight);
 document.getElementById('rematch-btn').addEventListener('click', startFight);
 document.getElementById('reselect-btn').addEventListener('click', () => {
