@@ -460,6 +460,11 @@ button:hover {
     box-shadow: 0 0 20px rgba(34, 139, 34, 0.4);
 }
 
+.style-btn[data-style="magma"].selected {
+    border-color: #ff4500;
+    box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+}
+
 .stage-btn {
     padding: 8px 14px;
     font-size: 12px;

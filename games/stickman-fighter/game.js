@@ -425,6 +425,17 @@ const STYLES = {
             { name: 'Red Card',        type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'redCard' },
         ],
     },
+    magma: {
+        name: 'Magma',
+        color: '#ff4500',
+        hue: 16,
+        attacks: [
+            { name: 'Lava Spit',      type: 'projectile', damage: 7,  cooldown: 100,  speed: 11, radius: 33, knockback: 8,  blockReduction: 0.5, draw: 'lavaSpit' },
+            { name: 'Eruption',       type: 'instant',    damage: 13, cooldown: 320,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'eruption', launchUp: -16 },
+            { name: 'Magma Wave',     type: 'projectile', damage: 10, cooldown: 350,  speed: 5,  radius: 90, knockback: 16, blockReduction: 0.3, draw: 'magmaWave' },
+            { name: 'Volcanic Wrath', type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'volcanicWrath' },
+        ],
+    },
 };
 
 // ── Screen Shake ──
@@ -2168,6 +2179,36 @@ class Fighter {
             }
         }
 
+        // ── Magma Rage Upgrades ──
+        if (this.rageActive && this.style === 'magma') {
+            if (index === 0) {
+                // LAVA BARRAGE — 7 lava globs in a wide spread
+                for (let b = -3; b <= 3; b++) {
+                    projectiles.push({ x: this.x + dir * 30, y: this.y - this.height * 0.55,
+                        vx: dir * atk.speed * 0.9, vy: b * 2.5, radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 200, trail: [], rageVfx: null });
+                }
+                triggerScreenFlash('#ff4500', 0.2); return;
+            }
+            if (index === 1) {
+                // SUPER ERUPTION — 5 fire pillars
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                spawnDamageNumber(opponent.x, opponent.y - opponent.height - 10, damage, styleData.color); this.addCombo();
+                opponent.hitTimer = 22; opponent.hit = true; opponent.vy = -18; opponent.onGround = false;
+                for (let pp = -2; pp <= 2; pp++) spawnFirePillar(opponent.x + pp * 90, groundY);
+                triggerScreenShake(25, 30); triggerHitstop(12); triggerScreenFlash('#ff4500', 0.6); return;
+            }
+            if (index === 2) {
+                // MAGMA TSUNAMI — massive slow wave
+                projectiles.push({ x: this.x + dir * 40, y: groundY,
+                    vx: dir * 3, vy: 0, radius: 140, owner: this, target: opponent,
+                    atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData, life: 400, trail: [], rageVfx: null });
+                triggerScreenShake(10, 14); triggerScreenFlash('#ff4500', 0.3); return;
+            }
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -2585,6 +2626,13 @@ class Fighter {
         else if (vfx === 'pipeWrench') { visualEffects.push({ type: 'spinCycle', x: this.x, y: this.y - this.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#4169e1', 0.3); }
         else if (vfx === 'floodBurst') { visualEffects.push({ type: 'floodRinse', life: 40, maxLife: 40 }); triggerScreenFlash('#4169e1', 0.4); }
         else if (vfx === 'cloggedExplosion') { visualEffects.push({ type: 'clogExplosionVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenShake(12, 16); triggerScreenFlash('#8b4513', 0.6); }
+        // ── Magma VFX ──
+        else if (vfx === 'eruption') { spawnFirePillar(opponent.x, groundY); spawnElementParticles(opponent.x, groundY - 50, styleData, 40); triggerScreenShake(14, 18); triggerScreenFlash('#ff4500', 0.4); }
+        else if (vfx === 'volcanicWrath') {
+            for (let i = 0; i < 5; i++) spawnFirePillar(opponent.x + (Math.random()-0.5)*200, groundY);
+            visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: groundY, life: 45, maxLife: 45 });
+            triggerScreenShake(25, 30); triggerScreenFlash('#ff4500', 0.7);
+        }
         // ── Football VFX ──
         else if (vfx === 'slideTackle') { visualEffects.push({ type: 'slideTackleVfx', x: opponent.x, y: groundY, dir, life: 25, maxLife: 25 }); triggerScreenShake(10, 14); triggerScreenFlash('#228b22', 0.3); }
         else if (vfx === 'redCard') { visualEffects.push({ type: 'redCardVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#ff0000', 0.6); }
@@ -4427,6 +4475,58 @@ class Fighter {
             return;
         }
 
+        // ── Magma: molten lava golem ──
+        if (this.health < MAX_HEALTH && this.style === 'magma') {
+            const t = Date.now() * 0.004;
+            ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 25;
+            // Body — dark rock with glowing lava cracks
+            ctx.fillStyle = '#2d1b0e';
+            ctx.fillRect(-22, -82, 44, 48);
+            // Lava cracks on body
+            ctx.strokeStyle = '#ff4500'; ctx.lineWidth = 2;
+            ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.moveTo(-15, -80); ctx.lineTo(-5, -60); ctx.lineTo(-12, -40); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10, -78); ctx.lineTo(5, -55); ctx.lineTo(14, -38); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-8, -65); ctx.lineTo(8, -58); ctx.stroke();
+            // Glowing lava seeping through cracks
+            ctx.fillStyle = `rgba(255,${80 + Math.sin(t*3)*40},0,${0.5 + Math.sin(t*5)*0.2})`;
+            ctx.fillRect(-14, -70, 5, 15); ctx.fillRect(6, -68, 5, 18);
+            // Head — rocky with glowing eyes and molten crown
+            ctx.fillStyle = '#3d2010';
+            ctx.beginPath(); ctx.arc(0, -this.height + 2, 15, 0, Math.PI * 2); ctx.fill();
+            // Glowing orange eyes
+            ctx.fillStyle = '#ff6600'; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 8;
+            ctx.fillRect(-8, -this.height, 5, 4); ctx.fillRect(3, -this.height, 5, 4);
+            // Molten crown — dripping lava spikes
+            ctx.fillStyle = '#ff4500';
+            for (let s = -2; s <= 2; s++) {
+                const sh = 8 + Math.sin(t * 4 + s) * 3;
+                ctx.beginPath(); ctx.moveTo(s * 6 - 3, -this.height - 10);
+                ctx.lineTo(s * 6, -this.height - 10 - sh); ctx.lineTo(s * 6 + 3, -this.height - 10); ctx.fill();
+            }
+            // Arms — rocky with glowing joints
+            ctx.fillStyle = '#2d1b0e';
+            ctx.fillRect(-36, -75, 12, 35); ctx.fillRect(24, -75, 12, 35);
+            ctx.fillStyle = '#ff4500';
+            ctx.beginPath(); ctx.arc(-30, -58, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(30, -58, 4, 0, Math.PI * 2); ctx.fill();
+            // Legs — rock pillars
+            ctx.fillStyle = '#2d1b0e';
+            ctx.fillRect(-16, -34, 12, 34); ctx.fillRect(4, -34, 12, 34);
+            // Glowing lava feet
+            ctx.fillStyle = '#ff4500';
+            ctx.fillRect(-17, -4, 14, 5); ctx.fillRect(3, -4, 14, 5);
+            // Dripping lava particles
+            if (Math.random() < 0.4) {
+                particles.push({ x: this.x + (Math.random()-0.5)*30, y: this.y - 20 - Math.random()*60,
+                    vx: (Math.random()-0.5)*2, vy: 1 + Math.random()*3,
+                    life: 10 + Math.random()*8, maxLife: 18,
+                    color: `hsl(${10 + Math.random()*20}, 100%, ${40 + Math.random()*30}%)` });
+            }
+            ctx.shadowBlur = 0; ctx.restore();
+            return;
+        }
+
         // ── Phoenix Dive: draw fireball instead of stickman ──
         if (this.phoenixDive && (this.phoenixDive.phase === 'hover' || this.phoenixDive.phase === 'dive')) {
             const r = this.phoenixDive.phase === 'dive' ? 50 : 38;
@@ -4778,6 +4878,7 @@ function triggerRageUltVFX(style, x, y, dir) {
     else if (style === 'teacher') { visualEffects.push({ type: 'screenDarkness', life: 55, maxLife: 55 }); triggerScreenFlash('#2e8b57', 0.7); }
     else if (style === 'plumber') { visualEffects.push({ type: 'screenFlood', life: 60, maxLife: 60 }); triggerScreenFlash('#4169e1', 0.7); }
     else if (style === 'football') { visualEffects.push({ type: 'screenRadiance', life: 55, maxLife: 55 }); triggerScreenFlash('#228b22', 0.8); }
+    else if (style === 'magma') { visualEffects.push({ type: 'screenInferno', life: 60, maxLife: 60 }); triggerScreenFlash('#ff4500', 0.85); }
 }
 
 function spawnScreenMeltdown(x, y) {
@@ -9436,6 +9537,62 @@ function drawProjectiles() {
         }
 
         // ─── FOOTBALL projectiles ───
+        // ─── MAGMA projectiles ───
+        else if (draw === 'lavaSpit') {
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.4;
+                ctx.fillStyle = `hsl(${15 + (1-t.alpha)*10}, 100%, ${40 + (1-t.alpha)*20}%)`;
+                ctx.beginPath(); ctx.arc(t.x, t.y, p.radius * 0.4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 25;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.2, '#ff6600'); g.addColorStop(0.5, '#ff4500');
+            g.addColorStop(0.8, '#8b0000'); g.addColorStop(1, 'rgba(139,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            if (Math.random() < 0.6) {
+                particles.push({ x: p.x + (Math.random()-0.5)*12, y: p.y + (Math.random()-0.5)*12,
+                    vx: (Math.random()-0.5)*3, vy: -1 - Math.random()*2,
+                    life: 6 + Math.random()*6, maxLife: 12, color: '#ff4500' });
+            }
+        }
+        else if (draw === 'magmaWave') {
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.3;
+                ctx.fillStyle = '#8b0000';
+                ctx.fillRect(t.x - p.radius * 0.4, t.y - 15, p.radius * 0.8, 30);
+            }
+            ctx.globalAlpha = 0.9; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 30;
+            // Lava wave body
+            const waveH = 50;
+            ctx.fillStyle = '#8b0000';
+            ctx.beginPath();
+            ctx.moveTo(p.x - p.radius, p.y + 15);
+            for (let w = 0; w <= 10; w++) {
+                const wx = p.x - p.radius + (w / 10) * p.radius * 2;
+                const wy = p.y - waveH * Math.sin((w / 10) * Math.PI) * (0.7 + Math.sin(Date.now() * 0.01 + w) * 0.3);
+                ctx.lineTo(wx, wy);
+            }
+            ctx.lineTo(p.x + p.radius, p.y + 15); ctx.closePath(); ctx.fill();
+            // Bright lava surface
+            ctx.fillStyle = '#ff4500'; ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(p.x - p.radius * 0.7, p.y + 10);
+            for (let w = 0; w <= 8; w++) {
+                const wx = p.x - p.radius * 0.7 + (w / 8) * p.radius * 1.4;
+                const wy = p.y - waveH * 0.6 * Math.sin((w / 8) * Math.PI) * (0.8 + Math.sin(Date.now() * 0.015 + w) * 0.2);
+                ctx.lineTo(wx, wy);
+            }
+            ctx.lineTo(p.x + p.radius * 0.7, p.y + 10); ctx.closePath(); ctx.fill();
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+            // Lava drip particles
+            if (Math.random() < 0.5) {
+                particles.push({ x: p.x + (Math.random()-0.5)*p.radius, y: p.y - Math.random()*20,
+                    vx: (Math.random()-0.5)*3, vy: -2 - Math.random()*3,
+                    life: 8 + Math.random()*6, maxLife: 14, color: '#ff6600' });
+            }
+        }
+
         else if (draw === 'footballKick') {
             ctx.globalAlpha = 0.95; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.015);
             ctx.shadowColor = '#228b22'; ctx.shadowBlur = 8;
@@ -11987,6 +12144,39 @@ function drawVictoryDance(fighter, frame) {
             // Cap
             ctx.fillStyle = '#4169e1';
             ctx.beginPath(); ctx.arc(0, headY - 8, 16, Math.PI, 0); ctx.fill();
+            break;
+        }
+        case 'magma': {
+            // Erupts upward, lava rains down
+            const eruptPhase = Math.min(frame / 40, 1);
+            const floatY = eruptPhase < 1 ? -eruptPhase * 30 : -30 + Math.sin(t * 3) * 5;
+            ctx.translate(0, floatY);
+            // Body glowing brighter over time
+            ctx.strokeStyle = `hsl(${15 + Math.sin(t*4)*10}, 100%, ${50 + eruptPhase * 20}%)`;
+            ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 20 + eruptPhase * 20;
+            ctx.beginPath(); ctx.arc(0, headY, 14, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 14); ctx.lineTo(0, -40); ctx.stroke();
+            // Arms raised summoning
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(-25, headY + 5 - eruptPhase * 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, headY + 24); ctx.lineTo(25, headY + 5 - eruptPhase * 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-10, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(10, 0); ctx.stroke();
+            // Lava erupting upward
+            if (frame > 20 && frame % 3 === 0) {
+                for (let i = 0; i < 6; i++) {
+                    particles.push({ x: fighter.x + (Math.random()-0.5)*40, y: fighter.y + floatY - 50,
+                        vx: (Math.random()-0.5)*6, vy: -5 - Math.random()*8,
+                        life: 15 + Math.random()*10, maxLife: 25,
+                        color: `hsl(${10 + Math.random()*20}, 100%, ${40 + Math.random()*30}%)` });
+                }
+            }
+            // "ERUPTION" text
+            if (frame > 30) {
+                ctx.globalAlpha = Math.min((frame - 30) / 20, 1);
+                ctx.font = 'bold 20px Arial'; ctx.fillStyle = '#ff4500'; ctx.textAlign = 'center';
+                ctx.fillText('ERUPTION!', 0, headY - 25);
+            }
+            ctx.shadowBlur = 0;
             break;
         }
         case 'football': {
