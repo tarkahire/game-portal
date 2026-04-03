@@ -87,8 +87,8 @@ let shakeOffsetX = 0;
 let shakeOffsetY = 0;
 
 function triggerScreenShake(intensity, duration) {
-    shakeIntensity = intensity;
-    shakeDuration = duration;
+    shakeIntensity = intensity * 0.3;
+    shakeDuration = Math.floor(duration * 0.4);
 }
 
 function updateScreenShake() {
