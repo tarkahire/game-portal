@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dad's Army — WW2 Strategy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="screen-login" class="screen active">
+    <div class="login-container">
+      <h1>Dad's Army</h1>
+      <p class="subtitle">Persistent WW2 Strategy</p>
+      <div id="auth-form">
+        <div id="login-form">
+          <input type="email" id="login-email" placeholder="Email" required>
+          <input type="password" id="login-password" placeholder="Password" required>
+          <button id="btn-login" class="btn-primary">Log In</button>
+          <button id="btn-google" class="btn-google">Sign in with Google</button>
+          <p class="switch-auth">No account? <a href="#" id="show-register">Register</a></p>
+        </div>
+        <div id="register-form" style="display:none">
+          <input type="email" id="register-email" placeholder="Email" required>
+          <input type="password" id="register-password" placeholder="Password (min 6 chars)" required>
+          <input type="text" id="register-name" placeholder="Display Name" required>
+          <button id="btn-register" class="btn-primary">Create Account</button>
+          <p class="switch-auth">Have an account? <a href="#" id="show-login">Log In</a></p>
+        </div>
+        <div id="auth-error" class="error-msg" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Server Select Screen -->
+  <div id="screen-servers" class="screen">
+    <div class="servers-container">
+      <div class="header-bar">
+        <h2>Select Server</h2>
+        <div class="user-info">
+          <span id="user-display-name"></span>
+          <button id="btn-logout" class="btn-small">Logout</button>
+        </div>
+      </div>
+      <div id="server-list" class="server-list">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Alignment Select Screen -->
+  <div id="screen-alignment" class="screen">
+    <div class="alignment-container">
+      <h2>Choose Your Doctrine</h2>
+      <p class="subtitle">Your alignment determines starting bonuses and playstyle</p>
+      <div id="alignment-grid" class="alignment-grid">
+        <!-- Populated dynamically from alignment_defs -->
+      </div>
+      <button id="btn-confirm-alignment" class="btn-primary" disabled>Confirm &amp; Deploy</button>
+    </div>
+  </div>
+
+  <!-- Game Screen (Map + UI Panels) -->
+  <div id="screen-game" class="screen">
+    <!-- Top Resource Bar -->
+    <div id="resource-bar" class="resource-bar">
+      <!-- Populated dynamically -->
+    </div>
+
+    <!-- Canvas for hex map -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Tile Info Panel (right side) -->
+    <div id="panel-tile-info" class="side-panel" style="display:none">
+      <div class="panel-header">
+        <h3 id="tile-info-title">Tile Info</h3>
+        <button class="btn-close" onclick="document.getElementById('panel-tile-info').style.display='none'">&times;</button>
+      </div>
+      <div id="tile-info-content"></div>
+    </div>
+
+    <!-- City Panel -->
+    <div id="panel-city" class="side-panel" style="display:none">
+      <div class="panel-header">
+        <h3 id="city-panel-title">City</h3>
+        <button class="btn-close" onclick="document.getElementById('panel-city').style.display='none'">&times;</button>
+      </div>
+      <div id="city-panel-content"></div>
+    </div>
+
+    <!-- Army Panel -->
+    <div id="panel-army" class="side-panel" style="display:none">
+      <div class="panel-header">
+        <h3>Army</h3>
+        <button class="btn-close" onclick="document.getElementById('panel-army').style.display='none'">&times;</button>
+      </div>
+      <div id="army-panel-content"></div>
+    </div>
+
+    <!-- Minimap -->
+    <canvas id="minimap-canvas" class="minimap"></canvas>
+
+    <!-- Bottom action bar -->
+    <div id="action-bar" class="action-bar">
+      <button class="action-btn" id="btn-toggle-supply" title="Toggle supply lines">Supply</button>
+      <button class="action-btn" id="btn-build-road" title="Build road">Road</button>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notification-container" class="notification-container"></div>
+  </div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- Game -->
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
