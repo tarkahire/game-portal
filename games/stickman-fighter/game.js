@@ -464,6 +464,229 @@ class Fighter {
             // Index 3 (Cyclone Burst) falls through — already has screen tear rage VFX
         }
 
+        // ── Water Rage Upgrades ──
+        if (this.rageActive && this.style === 'water') {
+            if (index === 0) {
+                // HYDRO CANNON — massive water beam across the screen
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 2;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 15; opponent.hit = true;
+                opponent.x += dir * kb;
+                this.castTimer = 20;
+                const beamY = this.y - this.height * 0.55;
+                const beamEndX = dir > 0 ? canvas.width + 50 : -50;
+                visualEffects.push({ type: 'hydroCannon', x1: this.x + dir * 30, y1: beamY, x2: beamEndX, y2: beamY, dir, life: 30, maxLife: 30 });
+                triggerScreenShake(14, 18); triggerHitstop(8); triggerScreenFlash('#3498db', 0.45);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 60);
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 20, maxLife: 20, color: '#3498db' });
+                return;
+            }
+            if (index === 1) {
+                // ABYSSAL FLOOD — screen-filling tidal wave
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 1.5;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 20; opponent.hit = true;
+                opponent.x += dir * kb;
+                opponent.vy = -6; opponent.onGround = false;
+                visualEffects.push({ type: 'abyssalFlood', dir, life: 55, maxLife: 55 });
+                triggerScreenShake(20, 25); triggerHitstop(10); triggerScreenFlash('#1a5276', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                return;
+            }
+            if (index === 2) {
+                // FROZEN GRAVEYARD — 5 ice spikes erupt across a wide area
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                const dist = Math.abs(this.x - opponent.x);
+                if (dist < 9999) {
+                    opponent.health = Math.max(0, opponent.health - damage);
+                    opponent.hitTimer = 18; opponent.hit = true;
+                    opponent.vy = -16; opponent.onGround = false;
+                    opponent.x += dir * kb;
+                }
+                for (let sp = -2; sp <= 2; sp++) spawnIceSpike(opponent.x + sp * 80, groundY);
+                visualEffects.push({ type: 'frostOverlay', life: 50, maxLife: 50 });
+                triggerScreenShake(18, 22); triggerHitstop(10); triggerScreenFlash('#aed6f1', 0.5);
+                return;
+            }
+            // Index 3 (Tsunami) falls through — already has screen fracture rage VFX
+        }
+
+        // ── Lightning Rage Upgrades ──
+        if (this.rageActive && this.style === 'lightning') {
+            if (index === 0) {
+                // CHAIN LIGHTNING — bolt jumps between caster and opponent multiple times
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 14; opponent.hit = true;
+                opponent.x += dir * atk.knockback * 1.5;
+                // Multiple lightning bolts
+                for (let b = 0; b < 5; b++) {
+                    setTimeout(() => {
+                        spawnLightningBolt(opponent.x + (Math.random() - 0.5) * 80, 0, groundY, 5);
+                        triggerScreenShake(4, 4);
+                    }, b * 50);
+                }
+                triggerScreenShake(10, 12); triggerHitstop(6); triggerScreenFlash('#f1c40f', 0.35);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 50);
+                return;
+            }
+            if (index === 1) {
+                // DIVINE SMITE — massive bolt from sky, lock-on, huge damage
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 2;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 20; opponent.hit = true;
+                opponent.x += dir * kb;
+                opponent.vy = -10; opponent.onGround = false;
+                spawnLightningBolt(opponent.x, 0, groundY, 14);
+                visualEffects.push({ type: 'divineSmite', x: opponent.x, life: 40, maxLife: 40 });
+                triggerScreenShake(25, 30); triggerHitstop(12); triggerScreenFlash('#f1c40f', 0.7);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 90);
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#f1c40f' });
+                return;
+            }
+            if (index === 2) {
+                // PLASMA FIELD — ball lightning that expands into a massive electric field
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 18; opponent.hit = true;
+                opponent.vy = -8; opponent.onGround = false;
+                visualEffects.push({ type: 'plasmaField', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 });
+                for (let b = 0; b < 8; b++) {
+                    const a = (b / 8) * Math.PI * 2;
+                    spawnLightningBolt(opponent.x + Math.cos(a) * 120, opponent.y - opponent.height * 0.5 - 100, groundY, 4);
+                }
+                triggerScreenShake(18, 22); triggerHitstop(10); triggerScreenFlash('#f1c40f', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                return;
+            }
+            // Index 3 (Lightning Storm) falls through — already has screen lightning rage VFX
+        }
+
+        // ── Earth Rage Upgrades ──
+        if (this.rageActive && this.style === 'earth') {
+            if (index === 0) {
+                // METEOR BARRAGE — 5 rocks fly at opponent from different angles
+                for (let r = 0; r < 5; r++) {
+                    const angle = -Math.PI * 0.3 + (r / 4) * Math.PI * 0.6;
+                    const spawnX = opponent.x + Math.cos(angle + Math.PI) * 250;
+                    const spawnY = -50 - r * 40;
+                    const dx = opponent.x - spawnX;
+                    const dy = (opponent.y - opponent.height * 0.5) - spawnY;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    const spd = 10 + r * 2;
+                    setTimeout(() => {
+                        projectiles.push({
+                            x: spawnX, y: spawnY,
+                            vx: (dx / d) * spd, vy: (dy / d) * spd,
+                            radius: 25, owner: this, target: opponent,
+                            atk: { ...atk, damage: Math.floor(atk.damage * 1.5 / 3), draw: 'rockShot', knockback: 6, blockReduction: 0.5 },
+                            styleData, life: 180, trail: [],
+                            rageVfx: null,
+                        });
+                    }, r * 60);
+                }
+                triggerScreenShake(8, 10); triggerScreenFlash('#a0522d', 0.2);
+                return;
+            }
+            if (index === 1) {
+                // MOUNTAIN RISE — colossal earth pillar + two flanking ones
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 1.5;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 20; opponent.hit = true;
+                opponent.vy = -14; opponent.onGround = false;
+                opponent.x += dir * kb;
+                spawnEarthPillar(opponent.x, groundY);
+                spawnEarthPillar(opponent.x - 90, groundY);
+                spawnEarthPillar(opponent.x + 90, groundY);
+                triggerScreenShake(30, 35); triggerHitstop(12); triggerScreenFlash('#a0522d', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: groundY - 50, life: 25, maxLife: 25, color: '#a0522d' });
+                return;
+            }
+            if (index === 2) {
+                // EARTHQUAKE — screen-wide ground eruption
+                let damage = Math.floor(atk.damage * 1.5);
+                if (opponent.blocking) damage = Math.floor(damage * (1 - atk.blockReduction));
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 18; opponent.hit = true;
+                opponent.vy = -10; opponent.onGround = false;
+                visualEffects.push({ type: 'earthquake', life: 50, maxLife: 50 });
+                for (let ep = 0; ep < 6; ep++) {
+                    spawnEarthPillar(100 + ep * (canvas.width - 200) / 5, groundY);
+                }
+                triggerScreenShake(35, 40); triggerHitstop(12); triggerScreenFlash('#a0522d', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                return;
+            }
+            // Index 3 (Boulder Crush) falls through — already has screen shatter rage VFX
+        }
+
+        // ── Acid Rage Upgrades ──
+        if (this.rageActive && this.style === 'acid') {
+            if (index === 0) {
+                // TOXIC SPRAY — 7 acid globs in a wide fan spread
+                for (let b = -3; b <= 3; b++) {
+                    projectiles.push({
+                        x: this.x + dir * 30,
+                        y: this.y - this.height * 0.55,
+                        vx: dir * atk.speed * 0.9,
+                        vy: b * 2.5,
+                        radius: atk.radius, owner: this, target: opponent,
+                        atk: { ...atk, damage: Math.floor(atk.damage * 1.5) }, styleData,
+                        life: 200, trail: [],
+                        rageVfx: null,
+                    });
+                }
+                triggerScreenFlash('#39ff14', 0.2);
+                return;
+            }
+            if (index === 1) {
+                // ACID STORM — massive acid rain, lock-on, huge damage
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 1.5;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 18; opponent.hit = true;
+                opponent.x += dir * kb;
+                spawnAcidRain(opponent.x, groundY);
+                spawnAcidRain(opponent.x - 100, groundY);
+                spawnAcidRain(opponent.x + 100, groundY);
+                visualEffects.push({ type: 'toxicOverlay', life: 45, maxLife: 45 });
+                triggerScreenShake(16, 22); triggerHitstop(10); triggerScreenFlash('#39ff14', 0.45);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 80);
+                return;
+            }
+            if (index === 2) {
+                // DISSOLUTION — screen-wide acid slash, massive curved line
+                let damage = Math.floor(atk.damage * 1.5);
+                let kb = atk.knockback * 1.5;
+                if (opponent.blocking) { damage = Math.floor(damage * (1 - atk.blockReduction)); kb *= (1 - atk.blockReduction); }
+                opponent.health = Math.max(0, opponent.health - damage);
+                opponent.hitTimer = 18; opponent.hit = true;
+                opponent.x += dir * kb;
+                // Two crossing slashes
+                spawnAcidSlash(this.x, this.y - this.height * 0.3, opponent.x, opponent.y - opponent.height * 0.8, dir);
+                spawnAcidSlash(this.x, this.y - this.height * 0.7, opponent.x, opponent.y - opponent.height * 0.2, dir);
+                triggerScreenShake(18, 22); triggerHitstop(10); triggerScreenFlash('#39ff14', 0.5);
+                spawnElementParticles(opponent.x, opponent.y - opponent.height * 0.5, styleData, 70);
+                visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 22, maxLife: 22, color: '#39ff14' });
+                return;
+            }
+            // Index 3 (Acid Monster) falls through — already has screen meltdown rage VFX
+        }
+
         if (atk.type === 'projectile') {
             // Meteor spawns behind the caster and flies diagonally at the opponent
             if (atk.special === 'meteor') {
@@ -1402,6 +1625,191 @@ function drawVisualEffects() {
                 ctx.beginPath(); ctx.arc(vfx.x1, vfx.y1, 50, 0, Math.PI * 2); ctx.fill();
             }
             ctx.shadowBlur = 0;
+        }
+
+        // ── Hydro Cannon (Water Rage) ──
+        if (vfx.type === 'hydroCannon') {
+            const prog = 1 - a;
+            const reveal = Math.min(prog * 5, 1);
+            const beamLen = (vfx.x2 - vfx.x1) * reveal;
+            const endX = vfx.x1 + beamLen;
+            ctx.globalAlpha = a * 0.4;
+            ctx.strokeStyle = '#1a5276'; ctx.lineWidth = 45 * a;
+            ctx.shadowColor = '#3498db'; ctx.shadowBlur = 50;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = '#3498db'; ctx.lineWidth = 24 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.globalAlpha = a * 0.9;
+            ctx.strokeStyle = '#85c1e9'; ctx.lineWidth = 12 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 5 * a;
+            ctx.beginPath(); ctx.moveTo(vfx.x1, vfx.y1); ctx.lineTo(endX, vfx.y1); ctx.stroke();
+            if (vfx.life % 2 === 0) {
+                for (let i = 0; i < 4; i++) {
+                    const px = vfx.x1 + Math.random() * beamLen;
+                    particles.push({ x: px, y: vfx.y1 + (Math.random() - 0.5) * 25,
+                        vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
+                        life: 8 + Math.random() * 6, maxLife: 14, color: '#aed6f1' });
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Abyssal Flood (Water Rage) ──
+        if (vfx.type === 'abyssalFlood') {
+            const prog = 1 - a;
+            const waveX = (vfx.dir > 0 ? -200 : canvas.width + 200) + vfx.dir * prog * (canvas.width + 400);
+            const waveH = 250;
+            // Dark underwater tint
+            ctx.globalAlpha = a * 0.3;
+            ctx.fillStyle = '#0a2540';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Rising water level
+            const waterLevel = groundY - prog * 150 * a;
+            ctx.globalAlpha = a * 0.4;
+            ctx.fillStyle = 'rgba(41, 128, 185, 0.5)';
+            ctx.fillRect(0, waterLevel, canvas.width, canvas.height - waterLevel);
+            // Massive wave
+            ctx.globalAlpha = a * 0.7;
+            ctx.shadowColor = '#2980b9'; ctx.shadowBlur = 30;
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.6)';
+            ctx.beginPath();
+            ctx.moveTo(waveX - 150, canvas.height);
+            ctx.quadraticCurveTo(waveX - 60, groundY - waveH * 0.5, waveX, groundY - waveH);
+            ctx.quadraticCurveTo(waveX + 80, groundY - waveH * 1.1, waveX + 120, groundY - waveH * 0.5);
+            ctx.quadraticCurveTo(waveX + 160, groundY, waveX + 200, canvas.height);
+            ctx.closePath(); ctx.fill();
+            // Foam cap
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(waveX - 20, groundY - waveH * 0.9);
+            ctx.quadraticCurveTo(waveX + 80, groundY - waveH * 1.1, waveX + 120, groundY - waveH * 0.5);
+            ctx.stroke();
+            // Bubbles
+            if (vfx.life % 2 === 0) {
+                for (let i = 0; i < 5; i++) {
+                    particles.push({ x: Math.random() * canvas.width, y: groundY + Math.random() * 30,
+                        vx: (Math.random() - 0.5) * 2, vy: -3 - Math.random() * 5,
+                        life: 10 + Math.random() * 10, maxLife: 20, color: '#aed6f1' });
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Frost Overlay (Water Rage - Frozen Graveyard) ──
+        if (vfx.type === 'frostOverlay') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.3;
+            // Frost edges on screen
+            const edgeW = 120 * a;
+            const fg1 = ctx.createLinearGradient(0, 0, edgeW, 0);
+            fg1.addColorStop(0, 'rgba(174,214,241,0.7)'); fg1.addColorStop(1, 'rgba(174,214,241,0)');
+            ctx.fillStyle = fg1; ctx.fillRect(0, 0, edgeW, canvas.height);
+            const fg2 = ctx.createLinearGradient(canvas.width, 0, canvas.width - edgeW, 0);
+            fg2.addColorStop(0, 'rgba(174,214,241,0.7)'); fg2.addColorStop(1, 'rgba(174,214,241,0)');
+            ctx.fillStyle = fg2; ctx.fillRect(canvas.width - edgeW, 0, edgeW, canvas.height);
+            const fg3 = ctx.createLinearGradient(0, 0, 0, edgeW);
+            fg3.addColorStop(0, 'rgba(214,234,248,0.6)'); fg3.addColorStop(1, 'rgba(214,234,248,0)');
+            ctx.fillStyle = fg3; ctx.fillRect(0, 0, canvas.width, edgeW);
+            // Ice crystals on edges
+            if (vfx.life % 4 === 0) {
+                particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height * 0.3,
+                    vx: (Math.random() - 0.5) * 1, vy: 0.5 + Math.random(),
+                    life: 15 + Math.random() * 10, maxLife: 25, color: '#d4efdf' });
+            }
+        }
+
+        // ── Divine Smite (Lightning Rage) ──
+        if (vfx.type === 'divineSmite') {
+            const prog = 1 - a;
+            // Massive pillar of light from sky
+            const pillarW = 80 * a;
+            ctx.globalAlpha = a * 0.6;
+            const pg = ctx.createLinearGradient(vfx.x, 0, vfx.x, groundY);
+            pg.addColorStop(0, 'rgba(241,196,15,0)'); pg.addColorStop(0.3, 'rgba(241,196,15,0.5)');
+            pg.addColorStop(0.7, 'rgba(255,255,255,0.8)'); pg.addColorStop(1, '#f1c40f');
+            ctx.fillStyle = pg;
+            ctx.fillRect(vfx.x - pillarW / 2, 0, pillarW, groundY);
+            // Inner bright core
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillRect(vfx.x - pillarW / 4, 0, pillarW / 2, groundY);
+            // Ground impact circle
+            ctx.globalAlpha = a * 0.7;
+            const cr = prog * 200;
+            ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 6;
+            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.arc(vfx.x, groundY, cr, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Plasma Field (Lightning Rage) ──
+        if (vfx.type === 'plasmaField') {
+            const prog = 1 - a;
+            const r = 60 + prog * 180;
+            ctx.globalAlpha = a * 0.4;
+            // Electric field sphere
+            ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 40;
+            const pfg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, r);
+            pfg.addColorStop(0, 'rgba(255,255,255,0.3)'); pfg.addColorStop(0.3, 'rgba(241,196,15,0.2)');
+            pfg.addColorStop(0.7, 'rgba(241,196,15,0.1)'); pfg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = pfg;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.fill();
+            // Crackling arcs across the field
+            ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2; ctx.globalAlpha = a * 0.7;
+            for (let i = 0; i < 6; i++) {
+                const a1 = Math.random() * Math.PI * 2;
+                const a2 = a1 + (Math.random() - 0.5) * 2;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x + Math.cos(a1) * r * 0.3, vfx.y + Math.sin(a1) * r * 0.3);
+                ctx.lineTo(vfx.x + Math.cos(a2) * r * 0.9, vfx.y + Math.sin(a2) * r * 0.9);
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Earthquake (Earth Rage) ──
+        if (vfx.type === 'earthquake') {
+            const prog = 1 - a;
+            // Ground cracking across entire screen
+            ctx.globalAlpha = a * 0.6;
+            ctx.strokeStyle = '#8b5e3c'; ctx.lineWidth = 4;
+            ctx.shadowColor = '#a0522d'; ctx.shadowBlur = 10;
+            for (let i = 0; i < 12; i++) {
+                const sx = (i / 12) * canvas.width;
+                ctx.beginPath(); ctx.moveTo(sx, groundY);
+                let cy = groundY;
+                for (let j = 0; j < 4; j++) {
+                    cy -= 20 + Math.random() * 30;
+                    ctx.lineTo(sx + (Math.random() - 0.5) * 40, cy);
+                }
+                ctx.stroke();
+            }
+            // Dust from ground
+            if (vfx.life % 2 === 0) {
+                for (let i = 0; i < 6; i++) {
+                    particles.push({ x: Math.random() * canvas.width, y: groundY,
+                        vx: (Math.random() - 0.5) * 6, vy: -4 - Math.random() * 8,
+                        life: 10 + Math.random() * 10, maxLife: 20,
+                        color: `hsl(28, 35%, ${35 + Math.random() * 25}%)` });
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Toxic Overlay (Acid Rage) ──
+        if (vfx.type === 'toxicOverlay') {
+            ctx.globalAlpha = a * 0.2;
+            ctx.fillStyle = '#39ff14';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Toxic drips from top
+            ctx.globalAlpha = a * 0.5;
+            for (let i = 0; i < 10; i++) {
+                const dx = (i / 10) * canvas.width + Math.sin(Date.now() * 0.002 + i) * 15;
+                const dripH = (Math.sin(Date.now() * 0.004 + i * 1.5) * 0.5 + 0.5) * 120 * a;
+                ctx.fillStyle = 'rgba(57,255,20,0.4)';
+                ctx.fillRect(dx - 5, 0, 10, dripH);
+            }
         }
 
         // ── Acid Rain ──
