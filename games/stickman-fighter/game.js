@@ -2321,43 +2321,59 @@ class Fighter {
         else if (vfx === 'flockAttack') { visualEffects.push({ type: 'flockAttack', x: opponent.x, life: 50, maxLife: 50 }); triggerScreenFlash('#9e9e9e', 0.4); }
         else if (vfx === 'theFace') { visualEffects.push({ type: 'theFace', x: opponent.x, y: canvas.height * 0.4, life: 60, maxLife: 60 }); triggerScreenFlash('#ffaa88', 0.5); }
         // ── New Style VFX ──
-        else if (vfx === 'frostNova') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 28, maxLife: 28 }); spawnIceSpike(opponent.x, groundY); triggerScreenFlash('#88cfff', 0.3); }
-        else if (vfx === 'blizzard') { visualEffects.push({ type: 'frostOverlay', life: 55, maxLife: 55 }); for (let i = 0; i < 5; i++) spawnIceSpike(opponent.x + (Math.random()-0.5)*200, groundY); triggerScreenFlash('#88cfff', 0.5); }
-        else if (vfx === 'crushField') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenFlash('#9b59b6', 0.3); }
+        // ICE
+        else if (vfx === 'frostNova') { visualEffects.push({ type: 'frostNova', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenShake(8, 12); triggerScreenFlash('#88cfff', 0.3); }
+        else if (vfx === 'blizzard') { visualEffects.push({ type: 'frostOverlay', life: 55, maxLife: 55 }); for (let i = 0; i < 5; i++) spawnIceSpike(opponent.x + (Math.random()-0.5)*200, groundY); visualEffects.push({ type: 'frostNova', x: opponent.x, y: opponent.y - opponent.height * 0.3, life: 35, maxLife: 35 }); triggerScreenFlash('#88cfff', 0.5); }
+        // GRAVITY
+        else if (vfx === 'crushField') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 100, life: 30, maxLife: 30 }); triggerScreenShake(6, 10); triggerScreenFlash('#9b59b6', 0.3); }
         else if (vfx === 'levitateSla') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#9b59b6' }); triggerScreenFlash('#9b59b6', 0.4); }
-        else if (vfx === 'singularity') { visualEffects.push({ type: 'voidGate', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 50, maxLife: 50 }); triggerScreenFlash('#9b59b6', 0.6); }
-        else if (vfx === 'slowZone') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30, color: '#f0e68c' }); triggerScreenFlash('#f0e68c', 0.3); }
-        else if (vfx === 'timeStop') { visualEffects.push({ type: 'eclipse', life: 40, maxLife: 40 }); triggerScreenFlash('#f0e68c', 0.7); }
-        else if (vfx === 'batSwarm') { visualEffects.push({ type: 'featherStorm', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#8b0000', 0.3); }
-        else if (vfx === 'lifeDrain') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); this.health = Math.min(MAX_HEALTH, this.health + 5); triggerScreenFlash('#8b0000', 0.4); }
-        else if (vfx === 'bloodMoon') { visualEffects.push({ type: 'eclipse', life: 50, maxLife: 50 }); triggerScreenFlash('#8b0000', 0.6); }
+        else if (vfx === 'singularity') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 180, life: 50, maxLife: 50 }); triggerScreenShake(12, 18); triggerScreenFlash('#9b59b6', 0.6); }
+        // TIME
+        else if (vfx === 'slowZone') { visualEffects.push({ type: 'slowZoneVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#f0e68c', 0.3); }
+        else if (vfx === 'timeStop') { visualEffects.push({ type: 'timeStopVfx', life: 45, maxLife: 45 }); triggerScreenFlash('#f0e68c', 0.7); }
+        // VAMPIRE
+        else if (vfx === 'batSwarm') { visualEffects.push({ type: 'batSwarmVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#8b0000', 0.3); }
+        else if (vfx === 'lifeDrain') { visualEffects.push({ type: 'lifeDrainVfx', x1: this.x, y1: this.y - this.height * 0.5, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); this.health = Math.min(MAX_HEALTH, this.health + 5); triggerScreenFlash('#8b0000', 0.4); }
+        else if (vfx === 'bloodMoon') { visualEffects.push({ type: 'bloodMoonVfx', life: 50, maxLife: 50 }); triggerScreenShake(10, 15); triggerScreenFlash('#8b0000', 0.6); }
+        // DRAGON
         else if (vfx === 'dragonBreath') { const beamY = this.y - this.height * 0.55; visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 30, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 25, maxLife: 25 }); triggerScreenFlash('#ff4500', 0.4); }
-        else if (vfx === 'tailSweep') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: groundY - 20, life: 25, maxLife: 25, color: '#ff4500' }); triggerScreenFlash('#ff4500', 0.3); }
-        else if (vfx === 'dragonRoar') { visualEffects.push({ type: 'radiantBurst', x: this.x, y: this.y - this.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#ff4500', 0.6); }
-        else if (vfx === 'soulDrain') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); this.health = Math.min(MAX_HEALTH, this.health + 4); triggerScreenFlash('#556b2f', 0.3); }
-        else if (vfx === 'armyOfDead') { visualEffects.push({ type: 'abyss', x: opponent.x, y: groundY, life: 50, maxLife: 50 }); triggerScreenFlash('#556b2f', 0.5); }
-        else if (vfx === 'repulse') { visualEffects.push({ type: 'radiantBurst', x: this.x, y: this.y - this.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#c0c0c0', 0.3); }
-        else if (vfx === 'ironPull') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#c0c0c0', 0.3); }
+        else if (vfx === 'tailSweep') { visualEffects.push({ type: 'tailSweepVfx', x: opponent.x, y: groundY - 10, life: 25, maxLife: 25 }); triggerScreenShake(6, 10); triggerScreenFlash('#ff4500', 0.3); }
+        else if (vfx === 'dragonRoar') { visualEffects.push({ type: 'dragonRoarVfx', x: this.x, y: this.y - this.height * 0.5, life: 35, maxLife: 35 }); triggerScreenShake(14, 20); triggerScreenFlash('#ff4500', 0.6); }
+        // NECRO
+        else if (vfx === 'soulDrain') { visualEffects.push({ type: 'soulDrainVfx', x1: this.x, y1: this.y - this.height * 0.5, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); this.health = Math.min(MAX_HEALTH, this.health + 4); triggerScreenFlash('#556b2f', 0.3); }
+        else if (vfx === 'armyOfDead') { for (let i = 0; i < 3; i++) visualEffects.push({ type: 'skeletonRiseVfx', x: opponent.x + (i - 1) * 60, y: groundY, life: 50, maxLife: 50 }); triggerScreenShake(10, 15); triggerScreenFlash('#556b2f', 0.5); }
+        // MAGNET
+        else if (vfx === 'repulse') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 25, maxLife: 25, color: '#c0c0c0' }); triggerScreenFlash('#c0c0c0', 0.3); }
+        else if (vfx === 'ironPull') { visualEffects.push({ type: 'gravityWell', x: opponent.x, y: opponent.y - opponent.height * 0.5, radius: 80, life: 25, maxLife: 25 }); triggerScreenFlash('#c0c0c0', 0.3); }
         else if (vfx === 'magneticStorm') { visualEffects.push({ type: 'diamondStorm', life: 50, maxLife: 50 }); triggerScreenFlash('#c0c0c0', 0.5); }
+        // MECH
         else if (vfx === 'laserEye') { const beamY = this.y - this.height * 0.7; visualEffects.push({ type: 'laserBeam', x1: this.x + dir * 20, y1: beamY, x2: dir > 0 ? canvas.width + 50 : -50, y2: beamY, dir, life: 22, maxLife: 22 }); triggerScreenFlash('#ff0000', 0.3); }
         else if (vfx === 'selfDestruct') { visualEffects.push({ type: 'meteorImpact', x: this.x, y: this.y - this.height * 0.5, life: 45, maxLife: 45 }); this.health = Math.max(0, this.health - 10); triggerScreenFlash('#ff4400', 0.7); }
-        else if (vfx === 'cheeseStretch') { visualEffects.push({ type: 'voidGrip', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25 }); triggerScreenFlash('#ff6347', 0.3); }
+        // PIZZA
+        else if (vfx === 'cheeseStretch') { visualEffects.push({ type: 'cheeseStretchVfx', x1: this.x, y1: this.y - this.height * 0.4, x2: opponent.x, y2: opponent.y - opponent.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#ff6347', 0.3); }
         else if (vfx === 'hotSauce') { spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4); triggerScreenFlash('#ff6347', 0.4); }
+        // CAT
         else if (vfx === 'scratchFury') { for (let s = 0; s < 3; s++) visualEffects.push({ type: 'phantomSlash', x: opponent.x + (Math.random()-0.5)*30, y: opponent.y - opponent.height * 0.5 + (s-1)*20, dir: s % 2 === 0 ? 1 : -1, life: 16, maxLife: 16 }); triggerScreenFlash('#dda0dd', 0.3); }
-        else if (vfx === 'catArmy') { visualEffects.push({ type: 'flockAttack', x: opponent.x, life: 55, maxLife: 55 }); triggerScreenFlash('#dda0dd', 0.5); }
-        else if (vfx === 'splitSlam') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: groundY - 20, life: 25, maxLife: 25, color: '#ffe135' }); triggerScreenFlash('#ffe135', 0.4); }
-        else if (vfx === 'potassiumOverload') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenFlash('#ffe135', 0.6); }
+        else if (vfx === 'catArmy') { visualEffects.push({ type: 'catArmyVfx', life: 55, maxLife: 55 }); triggerScreenShake(8, 12); triggerScreenFlash('#dda0dd', 0.5); }
+        // BANANA
+        else if (vfx === 'splitSlam') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: groundY - 20, life: 25, maxLife: 25, color: '#ffe135' }); for (let i = 0; i < 15; i++) { const pa = Math.random() * Math.PI * 2; const ps = 3 + Math.random() * 6; particles.push({ x: opponent.x, y: groundY - 20, vx: Math.cos(pa) * ps, vy: Math.sin(pa) * ps, life: 10 + Math.random() * 8, maxLife: 18, color: '#ffe135' }); } triggerScreenFlash('#ffe135', 0.4); }
+        else if (vfx === 'potassiumOverload') { visualEffects.push({ type: 'potassiumBlast', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 35, maxLife: 35 }); triggerScreenShake(12, 16); triggerScreenFlash('#ffe135', 0.6); }
+        // GRANDMA
         else if (vfx === 'purseSwing') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 22, maxLife: 22, color: '#deb887' }); triggerScreenFlash('#deb887', 0.3); }
-        else if (vfx === 'theChancla') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenFlash('#deb887', 0.6); }
-        else if (vfx === 'brushStroke') { spawnAcidSlash(this.x, this.y - this.height * 0.5, opponent.x, opponent.y - opponent.height * 0.5, dir); triggerScreenFlash('#ff69b4', 0.3); }
-        else if (vfx === 'masterpiece') { visualEffects.push({ type: 'totalCorruption', life: 50, maxLife: 50 }); triggerScreenFlash('#ff69b4', 0.6); }
-        else if (vfx === 'swarmCloud') { visualEffects.push({ type: 'featherStorm', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenFlash('#ffc107', 0.3); }
-        else if (vfx === 'queensWrath') { visualEffects.push({ type: 'flockAttack', x: opponent.x, life: 55, maxLife: 55 }); triggerScreenFlash('#ffc107', 0.5); }
-        else if (vfx === 'rulerSlap') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 22, maxLife: 22, color: '#2e8b57' }); triggerScreenFlash('#2e8b57', 0.3); }
-        else if (vfx === 'detention') { visualEffects.push({ type: 'eclipse', life: 45, maxLife: 45 }); triggerScreenFlash('#2e8b57', 0.5); }
+        else if (vfx === 'theChancla') { visualEffects.push({ type: 'chanclaVfx', x: opponent.x, y: opponent.y - opponent.height * 0.3, life: 40, maxLife: 40 }); triggerScreenShake(14, 18); triggerScreenFlash('#deb887', 0.6); }
+        // PAINTER
+        else if (vfx === 'brushStroke') { visualEffects.push({ type: 'paintStrokeVfx', x1: this.x, y1: this.y - this.height * 0.5, x2: opponent.x, y2: opponent.y - opponent.height * 0.5, dir, life: 25, maxLife: 25 }); triggerScreenFlash('#ff69b4', 0.3); }
+        else if (vfx === 'masterpiece') { visualEffects.push({ type: 'paintExplosion', life: 55, maxLife: 55 }); triggerScreenShake(10, 15); triggerScreenFlash('#ff69b4', 0.6); }
+        // BEE
+        else if (vfx === 'swarmCloud') { visualEffects.push({ type: 'beeSwarmVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenFlash('#ffc107', 0.3); }
+        else if (vfx === 'queensWrath') { visualEffects.push({ type: 'queensWrathVfx', x: opponent.x, y: opponent.y - opponent.height * 0.3, life: 55, maxLife: 55 }); triggerScreenShake(10, 15); triggerScreenFlash('#ffc107', 0.5); }
+        // TEACHER
+        else if (vfx === 'rulerSlap') { visualEffects.push({ type: 'rulerSlapVfx', x: opponent.x, y: opponent.y - opponent.height * 0.3, life: 25, maxLife: 25 }); triggerScreenShake(6, 10); triggerScreenFlash('#2e8b57', 0.3); }
+        else if (vfx === 'detention') { visualEffects.push({ type: 'detentionVfx', x: opponent.x, y: opponent.y, life: 50, maxLife: 50 }); triggerScreenShake(8, 12); triggerScreenFlash('#2e8b57', 0.5); }
+        // PLUMBER
         else if (vfx === 'pipeWrench') { visualEffects.push({ type: 'spinCycle', x: this.x, y: this.y - this.height * 0.4, life: 28, maxLife: 28 }); triggerScreenFlash('#4169e1', 0.3); }
         else if (vfx === 'floodBurst') { visualEffects.push({ type: 'floodRinse', life: 40, maxLife: 40 }); triggerScreenFlash('#4169e1', 0.4); }
-        else if (vfx === 'cloggedExplosion') { visualEffects.push({ type: 'meteorImpact', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 45, maxLife: 45 }); triggerScreenFlash('#4169e1', 0.6); }
+        else if (vfx === 'cloggedExplosion') { visualEffects.push({ type: 'clogExplosionVfx', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 40, maxLife: 40 }); triggerScreenShake(12, 16); triggerScreenFlash('#8b4513', 0.6); }
     }
 
     draw() {
@@ -4643,6 +4659,768 @@ function drawVisualEffects() {
                         color: `hsl(${110 + Math.random() * 15}, 100%, ${45 + Math.random() * 35}%)` });
                 }
             }
+        }
+
+        // ── Frost Nova (Ice) ──
+        if (vfx.type === 'frostNova') {
+            const prog = 1 - a;
+            const r = 30 + prog * 200;
+            ctx.shadowColor = '#88cfff'; ctx.shadowBlur = 35;
+            // Expanding icy ring
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = '#88cfff'; ctx.lineWidth = 8 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#aed6f1'; ctx.lineWidth = 4 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.65, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.3, 0, Math.PI * 2); ctx.stroke();
+            // Frost shards radiating outward
+            ctx.globalAlpha = a * 0.8;
+            for (let i = 0; i < 16; i++) {
+                const sa = (i / 16) * Math.PI * 2 + prog * 0.5;
+                const shardLen = r * 0.25;
+                const sx = vfx.x + Math.cos(sa) * r * 0.85;
+                const sy = vfx.y + Math.sin(sa) * r * 0.85;
+                ctx.strokeStyle = i % 2 === 0 ? '#fff' : '#88cfff'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(sx, sy);
+                ctx.lineTo(sx + Math.cos(sa) * shardLen, sy + Math.sin(sa) * shardLen); ctx.stroke();
+            }
+            // Center frost flash
+            if (prog < 0.3) {
+                ctx.globalAlpha = (0.3 - prog) / 0.3 * 0.6;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 80);
+                fg.addColorStop(0, '#fff'); fg.addColorStop(0.4, '#aed6f1'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 80, 0, Math.PI * 2); ctx.fill();
+            }
+            // Ice particles
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 4; i++) {
+                const pa = Math.random() * Math.PI * 2; const ps = 3 + Math.random() * 5;
+                particles.push({ x: vfx.x + Math.cos(pa) * r * 0.5, y: vfx.y + Math.sin(pa) * r * 0.5,
+                    vx: Math.cos(pa) * ps, vy: Math.sin(pa) * ps,
+                    life: 8 + Math.random() * 8, maxLife: 16, color: '#aed6f1' });
+            }} ctx.shadowBlur = 0;
+        }
+
+        // ── Gravity Well ──
+        if (vfx.type === 'gravityWell') {
+            const prog = 1 - a;
+            const r = vfx.radius || 120;
+            ctx.shadowColor = '#9b59b6'; ctx.shadowBlur = 30;
+            // Dark vortex center
+            ctx.globalAlpha = a * 0.85;
+            const vg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, r * 0.5);
+            vg.addColorStop(0, '#000'); vg.addColorStop(0.4, '#1a0030'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.5, 0, Math.PI * 2); ctx.fill();
+            // Concentric rings being pulled inward
+            for (let i = 0; i < 5; i++) {
+                const ringR = r * (1 - i * 0.15) * (1 - prog * 0.3);
+                ctx.globalAlpha = a * (0.6 - i * 0.1);
+                ctx.strokeStyle = `hsl(${280 + i * 8}, 70%, ${35 + i * 8}%)`; ctx.lineWidth = (4 - i * 0.5) * a;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, ringR, 0, Math.PI * 2); ctx.stroke();
+            }
+            // Swirling spiral lines being sucked in
+            ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                const sa = (i / 8) * Math.PI * 2 + Date.now() * 0.01;
+                ctx.globalAlpha = a * 0.5;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x + Math.cos(sa) * r * 1.2, vfx.y + Math.sin(sa) * r * 1.2);
+                ctx.quadraticCurveTo(vfx.x + Math.cos(sa + 0.8) * r * 0.5, vfx.y + Math.sin(sa + 0.8) * r * 0.5, vfx.x, vfx.y);
+                ctx.stroke();
+            }
+            // Particles spiraling inward
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 3; i++) {
+                const pa = Math.random() * Math.PI * 2;
+                particles.push({ x: vfx.x + Math.cos(pa) * r, y: vfx.y + Math.sin(pa) * r,
+                    vx: -Math.cos(pa) * 4, vy: -Math.sin(pa) * 4,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#9b59b6' });
+            }} ctx.shadowBlur = 0;
+        }
+
+        // ── Time Stop VFX ──
+        if (vfx.type === 'timeStopVfx') {
+            const prog = 1 - a;
+            // Golden/sepia screen overlay
+            ctx.globalAlpha = a * 0.45;
+            ctx.fillStyle = '#3a2a00'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = a * 0.15;
+            ctx.fillStyle = '#f0e68c'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Clock faces
+            ctx.globalAlpha = a * 0.7;
+            for (let i = 0; i < 5; i++) {
+                const cx = canvas.width * (0.15 + i * 0.18);
+                const cy = canvas.height * (0.25 + Math.sin(i * 2.1) * 0.15);
+                const cr = 25 + i * 5;
+                ctx.strokeStyle = '#daa520'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.stroke();
+                // Clock ticks
+                for (let t = 0; t < 12; t++) {
+                    const ta = (t / 12) * Math.PI * 2 - Math.PI / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cx + Math.cos(ta) * cr * 0.85, cy + Math.sin(ta) * cr * 0.85);
+                    ctx.lineTo(cx + Math.cos(ta) * cr * 0.95, cy + Math.sin(ta) * cr * 0.95);
+                    ctx.stroke();
+                }
+                // Spinning clock hands (frozen at different angles)
+                const handA = Date.now() * 0.001 + i * 1.3;
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(handA) * cr * 0.6, cy + Math.sin(handA) * cr * 0.6); ctx.stroke();
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(handA * 3) * cr * 0.75, cy + Math.sin(handA * 3) * cr * 0.75); ctx.stroke();
+                // Center dot
+                ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        // ── Slow Zone VFX ──
+        if (vfx.type === 'slowZoneVfx') {
+            const prog = 1 - a;
+            const r = 60 + prog * 100;
+            ctx.shadowColor = '#daa520'; ctx.shadowBlur = 20;
+            // Distortion ring
+            ctx.globalAlpha = a * 0.6;
+            ctx.strokeStyle = '#f0e68c'; ctx.lineWidth = 6 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#daa520'; ctx.lineWidth = 3 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.7, 0, Math.PI * 2); ctx.stroke();
+            // Clock-like ticks around the ring
+            ctx.globalAlpha = a * 0.8;
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+            for (let t = 0; t < 12; t++) {
+                const ta = (t / 12) * Math.PI * 2 + Date.now() * 0.002;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x + Math.cos(ta) * r * 0.88, vfx.y + Math.sin(ta) * r * 0.88);
+                ctx.lineTo(vfx.x + Math.cos(ta) * r, vfx.y + Math.sin(ta) * r);
+                ctx.stroke();
+            }
+            // Inner golden glow
+            if (prog < 0.4) {
+                ctx.globalAlpha = (0.4 - prog) / 0.4 * 0.3;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, r * 0.6);
+                fg.addColorStop(0, '#ffd700'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.6, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Bat Swarm VFX (Vampire) ──
+        if (vfx.type === 'batSwarmVfx') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.8;
+            for (let i = 0; i < 10; i++) {
+                const ba = Date.now() * 0.008 + i * 0.63;
+                const orbR = 30 + i * 8 + Math.sin(Date.now() * 0.005 + i) * 15;
+                const bx = vfx.x + Math.cos(ba) * orbR;
+                const by = vfx.y + Math.sin(ba * 0.7) * orbR * 0.6;
+                const sz = 6 + Math.sin(i * 1.5) * 2;
+                ctx.save(); ctx.translate(bx, by);
+                // Bat shape: M-like wings + body
+                ctx.fillStyle = i % 3 === 0 ? '#2c0000' : '#1a0000';
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(-sz * 1.5, -sz * 1.2, -sz * 2.5, -sz * 0.3);
+                ctx.quadraticCurveTo(-sz * 1.5, sz * 0.2, -sz * 0.8, -sz * 0.2);
+                ctx.quadraticCurveTo(-sz * 0.3, sz * 0.4, 0, sz * 0.3);
+                ctx.quadraticCurveTo(sz * 0.3, sz * 0.4, sz * 0.8, -sz * 0.2);
+                ctx.quadraticCurveTo(sz * 1.5, sz * 0.2, sz * 2.5, -sz * 0.3);
+                ctx.quadraticCurveTo(sz * 1.5, -sz * 1.2, 0, 0);
+                ctx.fill();
+                // Red eyes
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath(); ctx.arc(-sz * 0.2, -sz * 0.1, 1.2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(sz * 0.2, -sz * 0.1, 1.2, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // ── Life Drain VFX (Vampire) ──
+        if (vfx.type === 'lifeDrainVfx') {
+            const prog = 1 - a;
+            ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 15;
+            ctx.globalAlpha = a * 0.7;
+            // Red energy particles flowing from opponent to caster
+            const dx = vfx.x1 - vfx.x2; const dy = vfx.y1 - vfx.y2;
+            for (let i = 0; i < 12; i++) {
+                const t = (i / 12 + Date.now() * 0.002) % 1;
+                const px = vfx.x2 + dx * t + Math.sin(t * Math.PI * 4 + i) * 15;
+                const py = vfx.y2 + dy * t + Math.cos(t * Math.PI * 4 + i) * 15;
+                const pr = 3 + Math.sin(t * Math.PI) * 3;
+                ctx.fillStyle = i % 2 === 0 ? '#8b0000' : '#dc143c';
+                ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+            }
+            // Connecting beam
+            ctx.globalAlpha = a * 0.3;
+            ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(vfx.x2, vfx.y2); ctx.lineTo(vfx.x1, vfx.y1); ctx.stroke();
+            // Spawn drifting red particles along path
+            if (vfx.life % 3 === 0) {
+                const rt = Math.random();
+                particles.push({ x: vfx.x2 + dx * rt, y: vfx.y2 + dy * rt,
+                    vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#dc143c' });
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Blood Moon VFX (Vampire) ──
+        if (vfx.type === 'bloodMoonVfx') {
+            const prog = 1 - a;
+            // Dark red overlay
+            ctx.globalAlpha = a * 0.4;
+            ctx.fillStyle = '#1a0000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Large blood moon at top
+            const moonX = canvas.width / 2; const moonY = canvas.height * 0.2; const moonR = 70;
+            ctx.globalAlpha = a * 0.9;
+            ctx.shadowColor = '#8b0000'; ctx.shadowBlur = 60;
+            ctx.fillStyle = '#8b0000'; ctx.beginPath(); ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2); ctx.fill();
+            // Darker inner shadow
+            ctx.fillStyle = '#5a0000'; ctx.beginPath(); ctx.arc(moonX + 10, moonY - 5, moonR * 0.7, 0, Math.PI * 2); ctx.fill();
+            // Crimson corona
+            ctx.strokeStyle = '#dc143c'; ctx.lineWidth = 3; ctx.globalAlpha = a * 0.6;
+            ctx.beginPath(); ctx.arc(moonX, moonY, moonR + 8, 0, Math.PI * 2); ctx.stroke();
+            // Blood rays
+            for (let i = 0; i < 10; i++) {
+                const ra = (i / 10) * Math.PI * 2 + Date.now() * 0.001;
+                const rayLen = 20 + Math.sin(Date.now() * 0.005 + i * 2) * 10;
+                ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 2; ctx.globalAlpha = a * 0.4;
+                ctx.beginPath(); ctx.moveTo(moonX + Math.cos(ra) * (moonR + 10), moonY + Math.sin(ra) * (moonR + 10));
+                ctx.lineTo(moonX + Math.cos(ra) * (moonR + 10 + rayLen), moonY + Math.sin(ra) * (moonR + 10 + rayLen)); ctx.stroke();
+            }
+            // Dripping blood particles
+            if (vfx.life % 3 === 0) {
+                particles.push({ x: moonX + (Math.random() - 0.5) * moonR, y: moonY + moonR,
+                    vx: (Math.random() - 0.5) * 2, vy: 3 + Math.random() * 4,
+                    life: 15 + Math.random() * 10, maxLife: 25, color: '#8b0000' });
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Dragon Roar VFX ──
+        if (vfx.type === 'dragonRoarVfx') {
+            const prog = 1 - a;
+            ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 40;
+            // Multiple expanding shockwave rings
+            for (let i = 0; i < 4; i++) {
+                const delay = i * 0.08;
+                const ringProg = Math.max(0, prog - delay);
+                if (ringProg <= 0) continue;
+                const r = ringProg * 280;
+                ctx.globalAlpha = a * (0.7 - i * 0.15);
+                ctx.strokeStyle = i === 0 ? '#ff4500' : i === 1 ? '#ff6600' : '#ff8c00'; ctx.lineWidth = (8 - i * 1.5) * a;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            }
+            // Fiery center glow
+            if (prog < 0.3) {
+                ctx.globalAlpha = (0.3 - prog) / 0.3 * 0.7;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 100);
+                fg.addColorStop(0, '#fff'); fg.addColorStop(0.3, '#ff4500'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 100, 0, Math.PI * 2); ctx.fill();
+            }
+            // Fire particles from roar
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 5; i++) {
+                const pa = Math.random() * Math.PI * 2; const ps = 4 + Math.random() * 7;
+                particles.push({ x: vfx.x, y: vfx.y, vx: Math.cos(pa) * ps, vy: Math.sin(pa) * ps,
+                    life: 10 + Math.random() * 10, maxLife: 20,
+                    color: `hsl(${15 + Math.random() * 20}, 100%, ${50 + Math.random() * 30}%)` });
+            }} ctx.shadowBlur = 0;
+        }
+
+        // ── Tail Sweep VFX (Dragon) ──
+        if (vfx.type === 'tailSweepVfx') {
+            const prog = 1 - a;
+            const reveal = Math.min(prog * 5, 1);
+            ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 25;
+            // Wide arc slash along ground
+            const sweepAngle = reveal * Math.PI * 0.8;
+            const startAngle = Math.PI - sweepAngle / 2;
+            const arcR = 120;
+            // Outer glow arc
+            ctx.globalAlpha = a * 0.5;
+            ctx.strokeStyle = '#ff4500'; ctx.lineWidth = 18 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, arcR, startAngle, startAngle + sweepAngle); ctx.stroke();
+            // Main arc
+            ctx.globalAlpha = a * 0.8;
+            ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 8 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, arcR, startAngle, startAngle + sweepAngle); ctx.stroke();
+            // White core
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, arcR, startAngle, startAngle + sweepAngle); ctx.stroke();
+            // Ground dust at sweep
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 3; i++) {
+                particles.push({ x: vfx.x + (Math.random() - 0.5) * 200, y: vfx.y,
+                    vx: (Math.random() - 0.5) * 6, vy: -2 - Math.random() * 4,
+                    life: 8 + Math.random() * 6, maxLife: 14,
+                    color: `hsl(${20 + Math.random() * 15}, 80%, ${40 + Math.random() * 30}%)` });
+            }} ctx.shadowBlur = 0;
+        }
+
+        // ── Skeleton Rise VFX (Necro) ──
+        if (vfx.type === 'skeletonRiseVfx') {
+            const prog = 1 - a;
+            const riseH = Math.min(prog * 4, 1) * 60;
+            ctx.shadowColor = '#556b2f'; ctx.shadowBlur = 20;
+            ctx.globalAlpha = a * 0.8;
+            // Green glow from ground
+            const gg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 80);
+            gg.addColorStop(0, 'rgba(85,107,47,0.5)'); gg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 80, 0, Math.PI * 2); ctx.fill();
+            // Multiple skeletal hands reaching up
+            for (let h = 0; h < 4; h++) {
+                const hx = vfx.x + (h - 1.5) * 35;
+                const hy = vfx.y;
+                ctx.strokeStyle = '#d2b48c'; ctx.lineWidth = 3;
+                // Forearm
+                ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx, hy - riseH); ctx.stroke();
+                // Palm
+                ctx.beginPath(); ctx.moveTo(hx - 6, hy - riseH); ctx.lineTo(hx + 6, hy - riseH); ctx.stroke();
+                // Fingers (5 bony fingers)
+                for (let f = 0; f < 5; f++) {
+                    const fx = hx - 6 + f * 3;
+                    const fLen = 8 + Math.sin(f * 1.2 + vfx.life * 0.1) * 3;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.moveTo(fx, hy - riseH);
+                    ctx.lineTo(fx + (f - 2) * 1.5, hy - riseH - fLen); ctx.stroke();
+                }
+            }
+            // Green wisps
+            if (vfx.life % 3 === 0) {
+                particles.push({ x: vfx.x + (Math.random() - 0.5) * 100, y: vfx.y,
+                    vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 3,
+                    life: 10 + Math.random() * 8, maxLife: 18, color: '#556b2f' });
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Soul Drain VFX (Necro) ──
+        if (vfx.type === 'soulDrainVfx') {
+            const prog = 1 - a;
+            ctx.shadowColor = '#556b2f'; ctx.shadowBlur = 15;
+            ctx.globalAlpha = a * 0.7;
+            // Ghostly green wisps flowing from opponent to caster
+            const dx = vfx.x1 - vfx.x2; const dy = vfx.y1 - vfx.y2;
+            for (let i = 0; i < 10; i++) {
+                const t = (i / 10 + Date.now() * 0.002) % 1;
+                const px = vfx.x2 + dx * t + Math.sin(t * Math.PI * 3 + i) * 20;
+                const py = vfx.y2 + dy * t + Math.cos(t * Math.PI * 3 + i) * 20;
+                const pr = 4 + Math.sin(t * Math.PI) * 4;
+                // Ghostly wisp shape
+                ctx.fillStyle = i % 3 === 0 ? '#7cfc00' : i % 3 === 1 ? '#556b2f' : '#9acd32';
+                ctx.globalAlpha = a * (0.4 + Math.sin(t * Math.PI) * 0.3);
+                ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+                // Wisp tail
+                ctx.strokeStyle = '#556b2f'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(px, py);
+                ctx.quadraticCurveTo(px - dx * 0.05, py - dy * 0.05 + 8, px - dx * 0.08, py - dy * 0.08); ctx.stroke();
+            }
+            // Connecting spectral line
+            ctx.globalAlpha = a * 0.2;
+            ctx.strokeStyle = '#7cfc00'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(vfx.x2, vfx.y2); ctx.lineTo(vfx.x1, vfx.y1); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Cheese Stretch VFX (Pizza) ──
+        if (vfx.type === 'cheeseStretchVfx') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.8;
+            ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 10;
+            // Stretchy cheese lines between two points
+            for (let i = 0; i < 6; i++) {
+                const wobble = Math.sin(Date.now() * 0.008 + i * 1.3) * (20 + i * 5);
+                const sag = 30 + i * 8;
+                ctx.strokeStyle = i % 2 === 0 ? '#ffa500' : '#ffcc00'; ctx.lineWidth = (4 - i * 0.4) * a;
+                ctx.beginPath();
+                ctx.moveTo(vfx.x1, vfx.y1 + (i - 2.5) * 8);
+                const cpx = (vfx.x1 + vfx.x2) / 2 + wobble;
+                const cpy = (vfx.y1 + vfx.y2) / 2 + sag;
+                ctx.quadraticCurveTo(cpx, cpy, vfx.x2, vfx.y2 + (i - 2.5) * 8);
+                ctx.stroke();
+            }
+            // Dripping cheese blobs
+            if (vfx.life % 3 === 0) {
+                const t = Math.random();
+                const mx = vfx.x1 + (vfx.x2 - vfx.x1) * t;
+                const my = (vfx.y1 + vfx.y2) / 2 + 20;
+                particles.push({ x: mx, y: my, vx: (Math.random() - 0.5) * 1, vy: 2 + Math.random() * 3,
+                    life: 8 + Math.random() * 6, maxLife: 14, color: '#ffa500' });
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Cat Army VFX ──
+        if (vfx.type === 'catArmyVfx') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.15; ctx.fillStyle = '#1a001a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = a * 0.8;
+            for (let c = 0; c < 12; c++) {
+                const cx = (c * 113 + Date.now() * 0.1) % (canvas.width + 100) - 50;
+                const cy = groundY - 15 - Math.abs(Math.sin(Date.now() * 0.006 + c)) * 20;
+                const sz = 8 + (c % 3) * 4;
+                ctx.save(); ctx.translate(cx, cy);
+                // Body
+                ctx.fillStyle = ['#333', '#666', '#ff8c00', '#888', '#222'][c % 5];
+                ctx.beginPath(); ctx.ellipse(0, 0, sz * 1.2, sz * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+                // Head
+                ctx.beginPath(); ctx.arc(sz * 0.9, -sz * 0.3, sz * 0.55, 0, Math.PI * 2); ctx.fill();
+                // Ears (triangles)
+                ctx.beginPath(); ctx.moveTo(sz * 0.55, -sz * 0.7); ctx.lineTo(sz * 0.75, -sz * 1.2); ctx.lineTo(sz * 0.95, -sz * 0.7); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(sz * 0.85, -sz * 0.7); ctx.lineTo(sz * 1.05, -sz * 1.2); ctx.lineTo(sz * 1.25, -sz * 0.7); ctx.fill();
+                // Eyes
+                ctx.fillStyle = '#0f0'; ctx.beginPath(); ctx.arc(sz * 0.78, -sz * 0.4, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(sz * 1.02, -sz * 0.4, 1.5, 0, Math.PI * 2); ctx.fill();
+                // Tail
+                ctx.strokeStyle = ctx.fillStyle = ['#333', '#666', '#ff8c00', '#888', '#222'][c % 5];
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(-sz * 1.1, 0);
+                ctx.quadraticCurveTo(-sz * 1.6, -sz * 0.8, -sz * 1.3, -sz * 1.1); ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // ── Potassium Blast VFX (Banana) ──
+        if (vfx.type === 'potassiumBlast') {
+            const prog = 1 - a;
+            const r = 40 + prog * 200;
+            ctx.shadowColor = '#ffe135'; ctx.shadowBlur = 35;
+            // Yellow explosion ring
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = '#ffe135'; ctx.lineWidth = 8 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#ffff00'; ctx.lineWidth = 4 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+            // Banana-shaped fragments flying outward
+            ctx.globalAlpha = a * 0.8;
+            for (let i = 0; i < 8; i++) {
+                const ba = (i / 8) * Math.PI * 2 + prog * 1.5;
+                const bDist = r * 0.5 + prog * 40;
+                const bx = vfx.x + Math.cos(ba) * bDist;
+                const by = vfx.y + Math.sin(ba) * bDist;
+                ctx.save(); ctx.translate(bx, by); ctx.rotate(ba + prog * 3);
+                // Banana shape: curved arc
+                ctx.strokeStyle = '#ffe135'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.arc(0, 0, 10, 0.3, Math.PI - 0.3); ctx.stroke();
+                ctx.restore();
+            }
+            // Center flash
+            if (prog < 0.25) {
+                ctx.globalAlpha = (0.25 - prog) / 0.25 * 0.7;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 80);
+                fg.addColorStop(0, '#fff'); fg.addColorStop(0.3, '#ffe135'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 80, 0, Math.PI * 2); ctx.fill();
+            }
+            // Yellow/green particles
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 4; i++) {
+                const pa = Math.random() * Math.PI * 2; const ps = 4 + Math.random() * 6;
+                particles.push({ x: vfx.x, y: vfx.y, vx: Math.cos(pa) * ps, vy: Math.sin(pa) * ps,
+                    life: 8 + Math.random() * 8, maxLife: 16,
+                    color: Math.random() > 0.5 ? '#ffe135' : '#7fff00' });
+            }} ctx.shadowBlur = 0;
+        }
+
+        // ── Chancla VFX (Grandma) ──
+        if (vfx.type === 'chanclaVfx') {
+            const prog = 1 - a;
+            const slamProg = Math.min(prog * 4, 1);
+            // Giant slipper descending from above
+            const slipperY = vfx.y - 200 * (1 - slamProg);
+            const slipperX = vfx.x;
+            const rotation = prog * Math.PI * 4; // spinning
+            ctx.save();
+            ctx.translate(slipperX, slipperY);
+            ctx.rotate(slamProg < 1 ? rotation : 0);
+            ctx.globalAlpha = a * 0.9;
+            ctx.shadowColor = '#deb887'; ctx.shadowBlur = 20;
+            // Slipper body (rectangle with rounded end)
+            ctx.fillStyle = '#8b4513';
+            ctx.beginPath();
+            ctx.moveTo(-15, -30); ctx.lineTo(15, -30);
+            ctx.lineTo(18, 25); ctx.quadraticCurveTo(0, 35, -18, 25);
+            ctx.closePath(); ctx.fill();
+            // Strap
+            ctx.strokeStyle = '#deb887'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(-12, -10); ctx.quadraticCurveTo(0, -20, 12, -10); ctx.stroke();
+            // Sole line
+            ctx.strokeStyle = '#5a2d0c'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-15, 20); ctx.lineTo(15, 20); ctx.stroke();
+            ctx.restore();
+            // Impact ring when slammed
+            if (slamProg >= 0.9) {
+                const impactR = (prog - 0.225) * 400;
+                if (impactR > 0) {
+                    ctx.globalAlpha = a * 0.6;
+                    ctx.strokeStyle = '#deb887'; ctx.lineWidth = 6 * a;
+                    ctx.beginPath(); ctx.arc(vfx.x, vfx.y, impactR, 0, Math.PI * 2); ctx.stroke();
+                }
+                // Impact lines
+                ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 3;
+                for (let i = 0; i < 8; i++) {
+                    const la = (i / 8) * Math.PI * 2;
+                    const ll = 20 + prog * 40;
+                    ctx.beginPath(); ctx.moveTo(vfx.x + Math.cos(la) * 15, vfx.y + Math.sin(la) * 15);
+                    ctx.lineTo(vfx.x + Math.cos(la) * ll, vfx.y + Math.sin(la) * ll); ctx.stroke();
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Paint Explosion VFX (Painter) ──
+        if (vfx.type === 'paintExplosion') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.25; ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Random colored paint blobs splattering
+            ctx.globalAlpha = a * 0.7;
+            if (!vfx.blobs) {
+                vfx.blobs = [];
+                for (let i = 0; i < 25; i++) {
+                    vfx.blobs.push({
+                        x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                        r: 15 + Math.random() * 50,
+                        color: `hsl(${Math.random() * 360}, 80%, 55%)`,
+                        delay: Math.random() * 0.5
+                    });
+                }
+            }
+            for (const blob of vfx.blobs) {
+                if (prog < blob.delay) continue;
+                const blobProg = Math.min((prog - blob.delay) / 0.3, 1);
+                const br = blob.r * blobProg;
+                ctx.fillStyle = blob.color;
+                ctx.beginPath(); ctx.arc(blob.x, blob.y, br, 0, Math.PI * 2); ctx.fill();
+                // Splatter drips
+                ctx.fillStyle = blob.color;
+                for (let d = 0; d < 3; d++) {
+                    const da = Math.random() * Math.PI * 2;
+                    ctx.beginPath(); ctx.arc(blob.x + Math.cos(da) * br * 1.2, blob.y + Math.sin(da) * br * 1.2, br * 0.2, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+        }
+
+        // ── Paint Stroke VFX (Painter) ──
+        if (vfx.type === 'paintStrokeVfx') {
+            const prog = 1 - a;
+            const reveal = Math.min(prog * 5, 1);
+            ctx.shadowBlur = 15;
+            // Rainbow-colored slash segments
+            const colors = ['#ff0000', '#ff8800', '#ffff00', '#00ff00', '#00aaff', '#0044ff', '#8800ff', '#ff00ff'];
+            const dx = vfx.x2 - vfx.x1; const dy = vfx.y2 - vfx.y1;
+            for (let i = 0; i < colors.length; i++) {
+                const t0 = i / colors.length; const t1 = (i + 1) / colors.length;
+                if (t0 > reveal) break;
+                const tEnd = Math.min(t1, reveal);
+                ctx.globalAlpha = a * 0.8;
+                ctx.strokeStyle = colors[i]; ctx.lineWidth = (12 - i * 0.5) * a;
+                ctx.shadowColor = colors[i];
+                ctx.beginPath();
+                ctx.moveTo(vfx.x1 + dx * t0, vfx.y1 + dy * t0 + Math.sin(t0 * Math.PI * 3) * 10);
+                ctx.lineTo(vfx.x1 + dx * tEnd, vfx.y1 + dy * tEnd + Math.sin(tEnd * Math.PI * 3) * 10);
+                ctx.stroke();
+            }
+            // Paint splatter particles
+            if (vfx.life % 2 === 0) {
+                const t = Math.random() * reveal;
+                const px = vfx.x1 + dx * t; const py = vfx.y1 + dy * t;
+                particles.push({ x: px, y: py, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5,
+                    life: 8 + Math.random() * 6, maxLife: 14,
+                    color: colors[Math.floor(Math.random() * colors.length)] });
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Bee Swarm VFX ──
+        if (vfx.type === 'beeSwarmVfx') {
+            const prog = 1 - a;
+            ctx.globalAlpha = a * 0.8;
+            for (let b = 0; b < 14; b++) {
+                // Erratic buzzing movement
+                const ba = Date.now() * 0.012 + b * 0.45;
+                const orbR = 25 + b * 6 + Math.sin(Date.now() * 0.008 + b * 2.3) * 15;
+                const bx = vfx.x + Math.cos(ba) * orbR + Math.sin(Date.now() * 0.015 + b) * 10;
+                const by = vfx.y + Math.sin(ba * 1.3) * orbR * 0.5 + Math.cos(Date.now() * 0.012 + b) * 8;
+                const sz = 4 + (b % 3);
+                ctx.save(); ctx.translate(bx, by);
+                // Bee body (yellow/black stripes)
+                ctx.fillStyle = '#ffc107';
+                ctx.beginPath(); ctx.ellipse(0, 0, sz * 1.3, sz * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+                // Black stripes
+                ctx.fillStyle = '#000';
+                ctx.fillRect(-sz * 0.3, -sz * 0.7, sz * 0.3, sz * 1.4);
+                ctx.fillRect(sz * 0.3, -sz * 0.7, sz * 0.3, sz * 1.4);
+                // Wings
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                const wingFlap = Math.sin(Date.now() * 0.04 + b) * 0.3;
+                ctx.beginPath(); ctx.ellipse(-sz * 0.2, -sz * 0.8 - wingFlap * 3, sz * 0.6, sz * 0.3, -0.3, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(sz * 0.2, -sz * 0.8 - wingFlap * 3, sz * 0.6, sz * 0.3, 0.3, 0, Math.PI * 2); ctx.fill();
+                // Stinger
+                ctx.fillStyle = '#000';
+                ctx.beginPath(); ctx.moveTo(sz * 1.3, 0); ctx.lineTo(sz * 1.8, -1); ctx.lineTo(sz * 1.8, 1); ctx.closePath(); ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // ── Queen's Wrath VFX (Bee) ──
+        if (vfx.type === 'queensWrathVfx') {
+            const prog = 1 - a;
+            const descend = Math.min(prog * 3, 1);
+            ctx.globalAlpha = a * 0.2; ctx.fillStyle = '#1a1500'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Giant queen bee descending
+            const qx = vfx.x; const qy = -80 + descend * (vfx.y + 30);
+            const sz = 25;
+            ctx.globalAlpha = a * 0.9;
+            ctx.save(); ctx.translate(qx, qy);
+            ctx.shadowColor = '#ffc107'; ctx.shadowBlur = 30;
+            // Large body
+            ctx.fillStyle = '#ffc107';
+            ctx.beginPath(); ctx.ellipse(0, 0, sz * 1.5, sz, 0, 0, Math.PI * 2); ctx.fill();
+            // Black stripes
+            ctx.fillStyle = '#000';
+            for (let s = -1; s <= 1; s++) {
+                ctx.fillRect(s * sz * 0.6 - sz * 0.15, -sz, sz * 0.3, sz * 2);
+            }
+            // Crown
+            ctx.fillStyle = '#ffd700'; ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-sz * 0.6, -sz * 0.9);
+            ctx.lineTo(-sz * 0.4, -sz * 1.5); ctx.lineTo(-sz * 0.1, -sz * 1.0);
+            ctx.lineTo(sz * 0.15, -sz * 1.5); ctx.lineTo(sz * 0.4, -sz * 1.0);
+            ctx.lineTo(sz * 0.6, -sz * 1.5); ctx.lineTo(sz * 0.7, -sz * 0.9);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+            // Wings
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            const wf = Math.sin(Date.now() * 0.03) * 5;
+            ctx.beginPath(); ctx.ellipse(-sz * 0.5, -sz * 1.2 - wf, sz * 1.2, sz * 0.5, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sz * 0.5, -sz * 1.2 - wf, sz * 1.2, sz * 0.5, 0.3, 0, Math.PI * 2); ctx.fill();
+            // Stinger
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.moveTo(sz * 1.5, 0); ctx.lineTo(sz * 2.2, -2); ctx.lineTo(sz * 2.2, 2); ctx.closePath(); ctx.fill();
+            ctx.restore();
+            // Stinger projectiles flying at opponent
+            if (descend >= 0.8 && vfx.life % 3 === 0) {
+                for (let i = 0; i < 3; i++) {
+                    const sa = Math.random() * Math.PI * 0.5 + Math.PI * 0.25;
+                    particles.push({ x: qx, y: qy + sz, vx: Math.cos(sa) * 6 * (Math.random() > 0.5 ? 1 : -1), vy: Math.abs(Math.sin(sa)) * 8,
+                        life: 10 + Math.random() * 8, maxLife: 18, color: '#000' });
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Ruler Slap VFX (Teacher) ──
+        if (vfx.type === 'rulerSlapVfx') {
+            const prog = 1 - a;
+            const slamProg = Math.min(prog * 6, 1);
+            // Ruler descending and slamming
+            const rulerAngle = slamProg < 1 ? -Math.PI / 4 + slamProg * Math.PI / 4 : 0;
+            const rulerX = vfx.x; const rulerY = vfx.y - 40 * (1 - slamProg);
+            ctx.save(); ctx.translate(rulerX, rulerY); ctx.rotate(rulerAngle);
+            ctx.globalAlpha = a * 0.9;
+            // Ruler body
+            ctx.fillStyle = '#8b6914'; ctx.fillRect(-60, -6, 120, 12);
+            // Ruler markings
+            ctx.strokeStyle = '#4a3500'; ctx.lineWidth = 1;
+            for (let m = 0; m < 12; m++) {
+                const mx = -55 + m * 10;
+                ctx.beginPath(); ctx.moveTo(mx, -6); ctx.lineTo(mx, m % 2 === 0 ? 0 : -3); ctx.stroke();
+            }
+            // Metal edge
+            ctx.fillStyle = '#aaa'; ctx.fillRect(-60, 5, 120, 2);
+            ctx.restore();
+            // Impact effects when slammed
+            if (slamProg >= 0.9) {
+                ctx.globalAlpha = a * 0.7;
+                // Impact lines radiating
+                ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 3;
+                for (let i = 0; i < 10; i++) {
+                    const la = (i / 10) * Math.PI * 2;
+                    const inner = 15; const outer = 15 + prog * 50;
+                    ctx.beginPath();
+                    ctx.moveTo(vfx.x + Math.cos(la) * inner, vfx.y + Math.sin(la) * inner);
+                    ctx.lineTo(vfx.x + Math.cos(la) * outer, vfx.y + Math.sin(la) * outer);
+                    ctx.stroke();
+                }
+                // Red impact flash
+                ctx.globalAlpha = a * 0.3;
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 30, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // ── Detention VFX (Teacher) ──
+        if (vfx.type === 'detentionVfx') {
+            const prog = 1 - a;
+            const descend = Math.min(prog * 4, 1);
+            ctx.globalAlpha = a * 0.3; ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Vertical bars descending around opponent
+            ctx.globalAlpha = a * 0.8;
+            const barCount = 8; const barW = 6;
+            const cageW = 120; const cageH = 180;
+            const cx = vfx.x; const cy = vfx.y;
+            for (let b = 0; b < barCount; b++) {
+                const bx = cx - cageW / 2 + (b / (barCount - 1)) * cageW;
+                const barTop = cy - cageH * descend;
+                const barBot = cy;
+                // Bar gradient
+                const bg = ctx.createLinearGradient(bx, barTop, bx + barW, barTop);
+                bg.addColorStop(0, '#777'); bg.addColorStop(0.5, '#bbb'); bg.addColorStop(1, '#666');
+                ctx.fillStyle = bg;
+                ctx.fillRect(bx - barW / 2, barTop, barW, barBot - barTop);
+            }
+            // Horizontal bars (top and bottom)
+            if (descend > 0.8) {
+                ctx.fillStyle = '#999';
+                ctx.fillRect(cx - cageW / 2 - 5, cy - cageH * descend, cageW + 10, 8);
+                ctx.fillRect(cx - cageW / 2 - 5, cy - 4, cageW + 10, 8);
+            }
+            // Impact shake effect
+            if (descend >= 0.95 && prog < 0.35) {
+                if (vfx.life % 3 === 0) {
+                    particles.push({ x: cx + (Math.random() - 0.5) * cageW, y: cy,
+                        vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 3,
+                        life: 6 + Math.random() * 4, maxLife: 10, color: '#888' });
+                }
+            }
+        }
+
+        // ── Clog Explosion VFX (Plumber) ──
+        if (vfx.type === 'clogExplosionVfx') {
+            const prog = 1 - a;
+            const r = 30 + prog * 180;
+            ctx.shadowColor = '#8b4513'; ctx.shadowBlur = 25;
+            // Brown dirty explosion ring
+            ctx.globalAlpha = a * 0.6;
+            ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 8 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#a0522d'; ctx.lineWidth = 4 * a;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+            // Pipe fragments flying outward
+            ctx.globalAlpha = a * 0.8;
+            for (let i = 0; i < 6; i++) {
+                const fa = (i / 6) * Math.PI * 2 + prog * 2;
+                const fd = r * 0.4 + prog * 30;
+                const fx = vfx.x + Math.cos(fa) * fd;
+                const fy = vfx.y + Math.sin(fa) * fd;
+                ctx.save(); ctx.translate(fx, fy); ctx.rotate(fa + prog * 4);
+                ctx.fillStyle = '#808080';
+                ctx.fillRect(-8, -3, 16, 6);
+                ctx.fillStyle = '#666'; ctx.fillRect(-8, -3, 4, 6);
+                ctx.restore();
+            }
+            // Brown/dirty center splash
+            if (prog < 0.3) {
+                ctx.globalAlpha = (0.3 - prog) / 0.3 * 0.5;
+                const fg = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, 70);
+                fg.addColorStop(0, '#deb887'); fg.addColorStop(0.5, '#8b4513'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(vfx.x, vfx.y, 70, 0, Math.PI * 2); ctx.fill();
+            }
+            // Brown particles
+            if (vfx.life % 2 === 0) { for (let i = 0; i < 5; i++) {
+                const pa = Math.random() * Math.PI * 2; const ps = 3 + Math.random() * 6;
+                particles.push({ x: vfx.x, y: vfx.y, vx: Math.cos(pa) * ps, vy: Math.sin(pa) * ps,
+                    life: 10 + Math.random() * 8, maxLife: 18,
+                    color: Math.random() > 0.5 ? '#8b4513' : '#808080' });
+            }} ctx.shadowBlur = 0;
         }
     }
     ctx.globalAlpha = 1;
