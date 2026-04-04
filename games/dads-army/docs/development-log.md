@@ -148,4 +148,28 @@ Why: A game this complex needs clear design docs as source of truth. Every syste
 
 ---
 
+## 2026-04-04 (continued) — City Management Panel
+
+### What was built
+- **City panel UI**: Click a city tile → "View City" button → opens full city management panel showing city name, level, capital status, resource stockpiles with production rates, and building slot grid.
+- **Building slots**: Shows all slots for the city level (3/5/8/12/16 per level 1-5). Occupied slots show building name, level, category. Under-construction slots show ETA countdown. Empty slots have dashed "Build" buttons.
+- **Build picker**: Clicking an empty slot opens a categorized building picker (military, production, economy, research, defense, infrastructure) showing all 22 building types from building_defs with costs and build times.
+- **Building upgrades**: Completed buildings show an "Upgrade to Lv X" button with resource costs. Calls the upgrade_building RPC.
+- **Construction via game tick**: Buildings start at level 0 (constructing), complete_buildings tick function levels them up when construction_completes_at passes.
+
+### Queries added/fixed
+- Fixed `getCityBuildings`: wrong table name (`city_buildings` → `buildings`) and 3 wrong column names (BUG-022)
+- Added `upgradeBuilding` query calling the upgrade_building RPC
+
+### SQL fixes created (012_fix_building_functions.sql)
+- `build_building`: owner_id → player_id, parse costs from JSONB, parse build time from JSONB, match by id not name, fix slot counts
+- `upgrade_building`: same fixes
+- `complete_buildings`: owner_id → player_id
+
+### Current state
+- City management is **complete** (building slots, construction, upgrades, resource display)
+- Next: military system (train units, form armies, march to destination)
+
+---
+
 *More entries will be added as development progresses.*

@@ -54,13 +54,13 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 - [x] Extraction intensity toggle (sustainable vs intensive)
 
 ### City Building
-- [ ] Build city on disused land tiles
-- [ ] Build city on depleted resource tiles (below 20% reserves, with land quality penalties)
-- [ ] Land quality stat affecting construction costs and building effectiveness
-- [ ] Building slot system (slots unlock with city level)
-- [ ] 8-10 core building types with construction queues
-- [ ] Building upgrade system (level up existing buildings)
-- [ ] City resource display (stored resources, production rates, storage capacity)
+- [x] Build city on disused land tiles
+- [x] Build city on depleted resource tiles (below 20% reserves, with land quality penalties)
+- [x] Land quality stat affecting construction costs and building effectiveness
+- [x] Building slot system (slots unlock with city level)
+- [x] 8-10 core building types with construction queues
+- [x] Building upgrade system (level up existing buildings)
+- [x] City resource display (stored resources, production rates, storage capacity)
 
 ### Supply Lines
 - [ ] Road construction between tiles

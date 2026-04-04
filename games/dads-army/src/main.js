@@ -16,6 +16,10 @@ import {
   getCityResources,
   getPlayerCities,
   getAllCities,
+  getCityBuildings,
+  getBuildingDefs,
+  buildBuilding,
+  upgradeBuilding,
 } from './api/queries.js';
 import { HexRenderer } from './map/HexRenderer.js';
 
@@ -38,6 +42,12 @@ let hexRenderer = null;
 
 /** Current player record on the active server. */
 let currentPlayerRecord = null;
+
+/** Cached building definitions (loaded once per session). */
+let buildingDefsCache = null;
+
+/** All cities on the current server, keyed by tile_id. */
+let citiesByTile = new Map();
 
 // ---------- DOM References ----------
 
@@ -424,14 +434,22 @@ scenes.register('game', {
       showTileInfo(tile);
     });
 
-    // Load tiles and cities from Supabase
+    // Load tiles, cities, and building defs from Supabase
     try {
-      const [tiles, allCities, myCities] = await Promise.all([
+      const [tiles, allCities, myCities, bDefs] = await Promise.all([
         getServerTiles(serverId),
         getAllCities(serverId),
         getPlayerCities(serverId),
+        buildingDefsCache ? Promise.resolve(buildingDefsCache) : getBuildingDefs(),
       ]);
-      console.log(`[Main] Loaded ${tiles.length} tiles, ${allCities.length} cities (${myCities.length} mine)`);
+      buildingDefsCache = bDefs;
+      console.log(`[Main] Loaded ${tiles.length} tiles, ${allCities.length} cities (${myCities.length} mine), ${bDefs.length} building defs`);
+
+      // Build cities-by-tile lookup
+      citiesByTile.clear();
+      for (const city of allCities) {
+        citiesByTile.set(Number(city.tile_id), city);
+      }
 
       // Mark tiles that have cities so we don't show "Build City" on them
       const cityTileIds = new Set(allCities.map(c => Number(c.tile_id)));
@@ -510,7 +528,13 @@ async function showTileInfo(tile) {
   `;
 
   if (hasCity) {
-    html += `<div class="tile-info-row"><strong>City</strong></div>`;
+    const city = citiesByTile.get(Number(tile.id));
+    const cityName = city ? escapeHtml(city.name) : 'City';
+    const cityLevel = city ? city.level : '?';
+    html += `<div class="tile-info-row"><strong>City:</strong> ${cityName} (Lv ${cityLevel})</div>`;
+    if (isOwned && city) {
+      html += `<div class="tile-actions"><button class="btn-action btn-action-primary" id="btn-view-city" data-city-id="${city.id}">View City</button></div>`;
+    }
   }
 
   if (hasResource) {
@@ -589,6 +613,15 @@ async function showTileInfo(tile) {
   content.innerHTML = html;
   panel.style.display = 'block';
 
+  // Wire up "View City" button
+  const btnViewCity = document.getElementById('btn-view-city');
+  if (btnViewCity) {
+    btnViewCity.addEventListener('click', () => {
+      const cityId = btnViewCity.dataset.cityId;
+      showCityPanel(cityId);
+    });
+  }
+
   // Wire up extraction intensity buttons
   if (resourceField) {
     const intensityBtns = content.querySelectorAll('.intensity-btn');
@@ -666,6 +699,231 @@ async function showTileInfo(tile) {
   }
 }
 
+// ---------- City Management Panel ----------
+
+/** Slot counts per city level. */
+const CITY_SLOTS = { 1: 3, 2: 5, 3: 8, 4: 12, 5: 16 };
+
+/**
+ * Show the city management panel for a given city.
+ * @param {string} cityId — UUID
+ */
+async function showCityPanel(cityId) {
+  const panel = document.getElementById('panel-city');
+  const titleEl = document.getElementById('city-panel-title');
+  const contentEl = document.getElementById('city-panel-content');
+  if (!panel || !contentEl) return;
+
+  contentEl.innerHTML = '<div class="loading-spinner" style="margin:30px auto"></div>';
+  panel.style.display = 'block';
+
+  try {
+    const [buildings, resources] = await Promise.all([
+      getCityBuildings(cityId),
+      getCityResources(cityId),
+    ]);
+
+    // Find city info from our cache
+    let cityInfo = null;
+    for (const city of citiesByTile.values()) {
+      if (city.id === cityId) { cityInfo = city; break; }
+    }
+
+    const cityName = cityInfo ? cityInfo.name : 'City';
+    const cityLevel = cityInfo ? cityInfo.level : 1;
+    const maxSlots = CITY_SLOTS[cityLevel] || 3;
+    const isCapital = cityInfo?.is_capital;
+
+    titleEl.textContent = cityName;
+
+    // Build the panel HTML
+    let html = '';
+
+    // City header info
+    html += `<div class="panel-section">
+      <div class="panel-row"><span class="label">Level</span><span class="value">${cityLevel}</span></div>
+      <div class="panel-row"><span class="label">Slots</span><span class="value">${buildings.length} / ${maxSlots}</span></div>
+      ${isCapital ? '<div class="panel-row"><span class="label">Capital</span><span class="value" style="color:var(--color-gold)">Yes</span></div>' : ''}
+    </div>`;
+
+    // Resource production summary
+    if (resources && resources.length > 0) {
+      html += `<div class="panel-section"><div class="panel-section-title">Resources</div>`;
+      for (const r of resources) {
+        const rateClass = r.production_rate >= 0 ? '' : ' negative';
+        const rateSign = r.production_rate >= 0 ? '+' : '';
+        html += `<div class="panel-row">
+          <span class="label">${capitalize(r.resource_type)}</span>
+          <span class="value">${Math.floor(r.amount)} <span class="resource-rate${rateClass}">${rateSign}${r.production_rate.toFixed(1)}/t</span></span>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // Building slots
+    html += `<div class="panel-section"><div class="panel-section-title">Buildings</div>`;
+
+    // Create a map of slot_index → building
+    const slotMap = new Map();
+    for (const b of buildings) {
+      slotMap.set(b.slot_index, b);
+    }
+
+    for (let i = 0; i < maxSlots; i++) {
+      const building = slotMap.get(i);
+      if (building) {
+        const def = buildingDefsCache?.find(d => d.id === building.building_def);
+        const bName = def ? def.name : building.building_def;
+        const bCategory = def ? def.category : '';
+
+        if (building.is_constructing) {
+          // Under construction — show progress
+          const completesAt = new Date(building.construction_completes_at);
+          const now = Date.now();
+          const remaining = Math.max(0, completesAt - now);
+          const mins = Math.ceil(remaining / 60000);
+          const targetLevel = building.level + 1;
+
+          html += `<div class="building-slot constructing">
+            <div class="building-slot-header">
+              <span class="building-name">${escapeHtml(bName)}</span>
+              <span class="building-level">Lv ${targetLevel}</span>
+            </div>
+            <div class="building-category">${capitalize(bCategory)}</div>
+            <div class="building-progress-bar"><div class="building-progress-fill" style="width:0%"></div></div>
+            <div class="building-eta">Building... ~${mins} min</div>
+          </div>`;
+        } else {
+          // Completed building — show info + upgrade button
+          const maxBuildingLevel = def ? def.max_level : 3;
+          const canUpgrade = building.level < maxBuildingLevel;
+          let upgradeCostHtml = '';
+          if (canUpgrade && def) {
+            const costs = def.costs_per_level?.[building.level];
+            if (costs) {
+              upgradeCostHtml = Object.entries(costs).map(([r, a]) =>
+                `${Math.ceil(a)} ${r}`
+              ).join(', ');
+            }
+          }
+
+          html += `<div class="building-slot">
+            <div class="building-slot-header">
+              <span class="building-name">${escapeHtml(bName)}</span>
+              <span class="building-level">Lv ${building.level}</span>
+            </div>
+            <div class="building-category">${capitalize(bCategory)}</div>
+            ${canUpgrade ? `<button class="btn-action btn-upgrade" data-building-id="${building.id}">Upgrade to Lv ${building.level + 1}${upgradeCostHtml ? ` (${upgradeCostHtml})` : ''}</button>` : '<div class="building-maxed">Max Level</div>'}
+          </div>`;
+        }
+      } else {
+        // Empty slot — show build button
+        html += `<div class="building-slot empty">
+          <button class="btn-action btn-build-slot" data-slot="${i}" data-city-id="${cityId}">+ Build (Slot ${i + 1})</button>
+        </div>`;
+      }
+    }
+
+    html += `</div>`;
+    contentEl.innerHTML = html;
+
+    // Wire up upgrade buttons
+    contentEl.querySelectorAll('.btn-upgrade').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Upgrading...';
+        try {
+          await upgradeBuilding(btn.dataset.buildingId);
+          await showCityPanel(cityId); // Refresh panel
+        } catch (err) {
+          console.error('[Main] Upgrade failed:', err);
+          alert('Upgrade failed: ' + (err.message || 'Unknown error'));
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Wire up empty slot build buttons
+    contentEl.querySelectorAll('.btn-build-slot').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const slotIndex = parseInt(btn.dataset.slot, 10);
+        showBuildPicker(cityId, slotIndex);
+      });
+    });
+
+  } catch (err) {
+    console.error('[Main] Failed to load city data:', err);
+    contentEl.innerHTML = '<p style="padding:16px;color:var(--color-red)">Failed to load city data.</p>';
+  }
+}
+
+/**
+ * Show a building picker for an empty slot.
+ * @param {string} cityId
+ * @param {number} slotIndex
+ */
+function showBuildPicker(cityId, slotIndex) {
+  const contentEl = document.getElementById('city-panel-content');
+  if (!contentEl || !buildingDefsCache) return;
+
+  // Group buildings by category
+  const categories = {};
+  for (const def of buildingDefsCache) {
+    if (!categories[def.category]) categories[def.category] = [];
+    categories[def.category].push(def);
+  }
+
+  let html = `<div class="panel-section">
+    <div class="panel-section-title">Choose Building — Slot ${slotIndex + 1}</div>
+    <button class="btn-action" id="btn-cancel-build" style="margin-bottom:10px">Cancel</button>
+  `;
+
+  for (const [cat, defs] of Object.entries(categories)) {
+    html += `<div class="build-category-title">${capitalize(cat)}</div>`;
+    for (const def of defs) {
+      const costs = def.costs_per_level?.[0];
+      const costStr = costs
+        ? Object.entries(costs).map(([r, a]) => `${a} ${r}`).join(', ')
+        : '?';
+      const buildTimeSecs = def.build_time_per_level?.[0] || 0;
+      const buildTimeMins = Math.ceil(buildTimeSecs / 60);
+
+      html += `<div class="build-option" data-def-id="${def.id}">
+        <div class="build-option-name">${escapeHtml(def.name)}</div>
+        <div class="build-option-desc">${escapeHtml(def.description || '')}</div>
+        <div class="build-option-cost">Cost: ${costStr}</div>
+        <div class="build-option-time">Build: ~${buildTimeMins} min</div>
+      </div>`;
+    }
+  }
+
+  html += `</div>`;
+  contentEl.innerHTML = html;
+
+  // Cancel button
+  document.getElementById('btn-cancel-build')?.addEventListener('click', () => {
+    showCityPanel(cityId);
+  });
+
+  // Build option clicks
+  contentEl.querySelectorAll('.build-option').forEach(opt => {
+    opt.addEventListener('click', async () => {
+      const defId = opt.dataset.defId;
+      opt.style.opacity = '0.5';
+      opt.style.pointerEvents = 'none';
+      try {
+        await buildBuilding(cityId, defId, slotIndex);
+        await showCityPanel(cityId); // Refresh
+      } catch (err) {
+        console.error('[Main] Build failed:', err);
+        alert('Build failed: ' + (err.message || 'Unknown error'));
+        opt.style.opacity = '1';
+        opt.style.pointerEvents = 'auto';
+      }
+    });
+  });
+}
+
 /** Reload tiles from Supabase and re-render the map. */
 async function refreshMap() {
   if (!hexRenderer || !selectedServerId) return;
@@ -674,9 +932,14 @@ async function refreshMap() {
       getServerTiles(selectedServerId),
       getAllCities(selectedServerId),
     ]);
-    const cityTileIds = new Set(allCities.map(c => c.tile_id));
+    // Update cities cache
+    citiesByTile.clear();
+    for (const city of allCities) {
+      citiesByTile.set(Number(city.tile_id), city);
+    }
+    const cityTileIds = new Set(allCities.map(c => Number(c.tile_id)));
     for (const tile of tiles) {
-      tile._hasCity = cityTileIds.has(tile.id);
+      tile._hasCity = cityTileIds.has(Number(tile.id));
     }
     hexRenderer.loadTiles(tiles, currentPlayerRecord);
     // Re-select the same tile to refresh the panel

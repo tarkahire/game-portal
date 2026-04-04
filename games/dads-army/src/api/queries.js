@@ -249,14 +249,14 @@ export async function buildCity(tileId, serverId, name) {
 }
 
 /**
- * Get the building slots and their contents for a city.
+ * Get all buildings in a city.
  * @param {string} cityId
  * @returns {Promise<object[]>}
  */
 export async function getCityBuildings(cityId) {
   const { data, error } = await supabase
-    .from('city_buildings')
-    .select('id, building_def_key, slot_index, level, is_upgrading, upgrade_finishes_at')
+    .from('buildings')
+    .select('id, building_def, slot_index, level, is_constructing, construction_completes_at')
     .eq('city_id', cityId)
     .order('slot_index', { ascending: true });
 
@@ -269,9 +269,9 @@ export async function getCityBuildings(cityId) {
 }
 
 /**
- * Build or upgrade a building in a city slot via RPC.
+ * Build a new building in a city slot via RPC.
  * @param {string} cityId
- * @param {string} buildingDef — building definition key
+ * @param {string} buildingDef — building definition id (e.g. 'barracks')
  * @param {number} slotIndex — the slot to build in
  * @returns {Promise<object>}
  */
@@ -284,6 +284,24 @@ export async function buildBuilding(cityId, buildingDef, slotIndex) {
 
   if (error) {
     console.error('[queries] buildBuilding:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Upgrade an existing building to the next level via RPC.
+ * @param {string} buildingId — buildings UUID
+ * @returns {Promise<void>}
+ */
+export async function upgradeBuilding(buildingId) {
+  const { data, error } = await supabase.rpc('upgrade_building', {
+    p_building_id: buildingId,
+  });
+
+  if (error) {
+    console.error('[queries] upgradeBuilding:', error);
     throw error;
   }
 

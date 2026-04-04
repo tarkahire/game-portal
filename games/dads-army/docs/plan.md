@@ -11,7 +11,7 @@
 | Phase | Status | Summary |
 |-------|--------|---------|
 | Phase 0: Docs & Scaffolding | DONE | 27 docs, file structure, auto-doc system |
-| Phase 1: MVP | IN PROGRESS | Auth, server join, hex map, tile interaction done. City management next. |
+| Phase 1: MVP | IN PROGRESS | Auth, server join, hex map, tile interaction, city management done. Military next. |
 | Phase 2: Strategic Depth | NOT STARTED | Full resources, research, naval, air, alliances, fog of war |
 | Phase 3: War Economy | NOT STARTED | Supply chains, stranding, debt, trade, intelligence |
 | Phase 4: Endgame & Polish | NOT STARTED | Victory conditions, coalitions, tutorial, mobile |
@@ -42,11 +42,11 @@
 - [x] Visual feedback: owned tiles glow, city markers
 
 ### Then — City Management
-- [ ] City view panel (buildings, slots, construction queue)
-- [ ] Build buildings from building_defs (barracks, steel mill, etc.)
-- [ ] Building construction timer + completion via game tick
-- [ ] Resource production display (what each building produces)
-- [ ] Upgrade buildings
+- [x] City view panel (buildings, slots, construction queue)
+- [x] Build buildings from building_defs (barracks, steel mill, etc.)
+- [x] Building construction timer + completion via game tick
+- [x] Resource production display (what each building produces)
+- [x] Upgrade buildings
 
 ### Then — Military
 - [ ] Train units (infantry, armor, artillery) at military buildings

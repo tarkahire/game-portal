@@ -705,14 +705,145 @@ input[type="text"]:focus {
   cursor: not-allowed;
 }
 
-.panel-section-title {
+/* ---------- City Panel: Building Slots ---------- */
+.building-slot {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.building-slot.empty {
+  padding: 6px 0;
+}
+
+.building-slot.constructing {
+  opacity: 0.85;
+}
+
+.building-slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.building-name {
   font-family: var(--font-mono);
+  font-size: 0.9em;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.building-level {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  color: var(--color-gold);
+  font-weight: 700;
+}
+
+.building-category {
   font-size: 0.75em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.building-maxed {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.building-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.building-progress-fill {
+  height: 100%;
+  background: var(--color-gold);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.building-eta {
+  font-size: 0.75em;
+  color: var(--color-gold);
+  font-family: var(--font-mono);
+  margin-top: 3px;
+}
+
+.btn-upgrade {
+  margin-top: 6px;
+  font-size: 0.78em !important;
+  padding: 6px 10px !important;
+}
+
+.btn-build-slot {
+  width: 100%;
+  font-size: 0.82em !important;
+  color: var(--text-muted) !important;
+  border-style: dashed !important;
+}
+
+/* ---------- City Panel: Build Picker ---------- */
+.build-category-title {
+  font-family: var(--font-mono);
+  font-size: 0.7em;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--text-muted);
-  margin-bottom: 10px;
+  color: var(--color-olive-light);
+  margin: 12px 0 6px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(107,122,63,0.3);
 }
+
+.build-option {
+  padding: 10px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.build-option:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-active);
+}
+
+.build-option-name {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.build-option-desc {
+  font-size: 0.78em;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.build-option-cost {
+  font-size: 0.75em;
+  color: var(--color-gold);
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}
+
+.build-option-time {
+  font-size: 0.72em;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.panel-section-title {
 
 .panel-row {
   display: flex;

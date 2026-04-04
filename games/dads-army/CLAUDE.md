@@ -73,7 +73,7 @@ games/dads-army/
 
 ## Current Phase
 
-**Phase 1: MVP** — Supabase live, auth working, hex map, tile interaction (claim, develop, build city, extraction intensity) all done. Next: city management.
+**Phase 1: MVP** — Auth, hex map, tile interaction, city management done. Next: military (train units, form armies, movement).
 
 ## Conventions
 
