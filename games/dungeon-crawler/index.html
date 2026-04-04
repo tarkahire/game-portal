@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Crawler</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen active">
+        <div class="title-content">
+            <h1>DUNGEON<br><span class="subtitle">CRAWLER</span></h1>
+            <p class="tagline">Descend into darkness. Survive.</p>
+            <div class="menu-buttons">
+                <button id="btn-solo" class="menu-btn">Solo</button>
+                <button id="btn-coop" class="menu-btn">2P Co-op</button>
+                <button id="btn-shop" class="menu-btn secondary">Shop</button>
+                <button id="btn-stats" class="menu-btn secondary">Stats</button>
+            </div>
+            <div class="controls-hint">
+                <p>P1: WASD + Mouse | P2: Arrows + Numpad</p>
+            </div>
+            <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+        </div>
+    </div>
+
+    <!-- Class Select Screen -->
+    <div id="class-screen" class="screen">
+        <h2>CHOOSE YOUR CLASS</h2>
+        <div id="p2-class-label" class="p2-label" style="display:none">Player 2 — Choose Class</div>
+        <div class="class-grid">
+            <div class="class-card" data-class="warrior">
+                <div class="class-icon warrior-icon"></div>
+                <h3>Warrior</h3>
+                <div class="class-stats">
+                    <div class="stat-row"><span>HP</span><div class="stat-bar"><div class="stat-fill" style="width:90%"></div></div></div>
+                    <div class="stat-row"><span>ATK</span><div class="stat-bar"><div class="stat-fill" style="width:70%"></div></div></div>
+                    <div class="stat-row"><span>SPD</span><div class="stat-bar"><div class="stat-fill" style="width:40%"></div></div></div>
+                </div>
+                <p class="class-desc">Sword & shield. Tough and powerful.</p>
+            </div>
+            <div class="class-card" data-class="mage">
+                <div class="class-icon mage-icon"></div>
+                <h3>Mage</h3>
+                <div class="class-stats">
+                    <div class="stat-row"><span>HP</span><div class="stat-bar"><div class="stat-fill" style="width:35%"></div></div></div>
+                    <div class="stat-row"><span>ATK</span><div class="stat-bar"><div class="stat-fill" style="width:90%"></div></div></div>
+                    <div class="stat-row"><span>SPD</span><div class="stat-bar"><div class="stat-fill" style="width:55%"></div></div></div>
+                </div>
+                <p class="class-desc">Ranged fireballs & area spells. Fragile.</p>
+            </div>
+            <div class="class-card" data-class="rogue">
+                <div class="class-icon rogue-icon"></div>
+                <h3>Rogue</h3>
+                <div class="class-stats">
+                    <div class="stat-row"><span>HP</span><div class="stat-bar"><div class="stat-fill" style="width:55%"></div></div></div>
+                    <div class="stat-row"><span>ATK</span><div class="stat-bar"><div class="stat-fill" style="width:65%"></div></div></div>
+                    <div class="stat-row"><span>SPD</span><div class="stat-bar"><div class="stat-fill" style="width:95%"></div></div></div>
+                </div>
+                <p class="class-desc">Fast daggers & dash. Backstab bonus.</p>
+            </div>
+            <div class="class-card" data-class="ranger">
+                <div class="class-icon ranger-icon"></div>
+                <h3>Ranger</h3>
+                <div class="class-stats">
+                    <div class="stat-row"><span>HP</span><div class="stat-bar"><div class="stat-fill" style="width:55%"></div></div></div>
+                    <div class="stat-row"><span>ATK</span><div class="stat-bar"><div class="stat-fill" style="width:75%"></div></div></div>
+                    <div class="stat-row"><span>SPD</span><div class="stat-bar"><div class="stat-fill" style="width:70%"></div></div></div>
+                </div>
+                <p class="class-desc">Bow & traps. Balanced ranged fighter.</p>
+            </div>
+        </div>
+        <button id="btn-back-title" class="menu-btn secondary back-btn">Back</button>
+    </div>
+
+    <!-- Shop Screen -->
+    <div id="shop-screen" class="screen">
+        <h2>SHOP</h2>
+        <p class="gold-display">Gold: <span id="shop-gold">0</span></p>
+        <div id="shop-items" class="shop-grid"></div>
+        <button id="btn-back-shop" class="menu-btn secondary back-btn">Back</button>
+    </div>
+
+    <!-- Stats Screen -->
+    <div id="stats-screen" class="screen">
+        <h2>STATS</h2>
+        <div id="stats-content" class="stats-list"></div>
+        <button id="btn-back-stats" class="menu-btn secondary back-btn">Back</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen">
+        <h2 id="gameover-title">YOU DIED</h2>
+        <div id="gameover-stats" class="stats-list"></div>
+        <div class="menu-buttons">
+            <button id="btn-retry" class="menu-btn">Try Again</button>
+            <button id="btn-menu" class="menu-btn secondary">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Inventory Overlay -->
+    <div id="inventory-overlay" class="overlay" style="display:none">
+        <div class="inventory-panel">
+            <h3>Inventory</h3>
+            <div id="equipment-slots" class="equip-slots">
+                <div class="equip-slot" data-slot="weapon"><span class="slot-label">Weapon</span><div class="slot-item"></div></div>
+                <div class="equip-slot" data-slot="armor"><span class="slot-label">Armor</span><div class="slot-item"></div></div>
+            </div>
+            <div id="inventory-items" class="inv-grid"></div>
+            <div id="item-tooltip" class="tooltip" style="display:none"></div>
+            <p class="inv-hint">Click item to equip/use. Press Tab/Num3 to close.</p>
+        </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="pause-overlay" class="overlay" style="display:none">
+        <div class="pause-panel">
+            <h2>PAUSED</h2>
+            <button id="btn-resume" class="menu-btn">Resume</button>
+            <button id="btn-quit" class="menu-btn secondary">Quit to Menu</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
