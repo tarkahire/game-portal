@@ -33,6 +33,7 @@ games/dads-army/
 
 | Doc | Purpose |
 |-----|---------|
+| [plan.md](docs/plan.md) | Development plan — phase checklist, what's done, what's next |
 | [setup.md](docs/setup.md) | Infrastructure setup (Supabase, Vercel, env vars) |
 | [todo.md](docs/todo.md) | Feature tracker with phase/status |
 | [bug.md](docs/bug.md) | Bug reports and fixes |
