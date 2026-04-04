@@ -806,6 +806,26 @@ function playerSpecial(p, now) {
     }
 }
 
+function portalTeleportToAlly(p, now) {
+    if (p.classId !== 'portal') return;
+    if (!p._lastPortalTp) p._lastPortalTp = 0;
+    if (now - p._lastPortalTp < 2000) return; // 2s cooldown
+    // Find nearest other player
+    let closest = null, closestDist = Infinity;
+    for (const ally of players) {
+        if (ally === p || !ally.alive) continue;
+        const d = Math.hypot(ally.x - p.x, ally.y - p.y);
+        if (d < closestDist) { closestDist = d; closest = ally; }
+    }
+    if (!closest) return;
+    p._lastPortalTp = now;
+    spawnParticles(p.x, p.y, '#00bcd4', 12);
+    p.x = closest.x + (Math.random() - 0.5) * 30;
+    p.y = closest.y + (Math.random() - 0.5) * 30;
+    spawnParticles(p.x, p.y, '#80deea', 12);
+    triggerShake(3, 6);
+}
+
 function playerDodge(p, now) {
     if (p.dodgeCd > now || p.dodging) return;
     p.dodgeCd = now + 800;
@@ -1393,10 +1413,12 @@ function updatePlayer(p, now) {
         if (mouse.down) playerAttack(p, now);
         if (keys['KeyE']) playerSpecial(p, now);
         if (keys['Space']) playerDodge(p, now);
+        if (keys['KeyR']) portalTeleportToAlly(p, now);
     } else {
         if (keys['Numpad0']) playerAttack(p, now);
         if (keys['Numpad1']) playerSpecial(p, now);
         if (keys['Numpad2']) playerDodge(p, now);
+        if (keys['Numpad5']) portalTeleportToAlly(p, now);
     }
 
     // Reduce attackAnim
