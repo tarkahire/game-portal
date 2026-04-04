@@ -259,7 +259,11 @@ const CLASSES = {
     // ── Black Clover ──
     asta: { name: 'Asta', maxHp: 115, speed: 2.8, attackRange: 35, attackDamage: 14, attackSpeed: 370, attackType: 'melee', color: '#222', specialCooldown: 5000, specialName: 'Black Divider', specialDesc: 'Anti-magic slash — reflects projectiles 4s', drawChar: drawAsta },
     // ── Original ──
-    frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 0, specialName: 'Electric Tongue', specialDesc: 'Spinning tongue spiral — catches and devours all enemies', drawChar: drawFrog }
+    frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 0, specialName: 'Electric Tongue', specialDesc: 'Spinning tongue spiral — catches and devours all enemies', drawChar: drawFrog },
+    beeswarm: { name: 'Bee Swarm', maxHp: 60, speed: 3.5, attackRange: 20, attackDamage: 8, attackSpeed: 250, attackType: 'melee', color: '#fdd835', specialCooldown: 3000, specialName: 'Split Swarm', specialDesc: 'Split apart to dodge — reform to mass sting', drawChar: drawBeeSwarm },
+    trex: { name: 'T-Rex', maxHp: 180, speed: 1.8, attackRange: 40, attackDamage: 20, attackSpeed: 600, attackType: 'melee', color: '#4e342e', specialCooldown: 4000, specialName: 'Dino Stomp', specialDesc: 'Massive stomp + screen-shaking roar stuns all', drawChar: drawTRex },
+    wendigo: { name: 'Wendigo', maxHp: 90, speed: 2.8, attackRange: 30, attackDamage: 12, attackSpeed: 380, attackType: 'melee', color: '#b0bec5', specialCooldown: 3000, specialName: 'Devour', specialDesc: 'Eat enemy — grow bigger and stronger each kill', drawChar: drawWendigo },
+    alienqueen: { name: 'Alien Queen', maxHp: 110, speed: 2.3, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#1b5e20', specialCooldown: 4000, specialName: 'Lay Eggs', specialDesc: 'Spawn face-hugger eggs that hatch and chase enemies', drawChar: drawAlienQueen }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -1409,6 +1413,73 @@ function playerSpecial(p, now) {
                 p._tongueTrapped = new Set();
             }
             } break;
+        case 'beeswarm': // Split Swarm — scatter then reform with mass sting
+            { p.invincible = now + 1500; // invincible while split
+            p.activeEffects.push({ effect: 'split', value: 1, endTime: now + 1500 });
+            // After split, mass sting everything nearby
+            const snap = enemies.slice();
+            for (const e of snap) { if (!e.alive) continue;
+                const dist = Math.hypot(e.x-p.x, e.y-p.y);
+                if (dist < 80) {
+                    dealDamageToEnemy(e, Math.round(p.damage * 2), p);
+                    spawnParticles(e.x, e.y, '#fdd835', 4);
+                }
+            }
+            // Scatter bee particles everywhere
+            for (let b = 0; b < 20; b++) {
+                const a = Math.random() * Math.PI * 2, r = 20 + Math.random() * 50;
+                spawnParticles(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, '#fdd835', 1);
+            }
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: 'BZZZZ STING!', color: '#fdd835', life: 40 });
+            triggerShake(5, 8); } break;
+        case 'trex': // Dino Stomp + Roar
+            { // Massive stomp AoE
+            const range = 70;
+            const snap = enemies.slice();
+            for (const e of snap) { if (!e.alive) continue;
+                if (Math.hypot(e.x-p.x, e.y-p.y) < range) {
+                    dealDamageToEnemy(e, Math.round(p.damage * 2), p);
+                    spawnParticles(e.x, e.y, '#5d4037', 4);
+                }
+            }
+            // Roar stuns everything on screen
+            for (const e of enemies) { if (!e.alive) continue;
+                if (Math.hypot(e.x-p.x, e.y-p.y) < 200) e.stunned = Math.max(e.stunned, now + 2500);
+            }
+            damageNumbers.push({ x: p.x, y: p.y - 35, text: 'ROARRR!', color: '#4e342e', life: 50 });
+            spawnParticles(p.x, p.y, '#5d4037', 20); spawnParticles(p.x, p.y, '#8d6e63', 10);
+            triggerShake(14, 22); } break;
+        case 'wendigo': // Devour — eat enemy, grow bigger and stronger
+            { let target = null, closest = Infinity;
+            for (const e of enemies) { if (!e.alive || e.isBoss) continue;
+                const d = Math.hypot(e.x-p.x, e.y-p.y);
+                if (d < 50 && d < closest) { closest = d; target = e; } }
+            if (target) {
+                target.x = p.x; target.y = p.y;
+                dealDamageToEnemy(target, 9999, p);
+                // Grow bigger and stronger
+                if (!p._wendigoSize) p._wendigoSize = 1;
+                p._wendigoSize = Math.min(p._wendigoSize + 0.12, 2.5);
+                p.damage += 1;
+                p.maxHp += 5; p.hp = Math.min(p.hp + 15, p.maxHp);
+                damageNumbers.push({ x: p.x, y: p.y - 25, text: `*CRUNCH* Size:${p._wendigoSize.toFixed(1)}x`, color: '#b0bec5', life: 50 });
+                spawnParticles(p.x, p.y, '#b71c1c', 10); spawnParticles(p.x, p.y, '#b0bec5', 6);
+                triggerShake(5, 10);
+            } } break;
+        case 'alienqueen': // Lay Eggs — spawn face-huggers
+            { const eggCount = 4;
+            for (let i = 0; i < eggCount; i++) {
+                const angle = p.facingAngle + (i - eggCount/2 + 0.5) * 0.5;
+                const ex = p.x + Math.cos(angle) * 30, ey = p.y + Math.sin(angle) * 30;
+                summonedMinions.push({ x: ex, y: ey, owner: p,
+                    hp: 12, maxHp: 12, damage: 5, speed: 4.0,
+                    radius: 4, attackRange: 18, lastAttack: now + i * 300, attackSpeed: 500,
+                    life: now + 8000, color: '#1b5e20', type: 'facehugger' });
+                spawnParticles(ex, ey, '#76ff03', 3);
+            }
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: 'EGGS LAID!', color: '#76ff03', life: 40 });
+            spawnParticles(p.x, p.y, '#1b5e20', 10);
+            triggerShake(3, 5); } break;
     }
 }
 
@@ -2920,6 +2991,20 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
                     const wy = Math.sin(wt * 0.7 + w * 2) * 4;
                     ctx.beginPath(); ctx.arc(wx, wy, 3 + w, 0, Math.PI * 2); ctx.fill();
                 }
+            } else if (m.type === 'facehugger') {
+                // Alien face-hugger — small skittering spider-like
+                ctx.fillStyle = '#2e7d32';
+                ctx.beginPath(); ctx.ellipse(0, 0, 4, 3, 0, 0, Math.PI*2); ctx.fill();
+                // Legs
+                ctx.strokeStyle = '#1b5e20'; ctx.lineWidth = 1;
+                const skitter = Math.sin(gameTime * 0.03 + (m.lastAttack || 0)) * 0.3;
+                for (let l = 0; l < 4; l++) {
+                    const la = (l/4)*Math.PI*2 + skitter;
+                    ctx.beginPath(); ctx.moveTo(Math.cos(la)*3, Math.sin(la)*3);
+                    ctx.lineTo(Math.cos(la)*7, Math.sin(la)*7); ctx.stroke();
+                }
+                // Tail
+                ctx.beginPath(); ctx.moveTo(-4, 0); ctx.quadraticCurveTo(-7, -3, -9, 0); ctx.stroke();
             } else if (m.type === 'insect') {
                 // Fly/insect — tiny dark buzzing bug with wings
                 const buzz = Math.sin(gameTime * 0.05 + (m._guardIndex || 0) * 2) * 2;
@@ -4249,6 +4334,161 @@ function drawFrog(ctx, p, t) {
     ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
     ctx.beginPath(); ctx.arc(0, -22, 2, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
+function drawBeeSwarm(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    const isSplit = p.activeEffects && p.activeEffects.some(e => e.effect === 'split');
+    ctx.shadowColor = '#fdd835'; ctx.shadowBlur = 6;
+    if (isSplit) {
+        // Scattered bees
+        for (let b = 0; b < 12; b++) {
+            const a = t * 0.01 + b * 0.8, r = 15 + Math.sin(t * 0.02 + b) * 10;
+            const bx = Math.cos(a) * r, by = Math.sin(a) * r;
+            ctx.fillStyle = '#fdd835'; ctx.beginPath(); ctx.ellipse(bx, by, 2, 1.5, a, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#222'; ctx.fillRect(bx-1, by-0.5, 1, 1);
+        }
+    } else {
+        // Clustered swarm body
+        for (let b = 0; b < 8; b++) {
+            const bx = Math.sin(t * 0.015 + b * 1.1) * 4, by = Math.cos(t * 0.012 + b * 0.9) * 4 - 2;
+            ctx.fillStyle = b % 2 === 0 ? '#fdd835' : '#f57f17';
+            ctx.beginPath(); ctx.ellipse(bx, by, 3, 2, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#222'; ctx.fillRect(bx-1, by-0.5, 1, 1); // stripe
+            // Wings
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            const wf = Math.sin(t * 0.08 + b) * 0.6;
+            ctx.beginPath(); ctx.ellipse(bx-2, by-2, 2, 1, wf, 0, Math.PI*2); ctx.fill();
+        }
+        // Central mass glow
+        ctx.fillStyle = 'rgba(253,216,53,0.2)';
+        ctx.beginPath(); ctx.arc(0, -2, 10, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = p.playerIndex === 0 ? '#00ffcc' : '#ff0080';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, -18, 2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
+function drawTRex(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    ctx.shadowColor = '#5d4037'; ctx.shadowBlur = 6;
+    // Massive body
+    ctx.fillStyle = p.attackAnim > 0 ? '#6d4c41' : '#4e342e';
+    ctx.beginPath(); ctx.ellipse(0, 2, 16, 12, 0, 0, Math.PI*2); ctx.fill();
+    // Head — large jaw
+    ctx.fillStyle = '#4e342e';
+    ctx.beginPath(); ctx.ellipse(10, -8, 10, 8, 0.2, 0, Math.PI*2); ctx.fill();
+    // Open jaw with teeth
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath(); ctx.moveTo(14, -4); ctx.lineTo(22, -2); ctx.lineTo(22, 2); ctx.lineTo(14, 0); ctx.fill();
+    ctx.fillStyle = '#fff';
+    for (let tooth = 0; tooth < 4; tooth++) {
+        ctx.beginPath(); ctx.moveTo(15+tooth*2, -3); ctx.lineTo(16+tooth*2, -5); ctx.lineTo(17+tooth*2, -3); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(15+tooth*2, -1); ctx.lineTo(16+tooth*2, 1); ctx.lineTo(17+tooth*2, -1); ctx.fill();
+    }
+    // Eye
+    ctx.fillStyle = '#ff6f00'; ctx.shadowColor = '#ff6f00'; ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.arc(12, -11, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(12, -11, 1, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 6; ctx.shadowColor = '#5d4037';
+    // Tiny arms
+    ctx.fillStyle = '#4e342e';
+    ctx.fillRect(5, 0, 4, 3); ctx.fillRect(-3, 0, 4, 3);
+    // Massive legs
+    ctx.fillRect(-10, 12, 6, 10); ctx.fillRect(4, 12, 6, 10);
+    ctx.fillStyle = '#3e2723'; ctx.fillRect(-12, 20, 8, 3); ctx.fillRect(2, 20, 8, 3);
+    // Tail
+    ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(-14, 4); ctx.quadraticCurveTo(-24, 0, -28, 6); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = p.playerIndex === 0 ? '#00ffcc' : '#ff0080';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, -22, 2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
+function drawWendigo(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    const sz = p._wendigoSize || 1;
+    ctx.scale(sz, sz);
+    ctx.shadowColor = '#b0bec5'; ctx.shadowBlur = 4;
+    // Gaunt body
+    ctx.fillStyle = '#78909c';
+    ctx.fillRect(-5, -2, 10, 16);
+    // Skeletal head with antlers
+    ctx.fillStyle = '#b0bec5';
+    ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI*2); ctx.fill();
+    // Antlers
+    ctx.strokeStyle = '#5d4037'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-4, -12); ctx.lineTo(-8, -20); ctx.lineTo(-12, -18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-8, -20); ctx.lineTo(-6, -24); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, -12); ctx.lineTo(8, -20); ctx.lineTo(12, -18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -20); ctx.lineTo(6, -24); ctx.stroke();
+    // Hollow eyes
+    ctx.fillStyle = '#d32f2f'; ctx.shadowColor = '#d32f2f'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(-3, -9, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -9, 2, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 4; ctx.shadowColor = '#b0bec5';
+    // Jagged mouth
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.moveTo(-4, -4); ctx.lineTo(-2, -2); ctx.lineTo(0, -4); ctx.lineTo(2, -2); ctx.lineTo(4, -4); ctx.lineTo(4, -3); ctx.lineTo(-4, -3); ctx.fill();
+    // Long thin arms with claws
+    ctx.fillStyle = '#78909c';
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.fillRect(6, -2, 12 + (p.attackAnim > 0 ? 6 : 0), 3);
+    ctx.fillStyle = '#d32f2f';
+    const ext = p.attackAnim > 0 ? 6 : 0;
+    ctx.beginPath(); ctx.moveTo(18+ext, -3); ctx.lineTo(22+ext, -1); ctx.lineTo(18+ext, 1); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(18+ext, 1); ctx.lineTo(22+ext, 3); ctx.lineTo(18+ext, 4); ctx.fill();
+    ctx.restore();
+    // Thin legs
+    ctx.fillStyle = '#607d8b';
+    ctx.fillRect(-3, 14, 2, 8); ctx.fillRect(1, 14, 2, 8);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = p.playerIndex === 0 ? '#00ffcc' : '#ff0080';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, -26, 2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
+function drawAlienQueen(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    ctx.shadowColor = '#76ff03'; ctx.shadowBlur = 6;
+    // Elongated head crest
+    ctx.fillStyle = '#1b5e20';
+    ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(-6, -8); ctx.lineTo(-10, -20); ctx.lineTo(0, -14); ctx.lineTo(10, -20); ctx.lineTo(6, -8); ctx.fill();
+    // Head
+    ctx.beginPath(); ctx.ellipse(0, -8, 7, 6, 0, 0, Math.PI*2); ctx.fill();
+    // Inner mouth
+    ctx.fillStyle = '#76ff03'; ctx.shadowColor = '#76ff03'; ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.ellipse(0, -5, 2, 1.5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 6; ctx.shadowColor = '#76ff03';
+    // Armored body
+    ctx.fillStyle = '#0d3311';
+    ctx.fillRect(-8, -1, 16, 16);
+    // Ribbed segments
+    ctx.strokeStyle = '#1b5e20'; ctx.lineWidth = 1;
+    for (let r = 0; r < 4; r++) ctx.beginPath(), ctx.moveTo(-8, 1+r*4), ctx.lineTo(8, 1+r*4), ctx.stroke();
+    // Tail
+    ctx.strokeStyle = '#1b5e20'; ctx.lineWidth = 3;
+    const tailW = Math.sin(t * 0.005);
+    ctx.beginPath(); ctx.moveTo(0, 15); ctx.quadraticCurveTo(10+tailW*5, 22, 8+tailW*4, 30); ctx.stroke();
+    // Tail spike
+    ctx.fillStyle = '#76ff03';
+    ctx.beginPath(); ctx.moveTo(8+tailW*4, 30); ctx.lineTo(6, 33); ctx.lineTo(11, 32); ctx.fill();
+    // Legs
+    ctx.fillStyle = '#0d3311';
+    ctx.fillRect(-6, 15, 4, 7); ctx.fillRect(2, 15, 4, 7);
+    // Drool
+    ctx.fillStyle = '#76ff03'; ctx.globalAlpha = 0.4;
+    ctx.fillRect(-1, -3, 2, 3 + Math.sin(t*0.008)*2); ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = p.playerIndex === 0 ? '#00ffcc' : '#ff0080';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, -22, 2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
     ctx.restore();
 }
 

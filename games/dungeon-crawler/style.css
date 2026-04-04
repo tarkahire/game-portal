@@ -104,6 +104,10 @@ body { background: #020208; color: #00ffcc; font-family: 'Segoe UI', sans-serif;
 .denji-icon { background: radial-gradient(circle, #ff8a65 20%, #ff5722 60%, #bf360c 100%); }
 .asta-icon { background: radial-gradient(circle, #69f0ae 20%, #333 60%, #111 100%); }
 .frog-icon { background: radial-gradient(circle, #76ff03 20%, #4caf50 50%, #1b5e20 100%); }
+.beeswarm-icon { background: radial-gradient(circle, #fff176 20%, #fdd835 50%, #f57f17 100%); }
+.trex-icon { background: radial-gradient(circle, #8d6e63 20%, #4e342e 60%, #3e2723 100%); }
+.wendigo-icon { background: radial-gradient(circle, #cfd8dc 20%, #78909c 60%, #37474f 100%); }
+.alienqueen-icon { background: radial-gradient(circle, #76ff03 20%, #1b5e20 60%, #0a2e0a 100%); }
 
 .class-card h3 { color: #00ffcc; font-size: 1.1rem; letter-spacing: 0.1em; margin-bottom: 0.6rem; }
 .class-stats { margin-bottom: 0.6rem; }
