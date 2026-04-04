@@ -270,7 +270,37 @@ const CLASSES = {
     chimera: { name: 'Chimera', maxHp: 110, speed: 2.6, attackRange: 35, attackDamage: 13, attackSpeed: 400, attackType: 'melee', color: '#ff8f00', specialCooldown: 3000, specialName: 'Switch Head', specialDesc: 'Cycle heads — lion fire, goat lightning, snake poison', drawChar: drawChimera },
     mimic: { name: 'Mimic', maxHp: 90, speed: 2.8, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#8d6e63', specialCooldown: 5000, specialName: 'Copy', specialDesc: 'Transform into last enemy killed — gain their power', drawChar: drawMimic },
     supernova: { name: 'Supernova', maxHp: 85, speed: 2.4, attackRange: 130, attackDamage: 8, attackSpeed: 500, attackType: 'ranged', color: '#fff176', specialCooldown: 0, specialName: 'Charge & Release', specialDesc: 'Hold E to charge — release for massive explosion', drawChar: drawSupernova },
-    puppet: { name: 'Puppet Master', maxHp: 75, speed: 2.5, attackRange: 160, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#9c27b0', specialCooldown: 500, specialName: 'Strings', specialDesc: 'Attach strings to enemies — slam them into each other', drawChar: drawPuppet }
+    puppet: { name: 'Puppet Master', maxHp: 75, speed: 2.5, attackRange: 160, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#9c27b0', specialCooldown: 500, specialName: 'Strings', specialDesc: 'Attach strings to enemies — slam them into each other', drawChar: drawPuppet },
+    medusa: { name: 'Medusa', maxHp: 80, speed: 2.5, attackRange: 130, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#4caf50', specialCooldown: 3000, specialName: 'Stone Gaze', specialDesc: 'Petrify enemies in cone — stone takes 3x damage', drawChar: makeDrawFn('#4caf50','#1b5e20','long') },
+    cerberus: { name: 'Cerberus', maxHp: 130, speed: 2.4, attackRange: 35, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#d32f2f', specialCooldown: 3500, specialName: 'Triple Breath', specialDesc: '3 heads breathe fire/ice/poison simultaneously', drawChar: makeDrawFn('#111','#d32f2f','round') },
+    minotaur: { name: 'Minotaur', maxHp: 140, speed: 1.8, attackRange: 35, attackDamage: 18, attackSpeed: 550, attackType: 'melee', color: '#5d4037', specialCooldown: 2500, specialName: 'Bull Charge', specialDesc: 'Charge forward — longer run = more damage on impact', drawChar: makeDrawFn('#4e342e','#5d4037','round') },
+    anubis: { name: 'Anubis', maxHp: 90, speed: 2.7, attackRange: 150, attackDamage: 12, attackSpeed: 480, attackType: 'ranged', color: '#fdd835', specialCooldown: 4000, specialName: 'Death Mark', specialDesc: 'Mark enemies — marked die in explosions damaging nearby', drawChar: makeDrawFn('#fdd835','#111','spiky') },
+    thor: { name: 'Thor', maxHp: 120, speed: 2.6, attackRange: 35, attackDamage: 15, attackSpeed: 450, attackType: 'melee', color: '#42a5f5', specialCooldown: 3000, specialName: 'Mjolnir Throw', specialDesc: 'Throw hammer — boomerangs back with lightning strikes', drawChar: makeDrawFn('#fdd835','#1565c0','long') },
+    venom: { name: 'Venom', maxHp: 115, speed: 3.0, attackRange: 40, attackDamage: 13, attackSpeed: 350, attackType: 'melee', color: '#111', specialCooldown: 2000, specialName: 'Tentacle Burst', specialDesc: 'Tentacles lash out in all 8 directions at once', drawChar: makeDrawFn('#111','#111','round') },
+    cordyceps: { name: 'Cordyceps', maxHp: 85, speed: 2.3, attackRange: 120, attackDamage: 9, attackSpeed: 550, attackType: 'ranged', color: '#ff8f00', specialCooldown: 5000, specialName: 'Infect', specialDesc: 'Spore cloud — dead infected enemies rise as your zombies', drawChar: makeDrawFn('#ff8f00','#4e342e','spiky') },
+    leech: { name: 'Leech', maxHp: 70, speed: 2.8, attackRange: 22, attackDamage: 8, attackSpeed: 300, attackType: 'melee', color: '#880e4f', specialCooldown: 1500, specialName: 'Latch On', specialDesc: 'Attach to enemy — drain 3 HP/s continuously until they die', drawChar: makeDrawFn('#880e4f','#4a0028','round') },
+    chrono: { name: 'Chrono', maxHp: 80, speed: 2.8, attackRange: 140, attackDamage: 11, attackSpeed: 480, attackType: 'ranged', color: '#00bcd4', specialCooldown: 8000, specialName: 'Rewind', specialDesc: 'Rewind 3 seconds — undo all damage taken', drawChar: makeDrawFn('#00bcd4','#006064','spiky') },
+    dimcutter: { name: 'Dim Cutter', maxHp: 85, speed: 2.6, attackRange: 35, attackDamage: 13, attackSpeed: 400, attackType: 'melee', color: '#00e5ff', specialCooldown: 3000, specialName: 'Portal Slash', specialDesc: 'Cut a rift — enemies nearby get teleported to a random spot', drawChar: makeDrawFn('#00e5ff','#00838f','spiky') },
+    paradox: { name: 'Paradox', maxHp: 90, speed: 2.7, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff80ab', specialCooldown: 6000, specialName: 'Time Echo', specialDesc: 'Summon future self — delayed clone copies your moves', drawChar: makeDrawFn('#ff80ab','#880e4f','long') },
+    drummer: { name: 'Drummer', maxHp: 95, speed: 2.5, attackRange: 28, attackDamage: 10, attackSpeed: 350, attackType: 'melee', color: '#ff5722', specialCooldown: 0, specialName: 'Beat Drop', specialDesc: 'Chain hits for combos: 3=shockwave 5=quake 7=mega blast', drawChar: makeDrawFn('#ff5722','#bf360c','spiky') },
+    siren: { name: 'Siren', maxHp: 75, speed: 2.6, attackRange: 160, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#80deea', specialCooldown: 4000, specialName: 'Lure Song', specialDesc: 'Sing — all enemies walk toward you helplessly then shatter', drawChar: makeDrawFn('#80deea','#006064','long') },
+    mercury: { name: 'Mercury', maxHp: 95, speed: 3.0, attackRange: 32, attackDamage: 13, attackSpeed: 370, attackType: 'melee', color: '#b0bec5', specialCooldown: 2500, specialName: 'Reshape', specialDesc: 'Liquid metal — become blade wave that slices through enemies', drawChar: makeDrawFn('#b0bec5','#546e7a','round') },
+    acid: { name: 'Acid', maxHp: 80, speed: 2.4, attackRange: 25, attackDamage: 9, attackSpeed: 400, attackType: 'melee', color: '#76ff03', specialCooldown: 1500, specialName: 'Dissolve', specialDesc: 'Acid pool trail — melt enemy armor to zero defense', drawChar: makeDrawFn('#76ff03','#33691e','spiky') },
+    smoke: { name: 'Smoke', maxHp: 65, speed: 3.2, attackRange: 120, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#546e7a', specialCooldown: 3000, specialName: 'Smoke Bomb', specialDesc: 'Vanish + poison cloud — choke damage in zone', drawChar: makeDrawFn('#546e7a','#263238','round') },
+    antcolony: { name: 'Ant Colony', maxHp: 100, speed: 2.2, attackRange: 20, attackDamage: 7, attackSpeed: 200, attackType: 'melee', color: '#795548', specialCooldown: 4000, specialName: 'Swarm Rush', specialDesc: 'Send ant wave across floor — damages everything in path', drawChar: makeDrawFn('#5d4037','#3e2723','round') },
+    ratking: { name: 'Rat King', maxHp: 90, speed: 2.8, attackRange: 25, attackDamage: 11, attackSpeed: 350, attackType: 'melee', color: '#616161', specialCooldown: 3000, specialName: 'Rat Horde', specialDesc: 'Summon rat wave — sacrifice rats to heal, more rats = more power', drawChar: makeDrawFn('#757575','#424242','round') },
+    locust: { name: 'Locust', maxHp: 70, speed: 3.5, attackRange: 20, attackDamage: 6, attackSpeed: 250, attackType: 'melee', color: '#827717', specialCooldown: 2000, specialName: 'Plague Cloud', specialDesc: 'Darkening swarm — constant damage aura that grows over time', drawChar: makeDrawFn('#827717','#33691e','spiky') },
+    mechashark: { name: 'Mecha Shark', maxHp: 120, speed: 2.8, attackRange: 180, attackDamage: 14, attackSpeed: 450, attackType: 'ranged', color: '#37474f', specialCooldown: 3000, specialName: 'Torpedo', specialDesc: 'Launch homing torpedo + sonar ping reveals all enemies', drawChar: makeDrawFn('#546e7a','#263238','round') },
+    ghostrider: { name: 'Ghost Rider', maxHp: 100, speed: 3.0, attackRange: 35, attackDamage: 14, attackSpeed: 380, attackType: 'melee', color: '#ff6f00', specialCooldown: 3000, specialName: 'Hellfire Chain', specialDesc: 'Spinning fire chain whip + hellfire trail behind you', drawChar: makeDrawFn('#ff6f00','#111','spiky') },
+    icephoenix: { name: 'Ice Phoenix', maxHp: 85, speed: 3.2, attackRange: 150, attackDamage: 12, attackSpeed: 450, attackType: 'ranged', color: '#4fc3f7', specialCooldown: 5000, specialName: 'Frost Dive', specialDesc: 'Dive and freeze all nearby — shatter frozen for 3x damage', drawChar: makeDrawFn('#e1f5fe','#0288d1','long') },
+    plaguerat: { name: 'Plague Rat', maxHp: 80, speed: 3.0, attackRange: 25, attackDamage: 8, attackSpeed: 320, attackType: 'melee', color: '#33691e', specialCooldown: 2000, specialName: 'Sneeze', specialDesc: 'Toxic sneeze cone — more poisoned enemies = stronger you get', drawChar: makeDrawFn('#33691e','#1b5e20','round') },
+    carddealer: { name: 'Card Dealer', maxHp: 85, speed: 2.6, attackRange: 150, attackDamage: 11, attackSpeed: 480, attackType: 'ranged', color: '#d32f2f', specialCooldown: 2000, specialName: 'Draw Card', specialDesc: 'Random card: heal/damage/buff/wild (random massive effect)', drawChar: makeDrawFn('#d32f2f','#111','round') },
+    diceroller: { name: 'Dice Roller', maxHp: 90, speed: 2.6, attackRange: 30, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#fff', specialCooldown: 1500, specialName: 'Roll Dice', specialDesc: 'Roll 1-6 multiplier on next attack — 6 = critical explosion', drawChar: makeDrawFn('#fff','#111','round') },
+    chessking: { name: 'Chess King', maxHp: 95, speed: 2.0, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#fdd835', specialCooldown: 4000, specialName: 'Summon Pawns', specialDesc: 'Place 4 pawn minions — castle-swap with any pawn instantly', drawChar: makeDrawFn('#fdd835','#fff','round') },
+    rage: { name: 'Rage', maxHp: 110, speed: 2.5, attackRange: 30, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#d50000', specialCooldown: 0, specialName: 'Unleash', specialDesc: 'Damage taken charges rage — full rage = 2x everything for 5s', drawChar: makeDrawFn('#d50000','#b71c1c','spiky') },
+    fear: { name: 'Fear', maxHp: 80, speed: 2.8, attackRange: 140, attackDamage: 12, attackSpeed: 480, attackType: 'ranged', color: '#4a148c', specialCooldown: 3500, specialName: 'Nightmare', specialDesc: 'Terror zone — enemies flee and take 2x damage while scared', drawChar: makeDrawFn('#4a148c','#1a0033','long') },
+    love: { name: 'Love', maxHp: 75, speed: 2.6, attackRange: 150, attackDamage: 9, attackSpeed: 500, attackType: 'ranged', color: '#e91e63', specialCooldown: 5000, specialName: 'Charm', specialDesc: 'Charm enemy permanently — fights for you (max 3 charmed)', drawChar: makeDrawFn('#e91e63','#880e4f','long') },
+    chaos: { name: 'Chaos', maxHp: 90, speed: 2.8, attackRange: 35, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff00ff', specialCooldown: 1000, specialName: '???', specialDesc: 'Every press = random ability from ANY other class. Pure madness.', drawChar: makeDrawFn('#ff00ff','#111','spiky') }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -1615,6 +1645,248 @@ function playerSpecial(p, now) {
             }
             spawnParticles(p.x, p.y, '#ce93d8', 10);
             triggerShake(5, 8); } break;
+        case 'medusa': // Stone Gaze — petrify in cone, stoned enemies take 3x
+            { const snap=enemies.slice(); for(const e of snap){if(!e.alive)continue;const dx=e.x-p.x,dy=e.y-p.y,dist=Math.hypot(dx,dy);
+                if(dist<120){const a=Math.atan2(dy,dx);let d=a-p.facingAngle;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;
+                if(Math.abs(d)<0.7){e.stunned=Math.max(e.stunned,now+3000);e.frozen=Math.max(e.frozen,now+3000);
+                dealDamageToEnemy(e,Math.round(p.damage*3),p);spawnParticles(e.x,e.y,'#9e9e9e',5);}}}
+            spawnParticles(p.x,p.y,'#4caf50',12);triggerShake(4,8);} break;
+        case 'cerberus': // Triple Breath — 3 cones: fire/ice/poison
+            { for(let h=0;h<3;h++){const a=p.facingAngle+(h-1)*0.6;const col=['#ff6f00','#4fc3f7','#76ff03'][h];
+                for(const e of enemies){if(!e.alive)continue;const dx=e.x-p.x,dy=e.y-p.y;
+                const along=dx*Math.cos(a)+dy*Math.sin(a);const perp=Math.abs(-dx*Math.sin(a)+dy*Math.cos(a));
+                if(along>0&&along<70&&perp<20){dealDamageToEnemy(e,Math.round(p.damage*(h===0?1.3:h===1?1:0.8)),p);
+                if(h===1)e.frozen=Math.max(e.frozen,now+1500);if(h===2)e.stunned=Math.max(e.stunned,now+1000);}}
+                activeBeams.push({x:p.x,y:p.y,angle:a,length:70,width:10,life:10,maxLife:10,color:col});}
+            spawnParticles(p.x,p.y,'#ff6f00',8);triggerShake(6,10);} break;
+        case 'minotaur': // Bull Charge — dash that does more dmg the further you go
+            { p.dodging=true;p.dodgeDir={x:Math.cos(p.facingAngle),y:Math.sin(p.facingAngle)};
+            p.dodgeTimer=20;p.invincible=now+800;
+            const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;
+                const dx=e.x-p.x,dy=e.y-p.y;const along=dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
+                const perp=Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
+                if(along>0&&along<120&&perp<25){dealDamageToEnemy(e,Math.round(p.damage*2.5),p);
+                const ka=Math.atan2(dy,dx);e.x+=Math.cos(ka)*40;e.y+=Math.sin(ka)*40;}}
+            spawnParticles(p.x,p.y,'#5d4037',14);triggerShake(8,14);} break;
+        case 'anubis': // Death Mark — mark enemies, they explode on death
+            { for(const e of enemies){if(!e.alive)continue;const dist=Math.hypot(e.x-p.x,e.y-p.y);
+                if(dist<130){e._deathMark=true;e._markOwner=p;spawnParticles(e.x,e.y,'#fdd835',3);
+                damageNumbers.push({x:e.x,y:e.y-15,text:'MARKED',color:'#fdd835',life:30});
+                dealDamageToEnemy(e,Math.round(p.damage*0.5),p);}}
+            spawnParticles(p.x,p.y,'#fdd835',12);triggerShake(3,5);} break;
+        case 'thor': // Mjolnir — throw hammer projectile that returns
+            { const spd=7;for(let b=-1;b<=1;b++){
+                projectiles.push({x:p.x,y:p.y,vx:Math.cos(p.facingAngle+b*0.15)*spd,vy:Math.sin(p.facingAngle+b*0.15)*spd,
+                damage:Math.round(p.damage*1.8),owner:'player',ownerRef:p,range:200,traveled:0,color:'#42a5f5',radius:6,piercing:true});}
+            spawnParticles(p.x,p.y,'#42a5f5',10);spawnParticles(p.x,p.y,'#ffeb3b',6);triggerShake(5,8);} break;
+        case 'venom': // Tentacle Burst — 8 directional tentacle beams
+            { for(let t=0;t<8;t++){const a=(t/8)*Math.PI*2;
+                activeBeams.push({x:p.x,y:p.y,angle:a,length:50,width:5,life:8,maxLife:8,color:'#111'});
+                for(const e of enemies){if(!e.alive)continue;const dx=e.x-p.x,dy=e.y-p.y;
+                const along=dx*Math.cos(a)+dy*Math.sin(a);const perp=Math.abs(-dx*Math.sin(a)+dy*Math.cos(a));
+                if(along>0&&along<50&&perp<10)dealDamageToEnemy(e,Math.round(p.damage*1.3),p);}}
+            spawnParticles(p.x,p.y,'#222',16);triggerShake(6,10);} break;
+        case 'cordyceps': // Infect — spore cloud, dead enemies become zombies
+            { for(const e of enemies){if(!e.alive)continue;const dist=Math.hypot(e.x-p.x,e.y-p.y);
+                if(dist<90){e._infected=true;e._infectOwner=p;dealDamageToEnemy(e,Math.round(p.damage*1.5),p);
+                spawnParticles(e.x,e.y,'#ff8f00',4);}}
+            spawnParticles(p.x,p.y,'#ff8f00',14);triggerShake(4,6);} break;
+        case 'leech': // Latch On — attach and drain continuously
+            { let target=null,closest=Infinity;for(const e of enemies){if(!e.alive)continue;
+                const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<60&&d<closest){closest=d;target=e;}}
+            if(target){p._leechTarget=target;p._leechEnd=now+4000;
+                target.stunned=Math.max(target.stunned,now+4000);
+                spawnParticles(target.x,target.y,'#880e4f',8);
+                damageNumbers.push({x:target.x,y:target.y-15,text:'LATCHED!',color:'#880e4f',life:40});}
+            triggerShake(3,5);} break;
+        case 'chrono': // Rewind — undo last 3s of damage
+            { if(!p._hpHistory)p._hpHistory=[];
+            const oldHp=p._hpHistory.length>0?Math.max(...p._hpHistory):p.hp;
+            const healed=Math.min(oldHp,p.maxHp)-p.hp;
+            if(healed>0){p.hp=Math.min(oldHp,p.maxHp);
+                damageNumbers.push({x:p.x,y:p.y-25,text:`REWIND +${healed}hp`,color:'#00bcd4',life:50});}
+            p._hpHistory=[];spawnParticles(p.x,p.y,'#00bcd4',16);triggerShake(4,8);} break;
+        case 'dimcutter': // Portal Slash — teleport enemies to random spots
+            { const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;const dist=Math.hypot(e.x-p.x,e.y-p.y);
+                if(dist<80){spawnParticles(e.x,e.y,'#00e5ff',4);
+                const room=dungeon.rooms[Math.floor(Math.random()*dungeon.rooms.length)];
+                e.x=room.cx*TILE+TILE/2+(Math.random()-0.5)*40;e.y=room.cy*TILE+TILE/2+(Math.random()-0.5)*40;
+                dealDamageToEnemy(e,Math.round(p.damage*1.5),p);spawnParticles(e.x,e.y,'#00e5ff',4);}}
+            spawnParticles(p.x,p.y,'#00e5ff',12);triggerShake(5,8);} break;
+        case 'paradox': // Time Echo — summon clone that fights
+            { summonedMinions.push({x:p.x,y:p.y,owner:p,hp:40,maxHp:40,damage:Math.round(p.damage*0.8),speed:p.speed,
+                radius:8,attackRange:28,lastAttack:now,attackSpeed:400,life:now+8000,color:'#ff80ab',type:'clone',_orbit:true,_guardIndex:0,_guardTotal:1});
+            spawnParticles(p.x,p.y,'#ff80ab',12);damageNumbers.push({x:p.x,y:p.y-25,text:'TIME ECHO!',color:'#ff80ab',life:40});
+            triggerShake(3,5);} break;
+        case 'drummer': // Beat Drop — combo counter: 3=wave, 5=quake, 7=mega
+            { if(!p._drumCombo)p._drumCombo=0;p._drumCombo++;
+            const c=p._drumCombo;const range=30+c*8;
+            const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;
+                if(Math.hypot(e.x-p.x,e.y-p.y)<range)dealDamageToEnemy(e,Math.round(p.damage*(0.5+c*0.3)),p);}
+            if(c>=7){spawnParticles(p.x,p.y,'#ff5722',20);triggerShake(12,18);p._drumCombo=0;
+                damageNumbers.push({x:p.x,y:p.y-30,text:'MEGA DROP!',color:'#ff5722',life:50});}
+            else if(c>=5){spawnParticles(p.x,p.y,'#ff5722',14);triggerShake(8,12);
+                damageNumbers.push({x:p.x,y:p.y-25,text:`QUAKE x${c}`,color:'#ff5722',life:40});}
+            else if(c>=3){spawnParticles(p.x,p.y,'#ff5722',8);triggerShake(5,8);
+                damageNumbers.push({x:p.x,y:p.y-25,text:`WAVE x${c}`,color:'#ff8a65',life:35});}
+            else{spawnParticles(p.x,p.y,'#ff5722',4);
+                damageNumbers.push({x:p.x,y:p.y-20,text:`beat ${c}`,color:'#ffab91',life:25});}
+            } break;
+        case 'siren': // Lure Song — enemies walk to you then take shatter damage
+            { for(const e of enemies){if(!e.alive)continue;const dist=Math.hypot(e.x-p.x,e.y-p.y);
+                if(dist<140){const a=Math.atan2(p.y-e.y,p.x-e.x);e.x+=Math.cos(a)*30;e.y+=Math.sin(a)*30;
+                e.stunned=Math.max(e.stunned,now+2000);
+                if(Math.hypot(e.x-p.x,e.y-p.y)<30)dealDamageToEnemy(e,Math.round(p.damage*2.5),p);
+                spawnParticles(e.x,e.y,'#80deea',3);}}
+            spawnParticles(p.x,p.y,'#80deea',14);triggerShake(4,8);} break;
+        case 'mercury': // Reshape — liquid blade wave through enemies
+            { p.dodging=true;p.dodgeDir={x:Math.cos(p.facingAngle),y:Math.sin(p.facingAngle)};
+            p.dodgeTimer=12;p.invincible=now+500;
+            const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;const dx=e.x-p.x,dy=e.y-p.y;
+                const along=dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
+                const perp=Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
+                if(along>0&&along<90&&perp<18)dealDamageToEnemy(e,Math.round(p.damage*2),p);}
+            activeBeams.push({x:p.x,y:p.y,angle:p.facingAngle,length:90,width:18,life:10,maxLife:10,color:'#b0bec5'});
+            spawnParticles(p.x,p.y,'#b0bec5',12);triggerShake(5,8);} break;
+        case 'acid': // Dissolve — acid pools that strip defense
+            { for(let a=0;a<5;a++){const ax=p.x+Math.cos(p.facingAngle)*a*15+(Math.random()-0.5)*20;
+                const ay=p.y+Math.sin(p.facingAngle)*a*15+(Math.random()-0.5)*20;
+                lightningNets.push({x:ax,y:ay,owner:p,radius:20,life:now+3000,damage:2,damageRate:400,lastDamage:0,color:'#76ff03'});}
+            for(const e of enemies){if(!e.alive)continue;const dist=Math.hypot(e.x-p.x,e.y-p.y);
+                if(dist<60){e._noDefense=now+4000;spawnParticles(e.x,e.y,'#76ff03',4);}}
+            spawnParticles(p.x,p.y,'#76ff03',10);triggerShake(3,5);} break;
+        case 'smoke': // Smoke Bomb — vanish + poison cloud zone
+            { p.invincible=now+2500;p.activeEffects.push({effect:'stealth',value:1,endTime:now+2500});
+            lightningNets.push({x:p.x,y:p.y,owner:p,radius:50,life:now+3000,damage:3,damageRate:300,lastDamage:0,color:'#546e7a'});
+            spawnParticles(p.x,p.y,'#78909c',16);triggerShake(3,5);} break;
+        case 'antcolony': // Swarm Rush — wave of ants across floor
+            { for(let a=0;a<8;a++){const angle=p.facingAngle+(a-3.5)*0.12;
+                projectiles.push({x:p.x,y:p.y,vx:Math.cos(angle)*4,vy:Math.sin(angle)*4,
+                damage:Math.round(p.damage*0.8),owner:'player',ownerRef:p,range:180,traveled:0,color:'#5d4037',radius:2});}
+            spawnParticles(p.x,p.y,'#795548',12);triggerShake(4,6);} break;
+        case 'ratking': // Rat Horde — summon rats, sacrifice to heal
+            { const existing=summonedMinions.filter(m=>m.type==='rat'&&m.owner===p).length;
+            if(existing>=6){// sacrifice all rats to heal
+                let healed=0;for(let i=summonedMinions.length-1;i>=0;i--){const m=summonedMinions[i];
+                if(m.type==='rat'&&m.owner===p){healed+=5;summonedMinions.splice(i,1);}}
+                p.hp=Math.min(p.hp+healed,p.maxHp);
+                damageNumbers.push({x:p.x,y:p.y-25,text:`SACRIFICE +${healed}hp`,color:'#f44336',life:40});
+            }else{for(let r=0;r<3;r++){const a=Math.random()*Math.PI*2;
+                summonedMinions.push({x:p.x+Math.cos(a)*20,y:p.y+Math.sin(a)*20,owner:p,
+                hp:8,maxHp:8,damage:4,speed:3.5,radius:3,attackRange:18,lastAttack:now+r*200,attackSpeed:400,
+                life:now+12000,color:'#757575',type:'rat',_orbit:true,_guardIndex:existing+r,_guardTotal:6});}
+                damageNumbers.push({x:p.x,y:p.y-20,text:`Rats: ${existing+3}`,color:'#9e9e9e',life:30});}
+            spawnParticles(p.x,p.y,'#616161',8);triggerShake(3,5);} break;
+        case 'locust': // Plague Cloud — expanding damage aura
+            { if(!p._locustSize)p._locustSize=30;p._locustSize=Math.min(p._locustSize+15,120);
+            const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;
+                if(Math.hypot(e.x-p.x,e.y-p.y)<p._locustSize)dealDamageToEnemy(e,Math.round(p.damage*0.6),p);}
+            spawnParticles(p.x,p.y,'#827717',10);
+            damageNumbers.push({x:p.x,y:p.y-25,text:`Swarm: ${p._locustSize}px`,color:'#827717',life:30});
+            triggerShake(3,5);} break;
+        case 'mechashark': // Torpedo — homing piercing projectile + sonar
+            { projectiles.push({x:p.x,y:p.y,vx:Math.cos(p.facingAngle)*5,vy:Math.sin(p.facingAngle)*5,
+                damage:Math.round(p.damage*2.5),owner:'player',ownerRef:p,range:300,traveled:0,color:'#37474f',radius:6,piercing:true});
+            // Sonar — reveal all rooms
+            for(const rm of dungeon.rooms)rm.explored=true;
+            spawnParticles(p.x,p.y,'#4fc3f7',12);damageNumbers.push({x:p.x,y:p.y-25,text:'SONAR PING',color:'#4fc3f7',life:40});
+            triggerShake(4,6);} break;
+        case 'ghostrider': // Hellfire Chain — spinning whip + fire trail
+            { for(let c=0;c<6;c++){const a=p.facingAngle+c*Math.PI/3;
+                activeBeams.push({x:p.x,y:p.y,angle:a,length:60,width:3,life:10,maxLife:10,color:'#ff6f00'});
+                lightningNets.push({x:p.x+Math.cos(a)*40,y:p.y+Math.sin(a)*40,owner:p,radius:15,life:now+2000,damage:3,damageRate:300,lastDamage:0,color:'#ff6f00'});}
+            const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;
+                if(Math.hypot(e.x-p.x,e.y-p.y)<65)dealDamageToEnemy(e,Math.round(p.damage*1.8),p);}
+            spawnParticles(p.x,p.y,'#ff6f00',16);triggerShake(6,10);} break;
+        case 'icephoenix': // Frost Dive — freeze all, shatter for 3x
+            { p.dodging=true;p.dodgeDir={x:Math.cos(p.facingAngle),y:Math.sin(p.facingAngle)};
+            p.dodgeTimer=10;p.invincible=now+400;
+            const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;const dist=Math.hypot(e.x-p.x,e.y-p.y);
+                if(dist<90){if(e.frozen>now){dealDamageToEnemy(e,Math.round(p.damage*3),p);spawnParticles(e.x,e.y,'#fff',6);
+                    damageNumbers.push({x:e.x,y:e.y-15,text:'SHATTER!',color:'#e1f5fe',life:35});}
+                else{e.frozen=Math.max(e.frozen,now+3000);spawnParticles(e.x,e.y,'#4fc3f7',4);}}}
+            spawnParticles(p.x,p.y,'#e1f5fe',14);triggerShake(5,8);} break;
+        case 'plaguerat': // Sneeze — poison cone, stacks power
+            { if(!p._poisonCount)p._poisonCount=0;
+            const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;const dx=e.x-p.x,dy=e.y-p.y;
+                const along=dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
+                const perp=Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
+                if(along>0&&along<80&&perp<30){dealDamageToEnemy(e,Math.round(p.damage*(1+p._poisonCount*0.2)),p);
+                p._poisonCount++;spawnParticles(e.x,e.y,'#76ff03',3);}}
+            spawnParticles(p.x,p.y,'#33691e',10);
+            damageNumbers.push({x:p.x,y:p.y-25,text:`Plague x${p._poisonCount}`,color:'#76ff03',life:30});
+            triggerShake(3,5);} break;
+        case 'carddealer': // Draw Card — random effect
+            { const card=Math.floor(Math.random()*4);const cardNames=['HEAL','DAMAGE','BUFF','WILD'];
+            if(card===0){p.hp=Math.min(p.hp+30,p.maxHp);spawnParticles(p.x,p.y,'#4caf50',12);}
+            else if(card===1){const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;
+                if(Math.hypot(e.x-p.x,e.y-p.y)<100)dealDamageToEnemy(e,Math.round(p.damage*2),p);}spawnParticles(p.x,p.y,'#f44336',12);}
+            else if(card===2){p.activeEffects.push({effect:'speed',value:1.5,endTime:now+5000});
+                p.activeEffects.push({effect:'damage',value:1.5,endTime:now+5000});spawnParticles(p.x,p.y,'#fdd835',12);}
+            else{const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;dealDamageToEnemy(e,Math.round(p.damage*3),p);}
+                spawnParticles(p.x,p.y,'#ff00ff',20);triggerShake(10,16);}
+            damageNumbers.push({x:p.x,y:p.y-25,text:`CARD: ${cardNames[card]}!`,color:'#d32f2f',life:50});
+            triggerShake(4,6);} break;
+        case 'diceroller': // Roll Dice — random multiplier
+            { const roll=1+Math.floor(Math.random()*6);
+            if(roll===6){// Critical explosion
+                const snap=enemies.slice();for(const e of snap){if(!e.alive)continue;
+                if(Math.hypot(e.x-p.x,e.y-p.y)<80)dealDamageToEnemy(e,Math.round(p.damage*5),p);}
+                spawnParticles(p.x,p.y,'#fdd835',20);triggerShake(10,16);
+                damageNumbers.push({x:p.x,y:p.y-30,text:`ROLLED 6! CRIT!`,color:'#fdd835',life:60});}
+            else{p.activeEffects.push({effect:'damage',value:1+roll*0.3,endTime:now+3000});
+                spawnParticles(p.x,p.y,'#fff',8);
+                damageNumbers.push({x:p.x,y:p.y-25,text:`Rolled ${roll} (${roll*30}% dmg)`,color:'#fff',life:40});}
+            triggerShake(3,5);} break;
+        case 'chessking': // Summon Pawns — 4 pawns + swap ability
+            { const existing=summonedMinions.filter(m=>m.type==='pawn'&&m.owner===p).length;
+            if(existing>0){// Castle swap with furthest pawn
+                let furthest=null,maxDist=0;for(const m of summonedMinions){if(m.type!=='pawn'||m.owner!==p)continue;
+                const d=Math.hypot(m.x-p.x,m.y-p.y);if(d>maxDist){maxDist=d;furthest=m;}}
+                if(furthest){spawnParticles(p.x,p.y,'#fdd835',6);const tx=furthest.x,ty=furthest.y;
+                furthest.x=p.x;furthest.y=p.y;p.x=tx;p.y=ty;spawnParticles(p.x,p.y,'#fdd835',6);
+                damageNumbers.push({x:p.x,y:p.y-20,text:'CASTLE!',color:'#fdd835',life:35});}
+            }else{for(let i=0;i<4;i++){const a=(i/4)*Math.PI*2;
+                summonedMinions.push({x:p.x+Math.cos(a)*35,y:p.y+Math.sin(a)*35,owner:p,
+                hp:15,maxHp:15,damage:5,speed:2.5,radius:5,attackRange:20,lastAttack:now+i*200,attackSpeed:600,
+                life:now+15000,color:'#fdd835',type:'pawn'});}
+                damageNumbers.push({x:p.x,y:p.y-25,text:'PAWNS PLACED',color:'#fdd835',life:40});}
+            spawnParticles(p.x,p.y,'#fdd835',8);triggerShake(3,5);} break;
+        case 'rage': // Unleash — spend rage meter for 2x buff
+            { if(!p._rageMeter)p._rageMeter=0;
+            if(p._rageMeter>=50){p._rageMeter=0;
+                p.activeEffects.push({effect:'speed',value:2,endTime:now+5000});
+                p.activeEffects.push({effect:'damage',value:2,endTime:now+5000});
+                p.invincible=now+1000;
+                spawnParticles(p.x,p.y,'#d50000',20);damageNumbers.push({x:p.x,y:p.y-30,text:'UNLEASHED!',color:'#d50000',life:50});
+                triggerShake(10,16);}
+            else{damageNumbers.push({x:p.x,y:p.y-20,text:`Rage: ${p._rageMeter}/50`,color:'#ff5252',life:30});}
+            } break;
+        case 'fear': // Nightmare — terror zone, enemies flee + 2x damage
+            { for(const e of enemies){if(!e.alive)continue;const dist=Math.hypot(e.x-p.x,e.y-p.y);
+                if(dist<110){const a=Math.atan2(e.y-p.y,e.x-p.x);e.x+=Math.cos(a)*35;e.y+=Math.sin(a)*35;
+                e.stunned=Math.max(e.stunned,now+500);dealDamageToEnemy(e,Math.round(p.damage*2),p);
+                spawnParticles(e.x,e.y,'#4a148c',4);}}
+            spawnParticles(p.x,p.y,'#6a1b9a',16);triggerShake(5,10);} break;
+        case 'love': // Charm — permanently convert enemy to ally (max 3)
+            { const charmed=summonedMinions.filter(m=>m.type==='charmed'&&m.owner===p).length;
+            if(charmed>=3)break;
+            let target=null,closest=Infinity;for(const e of enemies){if(!e.alive||e.isBoss)continue;
+                const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<100&&d<closest){closest=d;target=e;}}
+            if(target){target.alive=false;
+                summonedMinions.push({x:target.x,y:target.y,owner:p,hp:target.maxHp,maxHp:target.maxHp,
+                damage:target.damage,speed:target.speed||2,radius:target.radius||8,attackRange:25,
+                lastAttack:now,attackSpeed:500,life:Infinity,color:'#e91e63',type:'charmed',_orbit:true,_guardIndex:charmed,_guardTotal:3});
+                spawnParticles(target.x,target.y,'#f48fb1',12);
+                damageNumbers.push({x:target.x,y:target.y-20,text:'CHARMED!',color:'#e91e63',life:50});}
+            triggerShake(3,5);} break;
+        case 'chaos': // Random ability from any other class
+            { const allClasses=Object.keys(CLASSES).filter(c=>c!=='chaos');
+            const randomClass=allClasses[Math.floor(Math.random()*allClasses.length)];
+            const oldClass=p.classId;p.classId=randomClass;
+            playerSpecial(p,now);p.classId=oldClass;
+            damageNumbers.push({x:p.x,y:p.y-30,text:`CHAOS: ${CLASSES[randomClass].name}!`,color:'#ff00ff',life:50});
+            } break;
     }
 }
 
@@ -1942,6 +2214,26 @@ function dealDamageToEnemy(e, dmg, p) {
             runStats.itemsFound++;
         }
 
+        // Cordyceps — infected enemies rise as zombie allies
+        if (e._infected && e._infectOwner) {
+            summonedMinions.push({ x: e.x, y: e.y, owner: e._infectOwner,
+                hp: Math.round(e.maxHp * 0.4), maxHp: Math.round(e.maxHp * 0.4),
+                damage: Math.round(e.damage * 0.5), speed: 1.5, radius: e.radius || 8,
+                attackRange: 22, lastAttack: gameTime, attackSpeed: 600,
+                life: gameTime + 10000, color: '#ff8f00', type: 'zombie' });
+            spawnParticles(e.x, e.y, '#ff8f00', 6);
+            damageNumbers.push({ x: e.x, y: e.y - 15, text: 'RISEN!', color: '#ff8f00', life: 35 });
+        }
+        // Anubis — death marked enemies explode
+        if (e._deathMark && e._markOwner) {
+            const snap = enemies.slice();
+            for (const e2 of snap) { if (!e2.alive || e2 === e) continue;
+                if (Math.hypot(e2.x - e.x, e2.y - e.y) < 50) dealDamageToEnemy(e2, Math.round(e._markOwner.damage * 1.5), e._markOwner);
+            }
+            spawnParticles(e.x, e.y, '#fdd835', 12);
+            triggerShake(4, 6);
+        }
+
         // Slime split (cap at 50 total enemies to prevent lag)
         if (e.splits && !e.isBoss && enemies.length < 50) {
             for (let s = 0; s < 2; s++) {
@@ -1972,6 +2264,10 @@ function dealDamageToPlayer(p, dmg) {
     triggerShake(3, 6);
     // Enrage imps for 4 seconds when any player is hit
     if (summonedMinions.length > 0) impsEnraged = gameTime + 4000;
+    // Rage class — charge meter on damage taken
+    if (p.classId === 'rage') { if (!p._rageMeter) p._rageMeter = 0; p._rageMeter = Math.min(50, p._rageMeter + reduced); }
+    // Chrono class — track HP history for rewind
+    if (p.classId === 'chrono') { if (!p._hpHistory) p._hpHistory = []; p._hpHistory.push(p.hp + reduced); if (p._hpHistory.length > 180) p._hpHistory.shift(); }
 
     if (p.hp <= 0) {
         p.alive = false;
@@ -2417,6 +2713,23 @@ function update(now) {
             spawnParticles(p.x, p.y, '#66bb6a', 8);
         }
     }
+
+    // Leech drain passive
+    for (const p of players) {
+        if (!p.alive || !p._leechTarget || now > p._leechEnd) { if (p) p._leechTarget = null; continue; }
+        const t = p._leechTarget;
+        if (!t.alive) { p._leechTarget = null; continue; }
+        // Drain 3 HP/s
+        if (!p._lastDrain) p._lastDrain = 0;
+        if (now - p._lastDrain > 333) { p._lastDrain = now;
+            dealDamageToEnemy(t, 1, p); p.hp = Math.min(p.hp + 1, p.maxHp);
+            spawnParticles(t.x, t.y, '#880e4f', 1);
+        }
+        // Stay attached
+        p.x = t.x - 10; p.y = t.y;
+    }
+
+    // Cordyceps — infected enemies rise as zombies on death (handled in dealDamageToEnemy)
 
     // Frog tongue — spinning arc that traps enemies
     for (const p of players) {
@@ -4339,6 +4652,11 @@ function drawDeku(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
     ctx.fillStyle = '#2e7d32'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
     ctx.fillStyle = '#d32f2f'; ctx.fillRect(-5,18,4,2); ctx.fillRect(1,18,4,2); // red shoes
     ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-22,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+
+// Helper to create class drawChar from colors
+function makeDrawFn(hair, outfit, style, extraFn) {
+    return function(ctx, p, t) { drawGenericAnime(ctx, p, hair, outfit, style, extraFn); };
+}
 
 // ─── MORE ANIME CHARACTER DRAWING ───────────────────────────
 function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
