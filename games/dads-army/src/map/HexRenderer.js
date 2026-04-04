@@ -86,6 +86,7 @@ export class HexRenderer {
     this._renderRequested = false;
     this._onClick = null;
     this.showSupplyOverlay = false;
+    this._initialLoadDone = false;
 
     // Click handler
     this.canvas.addEventListener('mouseup', (e) => {
@@ -135,11 +136,14 @@ export class HexRenderer {
       }
     }
 
-    // Center camera on player's first owned tile, or map center
-    const ownedTile = tileArray.find(t => t.owner_id === currentPlayerId);
-    if (ownedTile) {
-      const px = hexToPixel(ownedTile.q, ownedTile.r);
-      this.camera.centerOn(px.x, px.y);
+    // Only center camera on first load, not on refreshes
+    if (!this._initialLoadDone) {
+      const ownedTile = tileArray.find(t => t.owner_id === currentPlayerId);
+      if (ownedTile) {
+        const px = hexToPixel(ownedTile.q, ownedTile.r);
+        this.camera.centerOn(px.x, px.y);
+      }
+      this._initialLoadDone = true;
     }
 
     this.requestRender();
