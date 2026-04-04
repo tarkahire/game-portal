@@ -340,7 +340,8 @@ function createEnemy(type, x, y, floor) {
     const def = ENEMY_TYPES[type];
     const mult = 1 + (floor - 1) * 0.25;
     return {
-        type, ...def,
+        ...def,
+        enemyType: type,
         hp: Math.round(def.hp * mult), maxHp: Math.round(def.hp * mult),
         damage: Math.round(def.damage * mult),
         x: x * TILE + TILE/2, y: y * TILE + TILE/2,
@@ -1576,7 +1577,7 @@ function drawEnemy(ctx, e, flash) {
     ctx.save(); ctx.translate(e.x, e.y);
     const col = flash ? '#fff' : e.color;
 
-    switch (e.type) {
+    switch (e.enemyType) {
         case 'skeleton':
             ctx.fillStyle = col;
             ctx.beginPath(); ctx.arc(0, -8, 6, 0, Math.PI * 2); ctx.fill(); // Skull
