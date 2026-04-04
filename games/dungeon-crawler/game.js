@@ -701,7 +701,7 @@ function nextFloor() {
     projectiles = [];
     particles = [];
     // Keep Jin-Woo shadow soldiers alive across floors, clear everything else
-    summonedMinions = summonedMinions.filter(m => m.type === 'shadow' && m.life === Infinity);
+    summonedMinions = summonedMinions.filter(m => (m.type === 'shadow' || m.type === 'shadowBoss') && m.life === Infinity);
     // Teleport surviving shadows to start room
     const floorStart = dungeon.rooms[0];
     summonedMinions.forEach(m => {
@@ -1442,12 +1442,37 @@ function sukunaBlackFlash(p, now) {
     p.attackAnim = 10;
 }
 
+function jinwooAriseBoss(p, now) {
+    if (p.classId !== 'jinwoo') return;
+    if (!p._bossBank || p._bossBank.length === 0) return;
+    if (!p._ariseBossCd) p._ariseBossCd = 0;
+    if (now - p._ariseBossCd < 2000) return;
+    p._ariseBossCd = now;
+    // Only 1 shadow boss at a time
+    const existingBoss = summonedMinions.find(m => m.type === 'shadowBoss' && m.owner === p);
+    if (existingBoss) return;
+    const b = p._bossBank.shift(); // take first boss from bank
+    const angle = p.facingAngle;
+    summonedMinions.push({
+        x: p.x + Math.cos(angle) * 35, y: p.y + Math.sin(angle) * 35, owner: p,
+        hp: Math.round(b.hp * 0.4), maxHp: Math.round(b.hp * 0.4),
+        damage: Math.round(b.damage * 0.7), speed: 2.5,
+        radius: 18, attackRange: 150, lastAttack: now, attackSpeed: 700,
+        life: Infinity, color: '#6a0dad', type: 'shadowBoss',
+        bossName: b.name, _guardIndex: 0, _guardTotal: 1
+    });
+    damageNumbers.push({ x: p.x, y: p.y - 35, text: `ARISE: ${b.name}!`, color: '#aa00ff', life: 60 });
+    spawnParticles(p.x + Math.cos(angle) * 35, p.y + Math.sin(angle) * 35, '#aa00ff', 16);
+    spawnParticles(p.x, p.y, '#7c4dff', 10);
+    triggerShake(8, 14);
+}
+
 function jinwooRecall(p, now) {
     if (p.classId !== 'jinwoo') return;
-    // Teleport all shadows back to Jin-Woo in a circle
+    // Teleport all shadows + shadow boss back to Jin-Woo
     let count = 0;
     for (const m of summonedMinions) {
-        if (m.type === 'shadow' && m.owner === p) {
+        if ((m.type === 'shadow' || m.type === 'shadowBoss') && m.owner === p) {
             spawnParticles(m.x, m.y, '#7c4dff', 3);
             const angle = (count / 8) * Math.PI * 2;
             m.x = p.x + Math.cos(angle) * 30;
@@ -1647,6 +1672,12 @@ function dealDamageToEnemy(e, dmg, p) {
         e.alive = false;
         runStats.enemiesKilled++;
         if (e.isBoss) runStats.bossesKilled++;
+        // Jin-Woo: track boss kills for Arise: Boss
+        if (p && p.classId === 'jinwoo' && e.isBoss) {
+            if (!p._bossBank) p._bossBank = [];
+            p._bossBank.push({ name: e.name, hp: e.maxHp, damage: e.damage, speed: e.speed, radius: e.radius, color: e.color });
+            damageNumbers.push({ x: e.x, y: e.y - 40, text: `${e.name} captured!`, color: '#aa00ff', life: 60 });
+        }
         // Jin-Woo: track killed enemy types for Shadow Army
         if (p && p.classId === 'jinwoo') {
             if (!p._shadowBank) p._shadowBank = [];
@@ -1960,7 +1991,7 @@ function update(now) {
         const m = summonedMinions[i];
         if (now > m.life || m.hp <= 0) { spawnParticles(m.x, m.y, m.color || '#880000', 6); summonedMinions.splice(i, 1); continue; }
 
-        // Shadows always shoot when enemies in range (don't need enrage)
+        // Shadows: melee when close, shoot blue flame when far
         if (m.type === 'shadow' && m.ranged) {
             let closest = null, closestDist = Infinity;
             for (const e of enemies) { if (!e.alive) continue;
@@ -1968,11 +1999,39 @@ function update(now) {
                 if (d < m.attackRange && d < closestDist) { closestDist = d; closest = e; } }
             if (closest && now - m.lastAttack > m.attackSpeed) {
                 m.lastAttack = now;
-                const angle = Math.atan2(closest.y - m.y, closest.x - m.x);
-                projectiles.push({ x: m.x, y: m.y, vx: Math.cos(angle) * 6, vy: Math.sin(angle) * 6,
-                    damage: m.damage, owner: 'player', ownerRef: m.owner, range: m.attackRange, traveled: 0,
-                    color: '#448aff', radius: 3 });
-                spawnParticles(m.x, m.y, '#448aff', 2);
+                if (closestDist < 25) {
+                    // Melee slash
+                    dealDamageToEnemy(closest, Math.round(m.damage * 1.5), m.owner);
+                    spawnParticles(closest.x, closest.y, '#7c4dff', 3);
+                } else {
+                    // Ranged blue flame bullet
+                    const angle = Math.atan2(closest.y - m.y, closest.x - m.x);
+                    projectiles.push({ x: m.x, y: m.y, vx: Math.cos(angle) * 6, vy: Math.sin(angle) * 6,
+                        damage: m.damage, owner: 'player', ownerRef: m.owner, range: m.attackRange, traveled: 0,
+                        color: '#448aff', radius: 3 });
+                    spawnParticles(m.x, m.y, '#448aff', 2);
+                }
+            }
+        }
+        // Shadow boss generals also attack
+        if (m.type === 'shadowBoss') {
+            let closest = null, closestDist = Infinity;
+            for (const e of enemies) { if (!e.alive) continue;
+                const d = Math.hypot(e.x - m.x, e.y - m.y);
+                if (d < 150 && d < closestDist) { closestDist = d; closest = e; } }
+            if (closest && now - m.lastAttack > m.attackSpeed) {
+                m.lastAttack = now;
+                if (closestDist < 35) {
+                    dealDamageToEnemy(closest, m.damage, m.owner);
+                    spawnParticles(closest.x, closest.y, '#aa00ff', 4);
+                } else {
+                    const angle = Math.atan2(closest.y - m.y, closest.x - m.x);
+                    for (let b = -1; b <= 1; b++) { // 3 projectile spread
+                        projectiles.push({ x: m.x, y: m.y, vx: Math.cos(angle + b * 0.15) * 5, vy: Math.sin(angle + b * 0.15) * 5,
+                            damage: Math.round(m.damage * 0.6), owner: 'player', ownerRef: m.owner, range: 150, traveled: 0,
+                            color: '#aa00ff', radius: 4 }); }
+                    spawnParticles(m.x, m.y, '#aa00ff', 3);
+                }
             }
         }
 
@@ -2381,6 +2440,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'Space')) playerDodge(p, now);
         if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); }
         if (pKey(p, 'KeyQ')) { gojoDash(p, now); jinwooRecall(p, now); }
+        if (pKey(p, 'KeyF')) jinwooAriseBoss(p, now);
     } else {
         // Local P2: Numpad
         if (pKey(p, 'Numpad0')) playerAttack(p, now);
@@ -2388,6 +2448,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
         if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); }
         if (pKey(p, 'Numpad4')) { gojoDash(p, now); jinwooRecall(p, now); }
+        if (pKey(p, 'Numpad6')) jinwooAriseBoss(p, now);
     }
 
     // Reduce attackAnim
@@ -2639,6 +2700,44 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
             ctx.beginPath(); ctx.arc(Math.sin(ft) * 3, -8 - Math.abs(Math.sin(ft * 1.3)) * 4, 2, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = 'rgba(68,138,255,0.25)';
             ctx.beginPath(); ctx.arc(Math.sin(ft + 1) * 2, -10 - Math.abs(Math.sin(ft * 0.9)) * 3, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1;
+        } else if (m.type === 'shadowBoss') {
+            // Shadow Boss General — large glowing purple entity
+            ctx.globalAlpha = 0.9;
+            ctx.save(); ctx.translate(m.x, m.y);
+            ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 16;
+            // Dark aura
+            const bag = ctx.createRadialGradient(0, -4, 0, 0, -4, 28);
+            bag.addColorStop(0, 'rgba(170,0,255,0.15)'); bag.addColorStop(1, 'rgba(170,0,255,0)');
+            ctx.fillStyle = bag; ctx.beginPath(); ctx.arc(0, -4, 28, 0, Math.PI * 2); ctx.fill();
+            // Large armored body
+            ctx.fillStyle = '#2a0050';
+            ctx.beginPath(); ctx.arc(0, -10, 12, 0, Math.PI * 2); ctx.fill(); // head
+            ctx.fillRect(-10, -1, 20, 18); // body
+            // Crown/horns
+            ctx.fillStyle = '#aa00ff';
+            ctx.beginPath(); ctx.moveTo(-6, -18); ctx.lineTo(-4, -26); ctx.lineTo(-2, -18); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(2, -18); ctx.lineTo(4, -26); ctx.lineTo(6, -18); ctx.fill();
+            // Glowing eyes
+            ctx.fillStyle = '#e040fb'; ctx.shadowColor = '#e040fb'; ctx.shadowBlur = 10;
+            ctx.fillRect(-6, -13, 4, 3); ctx.fillRect(2, -13, 4, 3);
+            ctx.shadowBlur = 16; ctx.shadowColor = '#aa00ff';
+            // Armor lines
+            ctx.strokeStyle = '#aa00ff'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+            ctx.strokeRect(-10, -1, 20, 18);
+            ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(0, 17); ctx.stroke();
+            ctx.globalAlpha = 0.9;
+            // Weapon glow
+            ctx.fillStyle = '#aa00ff';
+            ctx.fillRect(12, -6, 3, 22);
+            ctx.fillStyle = '#e040fb'; ctx.globalAlpha = 0.4;
+            ctx.fillRect(13, -6, 1, 22); ctx.globalAlpha = 0.9;
+            // Legs
+            ctx.fillStyle = '#2a0050';
+            ctx.fillRect(-7, 17, 5, 8); ctx.fillRect(2, 17, 5, 8);
+            // Name tag
+            ctx.fillStyle = '#aa00ff'; ctx.font = '7px monospace'; ctx.textAlign = 'center';
+            ctx.fillText(m.bossName || 'General', 0, -28);
             ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1;
         } else {
             // Imps, clones, dogs — generic minion drawing

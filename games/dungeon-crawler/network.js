@@ -418,7 +418,7 @@ function sendClientInput() {
     if (!NET.connections[0].open) return;
 
     const relevantKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
-        'KeyE','KeyR','KeyQ','Space','Tab','Numpad0','Numpad1','Numpad2','Numpad3','Numpad4','Numpad5'];
+        'KeyE','KeyR','KeyQ','KeyF','Space','Tab','Numpad0','Numpad1','Numpad2','Numpad3','Numpad4','Numpad5','Numpad6'];
 
     // Local player 1 input (WASD + mouse)
     const input = { keys: {}, mouseX: mouse.x, mouseY: mouse.y, mouseDown: mouse.down, clicked: mouse.clicked };
