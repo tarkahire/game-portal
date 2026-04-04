@@ -903,6 +903,21 @@ function sukunaBlackFlash(p, now) {
     p.attackAnim = 10;
 }
 
+function gojoDash(p, now) {
+    if (p.classId !== 'gojo') return;
+    if (!p._gojoDashCd) p._gojoDashCd = 0;
+    if (now - p._gojoDashCd < 1500) return; // 1.5s cooldown
+    if (p.dodging) return;
+    p._gojoDashCd = now;
+    p.dodging = true;
+    p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
+    p.dodgeTimer = 10;
+    p.invincible = now + 350;
+    // Blue teleport trail
+    spawnParticles(p.x, p.y, '#4fc3f7', 12);
+    spawnParticles(p.x, p.y, '#e1f5fe', 6);
+}
+
 function gojoHollowPurple(p, now) {
     if (p.classId !== 'gojo') return;
     if (!p._hollowPurpleCd) p._hollowPurpleCd = 0;
@@ -1597,18 +1612,20 @@ function updatePlayer(p, now) {
 
     // Attacks
     if (!isLocalP2) {
-        // P1 / remote online player: mouse + E + R + Space
+        // P1 / remote online player: mouse + E + R + Q + Space
         const m = pMouse(p);
         if (m.down) playerAttack(p, now);
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
         if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); }
+        if (pKey(p, 'KeyQ')) gojoDash(p, now);
     } else {
         // Local P2: Numpad
         if (pKey(p, 'Numpad0')) playerAttack(p, now);
         if (pKey(p, 'Numpad1')) playerSpecial(p, now);
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
         if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); }
+        if (pKey(p, 'Numpad4')) gojoDash(p, now);
     }
 
     // Reduce attackAnim
