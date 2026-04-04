@@ -64,30 +64,6 @@ function saveMeta() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(meta))
 
 // ─── CLASS DEFINITIONS ──────────────────────────────────────
 const CLASSES = {
-    warrior: {
-        name: 'Warrior', maxHp: 120, speed: 2.2, attackRange: 30, attackDamage: 12, attackSpeed: 500,
-        attackType: 'melee', color: '#8b4513', specialCooldown: 4000,
-        specialName: 'Shield Bash', specialDesc: 'Stun nearby enemies',
-        drawChar: drawWarrior
-    },
-    mage: {
-        name: 'Mage', maxHp: 60, speed: 2.5, attackRange: 200, attackDamage: 15, attackSpeed: 700,
-        attackType: 'ranged', color: '#6a3093', specialCooldown: 3000,
-        specialName: 'Frost Nova', specialDesc: 'Freeze all nearby enemies',
-        drawChar: drawMage
-    },
-    rogue: {
-        name: 'Rogue', maxHp: 80, speed: 3.5, attackRange: 25, attackDamage: 10, attackSpeed: 300,
-        attackType: 'melee', color: '#2e7d32', specialCooldown: 2000,
-        specialName: 'Shadow Dash', specialDesc: 'Dash forward, invincible',
-        drawChar: drawRogue
-    },
-    ranger: {
-        name: 'Ranger', maxHp: 80, speed: 2.8, attackRange: 220, attackDamage: 11, attackSpeed: 500,
-        attackType: 'ranged', color: '#5d8a3c', specialCooldown: 5000,
-        specialName: 'Bear Trap', specialDesc: 'Place a trap that snares enemies',
-        drawChar: drawRanger
-    },
     angel: {
         name: 'Angel', maxHp: 90, speed: 3.25, attackRange: 160, attackDamage: 13, attackSpeed: 450,
         attackType: 'ranged', color: '#f0e68c', specialCooldown: 6000,
@@ -117,6 +93,12 @@ const CLASSES = {
         attackType: 'ranged', color: '#ffeb3b', specialCooldown: 5000,
         specialName: 'Lightning Net', specialDesc: 'Trap & shock enemies in an electric net',
         drawChar: drawLightning
+    },
+    portal: {
+        name: 'Portal', maxHp: 85, speed: 2.8, attackRange: 150, attackDamage: 12, attackSpeed: 500,
+        attackType: 'ranged', color: '#00bcd4', specialCooldown: 6000,
+        specialName: 'Rift Pull', specialDesc: 'Teleport all nearby enemies to you',
+        drawChar: drawPortal, passive: 'autoPortal'
     }
 };
 
@@ -177,6 +159,9 @@ const WEAPON_BASES = [
     { name: 'Spark Rod', type: 'weapon', subtype: 'rod', damage: 11, speed: 400, range: 160, forClass: 'lightning' },
     { name: 'Storm Rod', type: 'weapon', subtype: 'rod', damage: 15, speed: 370, range: 180, forClass: 'lightning' },
     { name: 'Thunder Rod', type: 'weapon', subtype: 'rod', damage: 18, speed: 350, range: 190, forClass: 'lightning' },
+    { name: 'Rift Shard', type: 'weapon', subtype: 'orb', damage: 11, speed: 500, range: 150, forClass: 'portal' },
+    { name: 'Void Orb', type: 'weapon', subtype: 'orb', damage: 15, speed: 460, range: 170, forClass: 'portal' },
+    { name: 'Warp Core', type: 'weapon', subtype: 'orb', damage: 18, speed: 420, range: 180, forClass: 'portal' },
 ];
 const ARMOR_BASES = [
     { name: 'Cloth Robe', type: 'armor', defense: 2 },
@@ -192,15 +177,12 @@ const POTION_TYPES = [
 ];
 
 const SHOP_ITEMS = [
-    { id: 'startSword', name: 'Steel Blade', desc: 'Start with a better sword', cost: 50 },
-    { id: 'startStaff', name: 'Fire Staff', desc: 'Start with a better staff', cost: 50 },
-    { id: 'startDagger', name: 'Venom Dagger', desc: 'Start with a better dagger', cost: 50 },
-    { id: 'startBow', name: 'Oak Longbow', desc: 'Start with a better bow', cost: 50 },
     { id: 'startScepter', name: 'Seraph Rod', desc: 'Start with a better scepter', cost: 50 },
     { id: 'startClaw', name: 'Inferno Fist', desc: 'Start with a better claw', cost: 50 },
     { id: 'startDragonClaw', name: 'Wyrm Fang', desc: 'Start with a better dragon claw', cost: 50 },
     { id: 'startCane', name: 'Life Staff', desc: 'Start with a better healing staff', cost: 50 },
     { id: 'startRod', name: 'Storm Rod', desc: 'Start with a better lightning rod', cost: 50 },
+    { id: 'startOrb', name: 'Void Orb', desc: 'Start with a better rift orb', cost: 50 },
     { id: 'extraHP', name: 'Vitality Charm', desc: '+20 starting HP', cost: 80 },
     { id: 'potionStart', name: 'Potion Belt', desc: 'Start with 2 health potions', cost: 40 },
 ];
@@ -343,7 +325,7 @@ function createPlayer(classId, playerIndex) {
 }
 
 function applyShopUnlocks(p) {
-    const classWeaponMap = { warrior: 'startSword', mage: 'startStaff', rogue: 'startDagger', ranger: 'startBow', angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw', healer: 'startCane', lightning: 'startRod' };
+    const classWeaponMap = { angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw', healer: 'startCane', lightning: 'startRod', portal: 'startOrb' };
     const wUnlock = classWeaponMap[p.classId];
     if (meta.unlocks.includes(wUnlock)) {
         const bases = WEAPON_BASES.filter(w => w.forClass === p.classId);
@@ -722,45 +704,6 @@ function playerSpecial(p, now) {
     p.lastSpecial = now;
 
     switch (p.classId) {
-        case 'warrior': // Shield Bash — stun nearby enemies
-            for (const e of enemies) {
-                if (!e.alive) continue;
-                const dist = Math.hypot(e.x - p.x, e.y - p.y);
-                if (dist < 60) {
-                    e.stunned = now + 2000;
-                    dealDamageToEnemy(e, 8, p);
-                    spawnParticles(e.x, e.y, '#daa520', 6);
-                }
-            }
-            triggerShake(5, 10);
-            spawnParticles(p.x, p.y, '#daa520', 12);
-            break;
-        case 'mage': // Frost Nova — freeze nearby enemies
-            for (const e of enemies) {
-                if (!e.alive) continue;
-                const dist = Math.hypot(e.x - p.x, e.y - p.y);
-                if (dist < 100) {
-                    e.frozen = now + 3000;
-                    spawnParticles(e.x, e.y, '#88ccff', 6);
-                }
-            }
-            triggerShake(4, 8);
-            spawnParticles(p.x, p.y, '#88ccff', 16);
-            break;
-        case 'rogue': // Shadow Dash
-            p.dodging = true;
-            p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
-            p.dodgeTimer = 12;
-            p.invincible = now + 400;
-            spawnParticles(p.x, p.y, '#2e7d32', 8);
-            break;
-        case 'ranger': // Bear Trap
-            lootDrops.push({
-                x: p.x + Math.cos(p.facingAngle) * 40,
-                y: p.y + Math.sin(p.facingAngle) * 40,
-                type: 'trap', owner: p, active: true
-            });
-            break;
         case 'angel': // Divine Wings — speed boost + heal
             p.activeEffects.push({ effect: 'speed', value: 1.3, endTime: now + 5000 });
             p.activeEffects.push({ effect: 'wings', value: 1, endTime: now + 5000 });
@@ -841,6 +784,24 @@ function playerSpecial(p, now) {
             spawnParticles(netX, netY, '#ffeb3b', 20);
             spawnParticles(netX, netY, '#fff', 8);
             triggerShake(4, 8);
+            break;
+        case 'portal': // Rift Pull — teleport ALL enemies in range to player
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                const dist = Math.hypot(e.x - p.x, e.y - p.y);
+                if (dist < 300) {
+                    spawnParticles(e.x, e.y, '#00bcd4', 6);
+                    const angle = Math.random() * Math.PI * 2;
+                    const offset = 30 + Math.random() * 20;
+                    e.x = p.x + Math.cos(angle) * offset;
+                    e.y = p.y + Math.sin(angle) * offset;
+                    e.stunned = Math.max(e.stunned, now + 1000);
+                    spawnParticles(e.x, e.y, '#80deea', 6);
+                }
+            }
+            spawnParticles(p.x, p.y, '#00bcd4', 24);
+            spawnParticles(p.x, p.y, '#fff', 10);
+            triggerShake(6, 12);
             break;
     }
 }
@@ -1215,6 +1176,32 @@ function update(now) {
                 color: '#43a047'
             });
             spawnParticles(p.x, p.y, '#66bb6a', 8);
+        }
+    }
+
+    // Portal passive — auto-teleport enemies to player every 4s
+    for (const p of players) {
+        if (!p.alive || p.classId !== 'portal') continue;
+        if (!p._lastAutoPortal) p._lastAutoPortal = 0;
+        if (now - p._lastAutoPortal >= 4000) {
+            p._lastAutoPortal = now;
+            let pulled = 0;
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                const dist = Math.hypot(e.x - p.x, e.y - p.y);
+                if (dist < 250 && dist > 50) {
+                    spawnParticles(e.x, e.y, '#00bcd4', 4);
+                    const angle = Math.random() * Math.PI * 2;
+                    const offset = 25 + Math.random() * 20;
+                    e.x = p.x + Math.cos(angle) * offset;
+                    e.y = p.y + Math.sin(angle) * offset;
+                    spawnParticles(e.x, e.y, '#80deea', 4);
+                    pulled++;
+                }
+            }
+            if (pulled > 0) {
+                spawnParticles(p.x, p.y, '#00bcd4', 10);
+            }
         }
     }
 
@@ -2295,6 +2282,64 @@ function drawLightning(ctx, p, time) {
     // Player indicator
     ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
     ctx.beginPath(); ctx.arc(0, -24, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+function drawPortal(ctx, p, time) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Swirling portal aura
+    ctx.globalAlpha = 0.15 + Math.sin(time * 0.005) * 0.08;
+    const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 32);
+    ag.addColorStop(0, '#00bcd4'); ag.addColorStop(0.5, '#006064'); ag.addColorStop(1, 'rgba(0,188,212,0)');
+    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 32, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Orbiting rift fragments
+    ctx.strokeStyle = '#00bcd4'; ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#00bcd4'; ctx.shadowBlur = 8;
+    for (let i = 0; i < 4; i++) {
+        const a = time * 0.004 + i * Math.PI / 2;
+        const r = 18 + Math.sin(time * 0.006 + i) * 4;
+        const ox = Math.cos(a) * r, oy = Math.sin(a) * r - 4;
+        ctx.beginPath(); ctx.arc(ox, oy, 2.5, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    // Head
+    ctx.fillStyle = p.attackAnim > 0 ? '#80deea' : '#bba088';
+    ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill();
+    // Hooded cloak
+    ctx.fillStyle = '#004d40';
+    ctx.beginPath(); ctx.arc(0, -8, 8, Math.PI, Math.PI * 2); ctx.fill();
+    // Cloak body — teal/dark
+    ctx.fillStyle = '#00695c';
+    ctx.beginPath(); ctx.moveTo(-7, -1); ctx.lineTo(7, -1); ctx.lineTo(9, 17); ctx.lineTo(-9, 17); ctx.fill();
+    // Rift symbol on chest
+    ctx.strokeStyle = '#00bcd4'; ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#00bcd4'; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.ellipse(0, 5, 4, 6, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#004d40';
+    ctx.beginPath(); ctx.ellipse(0, 5, 2, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Eyes — glowing cyan
+    ctx.fillStyle = '#00e5ff';
+    ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 6;
+    ctx.fillRect(-4, -10, 2.5, 2); ctx.fillRect(1.5, -10, 2.5, 2);
+    ctx.shadowBlur = 0;
+    // Weapon — rift orb aimed
+    ctx.save(); ctx.rotate(p.facingAngle);
+    // Swirling rift projectile
+    ctx.strokeStyle = '#00bcd4'; ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#00bcd4'; ctx.shadowBlur = p.attackAnim > 0 ? 16 : 8;
+    const orbR = 4 + (p.attackAnim > 0 ? 2 : 0);
+    ctx.beginPath(); ctx.arc(16, 0, orbR, 0, Math.PI * 2); ctx.stroke();
+    // Inner swirl
+    ctx.beginPath();
+    ctx.arc(16, 0, orbR * 0.5, time * 0.02, time * 0.02 + Math.PI * 1.5);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 }
 

@@ -54,6 +54,7 @@ body { background: #0a0a0f; color: #c8c0b0; font-family: 'Segoe UI', sans-serif;
 .draco-icon { background: radial-gradient(circle, #9c27b0 30%, #6a1b9a 70%, #4a148c 100%); }
 .healer-icon { background: radial-gradient(circle, #66bb6a 30%, #43a047 70%, #2e7d32 100%); }
 .lightning-icon { background: radial-gradient(circle, #ffeb3b 30%, #fdd835 70%, #f9a825 100%); }
+.portal-icon { background: radial-gradient(circle, #00e5ff 20%, #00bcd4 50%, #006064 100%); }
 
 .class-card h3 { color: #c8c0b0; font-size: 1.1rem; letter-spacing: 0.1em; margin-bottom: 0.6rem; }
 .class-stats { margin-bottom: 0.6rem; }
