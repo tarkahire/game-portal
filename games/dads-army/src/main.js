@@ -1625,13 +1625,17 @@ function updateResourceBar(resources) {
     ammunition: '🔫', copper: '🔶', coal: '⬛', iron: '🔩',
   };
 
-  bar.innerHTML = resources.map(r =>
-    `<div class="resource-item">
+  bar.innerHTML = resources.map(r => {
+    const rate = r.production_rate || 0;
+    const rateSign = rate >= 0 ? '+' : '';
+    const rateClass = rate > 0 ? 'positive' : rate < 0 ? 'negative' : '';
+    return `<div class="resource-item">
       <span class="resource-icon">${icons[r.resource_type] || '📦'}</span>
       <span class="resource-name">${r.resource_type}</span>
       <span class="resource-amount">${Math.floor(r.amount)}</span>
-    </div>`
-  ).join('');
+      <span class="resource-rate ${rateClass}">${rateSign}${rate.toFixed(1)}/t</span>
+    </div>`;
+  }).join('');
 }
 
 /**

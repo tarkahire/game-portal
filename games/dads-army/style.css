@@ -537,6 +537,10 @@ input[type="text"]:focus {
 
 .resource-item .resource-rate {
   font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.resource-item .resource-rate.positive {
   color: var(--color-green);
 }
 
