@@ -336,12 +336,11 @@ async function loadAlignments() {
     for (const align of alignments) {
       const card = document.createElement('div');
       card.className = 'alignment-card';
-      card.dataset.alignment = align.key;
+      card.dataset.alignment = align.id;
 
       card.innerHTML = `
         <div class="alignment-name">${escapeHtml(align.name)}</div>
         <div class="alignment-desc">${escapeHtml(align.description || '')}</div>
-        <div class="alignment-bonus">${escapeHtml(align.bonus_text || '')}</div>
       `;
 
       card.addEventListener('click', () => {
@@ -349,7 +348,7 @@ async function loadAlignments() {
         dom.alignmentGrid.querySelectorAll('.alignment-card').forEach((c) => c.classList.remove('selected'));
         // Select this one
         card.classList.add('selected');
-        selectedAlignment = align.key;
+        selectedAlignment = align.id;
         dom.btnConfirmAlign.disabled = false;
       });
 

@@ -156,6 +156,19 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Actual behavior**: 400 error from Supabase, empty server list
 - **Fix notes**: The `getActiveServers()` query in queries.js selected `player_count` which is a computed value (COUNT of players), not a stored column on `game_servers`. Also, the status filter used `['active', 'upcoming', 'full']` but our server statuses are `['lobby', 'active', 'paused', 'ended']`. **Resolution**: Removed `player_count` from SELECT, updated status filter to `['lobby', 'active']`, updated main.js server card template to remove player_count reference.
 
+### BUG-011: Confirm & Deploy button does nothing — `align.key` should be `align.id`
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**:
+  1. Log in, click server, select an alignment
+  2. Click "Confirm & Deploy"
+  3. Nothing happens — no error in console, no screen transition
+- **Expected behavior**: Player joins server, transitions to game screen
+- **Actual behavior**: Button click silently returns because `selectedAlignment` is `undefined`
+- **Fix notes**: The alignment card code used `align.key` to set `selectedAlignment` and `card.dataset.alignment`, but the alignment_defs table column is `id` not `key`. So `align.key` evaluates to `undefined`, and the click handler's guard clause `if (!selectedAlignment || ...)` exits early. Also removed reference to `align.bonus_text` which doesn't exist. **Resolution**: Changed `align.key` to `align.id` in both the dataset and click handler.
+
 ### BUG-010: Alignment/definition queries reference non-existent `sort_order` column
 - **Severity**: HIGH
 - **Status**: FIXED
