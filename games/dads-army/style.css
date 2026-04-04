@@ -267,14 +267,14 @@ input[type="text"]:focus {
 
 /* ---------- Login Screen ---------- */
 .login-container {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background: linear-gradient(170deg, rgba(30, 35, 50, 0.96), rgba(20, 25, 40, 0.98));
+  border: 2px solid rgba(139, 125, 90, 0.25);
+  border-radius: 4px;
   padding: 40px 36px;
   width: 100%;
   max-width: 400px;
   text-align: center;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 60px rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   overflow-y: auto;
   max-height: 90vh;
@@ -362,12 +362,12 @@ input[type="text"]:focus {
 }
 
 .server-card .server-name {
-  font-family: var(--font-mono);
-  font-size: 1.05em;
+  font-family: var(--font-heading);
+  font-size: 1.1em;
   font-weight: 700;
   color: var(--text-heading);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .server-card .server-meta {
@@ -378,7 +378,7 @@ input[type="text"]:focus {
 }
 
 .server-card .server-meta span {
-  font-family: var(--font-mono);
+  font-family: var(--font-flavor);
 }
 
 .server-status {
@@ -462,19 +462,20 @@ input[type="text"]:focus {
 }
 
 .alignment-card .alignment-name {
-  font-family: var(--font-mono);
-  font-size: 1em;
+  font-family: var(--font-heading);
+  font-size: 1.1em;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--text-heading);
   margin-bottom: 8px;
 }
 
 .alignment-card .alignment-desc {
-  font-size: 0.8em;
+  font-size: 0.82em;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.5;
+  font-family: var(--font-flavor);
 }
 
 .alignment-card .alignment-bonus {
@@ -616,18 +617,19 @@ input[type="text"]:focus {
   background: var(--bg-primary);
 }
 
-/* ---------- Game Screen: Side Panels ---------- */
+/* ---------- Game Screen: Side Panels (Dossier Aesthetic) ---------- */
 .side-panel {
   position: fixed;
   top: var(--resource-bar-height);
   right: 0;
   width: var(--panel-width);
   height: calc(100vh - var(--resource-bar-height));
-  background: var(--bg-panel);
-  border-left: 1px solid var(--border-color);
+  background: linear-gradient(170deg, rgba(30, 35, 50, 0.97), rgba(20, 25, 40, 0.98));
+  border-left: 2px solid rgba(139, 125, 90, 0.3);
   z-index: 200;
   overflow-y: auto;
   animation: slideInRight var(--transition-slide) forwards;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.4);
 }
 
 @keyframes slideInRight {
@@ -675,19 +677,25 @@ input[type="text"]:focus {
 
 .panel-section {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid rgba(139, 125, 90, 0.15);
 }
 
 .tile-info-row {
-  padding: 6px 16px;
+  padding: 7px 16px;
   font-size: 0.9em;
   color: var(--text-primary);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(139, 125, 90, 0.08);
+  font-family: var(--font-flavor);
 }
 
 .tile-info-row strong {
   color: var(--text-heading);
   margin-right: 6px;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.85em;
 }
 
 .resource-name {
@@ -707,35 +715,40 @@ input[type="text"]:focus {
   display: block;
   width: 100%;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(75, 83, 32, 0.2);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-family: var(--font-body);
-  font-size: 0.9em;
+  border: 1px solid rgba(107, 122, 63, 0.35);
+  border-radius: 2px;
+  font-family: var(--font-heading);
+  font-size: 0.85em;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all var(--transition-fast);
   text-align: center;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .btn-action:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: var(--border-active);
+  background: rgba(107, 122, 63, 0.35);
+  border-color: rgba(139, 158, 82, 0.6);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.2);
 }
 
 .btn-action:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .btn-action-primary {
-  background: rgba(212, 168, 67, 0.2);
-  border-color: var(--color-gold);
+  background: linear-gradient(180deg, rgba(212, 168, 67, 0.25), rgba(180, 140, 50, 0.2));
+  border-color: rgba(212, 168, 67, 0.5);
   color: var(--color-gold);
 }
 
 .btn-action-primary:hover {
-  background: rgba(212, 168, 67, 0.35);
+  background: linear-gradient(180deg, rgba(212, 168, 67, 0.4), rgba(180, 140, 50, 0.35));
+  box-shadow: 0 1px 8px rgba(212, 168, 67, 0.15);
 }
 
 /* ---------- Extraction Intensity Selector ---------- */
@@ -805,10 +818,11 @@ input[type="text"]:focus {
 }
 
 .building-name {
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: 0.95em;
+  font-weight: 500;
   color: var(--text-heading);
+  letter-spacing: 0.5px;
 }
 
 .building-level {
@@ -1183,18 +1197,24 @@ input[type="text"]:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
+  padding: 7px 0;
   font-size: 0.9em;
+  border-bottom: 1px solid rgba(139, 125, 90, 0.06);
 }
 
 .panel-row .label {
   color: var(--text-secondary);
+  font-family: var(--font-heading);
+  font-size: 0.85em;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-weight: 400;
 }
 
 .panel-row .value {
   color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-weight: 600;
+  font-family: var(--font-flavor);
+  font-weight: 400;
 }
 
 /* ---------- Game Screen: Minimap ---------- */
@@ -1450,13 +1470,13 @@ input[type="text"]:focus {
   width: 90vw;
   max-width: 1000px;
   height: 80vh;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background: linear-gradient(170deg, rgba(25, 30, 45, 0.98), rgba(15, 20, 35, 0.99));
+  border: 2px solid rgba(139, 125, 90, 0.3);
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 12px 60px rgba(0,0,0,0.7), inset 0 0 60px rgba(0,0,0,0.2);
 }
 
 .commander-header {
@@ -1515,26 +1535,29 @@ input[type="text"]:focus {
 }
 
 .stat-card {
-  padding: 14px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  padding: 16px 14px;
+  background: rgba(75, 83, 32, 0.08);
+  border: 1px solid rgba(139, 125, 90, 0.2);
+  border-left: 3px solid var(--color-olive);
+  border-radius: 2px;
   text-align: center;
 }
 
 .stat-value {
-  font-family: var(--font-mono);
-  font-size: 1.4em;
+  font-family: var(--font-heading);
+  font-size: 1.6em;
   font-weight: 700;
   color: var(--text-heading);
 }
 
 .stat-label {
-  font-size: 0.72em;
+  font-family: var(--font-heading);
+  font-size: 0.7em;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
   color: var(--text-muted);
   margin-top: 4px;
+  font-weight: 400;
 }
 
 .commander-table {
@@ -1545,23 +1568,26 @@ input[type="text"]:focus {
 
 .commander-table th {
   text-align: left;
-  padding: 8px 10px;
-  font-family: var(--font-mono);
-  font-size: 0.75em;
+  padding: 10px 12px;
+  font-family: var(--font-heading);
+  font-size: 0.72em;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-color);
+  letter-spacing: 1.5px;
+  color: var(--color-khaki);
+  border-bottom: 2px solid rgba(139, 125, 90, 0.25);
+  font-weight: 500;
 }
 
 .commander-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(139, 125, 90, 0.08);
   color: var(--text-primary);
+  font-family: var(--font-flavor);
+  font-size: 0.92em;
 }
 
 .commander-table tr:hover td {
-  background: var(--bg-hover);
+  background: rgba(75, 83, 32, 0.12);
 }
 
 .storage-bar {
