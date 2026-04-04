@@ -73,6 +73,9 @@ let armiesOnMap = [];
 /** Road building mode: tile ID of the first selected tile, or null. */
 let roadBuildFrom = null;
 
+/** Currently open city panel ID (for auto-refresh). */
+let openCityPanelId = null;
+
 /** Whether the supply overlay is visible. */
 let showSupplyOverlay = false;
 
@@ -524,12 +527,16 @@ scenes.register('game', {
       console.error('[Main] Failed to load game data:', err);
     }
 
-    // Auto-refresh resources and map every 30 seconds
+    // Auto-refresh resources, map, and open panels every 15 seconds
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
       await refreshResources();
       await refreshMap();
-    }, 30000);
+      // Refresh city panel if open
+      if (openCityPanelId && document.getElementById('panel-city')?.style.display !== 'none') {
+        await showCityPanel(openCityPanelId);
+      }
+    }, 15000);
 
     // Live construction countdown — update all visible timers every second
     if (constructionTimerInterval) clearInterval(constructionTimerInterval);
@@ -875,6 +882,7 @@ async function showCityPanel(cityId) {
   const contentEl = document.getElementById('city-panel-content');
   if (!panel || !contentEl) return;
 
+  openCityPanelId = cityId;
   contentEl.innerHTML = '<div class="loading-spinner" style="margin:30px auto"></div>';
   panel.style.display = 'block';
 
