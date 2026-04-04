@@ -108,6 +108,13 @@ body { background: #020208; color: #00ffcc; font-family: 'Segoe UI', sans-serif;
 .trex-icon { background: radial-gradient(circle, #8d6e63 20%, #4e342e 60%, #3e2723 100%); }
 .wendigo-icon { background: radial-gradient(circle, #cfd8dc 20%, #78909c 60%, #37474f 100%); }
 .alienqueen-icon { background: radial-gradient(circle, #76ff03 20%, #1b5e20 60%, #0a2e0a 100%); }
+.comet-icon { background: radial-gradient(circle, #ffeb3b 20%, #ff6f00 60%, #e65100 100%); }
+.telekinesis-icon { background: radial-gradient(circle, #b388ff 20%, #7c4dff 60%, #311b92 100%); }
+.mindcontrol-icon { background: radial-gradient(circle, #f48fb1 20%, #e040fb 60%, #7b1fa2 100%); }
+.chimera-icon { background: radial-gradient(circle, #ff6f00 25%, #ffeb3b 50%, #76ff03 75%); }
+.mimic-icon { background: radial-gradient(circle, #d7ccc8 20%, #8d6e63 60%, #4e342e 100%); }
+.supernova-icon { background: radial-gradient(circle, #fff 10%, #fff176 40%, #ff6f00 80%, #d50000 100%); }
+.puppet-icon { background: radial-gradient(circle, #ce93d8 20%, #9c27b0 60%, #4a148c 100%); }
 
 .class-card h3 { color: #00ffcc; font-size: 1.1rem; letter-spacing: 0.1em; margin-bottom: 0.6rem; }
 .class-stats { margin-bottom: 0.6rem; }

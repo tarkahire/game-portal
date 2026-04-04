@@ -263,7 +263,14 @@ const CLASSES = {
     beeswarm: { name: 'Bee Swarm', maxHp: 60, speed: 3.5, attackRange: 20, attackDamage: 8, attackSpeed: 250, attackType: 'melee', color: '#fdd835', specialCooldown: 3000, specialName: 'Split Swarm', specialDesc: 'Split apart to dodge — reform to mass sting', drawChar: drawBeeSwarm },
     trex: { name: 'T-Rex', maxHp: 180, speed: 1.8, attackRange: 40, attackDamage: 20, attackSpeed: 600, attackType: 'melee', color: '#4e342e', specialCooldown: 4000, specialName: 'Dino Stomp', specialDesc: 'Massive stomp + screen-shaking roar stuns all', drawChar: drawTRex },
     wendigo: { name: 'Wendigo', maxHp: 90, speed: 2.8, attackRange: 30, attackDamage: 12, attackSpeed: 380, attackType: 'melee', color: '#b0bec5', specialCooldown: 3000, specialName: 'Devour', specialDesc: 'Eat enemy — grow bigger and stronger each kill', drawChar: drawWendigo },
-    alienqueen: { name: 'Alien Queen', maxHp: 110, speed: 2.3, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#1b5e20', specialCooldown: 4000, specialName: 'Lay Eggs', specialDesc: 'Spawn face-hugger eggs that hatch and chase enemies', drawChar: drawAlienQueen }
+    alienqueen: { name: 'Alien Queen', maxHp: 110, speed: 2.3, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#1b5e20', specialCooldown: 4000, specialName: 'Lay Eggs', specialDesc: 'Spawn face-hugger eggs that hatch and chase enemies', drawChar: drawAlienQueen },
+    comet: { name: 'Comet', maxHp: 75, speed: 4.2, attackRange: 25, attackDamage: 10, attackSpeed: 350, attackType: 'melee', color: '#ff6f00', specialCooldown: 2000, specialName: 'Comet Dash', specialDesc: 'Blazing dash — fire trail, faster = more damage', drawChar: drawComet },
+    telekinesis: { name: 'Telekinesis', maxHp: 80, speed: 2.6, attackRange: 160, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#7c4dff', specialCooldown: 3000, specialName: 'TK Throw', specialDesc: 'Grab enemy and hurl them into other enemies', drawChar: drawTelekinesis },
+    mindcontrol: { name: 'Mind Control', maxHp: 70, speed: 2.5, attackRange: 150, attackDamage: 9, attackSpeed: 550, attackType: 'ranged', color: '#e040fb', specialCooldown: 6000, specialName: 'Possess', specialDesc: 'Take over an enemy — fight as them temporarily', drawChar: drawMindControl },
+    chimera: { name: 'Chimera', maxHp: 110, speed: 2.6, attackRange: 35, attackDamage: 13, attackSpeed: 400, attackType: 'melee', color: '#ff8f00', specialCooldown: 3000, specialName: 'Switch Head', specialDesc: 'Cycle heads — lion fire, goat lightning, snake poison', drawChar: drawChimera },
+    mimic: { name: 'Mimic', maxHp: 90, speed: 2.8, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#8d6e63', specialCooldown: 5000, specialName: 'Copy', specialDesc: 'Transform into last enemy killed — gain their power', drawChar: drawMimic },
+    supernova: { name: 'Supernova', maxHp: 85, speed: 2.4, attackRange: 130, attackDamage: 8, attackSpeed: 500, attackType: 'ranged', color: '#fff176', specialCooldown: 0, specialName: 'Charge & Release', specialDesc: 'Hold E to charge — release for massive explosion', drawChar: drawSupernova },
+    puppet: { name: 'Puppet Master', maxHp: 75, speed: 2.5, attackRange: 160, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#9c27b0', specialCooldown: 4000, specialName: 'Strings', specialDesc: 'Attach strings to enemies — slam them into each other', drawChar: drawPuppet }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -1480,6 +1487,134 @@ function playerSpecial(p, now) {
             damageNumbers.push({ x: p.x, y: p.y - 25, text: 'EGGS LAID!', color: '#76ff03', life: 40 });
             spawnParticles(p.x, p.y, '#1b5e20', 10);
             triggerShake(3, 5); } break;
+        case 'comet': // Comet Dash — blazing fire trail
+            { p.dodging = true; p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
+            p.dodgeTimer = 16; p.invincible = now + 600;
+            // Fire trail zones
+            for (let f = 0; f < 6; f++) {
+                const fx = p.x + Math.cos(p.facingAngle) * f * 15, fy = p.y + Math.sin(p.facingAngle) * f * 15;
+                lightningNets.push({ x: fx, y: fy, owner: p, radius: 18, life: now + 2000, damage: 3, damageRate: 300, lastDamage: 0, color: '#ff6f00' });
+            }
+            // Hit everything in path
+            const snap = enemies.slice();
+            for (const e of snap) { if (!e.alive) continue;
+                const dx = e.x-p.x, dy = e.y-p.y;
+                const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
+                const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
+                if (along > 0 && along < 100 && perp < 20) dealDamageToEnemy(e, Math.round(p.damage * 2.5), p);
+            }
+            spawnParticles(p.x, p.y, '#ff6f00', 14); spawnParticles(p.x, p.y, '#ffeb3b', 8);
+            triggerShake(6, 10); } break;
+        case 'telekinesis': // TK Throw — grab nearest enemy, hurl at others
+            { let target = null, closest = Infinity;
+            for (const e of enemies) { if (!e.alive) continue;
+                const d = Math.hypot(e.x-p.x, e.y-p.y); if (d < 130 && d < closest) { closest = d; target = e; } }
+            if (target) {
+                spawnParticles(target.x, target.y, '#7c4dff', 6);
+                // Hurl toward facing direction
+                const hx = target.x + Math.cos(p.facingAngle) * 120, hy = target.y + Math.sin(p.facingAngle) * 120;
+                target.x = hx; target.y = hy;
+                dealDamageToEnemy(target, Math.round(p.damage * 1.5), p);
+                // Damage anything at landing zone
+                for (const e2 of enemies) { if (!e2.alive || e2 === target) continue;
+                    if (Math.hypot(e2.x-hx, e2.y-hy) < 35) dealDamageToEnemy(e2, Math.round(p.damage * 2), p);
+                }
+                spawnParticles(hx, hy, '#b388ff', 10);
+                damageNumbers.push({ x: hx, y: hy - 15, text: 'CRASH!', color: '#7c4dff', life: 40 });
+                triggerShake(6, 10);
+            } } break;
+        case 'mindcontrol': // Possess — take over an enemy
+            { let target = null, closest = Infinity;
+            for (const e of enemies) { if (!e.alive || e.isBoss) continue;
+                const d = Math.hypot(e.x-p.x, e.y-p.y); if (d < 120 && d < closest) { closest = d; target = e; } }
+            if (target) {
+                // Turn enemy into an ally minion
+                target.alive = false;
+                summonedMinions.push({ x: target.x, y: target.y, owner: p,
+                    hp: target.maxHp, maxHp: target.maxHp, damage: target.damage, speed: target.speed || 2,
+                    radius: target.radius || 10, attackRange: 30, lastAttack: now, attackSpeed: 500,
+                    life: now + 6000, color: '#e040fb', type: 'possessed',
+                    _guardIndex: 0, _guardTotal: 1, _orbit: true });
+                spawnParticles(target.x, target.y, '#e040fb', 14);
+                damageNumbers.push({ x: target.x, y: target.y - 20, text: 'POSSESSED!', color: '#e040fb', life: 50 });
+                triggerShake(4, 8);
+            } } break;
+        case 'chimera': // Switch Head — cycle between fire/lightning/poison
+            { if (!p._chimeraHead) p._chimeraHead = 0;
+            p._chimeraHead = (p._chimeraHead + 1) % 3;
+            const heads = ['lion', 'goat', 'snake'];
+            const head = heads[p._chimeraHead];
+            const range = 60;
+            const snap2 = enemies.slice();
+            if (head === 'lion') { // Fire — AoE burn
+                for (const e of snap2) { if (!e.alive) continue;
+                    if (Math.hypot(e.x-p.x, e.y-p.y) < range) { dealDamageToEnemy(e, Math.round(p.damage * 1.5), p); spawnParticles(e.x, e.y, '#ff6f00', 4); } }
+                spawnParticles(p.x, p.y, '#ff6f00', 14);
+            } else if (head === 'goat') { // Lightning — stun chain
+                for (const e of snap2) { if (!e.alive) continue;
+                    if (Math.hypot(e.x-p.x, e.y-p.y) < range) { e.stunned = Math.max(e.stunned, now + 2000); dealDamageToEnemy(e, Math.round(p.damage * 1.2), p); spawnParticles(e.x, e.y, '#ffeb3b', 4); } }
+                spawnParticles(p.x, p.y, '#ffeb3b', 14);
+            } else { // Snake — poison DoT
+                for (const e of snap2) { if (!e.alive) continue;
+                    if (Math.hypot(e.x-p.x, e.y-p.y) < range) { dealDamageToEnemy(e, Math.round(p.damage * 0.8), p); dealDamageToEnemy(e, Math.round(p.damage * 0.8), p); spawnParticles(e.x, e.y, '#76ff03', 4); } }
+                spawnParticles(p.x, p.y, '#76ff03', 14);
+            }
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: head.toUpperCase() + '!', color: head==='lion'?'#ff6f00':head==='goat'?'#ffeb3b':'#76ff03', life: 40 });
+            triggerShake(5, 8); } break;
+        case 'mimic': // Copy — transform into last killed enemy type
+            { let target = null, closest = Infinity;
+            for (const e of enemies) { if (!e.alive || e.isBoss) continue;
+                const d = Math.hypot(e.x-p.x, e.y-p.y); if (d < 60 && d < closest) { closest = d; target = e; } }
+            if (target) {
+                dealDamageToEnemy(target, 9999, p); // kill and copy
+                p._mimicForm = target.enemyType || 'skeleton';
+                p.activeEffects.push({ effect: 'damage', value: 1.5, endTime: now + 6000 });
+                p.activeEffects.push({ effect: 'speed', value: 1.3, endTime: now + 6000 });
+                p.activeEffects.push({ effect: 'mimic', value: 1, endTime: now + 6000 });
+                damageNumbers.push({ x: p.x, y: p.y - 25, text: `Copied: ${target.name || target.enemyType}!`, color: '#8d6e63', life: 50 });
+                spawnParticles(p.x, p.y, '#8d6e63', 14);
+                triggerShake(4, 6);
+            } } break;
+        case 'supernova': // Charge & Release — bigger explosion the longer since last use
+            { if (!p._novaCharge) p._novaCharge = now;
+            const chargeTime = Math.min(now - p._novaCharge, 10000); // max 10s charge
+            const chargePct = chargeTime / 10000;
+            const range = 50 + chargePct * 150; // 50-200 range
+            const dmg = Math.round(p.damage * (1 + chargePct * 4)); // 1x-5x damage
+            const snap3 = enemies.slice();
+            for (const e of snap3) { if (!e.alive) continue;
+                if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, dmg, p); }
+            spawnParticles(p.x, p.y, '#fff176', Math.round(10 + chargePct * 20));
+            spawnParticles(p.x, p.y, '#fff', Math.round(5 + chargePct * 10));
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: `NOVA ${Math.round(chargePct*100)}%!`, color: '#fff176', life: 50 });
+            triggerShake(Math.round(4 + chargePct * 12), Math.round(8 + chargePct * 16));
+            p._novaCharge = now; // reset charge
+            } break;
+        case 'puppet': // Strings — grab enemies and slam them together
+            { const range = 120;
+            const caught = [];
+            for (const e of enemies) { if (!e.alive || caught.length >= 4) continue;
+                if (Math.hypot(e.x-p.x, e.y-p.y) < range) { caught.push(e); e.stunned = Math.max(e.stunned, now + 1500); } }
+            if (caught.length >= 2) {
+                // Slam them into each other at center point
+                const cx = caught.reduce((s,e) => s+e.x, 0) / caught.length;
+                const cy = caught.reduce((s,e) => s+e.y, 0) / caught.length;
+                for (const e of caught) {
+                    e.x = cx + (Math.random()-0.5)*15; e.y = cy + (Math.random()-0.5)*15;
+                    dealDamageToEnemy(e, Math.round(p.damage * 2), p);
+                    spawnParticles(e.x, e.y, '#9c27b0', 4);
+                }
+                damageNumbers.push({ x: cx, y: cy - 20, text: 'SLAM!', color: '#9c27b0', life: 40 });
+            } else if (caught.length === 1) {
+                dealDamageToEnemy(caught[0], Math.round(p.damage * 1.5), p);
+            }
+            // String visuals
+            for (const e of caught) {
+                activeBeams.push({ x: p.x, y: p.y, angle: Math.atan2(e.y-p.y, e.x-p.x),
+                    length: Math.hypot(e.x-p.x, e.y-p.y), width: 1, life: 10, maxLife: 10, color: '#9c27b0' });
+            }
+            spawnParticles(p.x, p.y, '#ce93d8', 10);
+            triggerShake(5, 8); } break;
     }
 }
 
@@ -4491,6 +4626,89 @@ function drawAlienQueen(ctx, p, t) {
     ctx.beginPath(); ctx.arc(0, -22, 2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
     ctx.restore();
 }
+
+function drawComet(ctx,p,t){ctx.save();ctx.translate(p.x,p.y);
+    // Fire trail behind
+    ctx.fillStyle='rgba(255,111,0,0.3)';for(let i=1;i<5;i++){const a=p.facingAngle+Math.PI;ctx.beginPath();ctx.arc(Math.cos(a)*i*8,Math.sin(a)*i*8,6-i,0,Math.PI*2);ctx.fill();}
+    // Body — blazing rock
+    ctx.fillStyle=p.attackAnim>0?'#fff':'#ff8f00';ctx.shadowColor='#ff6f00';ctx.shadowBlur=12;
+    ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffeb3b';ctx.beginPath();ctx.arc(-1,-1,4,0,Math.PI*2);ctx.fill();
+    // Flame corona
+    ctx.fillStyle='rgba(255,111,0,0.5)';for(let f=0;f<6;f++){const a=t*0.02+f;ctx.beginPath();ctx.arc(Math.cos(a)*10,Math.sin(a)*10,3,0,Math.PI*2);ctx.fill();}
+    ctx.shadowBlur=0;ctx.fillStyle=p.playerIndex===0?'#00ffcc':'#ff0080';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(0,-14,2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();}
+
+function drawTelekinesis(ctx,p,t){drawGenericAnime(ctx,p,'#7c4dff','#311b92','round',function(c,p){
+    c.strokeStyle='#b388ff';c.shadowColor='#7c4dff';c.shadowBlur=8;c.lineWidth=1;
+    for(let i=0;i<3;i++){const a=t*0.005+i*2;c.beginPath();c.arc(Math.cos(a)*14,Math.sin(a)*14-4,2,0,Math.PI*2);c.stroke();}c.shadowBlur=0;});}
+
+function drawMindControl(ctx,p,t){drawGenericAnime(ctx,p,'#e040fb','#4a148c','long',function(c,p){
+    c.fillStyle='#e040fb';c.shadowColor='#e040fb';c.shadowBlur=8;
+    c.beginPath();c.arc(0,-12,3,0,Math.PI*2);c.fill(); // third eye
+    // Psychic waves
+    c.strokeStyle='rgba(224,64,251,0.3)';c.lineWidth=1;
+    for(let w=0;w<3;w++){c.beginPath();c.arc(0,-8,8+w*6+Math.sin(t*0.01)*2,0,Math.PI*2);c.stroke();}c.shadowBlur=0;});}
+
+function drawChimera(ctx,p,t){ctx.save();ctx.translate(p.x,p.y);
+    const head=p._chimeraHead||0;const hCol=head===0?'#ff6f00':head===1?'#ffeb3b':'#76ff03';
+    ctx.shadowColor=hCol;ctx.shadowBlur=6;
+    // Body
+    ctx.fillStyle='#5d4037';ctx.beginPath();ctx.ellipse(0,2,12,9,0,0,Math.PI*2);ctx.fill();
+    // Main head
+    ctx.fillStyle=hCol;ctx.beginPath();ctx.arc(0,-8,8,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-2,-10,2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(2,-10,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-2,-10,1,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(2,-10,1,0,Math.PI*2);ctx.fill();
+    // Side heads (smaller)
+    const otherCols=['#ff6f00','#ffeb3b','#76ff03'].filter((_,i)=>i!==head);
+    ctx.fillStyle=otherCols[0];ctx.beginPath();ctx.arc(-10,-3,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=otherCols[1];ctx.beginPath();ctx.arc(10,-3,4,0,Math.PI*2);ctx.fill();
+    // Legs
+    ctx.fillStyle='#4e342e';ctx.fillRect(-8,10,4,7);ctx.fillRect(4,10,4,7);
+    ctx.shadowBlur=0;ctx.fillStyle=p.playerIndex===0?'#00ffcc':'#ff0080';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(0,-20,2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();}
+
+function drawMimic(ctx,p,t){ctx.save();ctx.translate(p.x,p.y);
+    const isMimicking=p.activeEffects&&p.activeEffects.some(e=>e.effect==='mimic');
+    if(isMimicking){
+        // Shimmer effect — enemy form with purple outline
+        ctx.fillStyle='#8d6e63';ctx.globalAlpha=0.7+Math.sin(t*0.01)*0.2;
+        ctx.beginPath();ctx.arc(0,-4,10,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#e040fb';ctx.lineWidth=2;ctx.shadowColor='#e040fb';ctx.shadowBlur=8;
+        ctx.beginPath();ctx.arc(0,-4,11,0,Math.PI*2);ctx.stroke();
+        ctx.fillStyle='#fff';ctx.globalAlpha=1;ctx.font='7px monospace';ctx.textAlign='center';ctx.fillText(p._mimicForm||'?',0,0);
+        ctx.shadowBlur=0;
+    }else{
+        // Chest form
+        ctx.fillStyle='#6d4c41';ctx.fillRect(-8,-6,16,14);
+        ctx.fillStyle='#8d6e63';ctx.fillRect(-7,-5,14,5);
+        ctx.fillStyle='#fdd835';ctx.fillRect(-2,-2,4,3);
+        // Hidden eye
+        ctx.fillStyle='#f44336';ctx.beginPath();ctx.arc(0,-8,2,0,Math.PI*2);ctx.fill();
+    }
+    ctx.fillStyle=p.playerIndex===0?'#00ffcc':'#ff0080';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(0,-16,2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();}
+
+function drawSupernova(ctx,p,t){ctx.save();ctx.translate(p.x,p.y);
+    const charge=p._novaCharge?Math.min((gameTime-p._novaCharge)/10000,1):0;
+    // Charging glow — grows with charge
+    const glowR=8+charge*25;
+    ctx.globalAlpha=0.15+charge*0.3;
+    const sg=ctx.createRadialGradient(0,0,0,0,0,glowR);
+    sg.addColorStop(0,'#fff');sg.addColorStop(0.3,'#fff176');sg.addColorStop(1,'rgba(255,241,118,0)');
+    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(0,0,glowR,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+    // Core
+    ctx.fillStyle=charge>0.5?'#fff':'#fff176';ctx.shadowColor='#fff176';ctx.shadowBlur=8+charge*15;
+    ctx.beginPath();ctx.arc(0,0,6+charge*4,0,Math.PI*2);ctx.fill();
+    // Orbiting charge particles
+    for(let i=0;i<Math.floor(charge*8);i++){const a=t*0.008+i*(Math.PI*2/8);const r=10+charge*8;
+        ctx.fillStyle='#ffeb3b';ctx.beginPath();ctx.arc(Math.cos(a)*r,Math.sin(a)*r,1.5,0,Math.PI*2);ctx.fill();}
+    ctx.shadowBlur=0;ctx.fillStyle=p.playerIndex===0?'#00ffcc':'#ff0080';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(0,-16-charge*6,2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();}
+
+function drawPuppet(ctx,p,t){drawGenericAnime(ctx,p,'#9c27b0','#4a148c','long',function(c,p){
+    // Strings from fingers
+    c.strokeStyle='#ce93d8';c.lineWidth=0.5;c.shadowColor='#9c27b0';c.shadowBlur=4;
+    for(let s=0;s<5;s++){const sx=-4+s*2;c.beginPath();c.moveTo(sx,2);c.lineTo(sx+(Math.sin(t*0.005+s)*6),18+Math.sin(t*0.008+s)*4);c.stroke();}
+    // Cross control bar
+    c.strokeStyle='#795548';c.lineWidth=2;c.beginPath();c.moveTo(-5,0);c.lineTo(5,0);c.stroke();c.shadowBlur=0;});}
 
 // ─── ENEMY DRAWING ──────────────────────────────────────────
 function drawEnemy(ctx, e, flash) {
