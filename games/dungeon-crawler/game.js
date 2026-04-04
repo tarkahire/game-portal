@@ -45,6 +45,7 @@ let activeBeams = [];
 let impsEnraged = 0; // timestamp until imps attack mode
 let healingCircles = [];
 let lightningNets = [];
+let domainExpansion = null; // active domain expansion effect
 let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
 let camera = { x: 0, y: 0 };
 let gameTime = 0;
@@ -99,6 +100,12 @@ const CLASSES = {
         attackType: 'ranged', color: '#00bcd4', specialCooldown: 6000,
         specialName: 'Rift Pull', specialDesc: 'Teleport all nearby enemies to you',
         drawChar: drawPortal, passive: 'autoPortal'
+    },
+    gojo: {
+        name: 'Gojo', maxHp: 95, speed: 3.2, attackRange: 180, attackDamage: 14, attackSpeed: 400,
+        attackType: 'ranged', color: '#4fc3f7', specialCooldown: 15000,
+        specialName: 'Domain Expansion', specialDesc: 'Unlimited Void — all enemies take massive damage',
+        drawChar: drawGojo
     }
 };
 
@@ -162,6 +169,9 @@ const WEAPON_BASES = [
     { name: 'Rift Shard', type: 'weapon', subtype: 'orb', damage: 11, speed: 500, range: 150, forClass: 'portal' },
     { name: 'Void Orb', type: 'weapon', subtype: 'orb', damage: 15, speed: 460, range: 170, forClass: 'portal' },
     { name: 'Warp Core', type: 'weapon', subtype: 'orb', damage: 18, speed: 420, range: 180, forClass: 'portal' },
+    { name: 'Cursed Orb', type: 'weapon', subtype: 'cursed', damage: 13, speed: 400, range: 180, forClass: 'gojo' },
+    { name: 'Six Eyes Focus', type: 'weapon', subtype: 'cursed', damage: 17, speed: 370, range: 200, forClass: 'gojo' },
+    { name: 'Infinite Void', type: 'weapon', subtype: 'cursed', damage: 20, speed: 350, range: 210, forClass: 'gojo' },
 ];
 const ARMOR_BASES = [
     { name: 'Cloth Robe', type: 'armor', defense: 2 },
@@ -183,6 +193,7 @@ const SHOP_ITEMS = [
     { id: 'startCane', name: 'Life Staff', desc: 'Start with a better healing staff', cost: 50 },
     { id: 'startRod', name: 'Storm Rod', desc: 'Start with a better lightning rod', cost: 50 },
     { id: 'startOrb', name: 'Void Orb', desc: 'Start with a better rift orb', cost: 50 },
+    { id: 'startCursed', name: 'Six Eyes Focus', desc: 'Start with a better cursed orb', cost: 50 },
     { id: 'extraHP', name: 'Vitality Charm', desc: '+20 starting HP', cost: 80 },
     { id: 'potionStart', name: 'Potion Belt', desc: 'Start with 2 health potions', cost: 40 },
 ];
@@ -325,7 +336,7 @@ function createPlayer(classId, playerIndex) {
 }
 
 function applyShopUnlocks(p) {
-    const classWeaponMap = { angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw', healer: 'startCane', lightning: 'startRod', portal: 'startOrb' };
+    const classWeaponMap = { angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw', healer: 'startCane', lightning: 'startRod', portal: 'startOrb', gojo: 'startCursed' };
     const wUnlock = classWeaponMap[p.classId];
     if (meta.unlocks.includes(wUnlock)) {
         const bases = WEAPON_BASES.filter(w => w.forClass === p.classId);
@@ -497,6 +508,7 @@ function startGame() {
     activeBeams = [];
     healingCircles = [];
     lightningNets = [];
+    domainExpansion = null;
     gameState = 'playing';
     showScreen(null);
     gameTime = 0;
@@ -522,6 +534,7 @@ function nextFloor() {
     activeBeams = [];
     healingCircles = [];
     lightningNets = [];
+    domainExpansion = null;
     enemies = [];
     lootDrops = [];
     populateDungeon();
@@ -803,7 +816,45 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#fff', 10);
             triggerShake(6, 12);
             break;
+        case 'gojo': // Domain Expansion — Unlimited Void
+            domainExpansion = {
+                x: p.x, y: p.y, owner: p,
+                radius: 0, maxRadius: 200,
+                life: now + 4000, startTime: now,
+                damage: 30, hasDamaged: false,
+                phase: 'expand' // expand -> hold -> collapse
+            };
+            // Stun all enemies immediately
+            for (const e of enemies) {
+                if (e.alive) e.stunned = Math.max(e.stunned, now + 4000);
+            }
+            spawnParticles(p.x, p.y, '#4fc3f7', 30);
+            spawnParticles(p.x, p.y, '#fff', 15);
+            triggerShake(10, 20);
+            break;
     }
+}
+
+function gojoHollowPurple(p, now) {
+    if (p.classId !== 'gojo') return;
+    if (!p._hollowPurpleCd) p._hollowPurpleCd = 0;
+    if (now - p._hollowPurpleCd < 4000) return; // 4s cooldown
+    p._hollowPurpleCd = now;
+
+    // Fire a massive slow-moving Hollow Purple orb
+    const speed = 3;
+    projectiles.push({
+        x: p.x, y: p.y,
+        vx: Math.cos(p.facingAngle) * speed,
+        vy: Math.sin(p.facingAngle) * speed,
+        damage: Math.round(p.damage * 3), owner: 'player', ownerRef: p,
+        range: 400, traveled: 0,
+        color: '#9c27b0', radius: 14,
+        isHollowPurple: true, piercing: true
+    });
+    spawnParticles(p.x, p.y, '#ce93d8', 12);
+    spawnParticles(p.x, p.y, '#e040fb', 8);
+    triggerShake(5, 10);
 }
 
 function portalTeleportToAlly(p, now) {
@@ -1116,14 +1167,15 @@ function update(now) {
         if (proj.traveled > proj.range) { projectiles.splice(i, 1); continue; }
 
         if (proj.owner === 'player') {
+            let hitSomething = false;
             for (const e of enemies) {
                 if (!e.alive) continue;
                 if (Math.hypot(e.x - proj.x, e.y - proj.y) < e.radius + proj.radius) {
                     dealDamageToEnemy(e, proj.damage, proj.ownerRef);
-                    projectiles.splice(i, 1);
-                    break;
+                    if (!proj.piercing) { projectiles.splice(i, 1); hitSomething = true; break; }
                 }
             }
+            if (hitSomething) continue;
         } else {
             for (const p of players) {
                 if (!p.alive) continue;
@@ -1175,6 +1227,40 @@ function update(now) {
                 }
             }
         }
+    }
+
+    // Update domain expansion (Gojo)
+    if (domainExpansion) {
+        const de = domainExpansion;
+        const elapsed = now - de.startTime;
+        const totalDuration = de.life - de.startTime;
+        // Expand phase (first 20%)
+        if (elapsed < totalDuration * 0.2) {
+            de.radius = de.maxRadius * (elapsed / (totalDuration * 0.2));
+            de.phase = 'expand';
+        }
+        // Hold phase (20%-80%) — deal damage once
+        else if (elapsed < totalDuration * 0.8) {
+            de.radius = de.maxRadius;
+            de.phase = 'hold';
+            if (!de.hasDamaged) {
+                de.hasDamaged = true;
+                for (const e of enemies) {
+                    if (!e.alive) continue;
+                    dealDamageToEnemy(e, de.damage, de.owner);
+                    spawnParticles(e.x, e.y, '#4fc3f7', 6);
+                    spawnParticles(e.x, e.y, '#111', 8);
+                }
+                triggerShake(12, 20);
+            }
+        }
+        // Collapse phase (80%-100%)
+        else {
+            const collapseProgress = (elapsed - totalDuration * 0.8) / (totalDuration * 0.2);
+            de.radius = de.maxRadius * (1 - collapseProgress);
+            de.phase = 'collapse';
+        }
+        if (now > de.life) domainExpansion = null;
     }
 
     // Update beam effects
@@ -1413,12 +1499,12 @@ function updatePlayer(p, now) {
         if (mouse.down) playerAttack(p, now);
         if (keys['KeyE']) playerSpecial(p, now);
         if (keys['Space']) playerDodge(p, now);
-        if (keys['KeyR']) portalTeleportToAlly(p, now);
+        if (keys['KeyR']) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); }
     } else {
         if (keys['Numpad0']) playerAttack(p, now);
         if (keys['Numpad1']) playerSpecial(p, now);
         if (keys['Numpad2']) playerDodge(p, now);
-        if (keys['Numpad5']) portalTeleportToAlly(p, now);
+        if (keys['Numpad5']) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); }
     }
 
     // Reduce attackAnim
@@ -1718,6 +1804,71 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(ln.x, ln.y, ln.radius * 0.5, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
+    }
+
+    // Domain Expansion (Gojo)
+    if (domainExpansion) {
+        const de = domainExpansion;
+        const alpha = de.phase === 'collapse' ? de.radius / de.maxRadius : 1;
+        // Dark void background
+        ctx.globalAlpha = alpha * 0.7;
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.fill();
+        // Void inner pattern — infinite darkness with stars
+        ctx.globalAlpha = alpha * 0.5;
+        const t = gameTime * 0.002;
+        for (let s = 0; s < 30; s++) {
+            const sx = de.x + Math.sin(t + s * 1.7) * de.radius * 0.8;
+            const sy = de.y + Math.cos(t * 0.7 + s * 2.3) * de.radius * 0.8;
+            const dist = Math.hypot(sx - de.x, sy - de.y);
+            if (dist < de.radius) {
+                ctx.fillStyle = s % 3 === 0 ? '#4fc3f7' : '#e0e0e0';
+                const starSize = 1 + Math.sin(t * 3 + s) * 0.5;
+                ctx.fillRect(sx, sy, starSize, starSize);
+            }
+        }
+        // Blue grid lines (Unlimited Void look)
+        ctx.strokeStyle = 'rgba(79,195,247,0.3)'; ctx.lineWidth = 0.5;
+        ctx.globalAlpha = alpha * 0.4;
+        for (let g = -de.radius; g < de.radius; g += 20) {
+            ctx.beginPath(); ctx.moveTo(de.x + g, de.y - de.radius); ctx.lineTo(de.x + g, de.y + de.radius); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(de.x - de.radius, de.y + g); ctx.lineTo(de.x + de.radius, de.y + g); ctx.stroke();
+        }
+        // Edge ring
+        ctx.globalAlpha = alpha * 0.8;
+        ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 3;
+        ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = 25;
+        ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.stroke();
+        // Inner pulse ring
+        ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(de.x, de.y, de.radius * (0.5 + Math.sin(t * 5) * 0.1), 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+    }
+
+    // Hollow Purple projectile glow (special rendering for Gojo's orb)
+    for (const proj of projectiles) {
+        if (!proj.isHollowPurple) continue;
+        // Outer void aura
+        ctx.globalAlpha = 0.3;
+        const hpg = ctx.createRadialGradient(proj.x, proj.y, 0, proj.x, proj.y, proj.radius * 3);
+        hpg.addColorStop(0, '#9c27b0'); hpg.addColorStop(0.4, '#7b1fa2'); hpg.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = hpg; ctx.beginPath(); ctx.arc(proj.x, proj.y, proj.radius * 3, 0, Math.PI * 2); ctx.fill();
+        // Blue/red swirl inside
+        ctx.globalAlpha = 0.6;
+        const swirl = gameTime * 0.01;
+        ctx.fillStyle = '#e53935';
+        ctx.beginPath(); ctx.arc(proj.x + Math.cos(swirl) * 4, proj.y + Math.sin(swirl) * 4, proj.radius * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#42a5f5';
+        ctx.beginPath(); ctx.arc(proj.x + Math.cos(swirl + Math.PI) * 4, proj.y + Math.sin(swirl + Math.PI) * 4, proj.radius * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Distortion particles
+        if (Math.random() < 0.5) {
+            const a = Math.random() * Math.PI * 2;
+            particles.push({ x: proj.x + Math.cos(a) * proj.radius * 2, y: proj.y + Math.sin(a) * proj.radius * 2,
+                vx: -Math.cos(a) * 2, vy: -Math.sin(a) * 2,
+                life: 8 + Math.random() * 6, maxLife: 14, color: '#ce93d8', size: 2 });
+        }
     }
 
     // Beam effects (Draco)
@@ -2362,6 +2513,72 @@ function drawPortal(ctx, p, time) {
     // Player indicator
     ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
     ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+function drawGojo(ctx, p, time) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Infinity barrier aura
+    ctx.globalAlpha = 0.1 + Math.sin(time * 0.006) * 0.05;
+    const ig = ctx.createRadialGradient(0, -2, 5, 0, -2, 30);
+    ig.addColorStop(0, 'rgba(79,195,247,0.3)'); ig.addColorStop(0.5, 'rgba(79,195,247,0.1)'); ig.addColorStop(1, 'rgba(79,195,247,0)');
+    ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(0, -2, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Hair — white spiky
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(-7, -10); ctx.lineTo(-5, -20); ctx.lineTo(-2, -12); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-2, -12); ctx.lineTo(0, -22); ctx.lineTo(2, -12); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(2, -12); ctx.lineTo(5, -20); ctx.lineTo(7, -10); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(5, -10); ctx.lineTo(8, -17); ctx.lineTo(9, -9); ctx.fill();
+    // Head
+    ctx.fillStyle = '#e8d5b7';
+    ctx.beginPath(); ctx.arc(0, -7, 7, 0, Math.PI * 2); ctx.fill();
+    // Blindfold
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-8, -10, 16, 4);
+    // Six Eyes glow (through blindfold)
+    ctx.fillStyle = '#4fc3f7';
+    ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = p.attackAnim > 0 ? 14 : 8;
+    ctx.fillRect(-4, -9, 2.5, 2); ctx.fillRect(1.5, -9, 2.5, 2);
+    ctx.shadowBlur = 0;
+    // Body — dark uniform
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(-6, -1, 12, 14);
+    // High collar
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.moveTo(-6, -1); ctx.lineTo(-5, -4); ctx.lineTo(-3, -1); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(6, -1); ctx.lineTo(5, -4); ctx.lineTo(3, -1); ctx.fill();
+    // Blue highlights on uniform
+    ctx.fillStyle = '#4fc3f7'; ctx.globalAlpha = 0.3;
+    ctx.fillRect(-1, 1, 2, 10);
+    ctx.globalAlpha = 1;
+    // Hands — cursed energy aim
+    ctx.save(); ctx.rotate(p.facingAngle);
+    // Red and Blue orbs merging
+    if (p.attackAnim > 0) {
+        ctx.fillStyle = '#e53935';
+        ctx.shadowColor = '#e53935'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(12, -3, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#42a5f5';
+        ctx.shadowColor = '#42a5f5';
+        ctx.beginPath(); ctx.arc(12, 3, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+    } else {
+        ctx.fillStyle = '#4fc3f7';
+        ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(12, 0, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+    // Legs
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(-4, 13, 3, 7); ctx.fillRect(2, 13, 3, 7);
+    // Shoes
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-5, 19, 4, 2); ctx.fillRect(1, 19, 4, 2);
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -24, 2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 }
 
