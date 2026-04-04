@@ -1050,12 +1050,12 @@ function playerSpecial(p, now) {
             }
             spawnParticles(p.x + Math.cos(p.facingAngle) * 20, p.y + Math.sin(p.facingAngle) * 20, '#e65100', 10);
             triggerShake(5, 10); } break;
-        case 'naruto': // Shadow Clones
-            for (let i = 0; i < 2; i++) {
-                const angle = p.facingAngle + (i === 0 ? -0.6 : 0.6);
+        case 'naruto': // Shadow Clones — 8 clones
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
                 summonedMinions.push({ x: p.x + Math.cos(angle) * 25, y: p.y + Math.sin(angle) * 25, owner: p,
-                    hp: 10, maxHp: 10, damage: Math.round(p.damage * 0.6), speed: p.speed, radius: 8, attackRange: 28,
-                    lastAttack: 0, attackSpeed: 400, life: now + 4000, color: '#ff8f00', type: 'clone' });
+                    hp: 10, maxHp: 10, damage: Math.round(p.damage * 0.6), speed: p.speed, radius: 7, attackRange: 22,
+                    lastAttack: 0, attackSpeed: 400, life: now + 6000, color: '#ff8f00', type: 'clone' });
             }
             spawnParticles(p.x, p.y, '#ff8f00', 12); triggerShake(3, 5); break;
         case 'sasuke': // Chidori — lightning dash
