@@ -179,10 +179,14 @@ function handleClientReceive(data, conn) {
             updateLobbyUI();
             break;
         case 'startGame':
-            // Host is starting the game with these classes
+            // Host is starting the game with these classes and dungeon
             selectedClasses = data.classes;
             coopMode = true;
             NET.isOnline = true;
+            // Use host's dungeon instead of generating a new one
+            if (data.dungeon) {
+                NET._hostDungeon = data.dungeon;
+            }
             startGame();
             break;
         case 'gameState':
@@ -191,9 +195,16 @@ function handleClientReceive(data, conn) {
         case 'nextFloor':
             currentFloor = data.floor;
             dungeon = data.dungeon;
-            // Rebuild dungeon references that can't be serialized
-            rebuildDungeonRefs();
-            populateDungeon();
+            dungeon.rooms[0].explored = true;
+            projectiles = [];
+            particles = [];
+            summonedMinions = [];
+            activeBeams = [];
+            healingCircles = [];
+            lightningNets = [];
+            domainExpansion = null;
+            enemies = [];
+            lootDrops = [];
             break;
     }
 }
@@ -278,12 +289,18 @@ function hostStartGame() {
     selectedClasses = classes;
     coopMode = true;
 
-    // Tell clients to start
-    for (const conn of NET.connections) {
-        if (conn.open) conn.send({ type: 'startGame', classes });
-    }
-
+    // Generate dungeon on host first
     startGame();
+
+    // Send dungeon data + classes to clients so they have the same map
+    for (const conn of NET.connections) {
+        if (conn.open) conn.send({ type: 'startGame', classes, dungeon: {
+            map: dungeon.map,
+            rooms: dungeon.rooms.map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h, type: r.type, explored: r.explored, cx: r.cx, cy: r.cy, enemies: [] })),
+            torches: dungeon.torches,
+            floor: dungeon.floor
+        }});
+    }
 
     // Start broadcasting state
     if (NET.stateInterval) clearInterval(NET.stateInterval);
@@ -323,6 +340,7 @@ function broadcastGameState() {
         summonedMinions: summonedMinions.map(m => ({ x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, color: m.color, radius: m.radius })),
         healingCircles: healingCircles.map(h => ({ x: h.x, y: h.y, radius: h.radius, life: h.life, color: h.color })),
         lightningNets: lightningNets.map(l => ({ x: l.x, y: l.y, radius: l.radius, life: l.life, color: l.color })),
+        exploredRooms: dungeon.rooms.map(r => r.explored),
     };
 
     const msg = { type: 'gameState', state };
@@ -384,11 +402,11 @@ function applyRemoteGameState(state) {
     healingCircles = state.healingCircles;
     lightningNets = state.lightningNets;
 
-    // Room discovery for rendering
-    for (const p of players) {
-        if (!p.alive) continue;
-        const room = getRoomAt(p.x, p.y);
-        if (room && !room.explored) room.explored = true;
+    // Sync room explored status from host
+    if (state.exploredRooms && dungeon && dungeon.rooms) {
+        state.exploredRooms.forEach((explored, i) => {
+            if (dungeon.rooms[i]) dungeon.rooms[i].explored = explored;
+        });
     }
 
     gameState = 'playing';

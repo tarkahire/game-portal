@@ -507,11 +507,17 @@ function selectClass(classId) {
 function startGame() {
     currentFloor = 1;
     runStats = { enemiesKilled: 0, goldCollected: 0, floorsCleared: 0, bossesKilled: 0, itemsFound: 0 };
-    dungeon = generateDungeon(currentFloor);
+    // Use host's dungeon if we're a client, otherwise generate our own
+    if (NET.isOnline && !NET.isHost && NET._hostDungeon) {
+        dungeon = NET._hostDungeon;
+        NET._hostDungeon = null;
+    } else {
+        dungeon = generateDungeon(currentFloor);
+    }
     dungeon.rooms[0].explored = true;
     // Create players now that dungeon exists
     players = selectedClasses.map((cls, i) => createPlayer(cls, i));
-    populateDungeon();
+    if (!NET.isOnline || NET.isHost) populateDungeon();
     projectiles = [];
     particles = [];
     damageNumbers = [];
@@ -549,6 +555,18 @@ function nextFloor() {
     enemies = [];
     lootDrops = [];
     populateDungeon();
+
+    // Send new dungeon to clients
+    if (NET.isOnline && NET.isHost) {
+        for (const conn of NET.connections) {
+            if (conn.open) conn.send({ type: 'nextFloor', floor: currentFloor, dungeon: {
+                map: dungeon.map,
+                rooms: dungeon.rooms.map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h, type: r.type, explored: r.explored, cx: r.cx, cy: r.cy, enemies: [] })),
+                torches: dungeon.torches,
+                floor: dungeon.floor
+            }});
+        }
+    }
 }
 
 function gameOver() {
@@ -1214,7 +1232,26 @@ function update(now) {
     gameTime = now;
 
     // Network: send input from client / apply remote inputs on host
-    if (NET.isOnline && !NET.isHost) { sendClientInput(); }
+    // Clients: only send input + update local visual effects, no simulation
+    if (NET.isOnline && !NET.isHost) {
+        sendClientInput();
+        // Still update local particles/damage numbers for visuals
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const pt = particles[i]; pt.x += pt.vx; pt.y += pt.vy; pt.vx *= 0.95; pt.vy *= 0.95; pt.life--;
+            if (pt.life <= 0) particles.splice(i, 1);
+        }
+        for (let i = damageNumbers.length - 1; i >= 0; i--) {
+            damageNumbers[i].y -= 0.8; damageNumbers[i].life--;
+            if (damageNumbers[i].life <= 0) damageNumbers.splice(i, 1);
+        }
+        if (screenShake.duration > 0) {
+            screenShake.x = (Math.random() - 0.5) * screenShake.intensity * 2;
+            screenShake.y = (Math.random() - 0.5) * screenShake.intensity * 2;
+            screenShake.duration--;
+        } else { screenShake.x = 0; screenShake.y = 0; }
+        mouse.clicked = false;
+        return;
+    }
     if (NET.isOnline && NET.isHost) { applyRemoteInputs(); }
 
     // Update players
