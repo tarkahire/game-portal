@@ -94,7 +94,7 @@ const CLASSES = {
     },
     demon: {
         name: 'Demon', maxHp: 100, speed: 2.4, attackRange: 35, attackDamage: 14, attackSpeed: 450,
-        attackType: 'melee', color: '#cc2222', specialCooldown: 0,
+        attackType: 'melee', color: '#cc2222', specialCooldown: 5000,
         specialName: 'Summon Imps', specialDesc: 'Summon 3 imp minions to fight',
         drawChar: drawDemon
     },
