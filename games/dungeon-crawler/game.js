@@ -1332,15 +1332,31 @@ function playerSpecial(p, now) {
                     e.x += Math.cos(a) * 40; e.y += Math.sin(a) * 40;
                     spawnParticles(e.x, e.y, '#e91e63', 4); } }
             spawnParticles(p.x, p.y, '#f48fb1', 14); triggerShake(4, 6); } break;
-        case 'jinwoo': // Shadow Army
-            { let raised = 0;
-            for (let i = 0; i < 3 && raised < 3; i++) {
-                const angle = p.facingAngle + (i-1) * 0.7;
-                summonedMinions.push({ x: p.x+Math.cos(angle)*25, y: p.y+Math.sin(angle)*25, owner: p,
-                    hp: 30, maxHp: 30, damage: 9, speed: 2.8, radius: 8, attackRange: 25,
-                    lastAttack: 0, attackSpeed: 450, life: now + 8000, color: '#311b92', type: 'shadow' }); raised++; }
-            spawnParticles(p.x, p.y, '#311b92', 16); spawnParticles(p.x, p.y, '#7c4dff', 8);
-            triggerShake(5, 10); } break;
+        case 'jinwoo': // Shadow Army — raise ALL killed enemies as shadow soldiers
+            { if (!p._shadowBank) p._shadowBank = [];
+            const maxSummon = Math.min(p._shadowBank.length, 15); // cap at 15
+            if (maxSummon === 0) { // fallback if no kills yet
+                for (let i = 0; i < 2; i++) { const angle = p.facingAngle + (i-0.5) * 0.8;
+                    summonedMinions.push({ x: p.x+Math.cos(angle)*25, y: p.y+Math.sin(angle)*25, owner: p,
+                        hp: 20, maxHp: 20, damage: 7, speed: 2.8, radius: 8, attackRange: 25,
+                        lastAttack: 0, attackSpeed: 450, life: now + 10000, color: '#311b92', type: 'shadow' }); }
+            } else {
+                for (let i = 0; i < maxSummon; i++) {
+                    const s = p._shadowBank[i];
+                    const angle = (i / maxSummon) * Math.PI * 2;
+                    const dist = 20 + (i % 3) * 12;
+                    summonedMinions.push({ x: p.x+Math.cos(angle)*dist, y: p.y+Math.sin(angle)*dist, owner: p,
+                        hp: Math.round(s.hp * 0.5), maxHp: Math.round(s.hp * 0.5),
+                        damage: Math.round(s.damage * 0.6), speed: s.speed * 0.9,
+                        radius: s.radius, attackRange: 25, lastAttack: 0, attackSpeed: 450,
+                        life: now + 12000, color: '#1a0a40', type: 'shadow',
+                        shadowOf: s.enemyType }); // dark purple tint
+                }
+                p._shadowBank = []; // empty the bank after summoning
+            }
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: `ARISE! (${maxSummon || 2})`, color: '#7c4dff', life: 50 });
+            spawnParticles(p.x, p.y, '#311b92', 20); spawnParticles(p.x, p.y, '#7c4dff', 12);
+            triggerShake(6 + maxSummon * 0.3, 12); } break;
         case 'saitama': // Serious Punch — one-shots everything
             { const range = 80;
             for (const e of enemies) { if (!e.alive) continue;
@@ -1593,6 +1609,11 @@ function dealDamageToEnemy(e, dmg, p) {
         e.alive = false;
         runStats.enemiesKilled++;
         if (e.isBoss) runStats.bossesKilled++;
+        // Jin-Woo: track killed enemy types for Shadow Army
+        if (p && p.classId === 'jinwoo') {
+            if (!p._shadowBank) p._shadowBank = [];
+            p._shadowBank.push({ enemyType: e.enemyType || 'skeleton', hp: e.maxHp, damage: e.damage, speed: e.speed, radius: e.radius, color: e.color, name: e.name });
+        }
 
         // XP
         for (const pl of players) {
