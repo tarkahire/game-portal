@@ -1349,8 +1349,8 @@ function playerSpecial(p, now) {
                         hp: Math.round(s.hp * 0.5), maxHp: Math.round(s.hp * 0.5),
                         damage: Math.round(s.damage * 0.6), speed: s.speed * 0.9,
                         radius: s.radius, attackRange: 25, lastAttack: 0, attackSpeed: 450,
-                        life: now + 12000, color: '#1a0a40', type: 'shadow',
-                        shadowOf: s.enemyType }); // dark purple tint
+                        life: now + 12000, color: '#6a3aaa', type: 'shadow',
+                        shadowOf: s.enemyType }); // blue-pink shadow
                 }
                 p._shadowBank = []; // empty the bank after summoning
             }
@@ -1910,11 +1910,11 @@ function update(now) {
         }
     }
 
-    // Update summoned minions (Demon imps)
+    // Update summoned minions (imps, shadows, clones, dogs)
     const enraged = now < impsEnraged;
     for (let i = summonedMinions.length - 1; i >= 0; i--) {
         const m = summonedMinions[i];
-        if (now > m.life || m.hp <= 0) { spawnParticles(m.x, m.y, '#880000', 6); summonedMinions.splice(i, 1); continue; }
+        if (now > m.life || m.hp <= 0) { spawnParticles(m.x, m.y, m.color || '#880000', 6); summonedMinions.splice(i, 1); continue; }
 
         if (enraged) {
             // ATTACK MODE — chase and attack nearest enemy
@@ -1928,12 +1928,16 @@ function update(now) {
                 if (closestDist > m.attackRange) {
                     const dx = closest.x - m.x, dy = closest.y - m.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    const nx = m.x + (dx/dist) * m.speed * 1.5, ny = m.y + (dy/dist) * m.speed * 1.5;
-                    if (isWalkable(nx, ny)) { m.x = nx; m.y = ny; }
+                    const spd = m.speed * 1.5;
+                    const nx = m.x + (dx/dist) * spd, ny = m.y + (dy/dist) * spd;
+                    // Try both axes to avoid getting stuck on walls
+                    if (isWalkableRadius(nx, ny, m.radius || 6)) { m.x = nx; m.y = ny; }
+                    else if (isWalkableRadius(nx, m.y, m.radius || 6)) m.x = nx;
+                    else if (isWalkableRadius(m.x, ny, m.radius || 6)) m.y = ny;
                 } else if (now - m.lastAttack > m.attackSpeed) {
                     m.lastAttack = now;
                     dealDamageToEnemy(closest, m.damage, m.owner);
-                    spawnParticles(closest.x, closest.y, '#ff4444', 3);
+                    spawnParticles(closest.x, closest.y, m.color || '#ff4444', 3);
                 }
             }
         } else {
@@ -1942,11 +1946,15 @@ function update(now) {
             if (owner && owner.alive) {
                 const dx = owner.x - m.x, dy = owner.y - m.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                const followDist = 25 + (summonedMinions.indexOf(m) % 6) * 12;
+                const followDist = 25 + (i % 8) * 10;
                 if (dist > followDist) {
                     const nx = m.x + (dx/dist) * m.speed, ny = m.y + (dy/dist) * m.speed;
-                    if (isWalkable(nx, ny)) { m.x = nx; m.y = ny; }
+                    if (isWalkableRadius(nx, ny, m.radius || 6)) { m.x = nx; m.y = ny; }
+                    else if (isWalkableRadius(nx, m.y, m.radius || 6)) m.x = nx;
+                    else if (isWalkableRadius(m.x, ny, m.radius || 6)) m.y = ny;
                 }
+                // If very far from owner, teleport to them (prevents permanent stuck)
+                if (dist > 250) { m.x = owner.x + (Math.random()-0.5)*30; m.y = owner.y + (Math.random()-0.5)*30; }
             }
         }
     }
@@ -2482,35 +2490,73 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         ctx.globalAlpha = 1;
     }
 
-    // Summoned minions (imps)
+    // Summoned minions (imps, shadows, clones, dogs)
     for (const m of summonedMinions) {
-        ctx.save(); ctx.translate(m.x, m.y);
-        // Imp body
-        ctx.fillStyle = m.color;
-        ctx.beginPath(); ctx.arc(0, 0, m.radius, 0, Math.PI * 2); ctx.fill();
-        // Horns
-        ctx.fillStyle = '#880000';
-        ctx.beginPath(); ctx.moveTo(-4, -5); ctx.lineTo(-6, -11); ctx.lineTo(-2, -7); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(6, -11); ctx.lineTo(2, -7); ctx.fill();
-        // Eyes
-        ctx.fillStyle = '#ff0';
-        ctx.shadowColor = '#ff0'; ctx.shadowBlur = 4;
-        ctx.fillRect(-3, -3, 2, 2); ctx.fillRect(1, -3, 2, 2);
-        ctx.shadowBlur = 0;
-        // Wings
-        ctx.fillStyle = 'rgba(150,0,0,0.5)';
-        const wf = Math.sin(gameTime * 0.015) * 0.4;
-        ctx.save(); ctx.rotate(wf); ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(-10, -7); ctx.lineTo(-5, 1); ctx.fill(); ctx.restore();
-        ctx.save(); ctx.rotate(-wf); ctx.beginPath(); ctx.moveTo(3, -2); ctx.lineTo(10, -7); ctx.lineTo(5, 1); ctx.fill(); ctx.restore();
-        // Tail
-        ctx.strokeStyle = '#880000'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(0, m.radius);
-        ctx.quadraticCurveTo(5, m.radius + 5, 3, m.radius + 9); ctx.stroke();
-        ctx.restore();
-        // HP bar
+        if (m.type === 'shadow' && m.shadowOf) {
+            // Jin-Woo shadow soldiers — draw like the original enemy but blue-pink
+            ctx.globalAlpha = 0.85;
+            ctx.save(); ctx.translate(m.x, m.y);
+            // Blue-pink glow aura
+            ctx.shadowColor = '#aa44ff'; ctx.shadowBlur = 10;
+            // Draw enemy silhouette in shadow color
+            const sCol = '#6a3aaa'; // blue-purple
+            const sHi = '#ff44aa'; // pink highlight
+            switch (m.shadowOf) {
+                case 'skeleton': case 'archerSkeleton':
+                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, -8, 6, 0, Math.PI*2); ctx.fill();
+                    ctx.fillRect(-3, -2, 6, 10);
+                    ctx.fillStyle = sHi; ctx.fillRect(-3, -10, 2, 2); ctx.fillRect(1, -10, 2, 2);
+                    ctx.fillStyle = sCol; ctx.fillRect(-2, 8, 2, 6); ctx.fillRect(1, 8, 2, 6); break;
+                case 'slime':
+                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, 0, m.radius, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = sHi; ctx.beginPath(); ctx.arc(-3,-3,2,0,Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(3,-3,2,0,Math.PI*2); ctx.fill(); break;
+                case 'bat':
+                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+                    const wa = Math.sin(gameTime*0.02)*0.5;
+                    ctx.save();ctx.rotate(wa);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-12,-6);ctx.lineTo(-8,2);ctx.fill();ctx.restore();
+                    ctx.save();ctx.rotate(-wa);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(12,-6);ctx.lineTo(8,2);ctx.fill();ctx.restore();
+                    ctx.fillStyle = sHi; ctx.fillRect(-2,-2,1.5,1.5); ctx.fillRect(1,-2,1.5,1.5); break;
+                case 'darkKnight':
+                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0,-10,8,0,Math.PI*2); ctx.fill();
+                    ctx.fillRect(-6,-2,12,14);
+                    ctx.fillStyle = sHi; ctx.fillRect(-5,-12,10,3); break;
+                case 'necromancer':
+                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.moveTo(-7,0); ctx.lineTo(7,0); ctx.lineTo(10,16); ctx.lineTo(-10,16); ctx.fill();
+                    ctx.beginPath(); ctx.arc(0,-6,6,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = sHi; ctx.fillRect(-3,-8,2,2); ctx.fillRect(1,-8,2,2); break;
+                default:
+                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, 0, m.radius, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = sHi; ctx.fillRect(-2,-2,4,4); break;
+            }
+            ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1;
+        } else {
+            // Imps, clones, dogs — generic minion drawing
+            ctx.save(); ctx.translate(m.x, m.y);
+            ctx.fillStyle = m.color;
+            ctx.beginPath(); ctx.arc(0, 0, m.radius, 0, Math.PI * 2); ctx.fill();
+            if (m.type === 'imp') {
+                // Horns
+                ctx.fillStyle = '#880000';
+                ctx.beginPath(); ctx.moveTo(-4, -5); ctx.lineTo(-6, -11); ctx.lineTo(-2, -7); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(6, -11); ctx.lineTo(2, -7); ctx.fill();
+                ctx.fillStyle = '#ff0'; ctx.shadowColor = '#ff0'; ctx.shadowBlur = 4;
+                ctx.fillRect(-3, -3, 2, 2); ctx.fillRect(1, -3, 2, 2); ctx.shadowBlur = 0;
+                const wf = Math.sin(gameTime * 0.015) * 0.4;
+                ctx.fillStyle = 'rgba(150,0,0,0.5)';
+                ctx.save(); ctx.rotate(wf); ctx.beginPath(); ctx.moveTo(-3,-2); ctx.lineTo(-10,-7); ctx.lineTo(-5,1); ctx.fill(); ctx.restore();
+                ctx.save(); ctx.rotate(-wf); ctx.beginPath(); ctx.moveTo(3,-2); ctx.lineTo(10,-7); ctx.lineTo(5,1); ctx.fill(); ctx.restore();
+            } else {
+                // Generic (clones, dogs)
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-2,-2,1.5,0,Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(2,-2,1.5,0,Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+        }
+        // HP bar for all minions
         if (m.hp < m.maxHp) {
-            ctx.fillStyle = '#1a1215'; ctx.fillRect(m.x - 8, m.y - m.radius - 8, 16, 3);
-            ctx.fillStyle = '#cc2222'; ctx.fillRect(m.x - 8, m.y - m.radius - 8, 16 * (m.hp / m.maxHp), 3);
+            ctx.fillStyle = '#0a0a1a'; ctx.fillRect(m.x - 8, m.y - (m.radius||8) - 8, 16, 3);
+            ctx.fillStyle = '#aa44ff'; ctx.fillRect(m.x - 8, m.y - (m.radius||8) - 8, 16 * (m.hp / m.maxHp), 3);
         }
     }
 
