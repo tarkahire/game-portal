@@ -521,7 +521,7 @@ export async function getPlayerArmies(serverId) {
   const { data, error } = await supabase
     .from('armies')
     .select(`
-      id, name, tile_id, status, is_garrison, supply_status,
+      id, name, tile_id, status, is_garrison, supply_status, destination_tile, march_arrives_at,
       army_units (
         unit_def, quantity, hp_percent, experience
       )

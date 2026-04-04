@@ -860,6 +860,13 @@ async function showTileInfo(tile) {
       try {
         await marchArmy(armyId, tile.id);
         await refreshMap();
+        // Show ETA notification
+        const armies = await getPlayerArmies(selectedServerId);
+        const marching = armies.find(a => a.id === armyId);
+        if (marching?.march_arrives_at) {
+          const eta = Math.ceil((new Date(marching.march_arrives_at) - Date.now()) / 60000);
+          alert(`Army is marching! ETA: ~${eta} minutes`);
+        }
       } catch (err) {
         console.error('[Main] March failed:', err);
         alert('March failed: ' + (err.message || 'Unknown error'));
@@ -1410,7 +1417,8 @@ async function showArmyPanel(cityId) {
           html += `<button class="btn-action btn-to-garrison" data-army-id="${army.id}">Return to Garrison</button>`;
           html += `<button class="btn-action btn-disband" data-army-id="${army.id}" style="color:var(--color-red)">Disband</button>`;
         } else if (army.status === 'marching') {
-          html += `<span style="font-size:0.78em;color:var(--text-muted)">Army is marching...</span>`;
+          const eta = army.march_arrives_at ? Math.max(0, Math.ceil((new Date(army.march_arrives_at) - Date.now()) / 60000)) : '?';
+          html += `<div style="font-size:0.78em;color:var(--color-gold);margin-top:4px">Marching → tile ${army.destination_tile || '?'} | ETA: ~${eta} min</div>`;
         }
         html += `</div></div>`;
       }
@@ -1426,6 +1434,7 @@ async function showArmyPanel(cityId) {
         html += `<div class="army-card">
           <div class="army-card-header">${escapeHtml(army.name || 'Army')} <span class="army-status" style="color:${statusColor}">${army.status}</span></div>
           <div class="army-card-units">${totalUnits} units @ tile ${army.tile_id}</div>
+          ${army.status === 'marching' && army.march_arrives_at ? `<div style="font-size:0.75em;color:var(--color-gold)">ETA: ~${Math.max(0, Math.ceil((new Date(army.march_arrives_at) - Date.now()) / 60000))} min</div>` : ''}
         </div>`;
       }
       html += `</div>`;
