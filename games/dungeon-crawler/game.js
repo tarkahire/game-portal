@@ -42,6 +42,7 @@ let lootDrops = [];
 let damageNumbers = [];
 let summonedMinions = [];
 let activeBeams = [];
+let impsEnraged = 0; // timestamp until imps attack mode
 let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
 let camera = { x: 0, y: 0 };
 let gameTime = 0;
@@ -873,6 +874,8 @@ function dealDamageToPlayer(p, dmg) {
     damageNumbers.push({ x: p.x, y: p.y - 30, text: reduced.toString(), color: '#ff4444', life: 40 });
     spawnParticles(p.x, p.y, PAL.blood, 5);
     triggerShake(3, 6);
+    // Enrage imps for 4 seconds when any player is hit
+    if (summonedMinions.length > 0) impsEnraged = gameTime + 4000;
 
     if (p.hp <= 0) {
         p.alive = false;
@@ -1078,26 +1081,42 @@ function update(now) {
     }
 
     // Update summoned minions (Demon imps)
+    const enraged = now < impsEnraged;
     for (let i = summonedMinions.length - 1; i >= 0; i--) {
         const m = summonedMinions[i];
         if (now > m.life || m.hp <= 0) { spawnParticles(m.x, m.y, '#880000', 6); summonedMinions.splice(i, 1); continue; }
-        // Find nearest enemy and chase/attack
-        let closest = null, closestDist = Infinity;
-        for (const e of enemies) {
-            if (!e.alive) continue;
-            const d = Math.hypot(e.x - m.x, e.y - m.y);
-            if (d < closestDist) { closestDist = d; closest = e; }
-        }
-        if (closest) {
-            if (closestDist > m.attackRange) {
-                const dx = closest.x - m.x, dy = closest.y - m.y;
+
+        if (enraged) {
+            // ATTACK MODE — chase and attack nearest enemy
+            let closest = null, closestDist = Infinity;
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                const d = Math.hypot(e.x - m.x, e.y - m.y);
+                if (d < closestDist) { closestDist = d; closest = e; }
+            }
+            if (closest) {
+                if (closestDist > m.attackRange) {
+                    const dx = closest.x - m.x, dy = closest.y - m.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const nx = m.x + (dx/dist) * m.speed * 1.5, ny = m.y + (dy/dist) * m.speed * 1.5;
+                    if (isWalkable(nx, ny)) { m.x = nx; m.y = ny; }
+                } else if (now - m.lastAttack > m.attackSpeed) {
+                    m.lastAttack = now;
+                    dealDamageToEnemy(closest, m.damage, m.owner);
+                    spawnParticles(closest.x, closest.y, '#ff4444', 3);
+                }
+            }
+        } else {
+            // FOLLOW MODE — trail behind owner
+            const owner = m.owner;
+            if (owner && owner.alive) {
+                const dx = owner.x - m.x, dy = owner.y - m.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                const nx = m.x + (dx/dist) * m.speed, ny = m.y + (dy/dist) * m.speed;
-                if (isWalkable(nx, ny)) { m.x = nx; m.y = ny; }
-            } else if (now - m.lastAttack > m.attackSpeed) {
-                m.lastAttack = now;
-                dealDamageToEnemy(closest, m.damage, m.owner);
-                spawnParticles(closest.x, closest.y, '#ff4444', 3);
+                const followDist = 25 + (summonedMinions.indexOf(m) % 6) * 12;
+                if (dist > followDist) {
+                    const nx = m.x + (dx/dist) * m.speed, ny = m.y + (dy/dist) * m.speed;
+                    if (isWalkable(nx, ny)) { m.x = nx; m.y = ny; }
+                }
             }
         }
     }
