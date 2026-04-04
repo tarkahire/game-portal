@@ -43,6 +43,8 @@ let damageNumbers = [];
 let summonedMinions = [];
 let activeBeams = [];
 let impsEnraged = 0; // timestamp until imps attack mode
+let healingCircles = [];
+let lightningNets = [];
 let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
 let camera = { x: 0, y: 0 };
 let gameTime = 0;
@@ -103,6 +105,18 @@ const CLASSES = {
         attackType: 'melee', color: '#6a1b9a', specialCooldown: 4000,
         specialName: 'Dragon Beam', specialDesc: 'Fire a devastating energy beam',
         drawChar: drawDraco
+    },
+    healer: {
+        name: 'Healer', maxHp: 75, speed: 2.6, attackRange: 140, attackDamage: 8, attackSpeed: 600,
+        attackType: 'ranged', color: '#43a047', specialCooldown: 3000,
+        specialName: 'Healing Circle', specialDesc: 'Summon a healing zone for allies',
+        drawChar: drawHealer, passive: 'autoHeal'
+    },
+    lightning: {
+        name: 'Lightning', maxHp: 70, speed: 4.4, attackRange: 170, attackDamage: 12, attackSpeed: 400,
+        attackType: 'ranged', color: '#ffeb3b', specialCooldown: 5000,
+        specialName: 'Lightning Net', specialDesc: 'Trap & shock enemies in an electric net',
+        drawChar: drawLightning
     }
 };
 
@@ -157,6 +171,12 @@ const WEAPON_BASES = [
     { name: 'Dragon Claw', type: 'weapon', subtype: 'dragonclaw', damage: 10, speed: 400, range: 38, forClass: 'draco' },
     { name: 'Wyrm Fang', type: 'weapon', subtype: 'dragonclaw', damage: 14, speed: 370, range: 42, forClass: 'draco' },
     { name: 'Elder Scale', type: 'weapon', subtype: 'dragonclaw', damage: 18, speed: 350, range: 45, forClass: 'draco' },
+    { name: 'Wooden Cane', type: 'weapon', subtype: 'cane', damage: 7, speed: 600, range: 140, forClass: 'healer' },
+    { name: 'Life Staff', type: 'weapon', subtype: 'cane', damage: 10, speed: 550, range: 160, forClass: 'healer' },
+    { name: 'Nature Wand', type: 'weapon', subtype: 'cane', damage: 13, speed: 500, range: 170, forClass: 'healer' },
+    { name: 'Spark Rod', type: 'weapon', subtype: 'rod', damage: 11, speed: 400, range: 160, forClass: 'lightning' },
+    { name: 'Storm Rod', type: 'weapon', subtype: 'rod', damage: 15, speed: 370, range: 180, forClass: 'lightning' },
+    { name: 'Thunder Rod', type: 'weapon', subtype: 'rod', damage: 18, speed: 350, range: 190, forClass: 'lightning' },
 ];
 const ARMOR_BASES = [
     { name: 'Cloth Robe', type: 'armor', defense: 2 },
@@ -179,6 +199,8 @@ const SHOP_ITEMS = [
     { id: 'startScepter', name: 'Seraph Rod', desc: 'Start with a better scepter', cost: 50 },
     { id: 'startClaw', name: 'Inferno Fist', desc: 'Start with a better claw', cost: 50 },
     { id: 'startDragonClaw', name: 'Wyrm Fang', desc: 'Start with a better dragon claw', cost: 50 },
+    { id: 'startCane', name: 'Life Staff', desc: 'Start with a better healing staff', cost: 50 },
+    { id: 'startRod', name: 'Storm Rod', desc: 'Start with a better lightning rod', cost: 50 },
     { id: 'extraHP', name: 'Vitality Charm', desc: '+20 starting HP', cost: 80 },
     { id: 'potionStart', name: 'Potion Belt', desc: 'Start with 2 health potions', cost: 40 },
 ];
@@ -318,7 +340,7 @@ function createPlayer(classId, playerIndex) {
 }
 
 function applyShopUnlocks(p) {
-    const classWeaponMap = { warrior: 'startSword', mage: 'startStaff', rogue: 'startDagger', ranger: 'startBow', angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw' };
+    const classWeaponMap = { warrior: 'startSword', mage: 'startStaff', rogue: 'startDagger', ranger: 'startBow', angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw', healer: 'startCane', lightning: 'startRod' };
     const wUnlock = classWeaponMap[p.classId];
     if (meta.unlocks.includes(wUnlock)) {
         const bases = WEAPON_BASES.filter(w => w.forClass === p.classId);
@@ -488,6 +510,8 @@ function startGame() {
     damageNumbers = [];
     summonedMinions = [];
     activeBeams = [];
+    healingCircles = [];
+    lightningNets = [];
     gameState = 'playing';
     showScreen(null);
     gameTime = 0;
@@ -515,6 +539,8 @@ function nextFloor() {
     particles = [];
     summonedMinions = [];
     activeBeams = [];
+    healingCircles = [];
+    lightningNets = [];
     enemies = [];
     lootDrops = [];
     populateDungeon();
@@ -781,6 +807,29 @@ function playerSpecial(p, now) {
             });
             spawnParticles(p.x + Math.cos(p.facingAngle) * 20, p.y + Math.sin(p.facingAngle) * 20, '#ce93d8', 16);
             triggerShake(6, 12);
+            break;
+        case 'healer': // Healing Circle
+            healingCircles.push({
+                x: p.x, y: p.y, owner: p,
+                radius: 70, life: now + 4000,
+                healRate: 500, lastHeal: 0,
+                color: '#43a047'
+            });
+            spawnParticles(p.x, p.y, '#66bb6a', 16);
+            triggerShake(2, 4);
+            break;
+        case 'lightning': // Lightning Net
+            const netX = p.x + Math.cos(p.facingAngle) * 80;
+            const netY = p.y + Math.sin(p.facingAngle) * 80;
+            lightningNets.push({
+                x: netX, y: netY, owner: p,
+                radius: 60, life: now + 5000,
+                damage: 3, damageRate: 400, lastDamage: 0,
+                color: '#ffeb3b'
+            });
+            spawnParticles(netX, netY, '#ffeb3b', 20);
+            spawnParticles(netX, netY, '#fff', 8);
+            triggerShake(4, 8);
             break;
     }
 }
@@ -1125,6 +1174,61 @@ function update(now) {
     for (let i = activeBeams.length - 1; i >= 0; i--) {
         activeBeams[i].life--;
         if (activeBeams[i].life <= 0) activeBeams.splice(i, 1);
+    }
+
+    // Healer passive — auto-summon healing circle every 3s
+    for (const p of players) {
+        if (!p.alive || p.classId !== 'healer') continue;
+        if (!p._lastAutoHeal) p._lastAutoHeal = 0;
+        if (now - p._lastAutoHeal >= 3000) {
+            p._lastAutoHeal = now;
+            healingCircles.push({
+                x: p.x, y: p.y, owner: p,
+                radius: 55, life: now + 3000,
+                healRate: 600, lastHeal: 0,
+                color: '#43a047'
+            });
+            spawnParticles(p.x, p.y, '#66bb6a', 8);
+        }
+    }
+
+    // Update healing circles
+    for (let i = healingCircles.length - 1; i >= 0; i--) {
+        const hc = healingCircles[i];
+        if (now > hc.life) { healingCircles.splice(i, 1); continue; }
+        // Heal players inside the circle
+        if (now - hc.lastHeal > hc.healRate) {
+            hc.lastHeal = now;
+            for (const p of players) {
+                if (!p.alive) continue;
+                if (Math.hypot(p.x - hc.x, p.y - hc.y) < hc.radius) {
+                    const heal = 5;
+                    p.hp = Math.min(p.hp + heal, p.maxHp);
+                    if (p.hp < p.maxHp) {
+                        damageNumbers.push({ x: p.x, y: p.y - 25, text: `+${heal}`, color: '#66bb6a', life: 30 });
+                    }
+                }
+            }
+        }
+    }
+
+    // Update lightning nets
+    for (let i = lightningNets.length - 1; i >= 0; i--) {
+        const ln = lightningNets[i];
+        if (now > ln.life) { lightningNets.splice(i, 1); continue; }
+        // Damage, stun, and trap enemies inside the net
+        if (now - ln.lastDamage > ln.damageRate) {
+            ln.lastDamage = now;
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                if (Math.hypot(e.x - ln.x, e.y - ln.y) < ln.radius) {
+                    dealDamageToEnemy(e, ln.damage, ln.owner);
+                    e.stunned = Math.max(e.stunned, now + 500);
+                    e.trapped = Math.max(e.trapped, now + 500);
+                    spawnParticles(e.x, e.y, '#ffeb3b', 2);
+                }
+            }
+        }
     }
 
     // Update particles
@@ -1479,6 +1583,73 @@ function render() {
             ctx.fillStyle = '#1a1215'; ctx.fillRect(m.x - 8, m.y - m.radius - 8, 16, 3);
             ctx.fillStyle = '#cc2222'; ctx.fillRect(m.x - 8, m.y - m.radius - 8, 16 * (m.hp / m.maxHp), 3);
         }
+    }
+
+    // Healing circles
+    for (const hc of healingCircles) {
+        const remaining = (hc.life - gameTime) / 3000;
+        ctx.globalAlpha = Math.min(0.35, remaining);
+        // Outer ring
+        ctx.strokeStyle = '#66bb6a'; ctx.lineWidth = 3;
+        ctx.shadowColor = '#43a047'; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(hc.x, hc.y, hc.radius, 0, Math.PI * 2); ctx.stroke();
+        // Inner fill
+        const hg = ctx.createRadialGradient(hc.x, hc.y, 0, hc.x, hc.y, hc.radius);
+        hg.addColorStop(0, 'rgba(102,187,106,0.2)'); hg.addColorStop(0.7, 'rgba(67,160,71,0.1)'); hg.addColorStop(1, 'rgba(67,160,71,0)');
+        ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(hc.x, hc.y, hc.radius, 0, Math.PI * 2); ctx.fill();
+        // Cross symbol in center
+        ctx.globalAlpha = Math.min(0.6, remaining);
+        ctx.strokeStyle = '#a5d6a7'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(hc.x - 8, hc.y); ctx.lineTo(hc.x + 8, hc.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hc.x, hc.y - 8); ctx.lineTo(hc.x, hc.y + 8); ctx.stroke();
+        // Rotating sparkles
+        const t = gameTime * 0.003;
+        for (let s = 0; s < 4; s++) {
+            const a = t + s * Math.PI / 2;
+            const sx = hc.x + Math.cos(a) * hc.radius * 0.6;
+            const sy = hc.y + Math.sin(a) * hc.radius * 0.6;
+            ctx.fillStyle = '#a5d6a7'; ctx.beginPath(); ctx.arc(sx, sy, 2, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+    }
+
+    // Lightning nets
+    for (const ln of lightningNets) {
+        const remaining = (ln.life - gameTime) / 5000;
+        const pulse = Math.sin(gameTime * 0.02) * 0.15;
+        ctx.globalAlpha = Math.min(0.5, remaining) + pulse;
+        // Electric field
+        ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 2;
+        ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(ln.x, ln.y, ln.radius, 0, Math.PI * 2); ctx.stroke();
+        // Net lines — crisscross pattern
+        ctx.strokeStyle = 'rgba(255,235,59,0.4)'; ctx.lineWidth = 1;
+        for (let n = 0; n < 6; n++) {
+            const a1 = (n / 6) * Math.PI * 2 + gameTime * 0.002;
+            const a2 = a1 + Math.PI;
+            ctx.beginPath();
+            ctx.moveTo(ln.x + Math.cos(a1) * ln.radius, ln.y + Math.sin(a1) * ln.radius);
+            ctx.lineTo(ln.x + Math.cos(a2) * ln.radius, ln.y + Math.sin(a2) * ln.radius);
+            ctx.stroke();
+        }
+        // Random lightning bolts inside
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+        ctx.globalAlpha = (Math.sin(gameTime * 0.05) > 0.3) ? 0.7 : 0;
+        for (let b = 0; b < 3; b++) {
+            const bx = ln.x + (Math.sin(gameTime * 0.007 + b * 2) * ln.radius * 0.6);
+            const by = ln.y + (Math.cos(gameTime * 0.009 + b * 3) * ln.radius * 0.6);
+            ctx.beginPath(); ctx.moveTo(bx, by);
+            ctx.lineTo(bx + (Math.random() - 0.5) * 16, by + (Math.random() - 0.5) * 16);
+            ctx.stroke();
+        }
+        // Center spark
+        ctx.globalAlpha = 0.4 + pulse;
+        const cg = ctx.createRadialGradient(ln.x, ln.y, 0, ln.x, ln.y, ln.radius * 0.5);
+        cg.addColorStop(0, 'rgba(255,255,255,0.3)'); cg.addColorStop(1, 'rgba(255,235,59,0)');
+        ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(ln.x, ln.y, ln.radius * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
     }
 
     // Beam effects (Draco)
@@ -1956,6 +2127,116 @@ function drawDraco(ctx, p, time) {
     // Legs
     ctx.fillStyle = '#311b92';
     ctx.fillRect(-5, 14, 4, 7); ctx.fillRect(2, 14, 4, 7);
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -24, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+function drawHealer(ctx, p, time) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Gentle green aura
+    ctx.globalAlpha = 0.1 + Math.sin(time * 0.004) * 0.05;
+    const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 25);
+    ag.addColorStop(0, '#66bb6a'); ag.addColorStop(1, 'rgba(67,160,71,0)');
+    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 25, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Head
+    ctx.fillStyle = p.attackAnim > 0 ? '#81c784' : '#bba088';
+    ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill();
+    // White/green healer robe
+    ctx.fillStyle = '#e8f5e9';
+    ctx.beginPath(); ctx.moveTo(-7, -1); ctx.lineTo(7, -1); ctx.lineTo(9, 17); ctx.lineTo(-9, 17); ctx.fill();
+    // Green trim
+    ctx.fillStyle = '#43a047';
+    ctx.fillRect(-9, 14, 18, 3);
+    ctx.fillRect(-7, 4, 14, 2);
+    // Cross emblem on chest
+    ctx.fillStyle = '#43a047';
+    ctx.fillRect(-1.5, -1, 3, 8);
+    ctx.fillRect(-4, 1, 8, 3);
+    // Circlet
+    ctx.strokeStyle = '#66bb6a'; ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#66bb6a'; ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.arc(0, -10, 8, Math.PI + 0.3, -0.3); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Staff with leaf top
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.strokeStyle = '#795548'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(20, 0); ctx.stroke();
+    // Glowing leaf orb
+    ctx.fillStyle = '#66bb6a';
+    ctx.shadowColor = '#66bb6a'; ctx.shadowBlur = p.attackAnim > 0 ? 14 : 6;
+    ctx.beginPath(); ctx.arc(22, 0, 4, 0, Math.PI * 2); ctx.fill();
+    // Leaf shape
+    ctx.fillStyle = '#43a047';
+    ctx.beginPath(); ctx.moveTo(22, -5); ctx.quadraticCurveTo(26, -2, 22, 1); ctx.quadraticCurveTo(18, -2, 22, -5); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+function drawLightning(ctx, p, time) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Electric crackling aura
+    ctx.globalAlpha = 0.12 + Math.sin(time * 0.008) * 0.06;
+    const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 28);
+    ag.addColorStop(0, '#ffeb3b'); ag.addColorStop(1, 'rgba(255,235,59,0)');
+    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Speed lines when moving
+    const moving = Math.abs(p.speed) > 0;
+    if (moving && Math.random() < 0.4) {
+        ctx.strokeStyle = 'rgba(255,235,59,0.3)'; ctx.lineWidth = 1;
+        for (let s = 0; s < 2; s++) {
+            const sy = -8 + Math.random() * 20;
+            ctx.beginPath(); ctx.moveTo(-12, sy); ctx.lineTo(-20 - Math.random() * 8, sy); ctx.stroke();
+        }
+    }
+    // Head
+    ctx.fillStyle = p.attackAnim > 0 ? '#fff176' : '#bba088';
+    ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill();
+    // Spiky electric hair
+    ctx.fillStyle = '#ffeb3b';
+    ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 6;
+    const hairSpike = Math.sin(time * 0.015) * 2;
+    ctx.beginPath(); ctx.moveTo(-5, -12); ctx.lineTo(-3, -20 + hairSpike); ctx.lineTo(-1, -13); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-1, -13); ctx.lineTo(1, -22 - hairSpike); ctx.lineTo(3, -13); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(3, -13); ctx.lineTo(5, -19 + hairSpike); ctx.lineTo(6, -12); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Fitted body suit
+    ctx.fillStyle = '#1a237e';
+    ctx.fillRect(-5, -1, 10, 13);
+    // Lightning bolt emblem
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath(); ctx.moveTo(1, 0); ctx.lineTo(-2, 5); ctx.lineTo(0, 5); ctx.lineTo(-1, 10); ctx.lineTo(2, 5); ctx.lineTo(0, 5); ctx.lineTo(1, 0); ctx.fill();
+    // Electric arcs on body
+    if (Math.random() < 0.3) {
+        ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 1;
+        ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 8;
+        const ax = (Math.random() - 0.5) * 14, ay = -5 + Math.random() * 18;
+        ctx.beginPath(); ctx.moveTo(ax, ay);
+        ctx.lineTo(ax + (Math.random() - 0.5) * 12, ay + (Math.random() - 0.5) * 8);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+    // Weapon — lightning bolt projectile aim
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.fillStyle = '#ffeb3b';
+    ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = p.attackAnim > 0 ? 18 : 8;
+    // Lightning bolt shape
+    ctx.beginPath();
+    ctx.moveTo(10, -3); ctx.lineTo(16, -3); ctx.lineTo(14, 0); ctx.lineTo(20 + (p.attackAnim > 0 ? 4 : 0), 0);
+    ctx.lineTo(14, 3); ctx.lineTo(16, 3); ctx.lineTo(10, 0);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    // Legs
+    ctx.fillStyle = '#1a237e';
+    ctx.fillRect(-4, 12, 3, 7); ctx.fillRect(1, 12, 3, 7);
     // Player indicator
     ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
     ctx.beginPath(); ctx.arc(0, -24, 2, 0, Math.PI * 2); ctx.fill();
