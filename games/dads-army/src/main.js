@@ -434,9 +434,9 @@ scenes.register('game', {
       console.log(`[Main] Loaded ${tiles.length} tiles, ${allCities.length} cities (${myCities.length} mine)`);
 
       // Mark tiles that have cities so we don't show "Build City" on them
-      const cityTileIds = new Set(allCities.map(c => c.tile_id));
+      const cityTileIds = new Set(allCities.map(c => Number(c.tile_id)));
       for (const tile of tiles) {
-        tile._hasCity = cityTileIds.has(tile.id);
+        tile._hasCity = cityTileIds.has(Number(tile.id));
       }
 
       hexRenderer.loadTiles(tiles, playerId);
@@ -472,13 +472,21 @@ function showTileInfo(tile) {
 
   const isOwned = tile.owner_id === currentPlayerRecord;
   const isUnclaimed = !tile.owner_id;
-  const isLand = tile.terrain_type !== 'water';
-  const hasResource = !!tile.resource_type;
-  const isExhausted = tile.resource_reserves_total > 0 &&
-    (tile.resource_reserves_remaining / tile.resource_reserves_total) < 0.20;
+  const isWater = tile.terrain_type === 'water';
+  const isMountain = tile.terrain_type === 'mountain';
+  // A tile "has resource" if it has resource_type OR terrain is farmland (farmland IS a resource)
+  const hasResource = !!tile.resource_type || tile.terrain_type === 'farmland';
+  const resourceType = tile.resource_type || (tile.terrain_type === 'farmland' ? 'farmland' : null);
+  const reservesTotal = tile.resource_reserves_total || 0;
+  const reservesRemaining = tile.resource_reserves_remaining || 0;
+  const isExhausted = reservesTotal > 0 && (reservesRemaining / reservesTotal) < 0.20;
+  // Use string comparison for _hasCity in case of type mismatch (int vs string)
   const hasCity = !!tile._hasCity;
-  const canBuildCity = isOwned && isLand && !hasCity &&
+  // Can build city: owned, not water/mountain, no city, no active resource (or exhausted)
+  const canBuildCity = isOwned && !isWater && !isMountain && !hasCity &&
     (!hasResource || isExhausted);
+  // Buildable terrain for cities
+  const cityBuildableTerrain = ['plains', 'disused', 'farmland', 'forest', 'desert', 'marsh'];
 
   const ownerText = tile.owner_id
     ? (isOwned ? 'You' : 'Enemy')
@@ -494,10 +502,12 @@ function showTileInfo(tile) {
   }
 
   if (hasResource) {
-    html += `<div class="tile-info-row"><strong>Resource:</strong> ${tile.resource_type}</div>`;
-    if (tile.resource_reserves_remaining != null && tile.resource_reserves_total != null && tile.resource_reserves_total > 0) {
-      const pct = Math.round((tile.resource_reserves_remaining / tile.resource_reserves_total) * 100);
-      html += `<div class="tile-info-row"><strong>Reserves:</strong> ${pct}% (${Math.round(tile.resource_reserves_remaining)} / ${Math.round(tile.resource_reserves_total)})</div>`;
+    html += `<div class="tile-info-row"><strong>Resource:</strong> ${resourceType}</div>`;
+    if (reservesTotal > 0) {
+      const pct = Math.round((reservesRemaining / reservesTotal) * 100);
+      html += `<div class="tile-info-row"><strong>Reserves:</strong> ${pct}% (${Math.round(reservesRemaining)} / ${Math.round(reservesTotal)})</div>`;
+    } else {
+      html += `<div class="tile-info-row"><strong>Reserves:</strong> Undeveloped</div>`;
     }
   }
 
@@ -522,13 +532,13 @@ function showTileInfo(tile) {
     html += `<button class="btn-action" id="btn-claim-tile">Claim Tile</button>`;
   }
 
-  // Develop resource: owned, has resource, not yet developed
-  if (isOwned && hasResource && tile.resource_reserves_remaining > 0) {
+  // Develop resource: owned, has resource, reserves available
+  if (isOwned && hasResource && reservesRemaining > 0) {
     html += `<button class="btn-action" id="btn-develop-field">Develop Resource</button>`;
   }
 
-  // Build city: owned, land, no resource OR depleted resource
-  if (canBuildCity) {
+  // Build city: owned, suitable terrain, no existing city, no active resource (or exhausted)
+  if (canBuildCity && cityBuildableTerrain.includes(tile.terrain_type)) {
     html += `<button class="btn-action btn-action-primary" id="btn-build-city">Build City</button>`;
   }
 
