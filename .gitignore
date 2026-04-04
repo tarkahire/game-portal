@@ -1,1 +1,6 @@
 .vercel
+.claude/
+
+# Debug screenshots (not code)
+games/dads-army/screenshot*.png
+games/stickman-fighter/*.jpg
