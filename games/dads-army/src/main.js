@@ -451,7 +451,7 @@ scenes.register('game', {
   },
 });
 
-/** Show tile info in the side panel. */
+/** Show tile info in the side panel with action buttons. */
 function showTileInfo(tile) {
   const panel = document.getElementById('panel-tile-info');
   const title = document.getElementById('tile-info-title');
@@ -461,6 +461,14 @@ function showTileInfo(tile) {
   title.textContent = `Tile (${tile.q}, ${tile.r})`;
 
   const isOwned = tile.owner_id === currentPlayerRecord;
+  const isUnclaimed = !tile.owner_id;
+  const isLand = tile.terrain_type !== 'water';
+  const hasResource = !!tile.resource_type;
+  const isExhausted = tile.resource_reserves_total > 0 &&
+    (tile.resource_reserves_remaining / tile.resource_reserves_total) < 0.20;
+  const canBuildCity = isOwned && isLand &&
+    (!hasResource || isExhausted);
+
   const ownerText = tile.owner_id
     ? (isOwned ? 'You' : 'Enemy')
     : 'Unclaimed';
@@ -470,7 +478,7 @@ function showTileInfo(tile) {
     <div class="tile-info-row"><strong>Owner:</strong> ${ownerText}</div>
   `;
 
-  if (tile.resource_type) {
+  if (hasResource) {
     html += `<div class="tile-info-row"><strong>Resource:</strong> ${tile.resource_type}</div>`;
     if (tile.resource_reserves_remaining != null && tile.resource_reserves_total != null && tile.resource_reserves_total > 0) {
       const pct = Math.round((tile.resource_reserves_remaining / tile.resource_reserves_total) * 100);
@@ -488,11 +496,115 @@ function showTileInfo(tile) {
     html += `<div class="tile-info-row"><strong>Fortification:</strong> ${tile.fortification_type} (HP: ${Math.round(tile.fortification_hp)})</div>`;
   }
 
-  if (tile.infrastructure_road) html += `<div class="tile-info-row">🛤 Road</div>`;
-  if (tile.infrastructure_rail) html += `<div class="tile-info-row">🚂 Railway</div>`;
+  if (tile.infrastructure_road) html += `<div class="tile-info-row">Road</div>`;
+  if (tile.infrastructure_rail) html += `<div class="tile-info-row">Railway</div>`;
 
+  // --- Action buttons ---
+  html += '<div class="tile-actions">';
+
+  // Claim: unclaimed, land, not water
+  if (isUnclaimed && isLand) {
+    html += `<button class="btn-action" id="btn-claim-tile">Claim Tile</button>`;
+  }
+
+  // Develop resource: owned, has resource, not yet developed
+  if (isOwned && hasResource && tile.resource_reserves_remaining > 0) {
+    html += `<button class="btn-action" id="btn-develop-field">Develop Resource</button>`;
+  }
+
+  // Build city: owned, land, no resource OR depleted resource
+  if (canBuildCity) {
+    html += `<button class="btn-action btn-action-primary" id="btn-build-city">Build City</button>`;
+  }
+
+  html += '</div>';
   content.innerHTML = html;
   panel.style.display = 'block';
+
+  // Wire up action buttons
+  const btnClaim = document.getElementById('btn-claim-tile');
+  const btnDevelop = document.getElementById('btn-develop-field');
+  const btnBuildCity = document.getElementById('btn-build-city');
+
+  if (btnClaim) {
+    btnClaim.addEventListener('click', async () => {
+      btnClaim.disabled = true;
+      btnClaim.textContent = 'Claiming...';
+      try {
+        const { claimTile } = await import('./api/queries.js');
+        await claimTile(tile.id, selectedServerId);
+        await refreshMap();
+      } catch (err) {
+        console.error('[Main] Claim failed:', err);
+        alert('Claim failed: ' + (err.message || 'Must be adjacent to your territory'));
+      }
+    });
+  }
+
+  if (btnDevelop) {
+    btnDevelop.addEventListener('click', async () => {
+      btnDevelop.disabled = true;
+      btnDevelop.textContent = 'Developing...';
+      try {
+        const { developResourceField } = await import('./api/queries.js');
+        await developResourceField(tile.id, selectedServerId);
+        await refreshMap();
+      } catch (err) {
+        console.error('[Main] Develop failed:', err);
+        alert('Develop failed: ' + (err.message || 'Unknown error'));
+      }
+    });
+  }
+
+  if (btnBuildCity) {
+    btnBuildCity.addEventListener('click', async () => {
+      const cityName = prompt('Name your city:');
+      if (!cityName || !cityName.trim()) return;
+      btnBuildCity.disabled = true;
+      btnBuildCity.textContent = 'Building...';
+      try {
+        const { buildCity } = await import('./api/queries.js');
+        await buildCity(tile.id, selectedServerId, cityName.trim());
+        await refreshMap();
+        await refreshResources();
+      } catch (err) {
+        console.error('[Main] Build city failed:', err);
+        alert('Build city failed: ' + (err.message || 'Unknown error'));
+      }
+    });
+  }
+}
+
+/** Reload tiles from Supabase and re-render the map. */
+async function refreshMap() {
+  if (!hexRenderer || !selectedServerId) return;
+  try {
+    const tiles = await getServerTiles(selectedServerId);
+    hexRenderer.loadTiles(tiles, currentPlayerRecord);
+    // Re-select the same tile to refresh the panel
+    if (hexRenderer.selectedTile) {
+      const updated = tiles.find(t => t.q === hexRenderer.selectedTile.q && t.r === hexRenderer.selectedTile.r);
+      if (updated) {
+        hexRenderer.selectedTile = updated;
+        showTileInfo(updated);
+      }
+    }
+  } catch (err) {
+    console.error('[Main] Failed to refresh map:', err);
+  }
+}
+
+/** Reload player resources for the resource bar. */
+async function refreshResources() {
+  try {
+    const cities = await getPlayerCities(selectedServerId);
+    if (cities && cities.length > 0) {
+      const resources = await getCityResources(cities[0].id);
+      updateResourceBar(resources);
+    }
+  } catch (err) {
+    console.error('[Main] Failed to refresh resources:', err);
+  }
 }
 
 /** Update the resource bar at the top of the screen. */

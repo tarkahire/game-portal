@@ -617,6 +617,48 @@ input[type="text"]:focus {
   text-transform: capitalize;
 }
 
+.tile-actions {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-action {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.btn-action:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--border-active);
+}
+
+.btn-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-action-primary {
+  background: rgba(212, 168, 67, 0.2);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+.btn-action-primary:hover {
+  background: rgba(212, 168, 67, 0.35);
+}
+
 .panel-section-title {
   font-family: var(--font-mono);
   font-size: 0.75em;

@@ -218,7 +218,7 @@ export async function buildCity(tileId, serverId, name) {
   const { data, error } = await supabase.rpc('build_city', {
     p_tile_id: tileId,
     p_server_id: serverId,
-    p_city_name: name,
+    p_name: name,
   });
 
   if (error) {
