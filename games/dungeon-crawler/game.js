@@ -1219,7 +1219,7 @@ function playerSpecial(p, now) {
         case 'megumi': // Divine Dogs — summon 8 fiends orbiting player
             for (let i = 0; i < 8; i++) { const angle = (i / 8) * Math.PI * 2;
                 summonedMinions.push({ x: p.x+Math.cos(angle)*35, y: p.y+Math.sin(angle)*35, owner: p,
-                    hp: 30, maxHp: 30, damage: 8, speed: 3.5, radius: 14, attackRange: 28,
+                    hp: 30, maxHp: 30, damage: 8, speed: 3.5, radius: 9, attackRange: 28,
                     lastAttack: 0, attackSpeed: 400, life: now + 10000, color: '#1a237e', type: 'dog',
                     _guardIndex: i, _guardTotal: 8, _orbit: true }); }
             spawnParticles(p.x, p.y, '#283593', 16); triggerShake(4, 8); break;
