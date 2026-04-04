@@ -334,4 +334,28 @@ Continued cleanup of owner_id→player_id mismatches and type errors across reso
 
 ---
 
+## 2026-04-04 (continued) — Army Management Overhaul
+
+### What was built
+- **Selective unit picker**: "Form Field Army" now opens a picker with +/- quantity controls per unit type. Player chooses exactly which units and how many to include. Shows unit name, category, ATK/DEF stats, and available quantity.
+- **Army detail view**: Each army in the panel now shows full unit composition (type, quantity, HP%). No longer just a total count.
+- **Army action buttons**: Idle armies show March, Fortify, Return to Garrison, Disband. Fortified armies show Unfortify, Return to Garrison, Disband. Marching armies show status only.
+- **Fortify stance**: New `fortify_army` RPC sets army to 'fortified' status. +20% defense bonus noted for combat integration. `unfortify_army` returns to idle.
+- **Return to garrison**: New `garrison_army` RPC dissolves field army and transfers all units back to city garrison. Requires army to be on a player-owned city tile.
+- **Disband army**: New `disband_army` RPC permanently destroys army and all units. Requires confirmation.
+- **Status colors**: idle=green, marching=gold, fortified=blue with shield emoji, fighting=red.
+
+### SQL: 027_army_actions.sql (6 statements)
+- Added 'fortified' to armies status CHECK constraint
+- fortify_army, unfortify_army, garrison_army, disband_army RPCs
+- Note: fortified defense bonus integration in resolve_combat deferred
+
+### Deferred to next iteration
+- Army split (divide into two)
+- Army merge (combine two on same tile)
+- Patrol mode with waypoints
+- Player-ordered retreat
+
+---
+
 *More entries will be added as development progresses.*

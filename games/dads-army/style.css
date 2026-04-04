@@ -948,9 +948,91 @@ input[type="text"]:focus {
   margin: 2px 0 4px 0;
 }
 
-.btn-march {
+.btn-march, .btn-fortify, .btn-to-garrison, .btn-disband {
   font-size: 0.78em !important;
   padding: 5px 10px !important;
+}
+
+.army-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.army-unit-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78em;
+  color: var(--text-secondary);
+  padding: 2px 0;
+}
+
+/* ---------- Unit Picker ---------- */
+.unit-pick-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.unit-pick-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.unit-pick-name {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--text-heading);
+  font-weight: 700;
+}
+
+.unit-pick-cat {
+  font-size: 0.72em;
+  color: var(--text-muted);
+}
+
+.unit-pick-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unit-pick-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 1.1em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.unit-pick-btn:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: var(--border-active);
+}
+
+.unit-pick-qty {
+  font-family: var(--font-mono);
+  font-size: 1em;
+  font-weight: 700;
+  color: var(--color-gold);
+  min-width: 24px;
+  text-align: center;
+}
+
+.unit-pick-max {
+  font-size: 0.75em;
+  color: var(--text-muted);
 }
 
 /* ---------- Battle Reports ---------- */

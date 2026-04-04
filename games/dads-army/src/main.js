@@ -1359,33 +1359,60 @@ async function showArmyPanel(cityId) {
 
     let html = '';
 
-    // Garrison
+    // Garrison with unit details
     html += `<div class="panel-section"><div class="panel-section-title">Garrison — ${cityInfo?.name || 'City'}</div>`;
     if (garrison && garrison.army_units && garrison.army_units.length > 0) {
       for (const au of garrison.army_units) {
         const uDef = unitDefsCache?.find(u => u.id === au.unit_def);
         const uName = uDef ? uDef.name : au.unit_def;
+        const cat = uDef ? capitalize(uDef.category) : '';
         html += `<div class="panel-row">
-          <span class="label">${escapeHtml(uName)}</span>
-          <span class="value">x${au.quantity} (${Math.round(au.hp_percent)}% HP)</span>
+          <span class="label">${escapeHtml(uName)} <span style="font-size:0.8em;color:var(--text-muted)">(${cat})</span></span>
+          <span class="value">x${au.quantity} <span style="font-size:0.8em">${Math.round(au.hp_percent)}% HP</span></span>
         </div>`;
       }
-      html += `<button class="btn-action btn-action-primary" id="btn-form-army">Form Field Army</button>`;
+      html += `<button class="btn-action btn-action-primary" id="btn-form-army">Form Field Army (select units)</button>`;
     } else {
       html += `<div class="panel-row"><span class="label" style="color:var(--text-muted)">No garrison units</span></div>`;
     }
     html += `</div>`;
 
-    // Field armies at this city
+    // Field armies at this city — with detail expansion
     if (fieldArmies.length > 0) {
       html += `<div class="panel-section"><div class="panel-section-title">Armies Here</div>`;
       for (const army of fieldArmies) {
         const totalUnits = army.army_units?.reduce((s, au) => s + au.quantity, 0) || 0;
-        html += `<div class="army-card">
-          <div class="army-card-header">${escapeHtml(army.name || 'Army')} <span class="army-status">${army.status}</span></div>
-          <div class="army-card-units">${totalUnits} units</div>
-          <button class="btn-action btn-march" data-army-id="${army.id}">March</button>
-        </div>`;
+        const statusColors = { idle: 'var(--color-green)', marching: 'var(--color-gold)', fortified: 'var(--color-blue-dim)', fighting: 'var(--color-red)' };
+        const statusColor = statusColors[army.status] || 'var(--text-muted)';
+        html += `<div class="army-card" data-army-id="${army.id}">
+          <div class="army-card-header">
+            ${escapeHtml(army.name || 'Army')}
+            <span class="army-status" style="color:${statusColor}">${army.status}${army.status === 'fortified' ? ' 🛡️' : ''}</span>
+          </div>`;
+        // Show unit composition
+        if (army.army_units?.length > 0) {
+          for (const au of army.army_units) {
+            const uDef = unitDefsCache?.find(u => u.id === au.unit_def);
+            html += `<div class="army-unit-row">
+              <span>${uDef?.name || au.unit_def}</span>
+              <span>x${au.quantity} (${Math.round(au.hp_percent)}%)</span>
+            </div>`;
+          }
+        }
+        html += `<div class="army-card-actions">`;
+        if (army.status === 'idle') {
+          html += `<button class="btn-action btn-march" data-army-id="${army.id}">March</button>`;
+          html += `<button class="btn-action btn-fortify" data-army-id="${army.id}">Fortify</button>`;
+          html += `<button class="btn-action btn-to-garrison" data-army-id="${army.id}">Return to Garrison</button>`;
+          html += `<button class="btn-action btn-disband" data-army-id="${army.id}" style="color:var(--color-red)">Disband</button>`;
+        } else if (army.status === 'fortified') {
+          html += `<button class="btn-action btn-unfortify" data-army-id="${army.id}">Unfortify (go idle)</button>`;
+          html += `<button class="btn-action btn-to-garrison" data-army-id="${army.id}">Return to Garrison</button>`;
+          html += `<button class="btn-action btn-disband" data-army-id="${army.id}" style="color:var(--color-red)">Disband</button>`;
+        } else if (army.status === 'marching') {
+          html += `<span style="font-size:0.78em;color:var(--text-muted)">Army is marching...</span>`;
+        }
+        html += `</div></div>`;
       }
       html += `</div>`;
     }
@@ -1395,8 +1422,9 @@ async function showArmyPanel(cityId) {
       html += `<div class="panel-section"><div class="panel-section-title">Other Armies</div>`;
       for (const army of otherArmies) {
         const totalUnits = army.army_units?.reduce((s, au) => s + au.quantity, 0) || 0;
+        const statusColor = army.status === 'idle' ? 'var(--color-green)' : army.status === 'marching' ? 'var(--color-gold)' : 'var(--text-muted)';
         html += `<div class="army-card">
-          <div class="army-card-header">${escapeHtml(army.name || 'Army')} <span class="army-status">${army.status}</span></div>
+          <div class="army-card-header">${escapeHtml(army.name || 'Army')} <span class="army-status" style="color:${statusColor}">${army.status}</span></div>
           <div class="army-card-units">${totalUnits} units @ tile ${army.tile_id}</div>
         </div>`;
       }
@@ -1406,36 +1434,81 @@ async function showArmyPanel(cityId) {
     html += `<button class="btn-action" id="btn-back-city" style="margin:12px 16px">Back to City</button>`;
     contentEl.innerHTML = html;
 
-    // Wire up "Form Army" button
-    document.getElementById('btn-form-army')?.addEventListener('click', async () => {
+    // Wire up "Form Army" — opens unit picker
+    document.getElementById('btn-form-army')?.addEventListener('click', () => {
       if (!garrison?.army_units?.length) return;
-      const armyName = prompt('Name your army:', 'Strike Force');
-      if (!armyName?.trim()) return;
-
-      // For MVP: form army with all garrison units
-      const units = garrison.army_units.map(au => ({
-        unit_def: au.unit_def,
-        quantity: au.quantity,
-      }));
-
-      try {
-        await formArmy(cityId, armyName.trim(), units);
-        await showArmyPanel(cityId);
-        await refreshMap();
-      } catch (err) {
-        console.error('[Main] Form army failed:', err);
-        alert('Form army failed: ' + (err.message || 'Unknown error'));
-      }
+      showUnitPicker(cityId, garrison);
     });
 
     // Wire up march buttons
     contentEl.querySelectorAll('.btn-march').forEach(btn => {
       btn.addEventListener('click', () => {
-        const armyId = btn.dataset.armyId;
-        alert('Click a destination tile on the map, then confirm the march.\n\n(March destination selection coming in next iteration — for now use the tile info panel)');
-        // Store pending march for tile click handler
-        window._pendingMarchArmyId = armyId;
+        window._pendingMarchArmyId = btn.dataset.armyId;
         panel.style.display = 'none';
+      });
+    });
+
+    // Wire up fortify buttons
+    contentEl.querySelectorAll('.btn-fortify').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try {
+          const { data, error } = await supabase.rpc('fortify_army', { p_army_id: btn.dataset.armyId });
+          if (error) throw error;
+          await showArmyPanel(cityId);
+        } catch (err) {
+          alert('Fortify failed: ' + (err.message || 'Unknown error'));
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Wire up unfortify buttons
+    contentEl.querySelectorAll('.btn-unfortify').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try {
+          const { data, error } = await supabase.rpc('unfortify_army', { p_army_id: btn.dataset.armyId });
+          if (error) throw error;
+          await showArmyPanel(cityId);
+        } catch (err) {
+          alert('Unfortify failed: ' + (err.message || 'Unknown error'));
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Wire up return to garrison buttons
+    contentEl.querySelectorAll('.btn-to-garrison').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Dissolve this army and return all units to the city garrison?')) return;
+        btn.disabled = true;
+        try {
+          const { data, error } = await supabase.rpc('garrison_army', { p_army_id: btn.dataset.armyId });
+          if (error) throw error;
+          await showArmyPanel(cityId);
+          await refreshMap();
+        } catch (err) {
+          alert('Garrison failed: ' + (err.message || 'Unknown error'));
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Wire up disband buttons
+    contentEl.querySelectorAll('.btn-disband').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Permanently disband this army? All units will be lost.')) return;
+        btn.disabled = true;
+        try {
+          const { data, error } = await supabase.rpc('disband_army', { p_army_id: btn.dataset.armyId });
+          if (error) throw error;
+          await showArmyPanel(cityId);
+          await refreshMap();
+        } catch (err) {
+          alert('Disband failed: ' + (err.message || 'Unknown error'));
+          btn.disabled = false;
+        }
       });
     });
 
@@ -1449,6 +1522,96 @@ async function showArmyPanel(cityId) {
     console.error('[Main] Failed to load armies:', err);
     contentEl.innerHTML = '<p style="padding:16px;color:var(--color-red)">Failed to load armies.</p>';
   }
+}
+
+/**
+ * Show unit picker for forming a new army from garrison.
+ * Player selects which units and quantities to include.
+ */
+function showUnitPicker(cityId, garrison) {
+  const contentEl = document.getElementById('army-panel-content');
+  if (!contentEl || !garrison?.army_units?.length) return;
+
+  let html = `<div class="panel-section">
+    <div class="panel-section-title">Form New Army — Select Units</div>
+    <button class="btn-action" id="btn-cancel-pick" style="margin-bottom:10px">Cancel</button>
+    <input type="text" id="input-army-name" placeholder="Army name" value="Strike Force" style="margin-bottom:10px">
+  `;
+
+  for (const au of garrison.army_units) {
+    const uDef = unitDefsCache?.find(u => u.id === au.unit_def);
+    const uName = uDef ? uDef.name : au.unit_def;
+    const cat = uDef ? capitalize(uDef.category) : '';
+    html += `<div class="unit-pick-row" data-unit-def="${au.unit_def}" data-max="${au.quantity}">
+      <div class="unit-pick-info">
+        <span class="unit-pick-name">${escapeHtml(uName)}</span>
+        <span class="unit-pick-cat">${cat} | ATK ${uDef?.attack || '?'} DEF ${uDef?.defense || '?'}</span>
+      </div>
+      <div class="unit-pick-controls">
+        <button class="unit-pick-btn" data-delta="-1">−</button>
+        <span class="unit-pick-qty">0</span>
+        <button class="unit-pick-btn" data-delta="1">+</button>
+        <span class="unit-pick-max">/ ${au.quantity}</span>
+      </div>
+    </div>`;
+  }
+
+  html += `<button class="btn-action btn-action-primary" id="btn-confirm-army" disabled>Form Army (0 units)</button>`;
+  html += `</div>`;
+  contentEl.innerHTML = html;
+
+  // Quantity controls
+  const updateTotal = () => {
+    let total = 0;
+    contentEl.querySelectorAll('.unit-pick-row').forEach(row => {
+      total += parseInt(row.querySelector('.unit-pick-qty').textContent, 10);
+    });
+    const btn = document.getElementById('btn-confirm-army');
+    btn.textContent = `Form Army (${total} units)`;
+    btn.disabled = total === 0;
+  };
+
+  contentEl.querySelectorAll('.unit-pick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.unit-pick-row');
+      const qtyEl = row.querySelector('.unit-pick-qty');
+      const max = parseInt(row.dataset.max, 10);
+      const delta = parseInt(btn.dataset.delta, 10);
+      const current = parseInt(qtyEl.textContent, 10);
+      const next = Math.max(0, Math.min(max, current + delta));
+      qtyEl.textContent = next;
+      updateTotal();
+    });
+  });
+
+  // Cancel
+  document.getElementById('btn-cancel-pick')?.addEventListener('click', () => showArmyPanel(cityId));
+
+  // Confirm
+  document.getElementById('btn-confirm-army')?.addEventListener('click', async () => {
+    const name = document.getElementById('input-army-name')?.value?.trim() || 'Army';
+    const units = [];
+    contentEl.querySelectorAll('.unit-pick-row').forEach(row => {
+      const qty = parseInt(row.querySelector('.unit-pick-qty').textContent, 10);
+      if (qty > 0) {
+        units.push({ unit_def: row.dataset.unitDef, quantity: qty });
+      }
+    });
+    if (units.length === 0) return;
+
+    const btn = document.getElementById('btn-confirm-army');
+    btn.disabled = true;
+    btn.textContent = 'Forming...';
+    try {
+      await formArmy(cityId, name, units);
+      await showArmyPanel(cityId);
+      await refreshMap();
+    } catch (err) {
+      console.error('[Main] Form army failed:', err);
+      alert('Form army failed: ' + (err.message || 'Unknown error'));
+      btn.disabled = false;
+    }
+  });
 }
 
 // ---------- Combat Predictor (Client-Side) ----------
