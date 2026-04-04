@@ -73,7 +73,7 @@ games/dads-army/
 
 ## Current Phase
 
-**Phase 1: MVP** — Auth, hex map, tile interaction, city management, military done. Next: combat resolution.
+**Phase 1: MVP** — Auth, hex map, tiles, cities, military, combat all done. Next: supply & roads, then portal integration.
 
 ## Conventions
 

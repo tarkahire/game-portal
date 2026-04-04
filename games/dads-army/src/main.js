@@ -27,6 +27,7 @@ import {
   trainUnits,
   formArmy,
   marchArmy,
+  getPlayerBattleReports,
 } from './api/queries.js';
 import { HexRenderer } from './map/HexRenderer.js';
 
@@ -447,6 +448,11 @@ scenes.register('game', {
       showTileInfo(tile);
     });
 
+    // Wire up battle reports button
+    document.getElementById('btn-battle-reports')?.addEventListener('click', () => {
+      showBattleReports();
+    });
+
     // Load tiles, cities, and building defs from Supabase
     try {
       const [tiles, allCities, myCities, bDefs, uDefs, armies] = await Promise.all([
@@ -614,6 +620,31 @@ async function showTileInfo(tile) {
 
   // March destination (if a march is pending)
   if (window._pendingMarchArmyId && isLand) {
+    // Show combat predictor if marching to an enemy tile
+    if (!isOwned && !isUnclaimed && unitDefsCache) {
+      try {
+        const marchingArmy = armiesOnMap.find(a => a.id === window._pendingMarchArmyId);
+        if (marchingArmy) {
+          const { getPlayerArmies: getArmies } = await import('./api/queries.js');
+          const myArmies = await getArmies(selectedServerId);
+          const fullArmy = myArmies.find(a => a.id === window._pendingMarchArmyId);
+          if (fullArmy?.army_units) {
+            const atkUnits = fullArmy.army_units;
+            // We don't know defender composition (fog), estimate empty or garrison
+            const defUnits = []; // Unknown — predict vs undefended
+            const prediction = predictCombat(atkUnits, defUnits, tile.terrain_type, hasCity, !!tile.fortification_type);
+            const predColor = prediction.result === 'victory' ? 'var(--color-green)' : prediction.result === 'defeat' ? 'var(--color-red)' : 'var(--color-gold)';
+            html += `<div class="combat-prediction" style="border-left:3px solid ${predColor}">
+              <div class="prediction-title">Combat Prediction</div>
+              <div class="prediction-result" style="color:${predColor}">${prediction.confidence}</div>
+              <div class="prediction-detail">~${prediction.rounds} rounds | Your losses: ~${Math.round(prediction.atkLossPct * 100)}%</div>
+              <div class="prediction-note">vs undefended tile (garrison unknown)</div>
+            </div>`;
+          }
+        }
+      } catch (e) { /* ignore prediction errors */ }
+    }
+
     html += `<button class="btn-action btn-action-primary" id="btn-march-here">March Army Here</button>`;
     html += `<button class="btn-action" id="btn-cancel-march">Cancel March</button>`;
   }
@@ -1205,6 +1236,242 @@ async function showArmyPanel(cityId) {
     console.error('[Main] Failed to load armies:', err);
     contentEl.innerHTML = '<p style="padding:16px;color:var(--color-red)">Failed to load armies.</p>';
   }
+}
+
+// ---------- Combat Predictor (Client-Side) ----------
+
+/**
+ * Predict combat outcome using the same logic as the server.
+ * Returns a prediction object with estimated result, casualties, and confidence.
+ * @param {object[]} attackerUnits — [{unit_def, quantity, hp_percent, category}]
+ * @param {object[]} defenderUnits — same format (empty array if undefended)
+ * @param {string} terrainType — terrain of the battle tile
+ * @param {boolean} hasCity — whether the tile has a city
+ * @param {boolean} hasFort — whether the tile has fortifications
+ * @returns {object} — {result, rounds, atkLossPct, defLossPct, confidence}
+ */
+function predictCombat(attackerUnits, defenderUnits, terrainType, hasCity, hasFort) {
+  // Gather stats by category
+  const gatherStats = (units) => {
+    const stats = { infAtk: 0, armAtk: 0, artAtk: 0, infHp: 0, armHp: 0, artHp: 0 };
+    for (const u of units) {
+      const def = unitDefsCache?.find(d => d.id === u.unit_def);
+      if (!def) continue;
+      const hpMod = (u.hp_percent || 100) / 100;
+      const cat = def.category;
+      if (cat === 'infantry') {
+        stats.infAtk += u.quantity * def.attack * hpMod;
+        stats.infHp += u.quantity * def.hp * hpMod;
+      } else if (cat === 'armor') {
+        stats.armAtk += u.quantity * def.attack * hpMod;
+        stats.armHp += u.quantity * def.hp * hpMod;
+      } else if (cat === 'artillery') {
+        stats.artAtk += u.quantity * def.attack * hpMod;
+        stats.artHp += u.quantity * def.hp * hpMod;
+      }
+    }
+    return stats;
+  };
+
+  const atk = gatherStats(attackerUnits);
+  const def = gatherStats(defenderUnits);
+
+  const atkHpStart = atk.infHp + atk.armHp + atk.artHp;
+  const defHpStart = def.infHp + def.armHp + def.artHp;
+
+  // Terrain modifiers
+  const terrainDefMod = { forest: 1.2, mountain: 1.4, urban: 1.3, ruins: 1.1 }[terrainType] || 1.0;
+  const terrainAtkMod = 1.0;
+  const cityBonus = hasCity ? 0.5 : 0;
+  const fortBonus = hasFort ? 0.15 : 0;
+
+  let atkMorale = 100, defMorale = 100;
+  const maxRounds = 10;
+  let rounds = 0;
+
+  for (let r = 0; r < maxRounds; r++) {
+    const atkTotalHp = atk.infHp + atk.armHp + atk.artHp;
+    const defTotalHp = def.infHp + def.armHp + def.artHp;
+    if (atkTotalHp <= 0 || defTotalHp <= 0 || atkMorale <= 0 || defMorale <= 0) break;
+    rounds++;
+
+    // Category effectiveness
+    const atkTotal = (
+      atk.infAtk * (def.artHp > 0 ? 1.25 : 1.0) * (def.armHp > 0 ? 0.75 : 1.0) +
+      atk.armAtk * (def.infHp > 0 ? 1.25 : 1.0) * (def.artHp > 0 ? 0.75 : 1.0) +
+      atk.artAtk * (def.armHp > 0 ? 1.25 : 1.0) * (def.infHp > 0 ? 0.75 : 1.0)
+    ) * terrainAtkMod;
+
+    const defTotal = (
+      def.infAtk * (atk.artHp > 0 ? 1.25 : 1.0) * (atk.armHp > 0 ? 0.75 : 1.0) +
+      def.armAtk * (atk.infHp > 0 ? 1.25 : 1.0) * (atk.artHp > 0 ? 0.75 : 1.0) +
+      def.artAtk * (atk.armHp > 0 ? 1.25 : 1.0) * (atk.infHp > 0 ? 0.75 : 1.0)
+    ) * terrainDefMod * (1.0 + fortBonus + cityBonus);
+
+    // Apply 10% damage per round
+    const atkDmg = atkTotal * 0.1;
+    if (defTotalHp > 0) {
+      def.infHp = Math.max(def.infHp - atkDmg * def.infHp / defTotalHp, 0);
+      def.armHp = Math.max(def.armHp - atkDmg * def.armHp / defTotalHp, 0);
+      def.artHp = Math.max(def.artHp - atkDmg * def.artHp / defTotalHp, 0);
+    }
+    const defDmg = defTotal * 0.1;
+    if (atkTotalHp > 0) {
+      atk.infHp = Math.max(atk.infHp - defDmg * atk.infHp / atkTotalHp, 0);
+      atk.armHp = Math.max(atk.armHp - defDmg * atk.armHp / atkTotalHp, 0);
+      atk.artHp = Math.max(atk.artHp - defDmg * atk.artHp / atkTotalHp, 0);
+    }
+
+    atkMorale -= defTotal * 0.05;
+    defMorale -= atkTotal * 0.05;
+
+    // Diminishing attack values
+    atk.infAtk *= Math.max(atk.infHp / Math.max(atkHpStart * 0.5, 1), 0.1);
+    atk.armAtk *= Math.max(atk.armHp / Math.max(atkHpStart * 0.5, 1), 0.1);
+    atk.artAtk *= Math.max(atk.artHp / Math.max(atkHpStart * 0.5, 1), 0.1);
+    def.infAtk *= Math.max(def.infHp / Math.max(defHpStart * 0.5, 1), 0.1);
+    def.armAtk *= Math.max(def.armHp / Math.max(defHpStart * 0.5, 1), 0.1);
+    def.artAtk *= Math.max(def.artHp / Math.max(defHpStart * 0.5, 1), 0.1);
+  }
+
+  const atkHpEnd = atk.infHp + atk.armHp + atk.artHp;
+  const defHpEnd = def.infHp + def.armHp + def.artHp;
+  const atkLossPct = atkHpStart > 0 ? 1 - (atkHpEnd / atkHpStart) : 1;
+  const defLossPct = defHpStart > 0 ? 1 - (defHpEnd / defHpStart) : 1;
+
+  const atkWins = (defHpEnd <= 0 || defMorale <= 0) && (atkHpEnd > 0 && atkMorale > 0);
+  const defWins = (atkHpEnd <= 0 || atkMorale <= 0);
+
+  let result, confidence;
+  if (atkWins) {
+    const survivalPct = 1 - atkLossPct;
+    result = 'victory';
+    confidence = survivalPct > 0.6 ? 'Likely Victory' : survivalPct > 0.3 ? 'Probable Victory' : 'Pyrrhic Victory';
+  } else if (defWins) {
+    result = 'defeat';
+    confidence = atkLossPct > 0.8 ? 'Likely Defeat' : 'Probable Defeat';
+  } else {
+    result = 'uncertain';
+    confidence = 'Uncertain';
+  }
+
+  return { result, rounds, atkLossPct, defLossPct, confidence };
+}
+
+// ---------- Battle Reports ----------
+
+/** Show battle reports panel. */
+async function showBattleReports() {
+  const panel = document.getElementById('panel-battles');
+  const contentEl = document.getElementById('battles-panel-content');
+  if (!panel || !contentEl) return;
+
+  contentEl.innerHTML = '<div class="loading-spinner" style="margin:30px auto"></div>';
+  panel.style.display = 'block';
+
+  try {
+    const reports = await getPlayerBattleReports(selectedServerId);
+
+    if (!reports || reports.length === 0) {
+      contentEl.innerHTML = '<p style="padding:16px;color:var(--text-muted)">No battles yet.</p>';
+      return;
+    }
+
+    let html = '';
+    for (const r of reports) {
+      const isAttacker = r.attacker_id === currentPlayerRecord;
+      const won = (isAttacker && r.result === 'attacker_wins') || (!isAttacker && r.result === 'defender_wins');
+      const resultClass = won ? 'battle-win' : (r.result === 'draw' ? 'battle-draw' : 'battle-loss');
+      const resultText = won ? 'Victory' : (r.result === 'draw' ? 'Draw' : 'Defeat');
+      const role = isAttacker ? 'Attacker' : 'Defender';
+      const roundCount = Array.isArray(r.rounds) ? r.rounds.length : 0;
+      const time = new Date(r.occurred_at).toLocaleString();
+
+      html += `<div class="battle-report-card ${resultClass}" data-report-id="${r.id}">
+        <div class="battle-report-header">
+          <span class="battle-result">${resultText}</span>
+          <span class="battle-role">${role}</span>
+        </div>
+        <div class="battle-report-meta">
+          Tile ${r.tile_id} (${r.terrain_type}) &middot; ${roundCount} rounds &middot; War dmg: ${r.war_damage_caused?.toFixed(1) || '0'}
+        </div>
+        <div class="battle-report-time">${time}</div>
+      </div>`;
+    }
+
+    contentEl.innerHTML = html;
+
+    // Click to expand details
+    contentEl.querySelectorAll('.battle-report-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const reportId = card.dataset.reportId;
+        const report = reports.find(r => r.id === reportId);
+        if (report) showBattleDetail(report);
+      });
+    });
+  } catch (err) {
+    console.error('[Main] Failed to load battle reports:', err);
+    contentEl.innerHTML = '<p style="padding:16px;color:var(--color-red)">Failed to load reports.</p>';
+  }
+}
+
+/** Show detailed battle report. */
+function showBattleDetail(report) {
+  const contentEl = document.getElementById('battles-panel-content');
+  if (!contentEl) return;
+
+  const isAttacker = report.attacker_id === currentPlayerRecord;
+  const won = (isAttacker && report.result === 'attacker_wins') || (!isAttacker && report.result === 'defender_wins');
+
+  let html = `<button class="btn-action" id="btn-back-battles" style="margin:12px 16px">Back to Reports</button>`;
+
+  html += `<div class="panel-section">
+    <div class="panel-section-title">${won ? 'Victory' : 'Defeat'} — Tile ${report.tile_id}</div>
+    <div class="panel-row"><span class="label">Terrain</span><span class="value">${report.terrain_type}</span></div>
+    <div class="panel-row"><span class="label">War Damage</span><span class="value">${report.war_damage_caused?.toFixed(1) || '0'}</span></div>
+  </div>`;
+
+  // Army snapshots
+  html += `<div class="panel-section"><div class="panel-section-title">Attacker Forces</div>`;
+  if (Array.isArray(report.attacker_army_snapshot)) {
+    for (const u of report.attacker_army_snapshot) {
+      const uDef = unitDefsCache?.find(d => d.id === u.unit_def);
+      html += `<div class="panel-row"><span class="label">${uDef?.name || u.unit_def}</span><span class="value">x${u.quantity} (${Math.round(u.hp_percent)}%)</span></div>`;
+    }
+  }
+  html += `</div>`;
+
+  html += `<div class="panel-section"><div class="panel-section-title">Defender Forces</div>`;
+  if (Array.isArray(report.defender_army_snapshot) && report.defender_army_snapshot.length > 0) {
+    for (const u of report.defender_army_snapshot) {
+      const uDef = unitDefsCache?.find(d => d.id === u.unit_def);
+      html += `<div class="panel-row"><span class="label">${uDef?.name || u.unit_def}</span><span class="value">x${u.quantity} (${Math.round(u.hp_percent)}%)</span></div>`;
+    }
+  } else {
+    html += `<div class="panel-row"><span class="label" style="color:var(--text-muted)">Undefended</span></div>`;
+  }
+  html += `</div>`;
+
+  // Round-by-round
+  if (Array.isArray(report.rounds) && report.rounds.length > 0) {
+    html += `<div class="panel-section"><div class="panel-section-title">Rounds</div>`;
+    for (const rd of report.rounds) {
+      const atkHp = rd.atk_hp || {};
+      const defHp = rd.def_hp || {};
+      const atkTotal = (atkHp.infantry || 0) + (atkHp.armor || 0) + (atkHp.artillery || 0);
+      const defTotal = (defHp.infantry || 0) + (defHp.armor || 0) + (defHp.artillery || 0);
+      html += `<div class="round-row">
+        <span class="round-num">R${rd.round}</span>
+        <span class="round-atk">ATK: ${Math.round(atkTotal)} HP / ${Math.round(rd.atk_morale)} MRL</span>
+        <span class="round-def">DEF: ${Math.round(defTotal)} HP / ${Math.round(rd.def_morale)} MRL</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  contentEl.innerHTML = html;
+
+  document.getElementById('btn-back-battles')?.addEventListener('click', () => showBattleReports());
 }
 
 /** Reload tiles from Supabase and re-render the map. */

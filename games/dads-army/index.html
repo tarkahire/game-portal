@@ -101,10 +101,20 @@
     <!-- Minimap -->
     <canvas id="minimap-canvas" class="minimap"></canvas>
 
+    <!-- Battle Reports Panel -->
+    <div id="panel-battles" class="side-panel" style="display:none">
+      <div class="panel-header">
+        <h3>Battle Reports</h3>
+        <button class="btn-close" onclick="document.getElementById('panel-battles').style.display='none'">&times;</button>
+      </div>
+      <div id="battles-panel-content"></div>
+    </div>
+
     <!-- Bottom action bar -->
     <div id="action-bar" class="action-bar">
       <button class="action-btn" id="btn-toggle-supply" title="Toggle supply lines">Supply</button>
       <button class="action-btn" id="btn-build-road" title="Build road">Road</button>
+      <button class="action-btn" id="btn-battle-reports" title="View battle reports">Battles</button>
     </div>
 
     <!-- Notifications -->

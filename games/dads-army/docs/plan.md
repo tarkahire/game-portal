@@ -11,7 +11,7 @@
 | Phase | Status | Summary |
 |-------|--------|---------|
 | Phase 0: Docs & Scaffolding | DONE | 27 docs, file structure, auto-doc system |
-| Phase 1: MVP | IN PROGRESS | Auth, hex map, tile interaction, city management, military done. Combat next. |
+| Phase 1: MVP | IN PROGRESS | Auth, hex map, tiles, cities, military, combat done. Supply & roads next. |
 | Phase 2: Strategic Depth | NOT STARTED | Full resources, research, naval, air, alliances, fog of war |
 | Phase 3: War Economy | NOT STARTED | Supply chains, stranding, debt, trade, intelligence |
 | Phase 4: Endgame & Polish | NOT STARTED | Victory conditions, coalitions, tutorial, mobile |
@@ -56,11 +56,11 @@
 - [x] Army sprites on map (show moving armies)
 
 ### Then — Combat
-- [ ] Field battle resolution (army arrives at enemy resource tile)
-- [ ] City battle resolution (siege mechanics, fortification bonus)
-- [ ] Battle reports panel
-- [ ] War damage to tiles (yield reduction after combat)
-- [ ] Combat predictor (estimated outcome before committing)
+- [x] Field battle resolution (army arrives at enemy resource tile)
+- [x] City battle resolution (siege mechanics, fortification bonus)
+- [x] Battle reports panel
+- [x] War damage to tiles (yield reduction after combat)
+- [x] Combat predictor (estimated outcome before committing)
 
 ### Then — Supply & Roads
 - [ ] Build roads between tiles

@@ -194,4 +194,25 @@ Why: A game this complex needs clear design docs as source of truth. Every syste
 
 ---
 
+## 2026-04-04 (continued) — Combat System
+
+### What was built
+- **Server-side combat engine** (resolve_combat): Deterministic multi-round combat with category effectiveness matrix (infantry/armor/artillery rock-paper-scissors), terrain modifiers (forest +20% def, mountain +40% def, river crossing -20% atk), city defense bonus (+50%), fortification bonuses, morale system (rout when morale drops to 0), diminishing attack power as HP depletes.
+- **Army arrival resolution** (resolve_army_arrivals): When a marching army arrives at its destination, checks if the tile is hostile. If so, triggers combat. If friendly/unclaimed, the army simply arrives.
+- **War damage**: Combat inflicts war damage on the tile (5-25 per battle), permanently reducing land quality. Discourages fighting repeatedly over the same land.
+- **Battle reports**: Full battle report stored with army snapshots, round-by-round HP/morale data, modifiers applied, war damage caused. Both attacker and defender get notifications.
+- **Battle reports panel**: "Battles" button in action bar opens a panel listing all recent battles with color-coded results (win/loss/draw). Click to expand detailed view showing army compositions, round-by-round HP and morale tracking.
+- **Combat predictor**: Client-side JS implementation of the same combat algorithm. Shows predicted outcome (Likely Victory / Probable Victory / Pyrrhic Victory / Uncertain / Defeat) when selecting a march destination on an enemy tile. Currently predicts vs undefended (defender garrison is fog-of-war hidden).
+- **Experience system**: Surviving units gain +10 XP per battle.
+
+### SQL fixes (014_fix_combat_functions.sql)
+- `resolve_army_arrivals`: owner_id→player_id, destination_tile_id→destination_tile
+- `resolve_combat`: all column fixes + battle_reports INSERT rewritten to match actual table schema (result, attacker_army_snapshot, defender_army_snapshot, modifiers_applied, attacker_losses, defender_losses, war_damage_caused)
+
+### Current state
+- Combat system is **complete** (resolution, reports, predictor, war damage, XP)
+- Next: supply & roads, then portal integration to finish Phase 1
+
+---
+
 *More entries will be added as development progresses.*

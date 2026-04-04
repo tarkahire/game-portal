@@ -637,13 +637,23 @@ export async function getPlayerBattleReports(serverId) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
+  // Get player_id
+  const { data: playerData } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('server_id', serverId)
+    .single();
+
+  if (!playerData) return [];
+
   const { data, error } = await supabase
     .from('battle_reports')
-    .select('id, attacker_id, defender_id, tile_id, outcome, summary, created_at')
+    .select('id, attacker_id, defender_id, tile_id, result, attacker_army_snapshot, defender_army_snapshot, terrain_type, modifiers_applied, rounds, attacker_losses, defender_losses, war_damage_caused, occurred_at')
     .eq('server_id', serverId)
-    .or(`attacker_id.eq.${user.id},defender_id.eq.${user.id}`)
-    .order('created_at', { ascending: false })
-    .limit(50);
+    .or(`attacker_id.eq.${playerData.id},defender_id.eq.${playerData.id}`)
+    .order('occurred_at', { ascending: false })
+    .limit(20);
 
   if (error) {
     console.error('[queries] getPlayerBattleReports:', error);
