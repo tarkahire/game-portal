@@ -12,7 +12,11 @@ import {
   getActiveServers,
   getPlayerOnServer,
   getAlignmentDefs,
+  getServerTiles,
+  getCityResources,
+  getPlayerCities,
 } from './api/queries.js';
+import { HexRenderer } from './map/HexRenderer.js';
 
 // ---------- Globals ----------
 
@@ -27,6 +31,12 @@ let selectedServerId = null;
 
 /** Alignment key chosen in the alignment screen. */
 let selectedAlignment = null;
+
+/** Hex map renderer instance (created when game scene enters). */
+let hexRenderer = null;
+
+/** Current player record on the active server. */
+let currentPlayerRecord = null;
 
 // ---------- DOM References ----------
 
@@ -384,22 +394,125 @@ dom.btnConfirmAlign.addEventListener('click', async () => {
 // ---------- Scene: Game ----------
 
 scenes.register('game', {
-  enter(data) {
+  async enter(data) {
     activateScreen(dom.screenGame);
-
-    // Resize the game canvas to fill available space
     resizeGameCanvas();
     window.addEventListener('resize', resizeGameCanvas);
 
-    // TODO: Initialize hex map renderer, resource polling, realtime
-    // subscriptions, and other game systems here.
-    console.log('[Main] Entered game scene', data);
+    const serverId = data?.serverId;
+    const playerId = data?.player;
+    currentPlayerRecord = playerId;
+
+    console.log('[Main] Entered game scene', { serverId, playerId });
+
+    // Initialize hex renderer
+    const canvas = document.getElementById('game-canvas');
+    const minimap = document.getElementById('minimap-canvas');
+    if (minimap) {
+      minimap.width = minimap.offsetWidth || 200;
+      minimap.height = minimap.offsetHeight || 200;
+    }
+
+    hexRenderer = new HexRenderer(canvas, minimap);
+    hexRenderer.attach();
+
+    // Handle tile click — show info panel
+    hexRenderer.onClick((tile) => {
+      showTileInfo(tile);
+    });
+
+    // Load tiles from Supabase
+    try {
+      const tiles = await getServerTiles(serverId);
+      console.log(`[Main] Loaded ${tiles.length} tiles`);
+      hexRenderer.loadTiles(tiles, playerId);
+    } catch (err) {
+      console.error('[Main] Failed to load tiles:', err);
+    }
+
+    // Load player resources for the resource bar
+    try {
+      const cities = await getPlayerCities(serverId);
+      if (cities && cities.length > 0) {
+        const resources = await getCityResources(cities[0].id);
+        updateResourceBar(resources);
+      }
+    } catch (err) {
+      console.error('[Main] Failed to load resources:', err);
+    }
   },
   exit() {
     window.removeEventListener('resize', resizeGameCanvas);
+    if (hexRenderer) {
+      hexRenderer.detach();
+      hexRenderer = null;
+    }
     dom.screenGame.classList.remove('active');
   },
 });
+
+/** Show tile info in the side panel. */
+function showTileInfo(tile) {
+  const panel = document.getElementById('panel-tile-info');
+  const title = document.getElementById('tile-info-title');
+  const content = document.getElementById('tile-info-content');
+  if (!panel || !content) return;
+
+  title.textContent = `Tile (${tile.q}, ${tile.r})`;
+
+  const isOwned = tile.owner_id === currentPlayerRecord;
+  const ownerText = tile.owner_id
+    ? (isOwned ? 'You' : 'Enemy')
+    : 'Unclaimed';
+
+  let html = `
+    <div class="tile-info-row"><strong>Terrain:</strong> ${tile.terrain_type}</div>
+    <div class="tile-info-row"><strong>Owner:</strong> ${ownerText}</div>
+  `;
+
+  if (tile.resource_type) {
+    html += `<div class="tile-info-row"><strong>Resource:</strong> ${tile.resource_type}</div>`;
+    if (tile.resource_reserves_remaining != null && tile.resource_reserves_total != null && tile.resource_reserves_total > 0) {
+      const pct = Math.round((tile.resource_reserves_remaining / tile.resource_reserves_total) * 100);
+      html += `<div class="tile-info-row"><strong>Reserves:</strong> ${pct}% (${Math.round(tile.resource_reserves_remaining)} / ${Math.round(tile.resource_reserves_total)})</div>`;
+    }
+  }
+
+  if (tile.war_damage_level > 0) {
+    html += `<div class="tile-info-row"><strong>War Damage:</strong> ${Math.round(tile.war_damage_level)}%</div>`;
+  }
+
+  html += `<div class="tile-info-row"><strong>Land Quality:</strong> ${Math.round(tile.land_quality)}%</div>`;
+
+  if (tile.fortification_type) {
+    html += `<div class="tile-info-row"><strong>Fortification:</strong> ${tile.fortification_type} (HP: ${Math.round(tile.fortification_hp)})</div>`;
+  }
+
+  if (tile.infrastructure_road) html += `<div class="tile-info-row">🛤 Road</div>`;
+  if (tile.infrastructure_rail) html += `<div class="tile-info-row">🚂 Railway</div>`;
+
+  content.innerHTML = html;
+  panel.style.display = 'block';
+}
+
+/** Update the resource bar at the top of the screen. */
+function updateResourceBar(resources) {
+  const bar = document.getElementById('resource-bar');
+  if (!bar || !resources) return;
+
+  const icons = {
+    money: '💰', food: '🌾', steel: '⚙️', oil: '🛢️', manpower: '👥',
+    ammunition: '🔫', copper: '🔶', coal: '⬛', iron: '🔩',
+  };
+
+  bar.innerHTML = resources.map(r =>
+    `<div class="resource-item">
+      <span class="resource-icon">${icons[r.resource_type] || '📦'}</span>
+      <span class="resource-name">${r.resource_type}</span>
+      <span class="resource-amount">${Math.floor(r.amount)}</span>
+    </div>`
+  ).join('');
+}
 
 function resizeGameCanvas() {
   const canvas = $('game-canvas');

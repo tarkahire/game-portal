@@ -138,7 +138,7 @@ export async function getAlignmentDefs() {
 export async function getServerTiles(serverId) {
   const { data, error } = await supabase
     .from('tiles')
-    .select('id, q, r, terrain, owner_id, resource_type, resource_level, has_road, has_city')
+    .select('id, q, r, terrain_type, owner_id, resource_type, resource_reserves_total, resource_reserves_remaining, soil_quality, war_damage_level, land_quality, infrastructure_road, infrastructure_rail, fortification_type, fortification_hp')
     .eq('server_id', serverId);
 
   if (error) {
@@ -182,11 +182,21 @@ export async function getPlayerCities(serverId) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
+  // Get player_id for this user on this server
+  const { data: playerData } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('server_id', serverId)
+    .single();
+
+  if (!playerData) return [];
+
   const { data, error } = await supabase
     .from('cities')
-    .select('id, name, tile_id, level, population, morale, created_at')
+    .select('id, name, tile_id, level, is_capital, land_quality_at_founding, created_at')
     .eq('server_id', serverId)
-    .eq('owner_id', user.id)
+    .eq('player_id', playerData.id)
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -273,7 +283,7 @@ export async function buildBuilding(cityId, buildingDef, slotIndex) {
 export async function getCityResources(cityId) {
   const { data, error } = await supabase
     .from('city_resources')
-    .select('resource_type, amount, production_rate, capacity')
+    .select('resource_type, amount, production_rate, storage_capacity')
     .eq('city_id', cityId);
 
   if (error) {

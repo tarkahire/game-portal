@@ -599,6 +599,24 @@ input[type="text"]:focus {
   border-bottom: 1px solid var(--border-color);
 }
 
+.tile-info-row {
+  padding: 6px 16px;
+  font-size: 0.9em;
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.tile-info-row strong {
+  color: var(--text-heading);
+  margin-right: 6px;
+}
+
+.resource-name {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
 .panel-section-title {
   font-family: var(--font-mono);
   font-size: 0.75em;

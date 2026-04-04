@@ -156,6 +156,36 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Actual behavior**: 400 error from Supabase, empty server list
 - **Fix notes**: The `getActiveServers()` query in queries.js selected `player_count` which is a computed value (COUNT of players), not a stored column on `game_servers`. Also, the status filter used `['active', 'upcoming', 'full']` but our server statuses are `['lobby', 'active', 'paused', 'ended']`. **Resolution**: Removed `player_count` from SELECT, updated status filter to `['lobby', 'active']`, updated main.js server card template to remove player_count reference.
 
+### BUG-012: getServerTiles query uses wrong column names
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Game scene loads, tiles query fires
+- **Expected behavior**: 999 tiles loaded
+- **Actual behavior**: Query references `terrain`, `resource_level`, `has_road`, `has_city` which don't exist
+- **Fix notes**: Changed to `terrain_type`, `resource_reserves_total`, `resource_reserves_remaining`, `infrastructure_road`, etc. Same root cause as BUG-008/010 — queries generated with assumed column names.
+
+### BUG-013: getPlayerCities uses `owner_id` and non-existent columns
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Game scene loads, cities query fires
+- **Expected behavior**: Player's cities loaded
+- **Actual behavior**: Query uses `owner_id` (should be `player_id`) and selects `population`, `morale` which don't exist on cities table
+- **Fix notes**: Fixed to use `player_id`, look up player record first, select actual columns (level, is_capital, land_quality_at_founding).
+
+### BUG-014: getCityResources uses `capacity` instead of `storage_capacity`
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Resource bar tries to load
+- **Expected behavior**: Resource amounts displayed
+- **Actual behavior**: Column `capacity` doesn't exist
+- **Fix notes**: Changed to `storage_capacity`.
+
 ### BUG-011: Confirm & Deploy button does nothing — `align.key` should be `align.id`
 - **Severity**: HIGH
 - **Status**: FIXED
