@@ -59,6 +59,21 @@ Boss stats scale with floor. Defeating a boss spawns stairs to next floor.
 - **Stats tracked**: Total runs, best floor, total kills
 - Gold banked on death/disconnect
 
+## Lives System
+- Start with **5 lives** per run (shared in co-op)
+- When you die, lose 1 life, stay dead for rest of the floor
+- On next floor, all dead players **respawn at 50% HP**
+- Game over when all 5 lives are used up
+- HUD shows lives: green (3+), yellow (2), red (1)
+
+## Visual Style
+- **Cyberpunk neon** aesthetic: cyan (#00ffcc), pink (#ff0080), purple on dark backgrounds
+- Circuit-board floor tiles with neon grid lines
+- Holographic neon light nodes (cyan/pink)
+- Neon scan ring around players
+- All characters have neon outline glow
+- Cyberpunk UI: neon buttons, gradient stat bars
+
 ## Game Modes
 - **Solo**: Single player, full-screen view
 - **2P Local Co-op**: Split-screen, shared keyboard

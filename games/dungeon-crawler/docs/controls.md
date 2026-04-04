@@ -32,5 +32,7 @@ All online players use the P1 control scheme (WASD + Mouse) on their own device.
 
 ## Class-Specific Controls
 - **Gojo**: Q/Numpad4 = Infinity Dash (1.5s CD)
+- **Jin-Woo**: Q/Numpad4 = Recall all shadows, F/Numpad6 = Arise Boss (capture killed bosses)
 - **Portal**: R/Numpad5 = Teleport to nearest ally (2s CD, co-op only)
+- **Frog**: R/Numpad6 = Summon permanent insect swarm (10 flies)
 - All other R/Numpad5 abilities are class-specific secondaries (Rasengan, Amaterasu, etc.)
