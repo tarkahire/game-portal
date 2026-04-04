@@ -57,6 +57,21 @@ body { background: #0a0a0f; color: #c8c0b0; font-family: 'Segoe UI', sans-serif;
 .portal-icon { background: radial-gradient(circle, #00e5ff 20%, #00bcd4 50%, #006064 100%); }
 .gojo-icon { background: radial-gradient(circle, #e1f5fe 20%, #4fc3f7 50%, #0288d1 100%); }
 .sukuna-icon { background: radial-gradient(circle, #d4736a 20%, #8b0000 60%, #4a0000 100%); }
+.toji-icon { background: radial-gradient(circle, #4caf50 30%, #2e7d32 70%, #1b5e20 100%); }
+.yuji-icon { background: radial-gradient(circle, #ff9800 30%, #e65100 70%, #bf360c 100%); }
+.naruto-icon { background: radial-gradient(circle, #ffca28 30%, #ff8f00 70%, #e65100 100%); }
+.sasuke-icon { background: radial-gradient(circle, #7c4dff 20%, #311b92 60%, #1a0066 100%); }
+.kakashi-icon { background: radial-gradient(circle, #90a4ae 30%, #546e7a 70%, #37474f 100%); }
+.itachi-icon { background: radial-gradient(circle, #ef5350 20%, #b71c1c 60%, #4a0000 100%); }
+.minato-icon { background: radial-gradient(circle, #fff176 20%, #fdd835 60%, #f57f17 100%); }
+.goku-icon { background: radial-gradient(circle, #ffb74d 30%, #ff6f00 70%, #e65100 100%); }
+.vegeta-icon { background: radial-gradient(circle, #5c6bc0 20%, #1a237e 60%, #0d1442 100%); }
+.luffy-icon { background: radial-gradient(circle, #ef5350 30%, #d32f2f 70%, #b71c1c 100%); }
+.zoro-icon { background: radial-gradient(circle, #66bb6a 30%, #2e7d32 70%, #1b5e20 100%); }
+.tanjiro-icon { background: radial-gradient(circle, #4db6ac 30%, #00897b 70%, #004d40 100%); }
+.zenitsu-icon { background: radial-gradient(circle, #fff176 20%, #f9a825 60%, #f57f17 100%); }
+.levi-icon { background: radial-gradient(circle, #78909c 30%, #37474f 70%, #1a2327 100%); }
+.deku-icon { background: radial-gradient(circle, #81c784 30%, #4caf50 70%, #2e7d32 100%); }
 
 .class-card h3 { color: #c8c0b0; font-size: 1.1rem; letter-spacing: 0.1em; margin-bottom: 0.6rem; }
 .class-stats { margin-bottom: 0.6rem; }
