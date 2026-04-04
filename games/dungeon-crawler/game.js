@@ -1349,7 +1349,7 @@ function playerSpecial(p, now) {
                 const angle = ((existing + i) / total) * Math.PI * 2;
                 summonedMinions.push({ x: p.x+Math.cos(angle)*30, y: p.y+Math.sin(angle)*30, owner: p,
                     hp: 20, maxHp: 20, damage: 6, speed: 3.2,
-                    radius: 5, attackRange: 140, lastAttack: 0, attackSpeed: 600,
+                    radius: 5, attackRange: 140, lastAttack: now + (existing + i) * 150, attackSpeed: 600,
                     life: Infinity, color: '#6a3aaa', type: 'shadow',
                     shadowOf: 'warrior', _guardIndex: existing + i, _guardTotal: 8, ranged: true });
             }
