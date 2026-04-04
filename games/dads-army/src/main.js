@@ -737,6 +737,11 @@ async function showTileInfo(tile) {
 
   if (myArmiesHere.length > 0) {
     html += `<div class="tile-info-section"><div class="tile-info-row"><strong>Your Armies Here:</strong></div>`;
+    // Merge button if 2+ idle armies on same tile
+    const idleArmiesHere = myArmiesHere.filter(a => a.status === 'idle' || a.status === 'fortified');
+    if (idleArmiesHere.length >= 2) {
+      html += `<button class="btn-action btn-action-primary" id="btn-merge-armies">Merge All Armies on Tile</button>`;
+    }
     for (const army of myArmiesHere) {
       const totalUnits = army.army_units?.reduce((s, au) => s + au.quantity, 0) || 0;
       const statusColors = { idle: 'var(--color-green)', marching: 'var(--color-gold)', fortified: 'var(--color-blue-dim)', fighting: 'var(--color-red)' };
@@ -846,22 +851,55 @@ async function showTileInfo(tile) {
   const btnImprove = document.getElementById('btn-improve-tile');
   if (btnImprove) {
     btnImprove.addEventListener('click', async () => {
-      // Find a player army on this tile
-      const myArmies = armiesOnMap.filter(a => a.tile_id === tile.id && a.player_id === currentPlayerRecord);
-      if (myArmies.length === 0) {
+      // Find a player army on this tile (check both cached and fresh data)
+      let myArmyId = null;
+      if (myArmiesHere.length > 0) {
+        myArmyId = myArmiesHere[0].id;
+      } else {
+        const cached = armiesOnMap.filter(a => a.tile_id === tile.id && a.player_id === currentPlayerRecord);
+        if (cached.length > 0) myArmyId = cached[0].id;
+      }
+      if (!myArmyId) {
         alert('You need an army with engineers on this tile to improve it.');
         return;
       }
       btnImprove.disabled = true;
       btnImprove.textContent = 'Improving...';
       try {
-        await improveTile(myArmies[0].id, tile.id, selectedServerId);
+        await improveTile(myArmyId, tile.id, selectedServerId);
         await refreshMap();
       } catch (err) {
         console.error('[Main] Improve failed:', err);
         alert('Improve failed: ' + (err.message || 'Unknown error'));
         btnImprove.disabled = false;
         btnImprove.textContent = 'Improve Tile (requires engineers)';
+      }
+    });
+  }
+
+  // Wire up merge armies button
+  const btnMerge = document.getElementById('btn-merge-armies');
+  if (btnMerge) {
+    btnMerge.addEventListener('click', async () => {
+      const idleHere = myArmiesHere.filter(a => a.status === 'idle' || a.status === 'fortified');
+      if (idleHere.length < 2) return;
+      btnMerge.disabled = true;
+      btnMerge.textContent = 'Merging...';
+      try {
+        // Merge all into the first army
+        const targetId = idleHere[0].id;
+        for (let i = 1; i < idleHere.length; i++) {
+          const { error } = await supabase.rpc('merge_armies', {
+            p_target_army_id: targetId,
+            p_source_army_id: idleHere[i].id,
+          });
+          if (error) throw error;
+        }
+        await refreshMap();
+        showTileInfo(tile);
+      } catch (err) {
+        alert('Merge failed: ' + (err.message || 'Unknown error'));
+        btnMerge.disabled = false;
       }
     });
   }
