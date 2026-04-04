@@ -209,7 +209,7 @@ RETURNS void AS $$
 BEGIN
   -- Mark completed buildings: level up and stop construction
   UPDATE buildings b
-  SET level = level + 1,
+  SET level = b.level + 1,
       is_constructing = false,
       construction_completes_at = NULL
   FROM cities c
