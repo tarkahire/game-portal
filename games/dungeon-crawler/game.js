@@ -259,7 +259,7 @@ const CLASSES = {
     // ── Black Clover ──
     asta: { name: 'Asta', maxHp: 115, speed: 2.8, attackRange: 35, attackDamage: 14, attackSpeed: 370, attackType: 'melee', color: '#222', specialCooldown: 5000, specialName: 'Black Divider', specialDesc: 'Anti-magic slash — reflects projectiles 4s', drawChar: drawAsta },
     // ── Original ──
-    frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 4000, specialName: 'Electric Tongue', specialDesc: 'Swing electrified tongue — grab, shock, and devour enemy', drawChar: drawFrog }
+    frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 0, specialName: 'Electric Tongue', specialDesc: 'Spinning tongue spiral — catches and devours all enemies', drawChar: drawFrog }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -1400,55 +1400,50 @@ function playerSpecial(p, now) {
             activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 55, width: 12, life: 10, maxLife: 10, color: '#222' });
             spawnParticles(p.x, p.y, '#111', 16); spawnParticles(p.x, p.y, '#69f0ae', 8);
             triggerShake(6, 10); } break;
-        case 'frog': // Electric Tongue — swing, grab, shock, devour
-            { // Find nearest enemy in front
-            let target = null, closest = Infinity;
-            for (const e of enemies) { if (!e.alive || e.isBoss) continue;
-                const dx = e.x-p.x, dy = e.y-p.y, dist = Math.hypot(dx, dy);
-                if (dist < 120 && dist < closest) {
-                    const angle = Math.atan2(dy, dx);
-                    let diff = angle - p.facingAngle; while(diff>Math.PI)diff-=Math.PI*2; while(diff<-Math.PI)diff+=Math.PI*2;
-                    if (Math.abs(diff) < Math.PI * 0.6) { closest = dist; target = e; }
-                }
+        case 'frog': // Electric Tongue — spinning spiral catches all enemies
+            { const tongueRadius = 150; // ~15 meters (15 tiles * 10px)
+            let eaten = 0;
+            // Spinning tongue beams (8 directions for spiral visual)
+            for (let s = 0; s < 8; s++) {
+                const spiralAngle = p.facingAngle + (s / 8) * Math.PI * 2;
+                activeBeams.push({ x: p.x, y: p.y, angle: spiralAngle,
+                    length: tongueRadius, width: 3, life: 12 + s * 2, maxLife: 28, color: '#76ff03', isTongue: true });
             }
-            if (target) {
-                // Tongue visual — electric beam to enemy then pull
-                activeBeams.push({ x: p.x, y: p.y, angle: Math.atan2(target.y-p.y, target.x-p.x),
-                    length: closest, width: 4, life: 15, maxLife: 15, color: '#76ff03', isTongue: true });
-                // Shock particles along tongue
-                for (let t = 0; t < 6; t++) {
-                    const frac = t / 6;
-                    const tx = p.x + (target.x-p.x)*frac, ty = p.y + (target.y-p.y)*frac;
-                    spawnParticles(tx, ty, '#ffeb3b', 2); // electric sparks
-                }
-                // Stun and pull enemy to frog
-                target.stunned = Math.max(target.stunned, now + 2000);
-                spawnParticles(target.x, target.y, '#ffeb3b', 8); // shock effect
-                // Pull to mouth and devour (instant kill non-boss)
-                target.x = p.x + Math.cos(p.facingAngle) * 10;
-                target.y = p.y + Math.sin(p.facingAngle) * 10;
-                dealDamageToEnemy(target, 9999, p); // devour
-                spawnParticles(p.x, p.y, '#4caf50', 10); // chomp particles
-                // Heal from eating
-                p.hp = Math.min(p.hp + 8, p.maxHp);
-                damageNumbers.push({ x: p.x, y: p.y - 25, text: '*CHOMP* +8hp', color: '#76ff03', life: 40 });
-                triggerShake(5, 10);
-            } else {
-                // No target — tongue whip in facing direction (damages anything hit)
-                const tongueLen = 100;
-                for (const e of enemies) { if (!e.alive) continue;
-                    const dx = e.x-p.x, dy = e.y-p.y;
-                    const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
-                    const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
-                    if (along > 0 && along < tongueLen && perp < 12) {
-                        dealDamageToEnemy(e, Math.round(p.damage * 1.5), p);
-                        e.stunned = Math.max(e.stunned, now + 1000);
+            // Catch ALL enemies in radius
+            const snap = enemies.slice();
+            for (const e of snap) { if (!e.alive) continue;
+                const dist = Math.hypot(e.x-p.x, e.y-p.y);
+                if (dist < tongueRadius) {
+                    // Electric shock
+                    spawnParticles(e.x, e.y, '#ffeb3b', 4);
+                    e.stunned = Math.max(e.stunned, now + 1500);
+                    // Pull to mouth
+                    e.x = p.x + (Math.random()-0.5) * 15;
+                    e.y = p.y + (Math.random()-0.5) * 15;
+                    if (e.isBoss) {
+                        // Bosses take big damage but don't get eaten
+                        dealDamageToEnemy(e, Math.round(p.damage * 3), p);
+                    } else {
+                        // Devour non-bosses
+                        dealDamageToEnemy(e, 9999, p);
+                        eaten++;
                     }
                 }
-                activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: tongueLen, width: 4, life: 12, maxLife: 12, color: '#76ff03', isTongue: true });
-                spawnParticles(p.x + Math.cos(p.facingAngle)*50, p.y + Math.sin(p.facingAngle)*50, '#ffeb3b', 6);
-                triggerShake(3, 6);
-            } } break;
+            }
+            // Heal from eating
+            if (eaten > 0) {
+                const heal = eaten * 5;
+                p.hp = Math.min(p.hp + heal, p.maxHp);
+                damageNumbers.push({ x: p.x, y: p.y - 25, text: `*CHOMP x${eaten}* +${heal}hp`, color: '#76ff03', life: 50 });
+            }
+            // Electric spiral particles
+            for (let s = 0; s < 12; s++) {
+                const a = (s / 12) * Math.PI * 2;
+                const r = tongueRadius * (s / 12);
+                spawnParticles(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, '#ffeb3b', 2);
+            }
+            spawnParticles(p.x, p.y, '#4caf50', 8);
+            triggerShake(6, 12); } break;
     }
 }
 
