@@ -257,7 +257,9 @@ const CLASSES = {
     // ── Chainsaw Man ──
     denji: { name: 'Denji', maxHp: 110, speed: 2.8, attackRange: 35, attackDamage: 13, attackSpeed: 300, attackType: 'melee', color: '#ff5722', specialCooldown: 6000, specialName: 'Devil Form', specialDesc: 'Chainsaw transform — regen + wide slashes', drawChar: drawDenji },
     // ── Black Clover ──
-    asta: { name: 'Asta', maxHp: 115, speed: 2.8, attackRange: 35, attackDamage: 14, attackSpeed: 370, attackType: 'melee', color: '#222', specialCooldown: 5000, specialName: 'Black Divider', specialDesc: 'Anti-magic slash — reflects projectiles 4s', drawChar: drawAsta }
+    asta: { name: 'Asta', maxHp: 115, speed: 2.8, attackRange: 35, attackDamage: 14, attackSpeed: 370, attackType: 'melee', color: '#222', specialCooldown: 5000, specialName: 'Black Divider', specialDesc: 'Anti-magic slash — reflects projectiles 4s', drawChar: drawAsta },
+    // ── Original ──
+    frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 4000, specialName: 'Electric Tongue', specialDesc: 'Swing electrified tongue — grab, shock, and devour enemy', drawChar: drawFrog }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -1398,6 +1400,55 @@ function playerSpecial(p, now) {
             activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 55, width: 12, life: 10, maxLife: 10, color: '#222' });
             spawnParticles(p.x, p.y, '#111', 16); spawnParticles(p.x, p.y, '#69f0ae', 8);
             triggerShake(6, 10); } break;
+        case 'frog': // Electric Tongue — swing, grab, shock, devour
+            { // Find nearest enemy in front
+            let target = null, closest = Infinity;
+            for (const e of enemies) { if (!e.alive || e.isBoss) continue;
+                const dx = e.x-p.x, dy = e.y-p.y, dist = Math.hypot(dx, dy);
+                if (dist < 120 && dist < closest) {
+                    const angle = Math.atan2(dy, dx);
+                    let diff = angle - p.facingAngle; while(diff>Math.PI)diff-=Math.PI*2; while(diff<-Math.PI)diff+=Math.PI*2;
+                    if (Math.abs(diff) < Math.PI * 0.6) { closest = dist; target = e; }
+                }
+            }
+            if (target) {
+                // Tongue visual — electric beam to enemy then pull
+                activeBeams.push({ x: p.x, y: p.y, angle: Math.atan2(target.y-p.y, target.x-p.x),
+                    length: closest, width: 4, life: 15, maxLife: 15, color: '#76ff03', isTongue: true });
+                // Shock particles along tongue
+                for (let t = 0; t < 6; t++) {
+                    const frac = t / 6;
+                    const tx = p.x + (target.x-p.x)*frac, ty = p.y + (target.y-p.y)*frac;
+                    spawnParticles(tx, ty, '#ffeb3b', 2); // electric sparks
+                }
+                // Stun and pull enemy to frog
+                target.stunned = Math.max(target.stunned, now + 2000);
+                spawnParticles(target.x, target.y, '#ffeb3b', 8); // shock effect
+                // Pull to mouth and devour (instant kill non-boss)
+                target.x = p.x + Math.cos(p.facingAngle) * 10;
+                target.y = p.y + Math.sin(p.facingAngle) * 10;
+                dealDamageToEnemy(target, 9999, p); // devour
+                spawnParticles(p.x, p.y, '#4caf50', 10); // chomp particles
+                // Heal from eating
+                p.hp = Math.min(p.hp + 8, p.maxHp);
+                damageNumbers.push({ x: p.x, y: p.y - 25, text: '*CHOMP* +8hp', color: '#76ff03', life: 40 });
+                triggerShake(5, 10);
+            } else {
+                // No target — tongue whip in facing direction (damages anything hit)
+                const tongueLen = 100;
+                for (const e of enemies) { if (!e.alive) continue;
+                    const dx = e.x-p.x, dy = e.y-p.y;
+                    const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
+                    const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
+                    if (along > 0 && along < tongueLen && perp < 12) {
+                        dealDamageToEnemy(e, Math.round(p.damage * 1.5), p);
+                        e.stunned = Math.max(e.stunned, now + 1000);
+                    }
+                }
+                activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: tongueLen, width: 4, life: 12, maxLife: 12, color: '#76ff03', isTongue: true });
+                spawnParticles(p.x + Math.cos(p.facingAngle)*50, p.y + Math.sin(p.facingAngle)*50, '#ffeb3b', 6);
+                triggerShake(3, 6);
+            } } break;
     }
 }
 
@@ -3004,7 +3055,25 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         ctx.save();
         ctx.translate(b.x, b.y);
         ctx.rotate(b.angle);
-        if (b.isBlackFlash) {
+        if (b.isTongue) {
+            // Frog tongue — green with electric sparks
+            ctx.globalAlpha = alpha * 0.9;
+            ctx.fillStyle = '#e91e63'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill(); // mouth
+            ctx.fillStyle = '#76ff03';
+            ctx.shadowColor = '#76ff03'; ctx.shadowBlur = 6;
+            ctx.fillRect(0, -2, b.length, 4); // tongue
+            // Tip
+            ctx.beginPath(); ctx.arc(b.length, 0, 5, 0, Math.PI * 2); ctx.fill();
+            // Electric crackle along tongue
+            ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 1; ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 8;
+            for (let s = 0; s < 4; s++) {
+                const sx = 10 + s * (b.length / 4);
+                ctx.beginPath(); ctx.moveTo(sx, -2);
+                ctx.lineTo(sx + 5, -5 - Math.random() * 4); ctx.lineTo(sx + 10, -2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(sx, 2);
+                ctx.lineTo(sx + 5, 5 + Math.random() * 4); ctx.lineTo(sx + 10, 2); ctx.stroke();
+            }
+        } else if (b.isBlackFlash) {
             // Black Flash — dark lightning burst
             ctx.globalAlpha = alpha * 0.8;
             ctx.fillStyle = '#000';
@@ -4028,6 +4097,70 @@ function drawGenos(c,p,t){ctx=c;ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle=
 function drawKaneki(c,p,t){drawGenericAnime(c,p,'#fff','#111','round',function(c,p){c.fillStyle='#f44336';c.beginPath();c.arc(-3,-8,1.5,0,Math.PI*2);c.fill();c.fillStyle='#9e9e9e';c.beginPath();c.arc(3,-8,1.5,0,Math.PI*2);c.fill();if(p.activeEffects&&p.activeEffects.some(e=>e.effect==='damage')){c.fillStyle='#f44336';c.globalAlpha=0.4;for(let i=0;i<3;i++){const a=t*0.005+i*2;c.beginPath();c.moveTo(0,5);c.lineTo(Math.cos(a)*20,5+Math.sin(a)*20);c.lineTo(Math.cos(a+0.3)*18,5+Math.sin(a+0.3)*18);c.fill();}c.globalAlpha=1;}});}
 function drawDenji(c,p,t){ctx=c;ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle='#e8d0b0';ctx.beginPath();ctx.arc(0,-8,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff5722';ctx.beginPath();ctx.moveTo(-5,-12);ctx.lineTo(-3,-18);ctx.lineTo(0,-13);ctx.lineTo(3,-18);ctx.lineTo(5,-12);ctx.fill();const hasBuff=p.activeEffects&&p.activeEffects.some(e=>e.effect==='damage');if(hasBuff){ctx.fillStyle='#ff5722';ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(-2,-25);ctx.lineTo(2,-25);ctx.fill();}ctx.fillStyle='#fff';ctx.fillRect(-6,-1,12,14);ctx.fillStyle='#d32f2f';ctx.fillRect(-2,3,4,2);ctx.save();ctx.rotate(p.facingAngle);ctx.fillStyle='#9e9e9e';ctx.fillRect(6,-2,16+(p.attackAnim>0?6:0),4);ctx.strokeStyle='#bbb';ctx.lineWidth=0.5;for(let i=0;i<5;i++)ctx.beginPath(),ctx.moveTo(8+i*3,-2),ctx.lineTo(8+i*3,2),ctx.stroke();ctx.restore();ctx.fillStyle='#333';ctx.fillRect(-4,13,3,7);ctx.fillRect(2,13,3,7);ctx.fillStyle=p.playerIndex===0?'#fff':'#4a9eff';ctx.beginPath();ctx.arc(0,-20,2,0,Math.PI*2);ctx.fill();ctx.restore();}
 function drawAsta(c,p,t){drawGenericAnime(c,p,'#bbb','#111','spiky',function(c,p){c.fillStyle='#222';c.strokeStyle='#69f0ae';c.lineWidth=0.8;c.strokeRect(-3,-1,6,10);if(p.activeEffects&&p.activeEffects.some(e=>e.effect==='reflect')){c.globalAlpha=0.2;const g=c.createRadialGradient(0,-2,0,0,-2,22);g.addColorStop(0,'#111');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.beginPath();c.arc(0,-2,22,0,Math.PI*2);c.fill();c.globalAlpha=1;}});}
+
+function drawFrog(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Body — big round green
+    ctx.fillStyle = p.attackAnim > 0 ? '#66bb6a' : '#2e7d32';
+    ctx.shadowColor = '#76ff03'; ctx.shadowBlur = p.attackAnim > 0 ? 10 : 4;
+    ctx.beginPath(); ctx.ellipse(0, 2, 12, 10, 0, 0, Math.PI * 2); ctx.fill();
+    // Belly
+    ctx.fillStyle = '#a5d6a7';
+    ctx.beginPath(); ctx.ellipse(0, 4, 7, 6, 0, 0, Math.PI * 2); ctx.fill();
+    // Head — wide
+    ctx.fillStyle = '#2e7d32';
+    ctx.beginPath(); ctx.ellipse(0, -8, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
+    // Big bulging eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-6, -14, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6, -14, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(-6, -14, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6, -14, 2.5, 0, Math.PI * 2); ctx.fill();
+    // Eye shine
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-7, -15, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, -15, 1, 0, Math.PI * 2); ctx.fill();
+    // Wide mouth
+    ctx.strokeStyle = '#1b5e20'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, -5, 8, 0.2, Math.PI - 0.2); ctx.stroke();
+    // Tongue hint when attacking
+    if (p.attackAnim > 0) {
+        ctx.save(); ctx.rotate(p.facingAngle);
+        ctx.fillStyle = '#e91e63';
+        ctx.fillRect(8, -1.5, 12, 3);
+        ctx.fillStyle = '#ffeb3b'; ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(20, 0, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0; ctx.restore();
+    }
+    // Front legs
+    ctx.fillStyle = '#2e7d32';
+    ctx.beginPath(); ctx.ellipse(-10, 8, 4, 3, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(10, 8, 4, 3, 0.3, 0, Math.PI * 2); ctx.fill();
+    // Back legs (bigger)
+    ctx.beginPath(); ctx.ellipse(-11, 10, 5, 4, -0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(11, 10, 5, 4, 0.5, 0, Math.PI * 2); ctx.fill();
+    // Webbed feet
+    ctx.fillStyle = '#1b5e20';
+    for (let side = -1; side <= 1; side += 2) {
+        for (let toe = -1; toe <= 1; toe++) {
+            ctx.beginPath(); ctx.arc(side * 14 + toe * 2, 13, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+    // Electric spots (shows power)
+    ctx.fillStyle = '#ffeb3b'; ctx.globalAlpha = 0.3 + Math.sin(t * 0.008) * 0.15;
+    ctx.beginPath(); ctx.arc(-4, 0, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-2, 5, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#00ffcc' : '#ff0080';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, -22, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
 
 // ─── ENEMY DRAWING ──────────────────────────────────────────
 function drawEnemy(ctx, e, flash) {
