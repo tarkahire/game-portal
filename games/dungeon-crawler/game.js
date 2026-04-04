@@ -1342,23 +1342,23 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#f48fb1', 14); triggerShake(4, 6); } break;
         case 'jinwoo': // Shadow Army — raise ALL killed enemies as shadow soldiers
             { if (!p._shadowBank) p._shadowBank = [];
-            const maxSummon = Math.min(p._shadowBank.length, 10); // cap at 10
+            const maxSummon = Math.min(p._shadowBank.length, 8); // cap at 8
             if (maxSummon === 0) { // fallback if no kills yet
-                for (let i = 0; i < 2; i++) { const angle = p.facingAngle + (i-0.5) * 0.8;
-                    summonedMinions.push({ x: p.x+Math.cos(angle)*25, y: p.y+Math.sin(angle)*25, owner: p,
-                        hp: 20, maxHp: 20, damage: 7, speed: 2.8, radius: 8, attackRange: 25,
-                        lastAttack: 0, attackSpeed: 450, life: Infinity, color: '#311b92', type: 'shadow' }); }
+                for (let i = 0; i < 2; i++) { const angle = (i / 2) * Math.PI * 2;
+                    summonedMinions.push({ x: p.x+Math.cos(angle)*30, y: p.y+Math.sin(angle)*30, owner: p,
+                        hp: 20, maxHp: 20, damage: 7, speed: 3.2, radius: 7, attackRange: 22,
+                        lastAttack: 0, attackSpeed: 450, life: Infinity, color: '#311b92', type: 'shadow',
+                        shadowOf: 'warrior', _guardIndex: i, _guardTotal: 2 }); }
             } else {
                 for (let i = 0; i < maxSummon; i++) {
                     const s = p._shadowBank[i];
                     const angle = (i / maxSummon) * Math.PI * 2;
-                    const dist = 25 + (i % 3) * 14;
-                    summonedMinions.push({ x: p.x+Math.cos(angle)*dist, y: p.y+Math.sin(angle)*dist, owner: p,
+                    summonedMinions.push({ x: p.x+Math.cos(angle)*30, y: p.y+Math.sin(angle)*30, owner: p,
                         hp: Math.round(s.hp * 0.7), maxHp: Math.round(s.hp * 0.7),
-                        damage: Math.round(s.damage * 0.8), speed: 2.6,
-                        radius: 14, attackRange: 30, lastAttack: 0, attackSpeed: 400,
+                        damage: Math.round(s.damage * 0.8), speed: 3.2,
+                        radius: 7, attackRange: 22, lastAttack: 0, attackSpeed: 400,
                         life: Infinity, color: '#6a3aaa', type: 'shadow',
-                        shadowOf: 'warrior' }); // all arise as shadow warriors
+                        shadowOf: 'warrior', _guardIndex: i, _guardTotal: maxSummon });
                 }
                 p._shadowBank = []; // empty the bank after summoning
             }
@@ -1973,15 +1973,27 @@ function update(now) {
                 }
             }
         } else {
-            // FOLLOW MODE — trail behind owner
+            // FOLLOW MODE — guard in circle around owner (shadows) or trail (others)
             const owner = m.owner;
             if (owner && owner.alive) {
-                const dx = owner.x - m.x, dy = owner.y - m.y;
+                let targetX, targetY;
+                if (m.type === 'shadow' && m._guardIndex !== undefined) {
+                    // Circle formation around owner
+                    const gAngle = (m._guardIndex / (m._guardTotal || 8)) * Math.PI * 2 + now * 0.0005;
+                    const guardRadius = 35;
+                    targetX = owner.x + Math.cos(gAngle) * guardRadius;
+                    targetY = owner.y + Math.sin(gAngle) * guardRadius;
+                } else {
+                    targetX = owner.x;
+                    targetY = owner.y;
+                }
+                const dx = targetX - m.x, dy = targetY - m.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                const followDist = 25 + (i % 8) * 10;
+                const followDist = m.type === 'shadow' ? 5 : 25 + (i % 8) * 10;
                 let moved = false;
                 if (dist > followDist) {
-                    const nx = m.x + (dx/dist) * m.speed, ny = m.y + (dy/dist) * m.speed;
+                    const spd = Math.min(m.speed, dist * 0.15); // smooth approach
+                    const nx = m.x + (dx/dist) * spd, ny = m.y + (dy/dist) * spd;
                     if (isWalkableRadius(nx, ny, m.radius || 6)) { m.x = nx; m.y = ny; moved = true; }
                     else if (isWalkableRadius(nx, m.y, m.radius || 6)) { m.x = nx; moved = true; }
                     else if (isWalkableRadius(m.x, ny, m.radius || 6)) { m.y = ny; moved = true; }
