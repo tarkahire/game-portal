@@ -27,13 +27,11 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ## Open Bugs
 
-### BUG-026: resolve_combat and resolve_army_arrivals have column mismatches + battle_reports INSERT wrong schema
-- **Severity**: CRITICAL
-- **Status**: OPEN (SQL fix created, needs to be run in Supabase)
-- **Reported**: 2026-04-04
-- **Fixed**: —
-- **Actual behavior**: owner_id→player_id, ud.name→ud.id, avg_hp_percent→hp_percent, destination_tile_id→destination_tile, experience_level→experience. Battle report INSERT used columns that don't exist on the table.
-- **Fix notes**: **Fix file**: `sql/014_fix_combat_functions.sql` — run both statements in Supabase SQL Editor.
+*No open bugs at this time.*
+
+---
+
+## Fixed Bugs
 
 ### BUG-027: getPlayerBattleReports uses wrong column names
 - **Severity**: HIGH
@@ -42,9 +40,13 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Fixed**: 2026-04-04
 - **Fix notes**: Changed to use player_id lookup, correct column names (result, occurred_at, attacker/defender_army_snapshot, etc.).
 
----
-
-## Fixed Bugs
+### BUG-026: resolve_combat and resolve_army_arrivals have column mismatches + battle_reports INSERT wrong schema
+- **Severity**: CRITICAL
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Actual behavior**: owner_id→player_id, ud.name→ud.id, avg_hp_percent→hp_percent, destination_tile_id→destination_tile, experience_level→experience. Battle report INSERT used columns that don't exist on the table.
+- **Fix notes**: **Fix file**: `sql/014_fix_combat_functions.sql`.
 
 ### BUG-025: panel-section-title CSS rule was empty (missing body and closing brace)
 - **Severity**: MEDIUM
