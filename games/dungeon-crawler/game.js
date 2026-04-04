@@ -2035,8 +2035,8 @@ function update(now) {
             }
         }
 
-        if (enraged && !(m.type === 'shadow')) {
-            // ATTACK MODE (non-shadow) — chase and attack nearest enemy
+        if (enraged && !(m.type === 'shadow') && !m._orbit) {
+            // ATTACK MODE (non-shadow, non-orbiting) — chase and attack nearest enemy
             let closest = null, closestDist = Infinity;
             for (const e of enemies) { if (!e.alive) continue;
                 const d = Math.hypot(e.x - m.x, e.y - m.y);
@@ -2108,6 +2108,18 @@ function update(now) {
                     m.y = owner.y + (Math.random()-0.5)*25;
                     m._stuckSince = 0;
                     spawnParticles(m.x, m.y, m.color || '#6a3aaa', 4);
+                }
+            }
+            // Orbiting minions attack enemies in range while orbiting
+            if (m._orbit && now - m.lastAttack > m.attackSpeed) {
+                let closest = null, closestDist = Infinity;
+                for (const e of enemies) { if (!e.alive) continue;
+                    const d = Math.hypot(e.x - m.x, e.y - m.y);
+                    if (d < m.attackRange && d < closestDist) { closestDist = d; closest = e; } }
+                if (closest) {
+                    m.lastAttack = now;
+                    dealDamageToEnemy(closest, m.damage, m.owner);
+                    spawnParticles(closest.x, closest.y, m.color || '#1a237e', 3);
                 }
             }
         }
