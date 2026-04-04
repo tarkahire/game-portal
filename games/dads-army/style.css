@@ -497,6 +497,7 @@ input[type="text"]:focus {
 }
 
 /* ---------- Game Screen: Resource Bar ---------- */
+/* ---------- Resource Bar — HOI4-inspired grouped layout ---------- */
 .resource-bar {
   position: fixed;
   top: 0;
@@ -507,39 +508,60 @@ input[type="text"]:focus {
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  padding: 0 10px;
-  gap: 4px;
+  padding: 0 6px;
+  gap: 0;
   z-index: 100;
   font-family: var(--font-mono);
-  font-size: 0.8em;
-  flex-wrap: wrap;
-  overflow: hidden;
+  font-size: 0.78em;
+}
+
+.resource-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  height: 100%;
+}
+
+.resource-group:last-child {
+  border-right: none;
 }
 
 .resource-item {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   color: var(--text-secondary);
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.03);
+  padding: 3px 4px;
+  border-radius: 2px;
   cursor: default;
   white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+
+.resource-item:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.resource-item.zero {
+  opacity: 0.4;
 }
 
 .resource-item .resource-icon {
-  font-size: 0.85em;
+  font-size: 0.8em;
+  line-height: 1;
 }
 
 .resource-item .resource-amount {
   color: var(--text-primary);
   font-weight: 700;
-  font-size: 0.95em;
+  font-size: 0.9em;
+  min-width: 20px;
 }
 
 .resource-item .resource-rate {
-  font-size: 0.8em;
+  font-size: 0.7em;
   color: var(--text-muted);
 }
 
@@ -549,6 +571,34 @@ input[type="text"]:focus {
 
 .resource-item .resource-rate.negative {
   color: var(--color-red);
+}
+
+@media (max-width: 1200px) {
+  .resource-bar {
+    font-size: 0.72em;
+  }
+  .resource-group {
+    padding: 0 4px;
+    gap: 1px;
+  }
+  .resource-item {
+    padding: 2px 3px;
+  }
+}
+
+@media (max-width: 768px) {
+  .resource-bar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--resource-bar-height);
+    padding: 2px 4px;
+  }
+  .resource-group {
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 2px 4px;
+    flex-wrap: wrap;
+  }
 }
 
 /* ---------- Game Screen: Canvas ---------- */

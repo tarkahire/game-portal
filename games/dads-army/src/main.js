@@ -1717,19 +1717,34 @@ function updateResourceBar(resources) {
   const icons = {
     money: '💰', food: '🌾', steel: '⚙️', oil: '🛢️', manpower: '👥',
     ammunition: '🔫', copper: '🔶', coal: '⬛', iron: '🔩',
+    aluminum: '🔘', rubber: '🟤', tungsten: '🔷',
   };
 
-  // Only show resources with amount > 0 or production > 0
-  const visible = resources.filter(r => r.amount > 0 || r.production_rate > 0);
-  bar.innerHTML = visible.map(r => {
-    const rate = r.production_rate || 0;
-    const rateSign = rate >= 0 ? '+' : '';
-    const rateClass = rate > 0 ? 'positive' : rate < 0 ? 'negative' : '';
-    return `<div class="resource-item" title="${capitalize(r.resource_type)}: ${Math.floor(r.amount)} (${rateSign}${rate.toFixed(1)}/tick)">
-      <span class="resource-icon">${icons[r.resource_type] || '📦'}</span>
-      <span class="resource-amount">${Math.floor(r.amount)}</span>
-      ${rate !== 0 ? `<span class="resource-rate ${rateClass}">${rateSign}${rate.toFixed(1)}</span>` : ''}
-    </div>`;
+  // Group resources: Economy | Military | Strategic (HOI4-inspired)
+  const groups = [
+    { label: 'Economy', keys: ['money'] },
+    { label: 'Military', keys: ['food', 'manpower', 'ammunition'] },
+    { label: 'Strategic', keys: ['steel', 'oil', 'iron', 'coal', 'copper', 'aluminum', 'rubber', 'tungsten'] },
+  ];
+
+  const resMap = {};
+  for (const r of resources) resMap[r.resource_type] = r;
+
+  bar.innerHTML = groups.map(group => {
+    const items = group.keys.map(key => {
+      const r = resMap[key];
+      const amount = r ? Math.floor(r.amount) : 0;
+      const rate = r ? (r.production_rate || 0) : 0;
+      const rateSign = rate >= 0 ? '+' : '';
+      const rateClass = rate > 0 ? 'positive' : rate < 0 ? 'negative' : '';
+      const amountClass = amount === 0 && rate <= 0 ? 'zero' : '';
+      return `<div class="resource-item ${amountClass}" title="${capitalize(key)}: ${amount} (${rateSign}${rate.toFixed(1)}/tick)">
+        <span class="resource-icon">${icons[key] || '📦'}</span>
+        <span class="resource-amount">${amount >= 1000 ? (amount / 1000).toFixed(1) + 'k' : amount}</span>
+        ${rate !== 0 ? `<span class="resource-rate ${rateClass}">${rateSign}${rate.toFixed(1)}</span>` : ''}
+      </div>`;
+    }).join('');
+    return `<div class="resource-group">${items}</div>`;
   }).join('');
 }
 
