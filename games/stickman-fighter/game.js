@@ -190,7 +190,7 @@ const STYLES = {
         attacks: [
             { name: 'Key Throw',   type: 'projectile', damage: 6,  cooldown: 90,   speed: 13, radius: 24, knockback: 5,  blockReduction: 0.5, draw: 'keyThrow' },
             { name: 'Caps Lock',   type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'capsLock' },
-            { name: 'Ctrl+C Ctrl+V', type: 'projectile', damage: 4, cooldown: 100, speed: 12, radius: 21, knockback: 4, blockReduction: 0.5, draw: 'keyThrow', special: 'ctrlCV' },
+            { name: 'Ctrl+C Ctrl+V', type: 'projectile', damage: 4, cooldown: 100, speed: 12, radius: 21, knockback: 4, blockReduction: 0.5, draw: 'clipboardKey', special: 'ctrlCV' },
             { name: 'Blue Screen', type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'blueScreen' },
         ],
     },
@@ -421,7 +421,7 @@ const STYLES = {
         attacks: [
             { name: 'Ball Kick',       type: 'projectile', damage: 7,  cooldown: 90,   speed: 14, radius: 30, knockback: 10, blockReduction: 0.4, draw: 'footballKick' },
             { name: 'Slide Tackle',    type: 'instant',    damage: 11, cooldown: 270,  range: 9999, knockback: 18, blockReduction: 0.4, vfx: 'slideTackle', launchUp: -8 },
-            { name: 'Header Barrage',  type: 'projectile', damage: 5,  cooldown: 100,  speed: 10, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'footballKick', special: 'headerBarrage' },
+            { name: 'Header Barrage',  type: 'projectile', damage: 5,  cooldown: 100,  speed: 10, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'headerBall', special: 'headerBarrage' },
             { name: 'Red Card',        type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 26, blockReduction: 0.2, vfx: 'redCard' },
         ],
     },
@@ -545,7 +545,7 @@ const STYLES = {
             { name: 'Arrow Shot',   type: 'projectile', damage: 6,  cooldown: 80,   speed: 16, radius: 21, knockback: 5,  blockReduction: 0.5, draw: 'cupidArrow' },
             { name: 'Love Stun',    type: 'instant',    damage: 10, cooldown: 270,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'loveStun' },
             { name: 'Heartbreak',   type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'heartbreak' },
-            { name: 'Arrow Rain',   type: 'projectile', damage: 5,  cooldown: 100,  speed: 6,  radius: 21, knockback: 6,  blockReduction: 0.3, draw: 'cupidArrow', special: 'arrowRain' },
+            { name: 'Arrow Rain',   type: 'projectile', damage: 5,  cooldown: 100,  speed: 6,  radius: 21, knockback: 6,  blockReduction: 0.3, draw: 'cupidArrowRain', special: 'arrowRain' },
         ],
     },
     minotaur: {
@@ -589,7 +589,7 @@ const STYLES = {
         attacks: [
             { name: 'Jab',           type: 'projectile', damage: 5,  cooldown: 70,   speed: 18, radius: 21, knockback: 4,  blockReduction: 0.6, draw: 'jab' },
             { name: 'Uppercut',      type: 'instant',    damage: 12, cooldown: 280,  range: 9999, knockback: 16, blockReduction: 0.3, vfx: 'uppercut', launchUp: -18 },
-            { name: 'Combo Flurry',  type: 'projectile', damage: 4,  cooldown: 100,  speed: 16, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'jab', special: 'comboFlurry' },
+            { name: 'Combo Flurry',  type: 'projectile', damage: 4,  cooldown: 100,  speed: 16, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'comboFlurry', special: 'comboFlurry' },
             { name: 'Knockout',      type: 'instant',    damage: 22, cooldown: 640,  range: 9999, knockback: 28, blockReduction: 0.2, vfx: 'knockout' },
         ],
     },
@@ -611,7 +611,7 @@ const STYLES = {
         attacks: [
             { name: 'Serve',       type: 'projectile', damage: 6,  cooldown: 80,   speed: 18, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'tennisServe' },
             { name: 'Lob',         type: 'projectile', damage: 10, cooldown: 280,  speed: 8,  radius: 30, knockback: 10, blockReduction: 0.4, draw: 'tennisLob' },
-            { name: 'Volley',      type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 21, knockback: 5,  blockReduction: 0.5, draw: 'tennisServe', special: 'volley' },
+            { name: 'Volley',      type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 21, knockback: 5,  blockReduction: 0.5, draw: 'tennisVolley', special: 'volley' },
             { name: 'Match Point', type: 'instant',    damage: 20, cooldown: 600,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'matchPoint' },
         ],
     },
@@ -632,9 +632,9 @@ const STYLES = {
         hue: 120,
         attacks: [
             { name: 'Quick Shot',       type: 'projectile', damage: 6,  cooldown: 70,   speed: 20, radius: 18, knockback: 4,  blockReduction: 0.6, draw: 'quickShot' },
-            { name: 'Triple Arrow',     type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 18, knockback: 5,  blockReduction: 0.5, draw: 'quickShot', special: 'tripleArrow' },
+            { name: 'Triple Arrow',     type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 18, knockback: 5,  blockReduction: 0.5, draw: 'tripleArrow', special: 'tripleArrow' },
             { name: 'Explosive Arrow',  type: 'projectile', damage: 14, cooldown: 360,  speed: 14, radius: 36, knockback: 14, blockReduction: 0.3, draw: 'explosiveArrow' },
-            { name: 'Rain of Arrows',   type: 'projectile', damage: 4,  cooldown: 100,  speed: 6,  radius: 18, knockback: 5,  blockReduction: 0.4, draw: 'quickShot', special: 'arrowRainArch' },
+            { name: 'Rain of Arrows',   type: 'projectile', damage: 4,  cooldown: 100,  speed: 6,  radius: 18, knockback: 5,  blockReduction: 0.4, draw: 'arrowRain', special: 'arrowRainArch' },
         ],
     },
     // ── Meme ──
@@ -723,7 +723,7 @@ const STYLES = {
         attacks: [
             { name: 'Shuriken',      type: 'projectile', damage: 5,  cooldown: 70,   speed: 20, radius: 18, knockback: 4,  blockReduction: 0.6, draw: 'shuriken' },
             { name: 'Smoke Bomb',    type: 'instant',    damage: 10, cooldown: 260,  range: 9999, knockback: 8,  blockReduction: 0.4, vfx: 'smokeBomb' },
-            { name: 'Kunai Rush',    type: 'projectile', damage: 4,  cooldown: 100,  speed: 18, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'shuriken', special: 'kunaiRush' },
+            { name: 'Kunai Rush',    type: 'projectile', damage: 4,  cooldown: 100,  speed: 18, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'kunai', special: 'kunaiRush' },
             { name: 'Shadow Jutsu',  type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'shadowJutsu' },
         ],
     },
@@ -823,7 +823,7 @@ const STYLES = {
         attacks: [
             { name: 'Virus Shot',       type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'virusShot' },
             { name: 'Firewall',         type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'firewall' },
-            { name: 'DDOS',             type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'virusShot', special: 'ddos' },
+            { name: 'DDOS',             type: 'projectile', damage: 5,  cooldown: 100,  speed: 16, radius: 18, knockback: 4,  blockReduction: 0.5, draw: 'ddosPacket', special: 'ddos' },
             { name: 'System Crash',     type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'systemCrash' },
         ],
     },
@@ -859,7 +859,7 @@ const STYLES = {
         attacks: [
             { name: 'Data Stream',      type: 'projectile', damage: 6,  cooldown: 80,   speed: 14, radius: 24, knockback: 6,  blockReduction: 0.5, draw: 'dataStream' },
             { name: 'Prediction',       type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'prediction' },
-            { name: 'Neural Net',       type: 'projectile', damage: 5,  cooldown: 100,  speed: 12, radius: 20, knockback: 5,  blockReduction: 0.5, draw: 'dataStream', special: 'neuralNet' },
+            { name: 'Neural Net',       type: 'projectile', damage: 5,  cooldown: 100,  speed: 12, radius: 20, knockback: 5,  blockReduction: 0.5, draw: 'neuralNet', special: 'neuralNet' },
             { name: 'Singularity',      type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 24, blockReduction: 0.2, vfx: 'aiSingularity' },
         ],
     },
@@ -932,7 +932,7 @@ const STYLES = {
         name: 'Taco', color: '#ff8c00', hue: 33,
         attacks: [
             { name: 'Shell Throw',      type: 'projectile', damage: 6,  cooldown: 90,   speed: 12, radius: 28, knockback: 7,  blockReduction: 0.5, draw: 'shellThrow' },
-            { name: 'Hot Sauce',        type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'hotSauce' },
+            { name: 'Hot Sauce',        type: 'instant',    damage: 11, cooldown: 280,  range: 9999, knockback: 12, blockReduction: 0.4, vfx: 'tacoSauce' },
             { name: 'Guac Smash',       type: 'instant',    damage: 13, cooldown: 360,  range: 9999, knockback: 14, blockReduction: 0.3, vfx: 'guacSmash' },
             { name: 'Fiesta',           type: 'instant',    damage: 21, cooldown: 620,  range: 9999, knockback: 22, blockReduction: 0.2, vfx: 'fiesta' },
         ],
@@ -4727,7 +4727,7 @@ class Fighter {
         else if (vfx === 'caffeineRush') { visualEffects.push({ type: 'impactRing', x: this.x, y: this.y - this.height * 0.5, life: 25, maxLife: 25, color: '#8b4513' }); triggerScreenFlash('#8b4513', 0.4); }
         else if (vfx === 'overdose') { visualEffects.push({ type: 'screenInferno', life: 55, maxLife: 55 }); triggerScreenShake(18, 22); triggerScreenFlash('#8b4513', 0.7); }
         // ── Taco VFX ──
-        else if (vfx === 'hotSauce') { spawnFlameBurst(opponent.x, opponent.y - opponent.height * 0.4); triggerScreenFlash('#ff8c00', 0.3); }
+        else if (vfx === 'tacoSauce') { spawnTacoSauce(opponent.x, opponent.y - opponent.height * 0.4); triggerScreenFlash('#ff8c00', 0.4); }
         else if (vfx === 'guacSmash') { visualEffects.push({ type: 'impactRing', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 25, maxLife: 25, color: '#2e8b57' }); triggerScreenShake(10, 14); triggerScreenFlash('#ff8c00', 0.4); }
         else if (vfx === 'fiesta') { visualEffects.push({ type: 'radiantBurst', x: opponent.x, y: opponent.y - opponent.height * 0.5, life: 30, maxLife: 30 }); triggerScreenShake(16, 20); triggerScreenFlash('#ff8c00', 0.6); }
         // ── IceCream VFX ──
@@ -8554,6 +8554,26 @@ function spawnFlameBurst(x, y) {
     }
 }
 
+function spawnTacoSauce(x, y) {
+    visualEffects.push({ type: 'tacoSauce', x, y, life: 30, maxLife: 30 });
+    triggerScreenShake(5, 8);
+    for (let i = 0; i < 30; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 2 + Math.random() * 7;
+        particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2,
+            life: 12 + Math.random() * 12, maxLife: 24,
+            color: `hsl(${15 + Math.random() * 20}, 100%, ${40 + Math.random() * 30}%)` });
+    }
+    // Green jalapeño particles
+    for (let i = 0; i < 8; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 3 + Math.random() * 5;
+        particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 3,
+            life: 15 + Math.random() * 10, maxLife: 25,
+            color: '#2e7d32' });
+    }
+}
+
 function spawnFirePillar(x, y) {
     visualEffects.push({ type: 'firePillar', x, y, life: 45, maxLife: 45 });
     triggerScreenShake(10, 15);
@@ -8942,6 +8962,37 @@ function drawVisualEffects() {
                 ctx.globalAlpha = (0.3 - prog) / 0.3;
                 ctx.fillStyle = grd;
                 ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.5, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        if (vfx.type === 'tacoSauce') {
+            const prog = 1 - a;
+            const r = 40 + prog * 120;
+            ctx.globalAlpha = a * 0.7;
+            // Orange salsa splash ring
+            ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 7;
+            ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 35;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r, 0, Math.PI * 2); ctx.stroke();
+            // Inner hot sauce ring
+            ctx.strokeStyle = '#ff4500'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.55, 0, Math.PI * 2); ctx.stroke();
+            // Jalapeño green splatter spots
+            ctx.fillStyle = '#2e7d32'; ctx.globalAlpha = a * 0.6;
+            for (let j = 0; j < 6; j++) {
+                const ja = (j / 6) * Math.PI * 2 + prog * 2;
+                const jx = vfx.x + Math.cos(ja) * r * 0.7;
+                const jy = vfx.y + Math.sin(ja) * r * 0.7;
+                ctx.beginPath(); ctx.arc(jx, jy, 4 + prog * 3, 0, Math.PI * 2); ctx.fill();
+            }
+            // White-hot center flash
+            if (prog < 0.25) {
+                const grd = ctx.createRadialGradient(vfx.x, vfx.y, 0, vfx.x, vfx.y, r * 0.4);
+                grd.addColorStop(0, 'rgba(255,255,200,0.6)');
+                grd.addColorStop(1, 'rgba(255,140,0,0)');
+                ctx.globalAlpha = (0.25 - prog) / 0.25;
+                ctx.fillStyle = grd;
+                ctx.beginPath(); ctx.arc(vfx.x, vfx.y, r * 0.4, 0, Math.PI * 2); ctx.fill();
             }
             ctx.shadowBlur = 0;
         }
@@ -15097,7 +15148,7 @@ function drawProjectiles() {
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(-7, -12, 14, 3);
             ctx.restore(); ctx.shadowBlur = 0;
         }
-        else if (draw === 'quickShot' || draw === 'tripleArrow') {
+        else if (draw === 'quickShot') {
             // Arrow trail
             for (const t of p.trail) {
                 ctx.globalAlpha = t.alpha * 0.2;
@@ -15791,6 +15842,347 @@ function drawProjectiles() {
             ctx.globalAlpha = 1; ctx.fillStyle = '#00ff00'; ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#000'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.fillText('!', p.x, p.y + 3);
             ctx.shadowBlur = 0;
+        }
+        // ─── CUPID: Arrow Rain (unique) ───
+        else if (draw === 'cupidArrowRain') {
+            // Spiraling mini heart-arrows cluster
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.25;
+                ctx.fillStyle = '#ff69b4';
+                ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 0.95; ctx.save(); ctx.translate(p.x, p.y);
+            ctx.shadowColor = '#ff1493'; ctx.shadowBlur = 18;
+            const t = Date.now() * 0.008;
+            // Three mini arrows orbiting center
+            for (let i = 0; i < 3; i++) {
+                const angle = t + (i * Math.PI * 2 / 3);
+                const ox = Math.cos(angle) * 6;
+                const oy = Math.sin(angle) * 6;
+                ctx.save(); ctx.translate(ox, oy);
+                ctx.rotate(Math.atan2(p.vy || 0, p.vx || 0) + Math.sin(t + i) * 0.3);
+                // Mini arrow shaft
+                ctx.strokeStyle = '#deb887'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(4, 0); ctx.stroke();
+                // Mini heart tip
+                ctx.fillStyle = '#ff69b4';
+                ctx.beginPath(); ctx.arc(5, -1.5, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(5, 1.5, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(3, -2); ctx.lineTo(7, 0); ctx.lineTo(3, 2); ctx.fill();
+                ctx.restore();
+            }
+            // Central pink glow
+            const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, 10);
+            rg.addColorStop(0, 'rgba(255,105,180,0.5)'); rg.addColorStop(1, 'rgba(255,20,147,0)');
+            ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+            // Tiny hearts falling
+            if (Math.random() < 0.5) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 14, y: p.y + (Math.random() - 0.5) * 14,
+                    vx: (Math.random() - 0.5) * 2, vy: 1 + Math.random() * 2,
+                    life: 6 + Math.random() * 4, maxLife: 10, color: '#ff69b4' });
+            }
+        }
+        // ─── AI: Neural Net (unique) ───
+        else if (draw === 'neuralNet') {
+            // Connected node network
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.2;
+                ctx.fillStyle = '#7b68ee'; ctx.fillRect(t.x - 2, t.y - 2, 4, 4);
+            }
+            ctx.globalAlpha = 1; ctx.save(); ctx.translate(p.x, p.y);
+            ctx.shadowColor = '#7b68ee'; ctx.shadowBlur = 14;
+            const t = Date.now() * 0.005;
+            // 5 orbiting nodes
+            const nodes = [];
+            for (let i = 0; i < 5; i++) {
+                const a = t + (i * Math.PI * 2 / 5);
+                const r = 7 + Math.sin(t * 2 + i) * 2;
+                nodes.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+            }
+            // Connection lines between nodes
+            ctx.strokeStyle = 'rgba(123,104,238,0.4)'; ctx.lineWidth = 0.8;
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y);
+                    ctx.lineTo(nodes[j].x, nodes[j].y); ctx.stroke();
+                }
+            }
+            // Pulse traveling along connections
+            ctx.fillStyle = '#fff';
+            const pi = Math.floor(t * 3) % nodes.length;
+            const pj = (pi + 1) % nodes.length;
+            const frac = (t * 3) % 1;
+            const px = nodes[pi].x + (nodes[pj].x - nodes[pi].x) * frac;
+            const py = nodes[pi].y + (nodes[pj].y - nodes[pi].y) * frac;
+            ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill();
+            // Node dots
+            for (const n of nodes) {
+                const ng = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, 3);
+                ng.addColorStop(0, '#fff'); ng.addColorStop(1, '#7b68ee');
+                ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(n.x, n.y, 3, 0, Math.PI * 2); ctx.fill();
+            }
+            // Center core
+            const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, 5);
+            cg.addColorStop(0, '#fff'); cg.addColorStop(0.5, '#7b68ee'); cg.addColorStop(1, 'rgba(123,104,238,0)');
+            ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── FOOTBALL: Header Ball (unique) ───
+        else if (draw === 'headerBall') {
+            // Sweat drop trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.2;
+                ctx.fillStyle = '#87ceeb';
+                ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 0.98; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Date.now() * 0.025);
+            ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 10;
+            // Smaller white ball
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#bbb'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.stroke();
+            // Single center pentagon
+            ctx.fillStyle = '#222'; ctx.beginPath();
+            for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2 - Math.PI / 2; ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * 3, Math.sin(a) * 3); }
+            ctx.closePath(); ctx.fill();
+            // Forehead impact mark (red ring)
+            ctx.strokeStyle = '#ff4500'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.6;
+            ctx.beginPath(); ctx.arc(0, -5, 4, 0, Math.PI * 2); ctx.stroke();
+            // Headband stripe
+            ctx.globalAlpha = 0.8; ctx.fillStyle = '#ff4500';
+            ctx.fillRect(-8, -2, 16, 2);
+            ctx.restore(); ctx.shadowBlur = 0;
+            // Impact sparks
+            if (Math.random() < 0.3) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 8, y: p.y - 8,
+                    vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2,
+                    life: 4 + Math.random() * 3, maxLife: 7, color: '#ff4500' });
+            }
+        }
+        // ─── BOXING: Combo Flurry (unique) ───
+        else if (draw === 'comboFlurry') {
+            // Triple afterimage trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.3;
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath(); ctx.arc(t.x, t.y, 6 * t.alpha, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 0.95; ctx.shadowColor = '#ff6b6b'; ctx.shadowBlur = 18;
+            ctx.save(); ctx.translate(p.x, p.y);
+            const t = Date.now() * 0.012;
+            // Three glove afterimages in rapid-fire formation
+            for (let i = 0; i < 3; i++) {
+                const ox = -i * 5;
+                const oy = Math.sin(t + i * 2) * 3;
+                ctx.globalAlpha = 0.95 - i * 0.25;
+                // Glove body
+                const gg = ctx.createRadialGradient(ox - 1, oy - 1, 0, ox, oy, 7);
+                gg.addColorStop(0, '#ff7043'); gg.addColorStop(0.5, '#e53935'); gg.addColorStop(1, '#b71c1c');
+                ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(ox, oy, 7, 0, Math.PI * 2); ctx.fill();
+                // Thumb
+                ctx.fillStyle = '#d32f2f'; ctx.beginPath(); ctx.arc(ox - 3, oy + 3, 3, 0, Math.PI * 2); ctx.fill();
+            }
+            // Speed lines
+            ctx.globalAlpha = 0.5; ctx.strokeStyle = '#ff6b6b'; ctx.lineWidth = 1.5;
+            for (let s = 0; s < 4; s++) {
+                const sy = -6 + s * 4;
+                ctx.beginPath(); ctx.moveTo(-18, sy); ctx.lineTo(-8, sy); ctx.stroke();
+            }
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── KEYBOARD: Clipboard Key (unique) ───
+        else if (draw === 'clipboardKey') {
+            const dir = p.vx > 0 ? 1 : -1;
+            // Copy-paste ghost trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.2;
+                ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 1;
+                ctx.strokeRect(t.x - 5, t.y - 6, 10, 12);
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = 14;
+            ctx.save(); ctx.translate(p.x, p.y);
+            // Clipboard body
+            const bg = ctx.createLinearGradient(-7, -8, 7, 8);
+            bg.addColorStop(0, '#37474f'); bg.addColorStop(1, '#263238');
+            ctx.fillStyle = bg; ctx.fillRect(-7, -8, 14, 16);
+            // Clipboard clip at top
+            ctx.fillStyle = '#78909c'; ctx.fillRect(-4, -10, 8, 4);
+            ctx.fillStyle = '#546e7a'; ctx.fillRect(-3, -11, 6, 2);
+            // Text lines on clipboard
+            ctx.fillStyle = '#4fc3f7';
+            ctx.fillRect(-4, -4, 8, 1.5);
+            ctx.fillRect(-4, -1, 6, 1.5);
+            ctx.fillRect(-4, 2, 7, 1.5);
+            // Ctrl+V label
+            ctx.fillStyle = '#b3e5fc'; ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('C+V', 0, 8);
+            ctx.restore(); ctx.shadowBlur = 0;
+            // Digital sparkle particles
+            if (Math.random() < 0.4) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 14, y: p.y + (Math.random() - 0.5) * 14,
+                    vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3,
+                    life: 5 + Math.random() * 4, maxLife: 9, color: '#4fc3f7' });
+            }
+        }
+        // ─── ARCHERY: Triple Arrow (unique) ───
+        else if (draw === 'tripleArrow') {
+            // Fan trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.15;
+                ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(t.x - 4, t.y); ctx.lineTo(t.x + 4, t.y); ctx.stroke();
+            }
+            ctx.globalAlpha = 0.95; ctx.save(); ctx.translate(p.x, p.y);
+            const baseAngle = Math.atan2(p.vy || 0, p.vx || 0);
+            ctx.shadowColor = '#daa520'; ctx.shadowBlur = 10;
+            // Three arrows in a spread fan
+            for (let i = -1; i <= 1; i++) {
+                ctx.save(); ctx.rotate(baseAngle + i * 0.18);
+                // Shaft with golden tint
+                const sg = ctx.createLinearGradient(-10, 0, 8, 0);
+                sg.addColorStop(0, '#8b4513'); sg.addColorStop(0.5, '#daa520'); sg.addColorStop(1, '#a0522d');
+                ctx.strokeStyle = sg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(7, 0); ctx.stroke();
+                // Gold arrowhead
+                ctx.fillStyle = '#daa520';
+                ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(6, -2.5); ctx.lineTo(7, 0); ctx.lineTo(6, 2.5); ctx.closePath(); ctx.fill();
+                // Fletching
+                ctx.fillStyle = '#cd853f';
+                ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-7, -2.5); ctx.lineTo(-7, 0); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-7, 2.5); ctx.lineTo(-7, 0); ctx.fill();
+                ctx.restore();
+            }
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── ARCHERY: Arrow Rain (unique) ───
+        else if (draw === 'arrowRain') {
+            // Vertical streak trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.2;
+                ctx.strokeStyle = '#556b2f'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(t.x, t.y - 4); ctx.lineTo(t.x, t.y + 4); ctx.stroke();
+            }
+            ctx.globalAlpha = 0.95; ctx.save(); ctx.translate(p.x, p.y);
+            ctx.rotate(Math.atan2(p.vy || 0, p.vx || 0));
+            ctx.shadowColor = '#556b2f'; ctx.shadowBlur = 8;
+            // Dark green shaft
+            ctx.strokeStyle = '#556b2f'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(6, 0); ctx.stroke();
+            // Black iron arrowhead
+            ctx.fillStyle = '#2f4f4f';
+            ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(5, -3); ctx.lineTo(6, 0); ctx.lineTo(5, 3); ctx.closePath(); ctx.fill();
+            // Dark fletching
+            ctx.fillStyle = '#3b5323';
+            ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-7, -3); ctx.lineTo(-7, 0); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-7, 3); ctx.lineTo(-7, 0); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
+            // Mini arrows raining down as particles
+            if (Math.random() < 0.6) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 16, y: p.y - 5,
+                    vx: (Math.random() - 0.5) * 1, vy: 2 + Math.random() * 3,
+                    life: 5 + Math.random() * 5, maxLife: 10, color: '#556b2f' });
+            }
+        }
+        // ─── NINJA: Kunai (unique) ───
+        else if (draw === 'kunai') {
+            // Cloth tail trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.3;
+                ctx.fillStyle = '#dc143c';
+                ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 0.95; ctx.save(); ctx.translate(p.x, p.y);
+            ctx.rotate(Math.atan2(p.vy || 0, p.vx || 0));
+            ctx.shadowColor = '#c0c0c0'; ctx.shadowBlur = 10;
+            // Kunai blade — elongated diamond
+            const bg = ctx.createLinearGradient(-2, -3, 2, 3);
+            bg.addColorStop(0, '#a0a0a0'); bg.addColorStop(0.3, '#d0d0d0'); bg.addColorStop(0.7, '#909090'); bg.addColorStop(1, '#707070');
+            ctx.fillStyle = bg;
+            ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(2, -3); ctx.lineTo(-4, 0); ctx.lineTo(2, 3); ctx.closePath(); ctx.fill();
+            // Sharp edge highlight
+            ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 0.5;
+            ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(2, -3); ctx.stroke();
+            // Handle
+            ctx.fillStyle = '#4a4a4a'; ctx.fillRect(-8, -1.5, 5, 3);
+            // Handle wrap
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 0.8;
+            for (let w = 0; w < 3; w++) {
+                ctx.beginPath(); ctx.moveTo(-7 + w * 2, -1.5); ctx.lineTo(-6 + w * 2, 1.5); ctx.stroke();
+            }
+            // Ring at pommel
+            ctx.strokeStyle = '#666'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(-10, 0, 2.5, 0, Math.PI * 2); ctx.stroke();
+            // Red cloth tail
+            ctx.strokeStyle = '#dc143c'; ctx.lineWidth = 1.5;
+            const waveT = Date.now() * 0.01;
+            ctx.beginPath(); ctx.moveTo(-12, 0);
+            ctx.quadraticCurveTo(-16, Math.sin(waveT) * 4, -20, Math.sin(waveT + 1) * 3);
+            ctx.stroke();
+            ctx.restore(); ctx.shadowBlur = 0;
+        }
+        // ─── TENNIS: Volley (unique) ───
+        else if (draw === 'tennisVolley') {
+            // Flat fast trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.25;
+                ctx.fillStyle = '#ffeb3b';
+                ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 0.95; ctx.shadowColor = '#fdd835'; ctx.shadowBlur = 14;
+            // Smashed tennis ball (slightly squished)
+            ctx.save(); ctx.translate(p.x, p.y);
+            ctx.scale(1.2, 0.8); // Squished from impact
+            const tg = ctx.createRadialGradient(-1, -1, 0, 0, 0, 7);
+            tg.addColorStop(0, '#ffff00'); tg.addColorStop(0.5, '#c6ff00'); tg.addColorStop(1, '#9e9d24');
+            ctx.fillStyle = tg; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+            // Seam lines
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(0, 0, 6, 0.3, 2.8); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 6, 3.4, 5.9); ctx.stroke();
+            ctx.restore();
+            // Racket grid imprint mark
+            ctx.globalAlpha = 0.35; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.5;
+            for (let gx = -3; gx <= 3; gx += 3) {
+                ctx.beginPath(); ctx.moveTo(p.x + gx, p.y - 4); ctx.lineTo(p.x + gx, p.y + 4); ctx.stroke();
+            }
+            for (let gy = -3; gy <= 3; gy += 3) {
+                ctx.beginPath(); ctx.moveTo(p.x - 4, p.y + gy); ctx.lineTo(p.x + 4, p.y + gy); ctx.stroke();
+            }
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            // Speed burst particles
+            if (Math.random() < 0.3) {
+                particles.push({ x: p.x + (Math.random() - 0.5) * 8, y: p.y + (Math.random() - 0.5) * 8,
+                    vx: -(p.vx || 0) * 0.2 + (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2,
+                    life: 4 + Math.random() * 3, maxLife: 7, color: '#c6ff00' });
+            }
+        }
+        // ─── HACKER: DDOS Packet (unique) ───
+        else if (draw === 'ddosPacket') {
+            // Matrix rain trail
+            for (const t of p.trail) {
+                ctx.globalAlpha = t.alpha * 0.3;
+                ctx.fillStyle = '#39ff14'; ctx.font = '6px monospace';
+                ctx.fillText(Math.random() > 0.5 ? 'SYN' : 'ACK', t.x - 6, t.y);
+            }
+            ctx.globalAlpha = 1; ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 14;
+            ctx.save(); ctx.translate(p.x, p.y);
+            const t = Date.now() * 0.008;
+            // Cluster of 4 mini data packets
+            for (let i = 0; i < 4; i++) {
+                const ox = Math.cos(t + i * Math.PI / 2) * 5;
+                const oy = Math.sin(t + i * Math.PI / 2) * 5;
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(ox - 4, oy - 3, 8, 6);
+                ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 0.8;
+                ctx.strokeRect(ox - 4, oy - 3, 8, 6);
+                // Packet data text
+                ctx.fillStyle = '#39ff14'; ctx.font = '4px monospace'; ctx.textAlign = 'center';
+                ctx.fillText(i % 2 === 0 ? 'SYN' : 'FIN', ox, oy + 1.5);
+            }
+            // Center overload glow
+            const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
+            cg.addColorStop(0, 'rgba(57,255,20,0.5)'); cg.addColorStop(1, 'rgba(57,255,20,0)');
+            ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.restore(); ctx.shadowBlur = 0;
         }
         // ─── ALIEN: Ray Gun ───
         else if (draw === 'rayGun') {
