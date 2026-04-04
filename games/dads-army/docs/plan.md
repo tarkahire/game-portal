@@ -11,7 +11,7 @@
 | Phase | Status | Summary |
 |-------|--------|---------|
 | Phase 0: Docs & Scaffolding | DONE | 27 docs, file structure, auto-doc system |
-| Phase 1: MVP | IN PROGRESS | Auth, server join, hex map, tile interaction, city management done. Military next. |
+| Phase 1: MVP | IN PROGRESS | Auth, hex map, tile interaction, city management, military done. Combat next. |
 | Phase 2: Strategic Depth | NOT STARTED | Full resources, research, naval, air, alliances, fog of war |
 | Phase 3: War Economy | NOT STARTED | Supply chains, stranding, debt, trade, intelligence |
 | Phase 4: Endgame & Polish | NOT STARTED | Victory conditions, coalitions, tutorial, mobile |
@@ -49,11 +49,11 @@
 - [x] Upgrade buildings
 
 ### Then — Military
-- [ ] Train units (infantry, armor, artillery) at military buildings
-- [ ] Training queue with completion timer
-- [ ] Form army from garrison units
-- [ ] March army to destination (pathfinding, ETA display)
-- [ ] Army sprites on map (show moving armies)
+- [x] Train units (infantry, armor, artillery) at military buildings
+- [x] Training queue with completion timer
+- [x] Form army from garrison units
+- [x] March army to destination (pathfinding, ETA display)
+- [x] Army sprites on map (show moving armies)
 
 ### Then — Combat
 - [ ] Field battle resolution (army arrives at enemy resource tile)

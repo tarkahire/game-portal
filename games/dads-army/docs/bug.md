@@ -27,7 +27,28 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ## Open Bugs
 
-*No open bugs at this time.*
+### BUG-023: Military RPCs (train_units, form_army, march_army, complete_training) have column mismatches
+- **Severity**: CRITICAL
+- **Status**: OPEN (SQL fix created, needs to be run in Supabase)
+- **Reported**: 2026-04-04
+- **Fixed**: —
+- **Steps to reproduce**: Call any military RPC
+- **Actual behavior**: Multiple crashes: owner_id→player_id, training_cost→train_cost, training_time_ticks→train_time, avg_hp_percent→hp_percent, experience_level→experience, destination_tile_id→destination_tile, unit_defs matched by name instead of id
+- **Fix notes**: Same root cause as BUG-002/003/019/021. **Fix file**: `sql/013_fix_military_functions.sql` — run all 4 statements in Supabase SQL Editor.
+
+### BUG-024: getPlayerArmies query uses owner_id and wrong army_units columns
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Fix notes**: Changed owner_id→player_id (via player lookup), unit_def_key→unit_def, health→hp_percent. Added getTrainingQueue and getAllArmies queries.
+
+### BUG-025: panel-section-title CSS rule was empty (missing body and closing brace)
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Fix notes**: Restored the missing CSS properties for .panel-section-title.
 
 ---
 

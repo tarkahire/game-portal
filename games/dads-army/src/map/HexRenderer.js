@@ -106,6 +106,17 @@ export class HexRenderer {
   /** Set click callback: fn(tile) */
   onClick(fn) { this._onClick = fn; }
 
+  /** Load army data for map display. */
+  loadArmies(armyArray, currentPlayerId) {
+    this._armies = new Map(); // tileId → [army, ...]
+    for (const army of armyArray) {
+      const key = army.tile_id;
+      if (!this._armies.has(key)) this._armies.set(key, []);
+      this._armies.get(key).push(army);
+    }
+    this.requestRender();
+  }
+
   /** Load tile data from array of tile objects from Supabase. */
   loadTiles(tileArray, currentPlayerId) {
     this.tiles.clear();
@@ -270,6 +281,61 @@ export class HexRenderer {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillText(tile.terrain_type, screen.x, screen.y - screenSize * 0.15);
+      }
+    }
+
+    // Army sprites — draw after all tiles
+    if (this._armies) {
+      for (const [tileId, armies] of this._armies) {
+        // Find tile by iterating (tileId is int)
+        let armyTile = null;
+        for (const t of this.tiles.values()) {
+          if (t.id === tileId) { armyTile = t; break; }
+        }
+        if (!armyTile) continue;
+
+        const world = hexToPixel(armyTile.q, armyTile.r, size);
+        if (world.x < topLeft.x - pad || world.x > bottomRight.x + pad ||
+            world.y < topLeft.y - pad || world.y > bottomRight.y + pad) continue;
+
+        const screen = camera.worldToScreen(world.x, world.y);
+        const screenSize = size * camera.zoom;
+        if (screenSize < 6) continue;
+
+        // Draw shield icon for each army (offset if multiple)
+        for (let ai = 0; ai < armies.length; ai++) {
+          const army = armies[ai];
+          const isMine = army.player_id === this.currentPlayerId;
+          const ox = ai * screenSize * 0.35;
+          const sx = screen.x - screenSize * 0.25 + ox;
+          const sy = screen.y - screenSize * 0.55;
+          const sw = screenSize * 0.35;
+          const sh = screenSize * 0.4;
+
+          // Shield shape
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx + sw, sy);
+          ctx.lineTo(sx + sw, sy + sh * 0.6);
+          ctx.lineTo(sx + sw / 2, sy + sh);
+          ctx.lineTo(sx, sy + sh * 0.6);
+          ctx.closePath();
+
+          ctx.fillStyle = isMine ? 'rgba(255,215,0,0.85)' : 'rgba(220,50,50,0.85)';
+          ctx.fill();
+          ctx.strokeStyle = isMine ? '#B8860B' : '#8B0000';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Army status indicator
+          if (army.status === 'marching' && screenSize > 14) {
+            ctx.fillStyle = '#000';
+            ctx.font = `${Math.max(sw * 0.5, 6)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('→', sx + sw / 2, sy + sh * 0.4);
+          }
+        }
       }
     }
 

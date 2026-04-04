@@ -69,10 +69,10 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 - [ ] Supply disruption when roads are cut
 
 ### Military
-- [ ] 3 unit types for MVP (infantry, armor, artillery)
-- [ ] Training queue (select unit type, quantity, view completion timer)
-- [ ] Army formation (group units into named armies)
-- [ ] Army movement (select destination, pathfinding, march with ETA)
+- [x] 3 unit types for MVP (infantry, armor, artillery)
+- [x] Training queue (select unit type, quantity, view completion timer)
+- [x] Army formation (group units into named armies)
+- [x] Army movement (select destination, pathfinding, march with ETA)
 - [ ] Field battle resolution (attack vs defense with terrain modifiers)
 - [ ] City battle resolution (siege mechanics, fortification bonus)
 - [ ] War damage to tiles (combat degrades resource yield)

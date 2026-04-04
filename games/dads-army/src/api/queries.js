@@ -432,16 +432,26 @@ export async function getPlayerArmies(serverId) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
+  // Get player_id first
+  const { data: playerData } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('server_id', serverId)
+    .single();
+
+  if (!playerData) return [];
+
   const { data, error } = await supabase
     .from('armies')
     .select(`
-      id, name, tile_id, status, morale,
+      id, name, tile_id, status, is_garrison, supply_status,
       army_units (
-        id, unit_def_key, quantity, health
+        unit_def, quantity, hp_percent, experience
       )
     `)
     .eq('server_id', serverId)
-    .eq('owner_id', user.id)
+    .eq('player_id', playerData.id)
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -450,6 +460,46 @@ export async function getPlayerArmies(serverId) {
   }
 
   return data;
+}
+
+/**
+ * Get the training queue for a city.
+ * @param {string} cityId
+ * @returns {Promise<object[]>}
+ */
+export async function getTrainingQueue(cityId) {
+  const { data, error } = await supabase
+    .from('training_queue')
+    .select('id, unit_def, quantity, started_at, completes_at')
+    .eq('city_id', cityId)
+    .order('started_at', { ascending: true });
+
+  if (error) {
+    console.error('[queries] getTrainingQueue:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Get all armies on a specific server (for map display).
+ * @param {string} serverId
+ * @returns {Promise<object[]>}
+ */
+export async function getAllArmies(serverId) {
+  const { data, error } = await supabase
+    .from('armies')
+    .select('id, player_id, tile_id, name, status, is_garrison')
+    .eq('server_id', serverId)
+    .eq('is_garrison', false);
+
+  if (error) {
+    console.error('[queries] getAllArmies:', error);
+    return [];
+  }
+
+  return data || [];
 }
 
 /**

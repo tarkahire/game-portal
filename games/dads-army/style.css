@@ -843,7 +843,67 @@ input[type="text"]:focus {
   font-family: var(--font-mono);
 }
 
+/* ---------- Training Queue ---------- */
+.training-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 0.85em;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.training-name {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.training-eta {
+  color: var(--color-gold);
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+}
+
+/* ---------- Army Panel ---------- */
+.army-card {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.army-card-header {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.army-status {
+  font-weight: 400;
+  font-size: 0.8em;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.army-card-units {
+  font-size: 0.78em;
+  color: var(--text-secondary);
+  margin: 2px 0 4px 0;
+}
+
+.btn-march {
+  font-size: 0.78em !important;
+  padding: 5px 10px !important;
+}
+
 .panel-section-title {
+  font-family: var(--font-mono);
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
 
 .panel-row {
   display: flex;

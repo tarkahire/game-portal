@@ -172,4 +172,26 @@ Why: A game this complex needs clear design docs as source of truth. Every syste
 
 ---
 
+## 2026-04-04 (continued) — Military System
+
+### What was built
+- **Training UI**: City panel now shows training queue with ETA countdown. "Train Units" button opens a picker showing all available units filtered by the city's military buildings (barracks→infantry/artillery, tank factory→armor). Select unit type, enter quantity, units begin training.
+- **Army management panel**: "View Armies" button in city panel opens army panel showing garrison units, field armies at this city, and other armies elsewhere. Shows unit composition (type, quantity, HP%).
+- **Form army**: "Form Field Army" button creates a named field army from all garrison units at the city.
+- **March orders**: "March" button on field armies enters destination selection mode. Click any land tile → "March Army Here" button sends the army marching via BFS pathfinding with ETA.
+- **Army sprites on map**: Non-garrison armies render as shield icons on the hex map — gold for your armies, red for enemies. Marching armies show an arrow indicator. Multiple armies on the same tile are offset.
+- **17 unit types seeded**: 5 infantry (riflemen, MG, mortar, engineers, paratroopers), 5 armor (light/medium/heavy tank, armored car, halftrack), 7 artillery types, all with full stats, costs, and prerequisites.
+
+### SQL fixes created (013_fix_military_functions.sql)
+- `train_units`: owner_id→player_id, training_cost→train_cost, training_time_ticks→train_time, match by id
+- `form_army`: owner_id→player_id, INSERT uses player_id, hp_percent/experience column names
+- `march_army`: owner_id→player_id, destination_tile_id→destination_tile, unit_defs join by id
+- `complete_training`: owner_id→player_id for cities and armies
+
+### Current state
+- Military system is **complete** (train, form, march, map sprites)
+- Next: combat resolution (field battles, city battles, battle reports)
+
+---
+
 *More entries will be added as development progresses.*

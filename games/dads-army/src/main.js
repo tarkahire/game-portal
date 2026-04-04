@@ -20,6 +20,13 @@ import {
   getBuildingDefs,
   buildBuilding,
   upgradeBuilding,
+  getUnitDefs,
+  getTrainingQueue,
+  getPlayerArmies,
+  getAllArmies,
+  trainUnits,
+  formArmy,
+  marchArmy,
 } from './api/queries.js';
 import { HexRenderer } from './map/HexRenderer.js';
 
@@ -46,8 +53,14 @@ let currentPlayerRecord = null;
 /** Cached building definitions (loaded once per session). */
 let buildingDefsCache = null;
 
+/** Cached unit definitions (loaded once per session). */
+let unitDefsCache = null;
+
 /** All cities on the current server, keyed by tile_id. */
 let citiesByTile = new Map();
+
+/** All non-garrison armies on the current server. */
+let armiesOnMap = [];
 
 // ---------- DOM References ----------
 
@@ -436,14 +449,18 @@ scenes.register('game', {
 
     // Load tiles, cities, and building defs from Supabase
     try {
-      const [tiles, allCities, myCities, bDefs] = await Promise.all([
+      const [tiles, allCities, myCities, bDefs, uDefs, armies] = await Promise.all([
         getServerTiles(serverId),
         getAllCities(serverId),
         getPlayerCities(serverId),
         buildingDefsCache ? Promise.resolve(buildingDefsCache) : getBuildingDefs(),
+        unitDefsCache ? Promise.resolve(unitDefsCache) : getUnitDefs(),
+        getAllArmies(serverId),
       ]);
       buildingDefsCache = bDefs;
-      console.log(`[Main] Loaded ${tiles.length} tiles, ${allCities.length} cities (${myCities.length} mine), ${bDefs.length} building defs`);
+      unitDefsCache = uDefs;
+      armiesOnMap = armies;
+      console.log(`[Main] Loaded ${tiles.length} tiles, ${allCities.length} cities, ${uDefs.length} unit defs, ${armies.length} armies`);
 
       // Build cities-by-tile lookup
       citiesByTile.clear();
@@ -458,6 +475,7 @@ scenes.register('game', {
       }
 
       hexRenderer.loadTiles(tiles, playerId);
+      hexRenderer.loadArmies(armies, playerId);
 
       // Load resources from capital city
       if (myCities.length > 0) {
@@ -594,6 +612,12 @@ async function showTileInfo(tile) {
   // --- Action buttons ---
   html += '<div class="tile-actions">';
 
+  // March destination (if a march is pending)
+  if (window._pendingMarchArmyId && isLand) {
+    html += `<button class="btn-action btn-action-primary" id="btn-march-here">March Army Here</button>`;
+    html += `<button class="btn-action" id="btn-cancel-march">Cancel March</button>`;
+  }
+
   // Claim: unclaimed, land, not water
   if (isUnclaimed && isLand) {
     html += `<button class="btn-action" id="btn-claim-tile">Claim Tile</button>`;
@@ -612,6 +636,31 @@ async function showTileInfo(tile) {
   html += '</div>';
   content.innerHTML = html;
   panel.style.display = 'block';
+
+  // Wire up march buttons
+  const btnMarchHere = document.getElementById('btn-march-here');
+  const btnCancelMarch = document.getElementById('btn-cancel-march');
+  if (btnMarchHere) {
+    btnMarchHere.addEventListener('click', async () => {
+      const armyId = window._pendingMarchArmyId;
+      window._pendingMarchArmyId = null;
+      btnMarchHere.disabled = true;
+      btnMarchHere.textContent = 'Marching...';
+      try {
+        await marchArmy(armyId, tile.id);
+        await refreshMap();
+      } catch (err) {
+        console.error('[Main] March failed:', err);
+        alert('March failed: ' + (err.message || 'Unknown error'));
+      }
+    });
+  }
+  if (btnCancelMarch) {
+    btnCancelMarch.addEventListener('click', () => {
+      window._pendingMarchArmyId = null;
+      showTileInfo(tile);
+    });
+  }
 
   // Wire up "View City" button
   const btnViewCity = document.getElementById('btn-view-city');
@@ -718,9 +767,10 @@ async function showCityPanel(cityId) {
   panel.style.display = 'block';
 
   try {
-    const [buildings, resources] = await Promise.all([
+    const [buildings, resources, trainingQueue] = await Promise.all([
       getCityBuildings(cityId),
       getCityResources(cityId),
+      getTrainingQueue(cityId),
     ]);
 
     // Find city info from our cache
@@ -825,7 +875,52 @@ async function showCityPanel(cityId) {
     }
 
     html += `</div>`;
+
+    // Training queue section
+    const hasBarracks = buildings.some(b => b.building_def === 'barracks' && b.level >= 1 && !b.is_constructing);
+    const hasTankFactory = buildings.some(b => b.building_def === 'tank_factory' && b.level >= 1 && !b.is_constructing);
+    const hasMilitaryBuilding = hasBarracks || hasTankFactory;
+
+    if (hasMilitaryBuilding) {
+      html += `<div class="panel-section"><div class="panel-section-title">Training</div>`;
+
+      // Show current training queue
+      if (trainingQueue && trainingQueue.length > 0) {
+        for (const tq of trainingQueue) {
+          const uDef = unitDefsCache?.find(u => u.id === tq.unit_def);
+          const uName = uDef ? uDef.name : tq.unit_def;
+          const completesAt = new Date(tq.completes_at);
+          const remaining = Math.max(0, completesAt - Date.now());
+          const mins = Math.ceil(remaining / 60000);
+          html += `<div class="training-item">
+            <span class="training-name">${escapeHtml(uName)} x${tq.quantity}</span>
+            <span class="training-eta">~${mins} min</span>
+          </div>`;
+        }
+      } else {
+        html += `<div class="training-item"><span class="training-name" style="color:var(--text-muted)">No units training</span></div>`;
+      }
+
+      html += `<button class="btn-action" id="btn-train-units">Train Units</button>`;
+      html += `</div>`;
+    }
+
+    // Garrison section
+    html += `<div class="panel-section"><div class="panel-section-title">Garrison & Armies</div>`;
+    html += `<button class="btn-action" id="btn-view-armies" data-city-id="${cityId}">View Armies</button>`;
+    html += `</div>`;
+
     contentEl.innerHTML = html;
+
+    // Wire up train button
+    document.getElementById('btn-train-units')?.addEventListener('click', () => {
+      showTrainPicker(cityId, buildings);
+    });
+
+    // Wire up armies button
+    document.getElementById('btn-view-armies')?.addEventListener('click', () => {
+      showArmyPanel(cityId);
+    });
 
     // Wire up upgrade buttons
     contentEl.querySelectorAll('.btn-upgrade').forEach(btn => {
@@ -924,14 +1019,204 @@ function showBuildPicker(cityId, slotIndex) {
   });
 }
 
+/**
+ * Show unit training picker for a city.
+ * @param {string} cityId
+ * @param {object[]} buildings — city's buildings
+ */
+function showTrainPicker(cityId, buildings) {
+  const contentEl = document.getElementById('city-panel-content');
+  if (!contentEl || !unitDefsCache) return;
+
+  const hasBarracks = buildings.some(b => b.building_def === 'barracks' && b.level >= 1 && !b.is_constructing);
+  const hasTankFactory = buildings.some(b => b.building_def === 'tank_factory' && b.level >= 1 && !b.is_constructing);
+
+  // Filter available units based on buildings
+  const available = unitDefsCache.filter(u => {
+    if (u.category === 'infantry' && hasBarracks) return true;
+    if (u.category === 'armor' && hasTankFactory) return true;
+    if (u.category === 'artillery' && hasBarracks) return true;
+    return false;
+  });
+
+  let html = `<div class="panel-section">
+    <div class="panel-section-title">Train Units</div>
+    <button class="btn-action" id="btn-cancel-train" style="margin-bottom:10px">Back to City</button>
+  `;
+
+  for (const u of available) {
+    const costStr = u.train_cost
+      ? Object.entries(u.train_cost).map(([r, a]) => `${a} ${r}`).join(', ')
+      : '?';
+    const trainMins = Math.ceil((u.train_time || 0) / 60);
+
+    html += `<div class="build-option" data-unit-id="${u.id}">
+      <div class="build-option-name">${escapeHtml(u.name)}</div>
+      <div class="build-option-desc">${escapeHtml(u.description || '')} (${capitalize(u.category)})</div>
+      <div class="build-option-cost">Cost: ${costStr} (per unit)</div>
+      <div class="build-option-time">Train: ~${trainMins} min/unit | ATK ${u.attack} DEF ${u.defense} HP ${u.hp}</div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  contentEl.innerHTML = html;
+
+  document.getElementById('btn-cancel-train')?.addEventListener('click', () => showCityPanel(cityId));
+
+  contentEl.querySelectorAll('.build-option').forEach(opt => {
+    opt.addEventListener('click', async () => {
+      const unitId = opt.dataset.unitId;
+      const qtyStr = prompt('How many to train? (1-20)', '5');
+      if (!qtyStr) return;
+      const qty = parseInt(qtyStr, 10);
+      if (isNaN(qty) || qty < 1 || qty > 100) { alert('Invalid quantity'); return; }
+
+      opt.style.opacity = '0.5';
+      opt.style.pointerEvents = 'none';
+      try {
+        await trainUnits(cityId, unitId, qty);
+        await showCityPanel(cityId);
+      } catch (err) {
+        console.error('[Main] Train failed:', err);
+        alert('Training failed: ' + (err.message || 'Unknown error'));
+        opt.style.opacity = '1';
+        opt.style.pointerEvents = 'auto';
+      }
+    });
+  });
+}
+
+/**
+ * Show the army management panel for a city (garrison + field armies).
+ * @param {string} cityId
+ */
+async function showArmyPanel(cityId) {
+  const panel = document.getElementById('panel-army');
+  const contentEl = document.getElementById('army-panel-content');
+  if (!panel || !contentEl) return;
+
+  contentEl.innerHTML = '<div class="loading-spinner" style="margin:30px auto"></div>';
+  panel.style.display = 'block';
+
+  try {
+    const armies = await getPlayerArmies(selectedServerId);
+
+    // Find city info
+    let cityInfo = null;
+    for (const city of citiesByTile.values()) {
+      if (city.id === cityId) { cityInfo = city; break; }
+    }
+    const cityTileId = cityInfo ? Number(cityInfo.tile_id) : null;
+
+    // Split into garrison and field armies at this city's tile
+    const garrison = armies.find(a => a.is_garrison && a.tile_id === cityTileId);
+    const fieldArmies = armies.filter(a => !a.is_garrison && a.tile_id === cityTileId);
+    const otherArmies = armies.filter(a => !a.is_garrison && a.tile_id !== cityTileId);
+
+    let html = '';
+
+    // Garrison
+    html += `<div class="panel-section"><div class="panel-section-title">Garrison — ${cityInfo?.name || 'City'}</div>`;
+    if (garrison && garrison.army_units && garrison.army_units.length > 0) {
+      for (const au of garrison.army_units) {
+        const uDef = unitDefsCache?.find(u => u.id === au.unit_def);
+        const uName = uDef ? uDef.name : au.unit_def;
+        html += `<div class="panel-row">
+          <span class="label">${escapeHtml(uName)}</span>
+          <span class="value">x${au.quantity} (${Math.round(au.hp_percent)}% HP)</span>
+        </div>`;
+      }
+      html += `<button class="btn-action btn-action-primary" id="btn-form-army">Form Field Army</button>`;
+    } else {
+      html += `<div class="panel-row"><span class="label" style="color:var(--text-muted)">No garrison units</span></div>`;
+    }
+    html += `</div>`;
+
+    // Field armies at this city
+    if (fieldArmies.length > 0) {
+      html += `<div class="panel-section"><div class="panel-section-title">Armies Here</div>`;
+      for (const army of fieldArmies) {
+        const totalUnits = army.army_units?.reduce((s, au) => s + au.quantity, 0) || 0;
+        html += `<div class="army-card">
+          <div class="army-card-header">${escapeHtml(army.name || 'Army')} <span class="army-status">${army.status}</span></div>
+          <div class="army-card-units">${totalUnits} units</div>
+          <button class="btn-action btn-march" data-army-id="${army.id}">March</button>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // Other armies (elsewhere on map)
+    if (otherArmies.length > 0) {
+      html += `<div class="panel-section"><div class="panel-section-title">Other Armies</div>`;
+      for (const army of otherArmies) {
+        const totalUnits = army.army_units?.reduce((s, au) => s + au.quantity, 0) || 0;
+        html += `<div class="army-card">
+          <div class="army-card-header">${escapeHtml(army.name || 'Army')} <span class="army-status">${army.status}</span></div>
+          <div class="army-card-units">${totalUnits} units @ tile ${army.tile_id}</div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    html += `<button class="btn-action" id="btn-back-city" style="margin:12px 16px">Back to City</button>`;
+    contentEl.innerHTML = html;
+
+    // Wire up "Form Army" button
+    document.getElementById('btn-form-army')?.addEventListener('click', async () => {
+      if (!garrison?.army_units?.length) return;
+      const armyName = prompt('Name your army:', 'Strike Force');
+      if (!armyName?.trim()) return;
+
+      // For MVP: form army with all garrison units
+      const units = garrison.army_units.map(au => ({
+        unit_def: au.unit_def,
+        quantity: au.quantity,
+      }));
+
+      try {
+        await formArmy(cityId, armyName.trim(), units);
+        await showArmyPanel(cityId);
+        await refreshMap();
+      } catch (err) {
+        console.error('[Main] Form army failed:', err);
+        alert('Form army failed: ' + (err.message || 'Unknown error'));
+      }
+    });
+
+    // Wire up march buttons
+    contentEl.querySelectorAll('.btn-march').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const armyId = btn.dataset.armyId;
+        alert('Click a destination tile on the map, then confirm the march.\n\n(March destination selection coming in next iteration — for now use the tile info panel)');
+        // Store pending march for tile click handler
+        window._pendingMarchArmyId = armyId;
+        panel.style.display = 'none';
+      });
+    });
+
+    // Back button
+    document.getElementById('btn-back-city')?.addEventListener('click', () => {
+      panel.style.display = 'none';
+      showCityPanel(cityId);
+    });
+
+  } catch (err) {
+    console.error('[Main] Failed to load armies:', err);
+    contentEl.innerHTML = '<p style="padding:16px;color:var(--color-red)">Failed to load armies.</p>';
+  }
+}
+
 /** Reload tiles from Supabase and re-render the map. */
 async function refreshMap() {
   if (!hexRenderer || !selectedServerId) return;
   try {
-    const [tiles, allCities] = await Promise.all([
+    const [tiles, allCities, armies] = await Promise.all([
       getServerTiles(selectedServerId),
       getAllCities(selectedServerId),
+      getAllArmies(selectedServerId),
     ]);
+    armiesOnMap = armies;
     // Update cities cache
     citiesByTile.clear();
     for (const city of allCities) {
@@ -942,6 +1227,7 @@ async function refreshMap() {
       tile._hasCity = cityTileIds.has(Number(tile.id));
     }
     hexRenderer.loadTiles(tiles, currentPlayerRecord);
+    hexRenderer.loadArmies(armies, currentPlayerRecord);
     // Re-select the same tile to refresh the panel
     if (hexRenderer.selectedTile) {
       const updated = tiles.find(t => t.q === hexRenderer.selectedTile.q && t.r === hexRenderer.selectedTile.r);
