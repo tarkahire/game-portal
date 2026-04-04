@@ -137,3 +137,4 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 
 - [ ] **Google OAuth sign-in** — Add "Sign in with Google" as an alternative login method. Requires: Google Cloud Console OAuth credentials, enable Google provider in Supabase, uncomment Google button in index.html/main.js/AuthManager.js. See setup.md for full steps.
 - [ ] **Stripe integration** — Premium subscriptions and server entry fees for monetization
+- [ ] **Custom SMTP via Resend** — Re-enable email confirmations with reliable delivery. User has a Resend account. Configure in Supabase Dashboard → Project Settings → Auth → SMTP Settings. Add `emailRedirectTo` option to AuthManager.signUp(). Currently disabled for dev convenience.
