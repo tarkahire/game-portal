@@ -29,6 +29,7 @@ import {
   marchArmy,
   getPlayerBattleReports,
   buildRoad,
+  improveTile,
 } from './api/queries.js';
 import { HexRenderer } from './map/HexRenderer.js';
 
@@ -613,10 +614,23 @@ async function showTileInfo(tile) {
     html += `<div class="tile-info-row" style="color:var(--color-gold);font-size:0.8em">Last scouted — info may be outdated</div>`;
   }
 
+  // Control level display
+  const controlLevel = tile.control_level || 'claimed';
+  const controlLabels = {
+    claimed: { text: 'Claimed (50% yield)', color: 'var(--color-red)' },
+    occupied: { text: 'Occupied (75% yield)', color: 'var(--color-gold)' },
+    improved: { text: 'Improved (100% yield)', color: 'var(--color-green)' },
+  };
+  const controlInfo = controlLabels[controlLevel] || controlLabels.claimed;
+
   html += `
     <div class="tile-info-row"><strong>Terrain:</strong> ${tile.terrain_type}</div>
     <div class="tile-info-row"><strong>Owner:</strong> ${ownerText}</div>
   `;
+
+  if (isOwned) {
+    html += `<div class="tile-info-row"><strong>Control:</strong> <span style="color:${controlInfo.color}">${controlInfo.text}</span></div>`;
+  }
 
   if (hasCity) {
     const city = citiesByTile.get(Number(tile.id));
@@ -739,6 +753,11 @@ async function showTileInfo(tile) {
     html += `<button class="btn-action" id="btn-claim-tile">Claim Tile</button>`;
   }
 
+  // Improve tile: owned, not yet improved (requires army with engineers on tile)
+  if (isOwned && controlLevel !== 'improved') {
+    html += `<button class="btn-action" id="btn-improve-tile">Improve Tile (requires engineers)</button>`;
+  }
+
   // Develop resource: owned, has resource, not yet developed (no resource field)
   if (isOwned && hasResource && !resourceField && reservesRemaining > 0) {
     html += `<button class="btn-action" id="btn-develop-field">Develop Resource</button>`;
@@ -752,6 +771,30 @@ async function showTileInfo(tile) {
   html += '</div>';
   content.innerHTML = html;
   panel.style.display = 'block';
+
+  // Wire up improve tile button
+  const btnImprove = document.getElementById('btn-improve-tile');
+  if (btnImprove) {
+    btnImprove.addEventListener('click', async () => {
+      // Find a player army on this tile
+      const myArmies = armiesOnMap.filter(a => a.tile_id === tile.id && a.player_id === currentPlayerRecord);
+      if (myArmies.length === 0) {
+        alert('You need an army with engineers on this tile to improve it.');
+        return;
+      }
+      btnImprove.disabled = true;
+      btnImprove.textContent = 'Improving...';
+      try {
+        await improveTile(myArmies[0].id, tile.id, selectedServerId);
+        await refreshMap();
+      } catch (err) {
+        console.error('[Main] Improve failed:', err);
+        alert('Improve failed: ' + (err.message || 'Unknown error'));
+        btnImprove.disabled = false;
+        btnImprove.textContent = 'Improve Tile (requires engineers)';
+      }
+    });
+  }
 
   // Wire up road building buttons
   document.getElementById('btn-road-from')?.addEventListener('click', () => {

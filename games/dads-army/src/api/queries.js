@@ -420,6 +420,32 @@ export async function developResourceField(tileId, serverId) {
 }
 
 // ==========================================================================
+// Tile Control
+// ==========================================================================
+
+/**
+ * Improve a tile to full yield using an army with engineers.
+ * @param {string} armyId
+ * @param {number} tileId
+ * @param {string} serverId
+ * @returns {Promise<void>}
+ */
+export async function improveTile(armyId, tileId, serverId) {
+  const { data, error } = await supabase.rpc('improve_tile', {
+    p_army_id: armyId,
+    p_tile_id: tileId,
+    p_server_id: serverId,
+  });
+
+  if (error) {
+    console.error('[queries] improveTile:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+// ==========================================================================
 // Roads & Infrastructure
 // ==========================================================================
 

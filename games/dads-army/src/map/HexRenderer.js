@@ -220,13 +220,23 @@ export class HexRenderer {
         ctx.fill();
       }
 
-      // Ownership border
+      // Ownership border — style varies by control level
       if (tile.owner_id) {
         hexPath(ctx, screen.x, screen.y, screenSize);
         const color = this.playerColors.get(tile.owner_id) || '#FFF';
-        ctx.strokeStyle = tile.owner_id === this.currentPlayerId ? '#FFD700' : color;
-        ctx.lineWidth = tile.owner_id === this.currentPlayerId ? 2.5 : 1.5;
+        const isMine = tile.owner_id === this.currentPlayerId;
+        const ctrl = tile.control_level || 'claimed';
+
+        if (isMine) {
+          ctx.strokeStyle = ctrl === 'improved' ? '#00E676' : ctrl === 'occupied' ? '#FFD700' : '#FF9800';
+          ctx.lineWidth = ctrl === 'improved' ? 2.5 : ctrl === 'occupied' ? 2 : 1.5;
+          if (ctrl === 'claimed') ctx.setLineDash([4, 3]);
+        } else {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+        }
         ctx.stroke();
+        ctx.setLineDash([]);
       } else {
         // Faint grid line for unclaimed
         hexPath(ctx, screen.x, screen.y, screenSize);
