@@ -20,6 +20,7 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 | `games/` | Each subfolder is a self-contained game |
 | `games/car-football/` | 2D Car Football game (Phaser.js) |
 | `games/stickman-fighter/` | 2D Stickman Fighter game (vanilla JS Canvas) |
+| `games/dungeon-crawler/` | Roguelike dungeon crawler (vanilla JS Canvas + PeerJS) |
 | `vercel.json` | Vercel deployment config |
 
 ## Games
@@ -39,6 +40,16 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
   - Player 2: Arrows move/fly, \/., attacks, 0 punch, 1 kick, M rage, 4 domain, 3 finisher
 - **Styles (102)**: Lightning, Fire, Water, Wind, Earth, Acid, Light, Dark, Shadow, Portal, Washer, Corrupt, Crystal, Duck, Keyboard, Chef, DJ, Pigeon, Samurai, Selfie, Ice, Gravity, Time, Vampire, Dragon, Necro, Magnet, Mech, Pizza, Cat, Banana, Grandma, Painter, Bee, Teacher, Plumber, Football, Magma, Poison, Sound, Sand, Plasma, Nature, Storm, LavaLamp, Werewolf, Zombie, Cupid, Minotaur, Kraken, Reaper, Boxing, Basketball, Tennis, Wrestling, Archery, WiFi, Baby, Toilet, Clown, Fridge, Roomba, Cactus, Ninja, Cowboy, Pirate, Astronaut, Rockstar, Pharaoh, Viking, Spartan, Zeus, Medusa, Hacker, Alien, Cyborg, Glitch, AI, Shark, Gorilla, Scorpion, Eagle, Snake, Sushi, Coffee, Taco, IceCream, Popcorn, Firefighter, Doctor, Lawyer, Dentist, Mailman, Metal, Rap, Opera, Country, Trampoline, Bubble, Mirror, Rubber, Cheese
 - **Stages (12)**: Default, Dojo, Rooftop, Volcano, Arctic, Space, Underwater, Graveyard, Cyberpunk, Forest, Desert, Castle
+
+### Dungeon Crawler
+- **Path**: `games/dungeon-crawler/`
+- **Tech**: HTML5 Canvas, vanilla JS, CSS, PeerJS (WebRTC multiplayer)
+- **Features**: 53 playable character classes (anime-themed); roguelike procedural dungeon generation; infinite floors with scaling difficulty; 6 enemy types + 5 cycling bosses; loot system with 4 rarity tiers (weapons, armor, potions); real-time action combat with bouncing projectiles; domain expansions (Gojo, Sukuna); summoned minions (Demon imps, Naruto clones, Megumi dogs, Jin-Woo shadows); healing circles, lightning nets, beam attacks; split-screen local co-op (2-3 players); online co-op via PeerJS WebRTC (up to 3 players); 2-local-players-per-device in online mode; per-player inventory system; meta progression with persistent gold, shop unlocks, stat tracking
+- **Controls**:
+  - Player 1: WASD move, Mouse aim+click attack, E special, R secondary, Q class-specific, Space dodge, Tab inventory
+  - Player 2: Arrow keys move, Numpad 0 attack, 1 special, 5 secondary, 4 class-specific, 2 dodge, 3 inventory
+- **Classes (53)**: Angel, Demon, Draco, Healer, Lightning, Portal, Gojo, Sukuna, Toji, Yuji, Todo, Megumi, Maki, Kenjaku, Naruto, Sasuke, Kakashi, Itachi, Minato, Rock Lee, Gaara, Pain, Madara, Goku, Vegeta, Gohan, Frieza, Broly, Trunks, Luffy, Zoro, Sanji, Law, Shanks, Tanjiro, Zenitsu, Rengoku, Muichiro, Akaza, Ichigo, Byakuya, Aizen, Gon, Killua, Hisoka, Jin-Woo, Saitama, Genos, Kaneki, Denji, Asta, Levi, Deku
+- **Full docs**: See `games/dungeon-crawler/docs/` for architecture, classes, gameplay, network, controls
 
 ## Adding a New Game
 
