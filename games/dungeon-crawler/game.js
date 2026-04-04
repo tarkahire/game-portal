@@ -423,10 +423,11 @@ function startRun(coop) {
     document.querySelectorAll('.class-card').forEach(c => c.classList.remove('selected'));
 }
 
+let selectedClasses = [];
 function selectClass(classId) {
     if (!p2ClassSelect) {
         // P1 selected
-        players = [createPlayer(classId, 0)];
+        selectedClasses = [classId];
         if (coopMode) {
             p2ClassSelect = true;
             document.getElementById('p2-class-label').style.display = '';
@@ -435,7 +436,7 @@ function selectClass(classId) {
         }
     } else {
         // P2 selected
-        players.push(createPlayer(classId, 1));
+        selectedClasses.push(classId);
     }
     startGame();
 }
@@ -445,12 +446,9 @@ function startGame() {
     runStats = { enemiesKilled: 0, goldCollected: 0, floorsCleared: 0, bossesKilled: 0, itemsFound: 0 };
     dungeon = generateDungeon(currentFloor);
     dungeon.rooms[0].explored = true;
+    // Create players now that dungeon exists
+    players = selectedClasses.map((cls, i) => createPlayer(cls, i));
     populateDungeon();
-    const startRoom = dungeon.rooms[0];
-    players.forEach((p, i) => {
-        p.x = (startRoom.cx + (i === 0 ? -1 : 1)) * TILE + TILE/2;
-        p.y = startRoom.cy * TILE + TILE/2;
-    });
     projectiles = [];
     particles = [];
     damageNumbers = [];
