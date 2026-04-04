@@ -723,6 +723,49 @@ async function showTileInfo(tile) {
   if (tile.infrastructure_road) html += `<div class="tile-info-row">Road</div>`;
   if (tile.infrastructure_rail) html += `<div class="tile-info-row">Railway</div>`;
 
+  // Show armies on this tile (from cached armiesOnMap + player armies)
+  const tileArmies = armiesOnMap.filter(a => a.tile_id === tile.id);
+  const myArmiesHere = [];
+  if (tileArmies.length > 0 || isOwned) {
+    try {
+      const allMyArmies = await getPlayerArmies(selectedServerId);
+      for (const a of allMyArmies) {
+        if (a.tile_id === tile.id && !a.is_garrison) myArmiesHere.push(a);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  if (myArmiesHere.length > 0) {
+    html += `<div class="tile-info-section"><div class="tile-info-row"><strong>Your Armies Here:</strong></div>`;
+    for (const army of myArmiesHere) {
+      const totalUnits = army.army_units?.reduce((s, au) => s + au.quantity, 0) || 0;
+      const statusColors = { idle: 'var(--color-green)', marching: 'var(--color-gold)', fortified: 'var(--color-blue-dim)', fighting: 'var(--color-red)' };
+      const sColor = statusColors[army.status] || 'var(--text-muted)';
+      html += `<div class="army-card">
+        <div class="army-card-header">${escapeHtml(army.name || 'Army')} <span class="army-status" style="color:${sColor}">${army.status}${army.status === 'fortified' ? ' 🛡️' : ''}</span></div>`;
+      // Unit composition
+      for (const au of (army.army_units || [])) {
+        const uDef = unitDefsCache?.find(u => u.id === au.unit_def);
+        html += `<div class="army-unit-row"><span>${uDef?.name || au.unit_def}</span><span>x${au.quantity} (${Math.round(au.hp_percent)}%)</span></div>`;
+      }
+      // March ETA
+      if (army.status === 'marching' && army.march_arrives_at) {
+        const eta = Math.max(0, Math.ceil((new Date(army.march_arrives_at) - Date.now()) / 60000));
+        html += `<div style="font-size:0.78em;color:var(--color-gold);margin-top:4px">Marching → tile ${army.destination_tile || '?'} | ETA: ~${eta} min</div>`;
+      }
+      // Action buttons
+      html += `<div class="army-card-actions">`;
+      if (army.status === 'idle') {
+        html += `<button class="btn-action btn-march-tile" data-army-id="${army.id}">March</button>`;
+        html += `<button class="btn-action btn-fortify-tile" data-army-id="${army.id}">Fortify</button>`;
+      } else if (army.status === 'fortified') {
+        html += `<button class="btn-action btn-unfortify-tile" data-army-id="${army.id}">Unfortify</button>`;
+      }
+      html += `</div></div>`;
+    }
+    html += `</div>`;
+  }
+
   // --- Action buttons (only on visible tiles) ---
   html += '<div class="tile-actions">';
 
@@ -822,6 +865,36 @@ async function showTileInfo(tile) {
       }
     });
   }
+
+  // Wire up tile-level army action buttons
+  content.querySelectorAll('.btn-march-tile').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window._pendingMarchArmyId = btn.dataset.armyId;
+      panel.style.display = 'none';
+    });
+  });
+  content.querySelectorAll('.btn-fortify-tile').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const { error } = await supabase.rpc('fortify_army', { p_army_id: btn.dataset.armyId });
+        if (error) throw error;
+        await refreshMap();
+        showTileInfo(tile);
+      } catch (err) { alert('Fortify failed: ' + (err.message || 'Unknown error')); btn.disabled = false; }
+    });
+  });
+  content.querySelectorAll('.btn-unfortify-tile').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const { error } = await supabase.rpc('unfortify_army', { p_army_id: btn.dataset.armyId });
+        if (error) throw error;
+        await refreshMap();
+        showTileInfo(tile);
+      } catch (err) { alert('Unfortify failed: ' + (err.message || 'Unknown error')); btn.disabled = false; }
+    });
+  });
 
   // Wire up road building buttons
   document.getElementById('btn-road-from')?.addEventListener('click', () => {
