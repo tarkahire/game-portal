@@ -1368,9 +1368,10 @@ function updatePlayer(p, now) {
 
     // Facing direction
     if (p.playerIndex === 0) {
-        // Mouse aim
-        const wx = mouse.x - canvas.width/2 + camera.x;
-        const wy = mouse.y - canvas.height/2 + camera.y;
+        // Mouse aim (adjust for split screen viewport)
+        const vpW = (coopMode && players.length === 2) ? Math.floor(canvas.width / 2) : canvas.width;
+        const wx = mouse.x - vpW/2 + p.x;
+        const wy = mouse.y - canvas.height/2 + p.y;
         p.facingAngle = Math.atan2(wy - p.y, wx - p.x);
     } else {
         // P2 aims at nearest enemy
@@ -1406,24 +1407,55 @@ function render() {
 
     if (gameState !== 'playing' && gameState !== 'paused' && gameState !== 'inventory') return;
 
-    // Camera follows P1 (or centroid if co-op)
-    let camX = 0, camY = 0, camCount = 0;
-    for (const p of players) {
-        if (p.alive) { camX += p.x; camY += p.y; camCount++; }
-    }
-    if (camCount > 0) { camera.x = camX / camCount; camera.y = camY / camCount; }
+    const splitScreen = coopMode && players.length === 2;
 
-    const offX = canvas.width / 2 - camera.x + screenShake.x;
-    const offY = canvas.height / 2 - camera.y + screenShake.y;
+    if (splitScreen) {
+        // Split screen — left half P1, right half P2
+        for (let v = 0; v < 2; v++) {
+            const vx = v === 0 ? 0 : Math.floor(canvas.width / 2);
+            const vw = Math.floor(canvas.width / 2);
+            const vh = canvas.height;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(vx, 0, vw, vh);
+            ctx.clip();
+            const target = players[v].alive ? players[v] : players[1 - v];
+            renderWorldView(target.x, target.y, vx, 0, vw, vh);
+            ctx.restore();
+        }
+        // Divider line
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.floor(canvas.width / 2), 0);
+        ctx.lineTo(Math.floor(canvas.width / 2), canvas.height);
+        ctx.stroke();
+    } else {
+        // Solo — full screen follows P1
+        const p = players[0];
+        if (p) renderWorldView(p.alive ? p.x : 0, p.alive ? p.y : 0, 0, 0, canvas.width, canvas.height);
+    }
+
+    // HUD (drawn on top, not clipped)
+    drawHUD();
+    drawMinimap();
+}
+
+function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
+    const camX = camTargetX;
+    const camY = camTargetY;
+    camera.x = camX; camera.y = camY;
+
+    const offX = vpX + vpW / 2 - camX + screenShake.x;
+    const offY = vpY + vpH / 2 - camY + screenShake.y;
 
     ctx.save();
     ctx.translate(offX, offY);
 
     // Visible tile range
-    const startCol = Math.max(0, Math.floor((camera.x - canvas.width/2) / TILE) - 1);
-    const endCol = Math.min(MAP_COLS - 1, Math.ceil((camera.x + canvas.width/2) / TILE) + 1);
-    const startRow = Math.max(0, Math.floor((camera.y - canvas.height/2) / TILE) - 1);
-    const endRow = Math.min(MAP_ROWS - 1, Math.ceil((camera.y + canvas.height/2) / TILE) + 1);
+    const startCol = Math.max(0, Math.floor((camX - vpW/2) / TILE) - 1);
+    const endCol = Math.min(MAP_COLS - 1, Math.ceil((camX + vpW/2) / TILE) + 1);
+    const startRow = Math.max(0, Math.floor((camY - vpH/2) / TILE) - 1);
+    const endRow = Math.min(MAP_ROWS - 1, Math.ceil((camY + vpH/2) / TILE) + 1);
 
     // Draw tiles
     for (let r = startRow; r <= endRow; r++) {
@@ -1712,10 +1744,6 @@ function render() {
     drawFogOfWar(startCol, endCol, startRow, endRow);
 
     ctx.restore();
-
-    // HUD
-    drawHUD();
-    drawMinimap();
 }
 
 function isTileVisible(c, r) {
