@@ -1448,9 +1448,9 @@ function jinwooAriseBoss(p, now) {
     if (!p._ariseBossCd) p._ariseBossCd = 0;
     if (now - p._ariseBossCd < 2000) return;
     p._ariseBossCd = now;
-    // Only 1 shadow boss at a time
-    const existingBoss = summonedMinions.find(m => m.type === 'shadowBoss' && m.owner === p);
-    if (existingBoss) return;
+    // Max 3 shadow boss generals
+    const existingBosses = summonedMinions.filter(m => m.type === 'shadowBoss' && m.owner === p).length;
+    if (existingBosses >= 3) return;
     const b = p._bossBank.shift(); // take first boss from bank
     const angle = p.facingAngle;
     summonedMinions.push({
