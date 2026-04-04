@@ -1467,7 +1467,7 @@ function playerSpecial(p, now) {
                 triggerShake(5, 10);
             } } break;
         case 'alienqueen': // Lay Eggs — spawn face-huggers
-            { const eggCount = 4;
+            { const eggCount = 12;
             for (let i = 0; i < eggCount; i++) {
                 const angle = p.facingAngle + (i - eggCount/2 + 0.5) * 0.5;
                 const ex = p.x + Math.cos(angle) * 30, ey = p.y + Math.sin(angle) * 30;
