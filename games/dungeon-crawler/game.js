@@ -691,7 +691,15 @@ function nextFloor() {
     });
     projectiles = [];
     particles = [];
-    summonedMinions = [];
+    // Keep Jin-Woo shadow soldiers alive across floors, clear everything else
+    summonedMinions = summonedMinions.filter(m => m.type === 'shadow' && m.life === Infinity);
+    // Teleport surviving shadows to start room
+    const floorStart = dungeon.rooms[0];
+    summonedMinions.forEach(m => {
+        m.x = floorStart.cx * TILE + TILE/2 + (Math.random()-0.5)*40;
+        m.y = floorStart.cy * TILE + TILE/2 + (Math.random()-0.5)*40;
+        m._stuckSince = 0;
+    });
     activeBeams = [];
     healingCircles = [];
     lightningNets = [];
@@ -1339,7 +1347,7 @@ function playerSpecial(p, now) {
                 for (let i = 0; i < 2; i++) { const angle = p.facingAngle + (i-0.5) * 0.8;
                     summonedMinions.push({ x: p.x+Math.cos(angle)*25, y: p.y+Math.sin(angle)*25, owner: p,
                         hp: 20, maxHp: 20, damage: 7, speed: 2.8, radius: 8, attackRange: 25,
-                        lastAttack: 0, attackSpeed: 450, life: now + 10000, color: '#311b92', type: 'shadow' }); }
+                        lastAttack: 0, attackSpeed: 450, life: Infinity, color: '#311b92', type: 'shadow' }); }
             } else {
                 for (let i = 0; i < maxSummon; i++) {
                     const s = p._shadowBank[i];
@@ -1349,7 +1357,7 @@ function playerSpecial(p, now) {
                         hp: Math.round(s.hp * 0.7), maxHp: Math.round(s.hp * 0.7),
                         damage: Math.round(s.damage * 0.8), speed: 2.6,
                         radius: 14, attackRange: 30, lastAttack: 0, attackSpeed: 400,
-                        life: now + 15000, color: '#6a3aaa', type: 'shadow',
+                        life: Infinity, color: '#6a3aaa', type: 'shadow',
                         shadowOf: 'warrior' }); // all arise as shadow warriors
                 }
                 p._shadowBank = []; // empty the bank after summoning
@@ -1971,14 +1979,31 @@ function update(now) {
                 const dx = owner.x - m.x, dy = owner.y - m.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 const followDist = 25 + (i % 8) * 10;
+                let moved = false;
                 if (dist > followDist) {
                     const nx = m.x + (dx/dist) * m.speed, ny = m.y + (dy/dist) * m.speed;
-                    if (isWalkableRadius(nx, ny, m.radius || 6)) { m.x = nx; m.y = ny; }
-                    else if (isWalkableRadius(nx, m.y, m.radius || 6)) m.x = nx;
-                    else if (isWalkableRadius(m.x, ny, m.radius || 6)) m.y = ny;
+                    if (isWalkableRadius(nx, ny, m.radius || 6)) { m.x = nx; m.y = ny; moved = true; }
+                    else if (isWalkableRadius(nx, m.y, m.radius || 6)) { m.x = nx; moved = true; }
+                    else if (isWalkableRadius(m.x, ny, m.radius || 6)) { m.y = ny; moved = true; }
                 }
-                // If very far from owner, teleport to them (prevents permanent stuck)
-                if (dist > 250) { m.x = owner.x + (Math.random()-0.5)*30; m.y = owner.y + (Math.random()-0.5)*30; }
+                // Wall-stuck detection: if couldn't move, track stuck time
+                if (!moved && dist > followDist) {
+                    if (!m._stuckSince) m._stuckSince = now;
+                    // Teleport back to owner after 3 seconds stuck
+                    if (now - m._stuckSince > 3000) {
+                        m.x = owner.x + (Math.random()-0.5)*25;
+                        m.y = owner.y + (Math.random()-0.5)*25;
+                        m._stuckSince = 0;
+                        spawnParticles(m.x, m.y, m.color || '#6a3aaa', 4);
+                    }
+                } else { m._stuckSince = 0; }
+                // If very far from owner, teleport immediately
+                if (dist > 200) {
+                    m.x = owner.x + (Math.random()-0.5)*25;
+                    m.y = owner.y + (Math.random()-0.5)*25;
+                    m._stuckSince = 0;
+                    spawnParticles(m.x, m.y, m.color || '#6a3aaa', 4);
+                }
             }
         }
     }
