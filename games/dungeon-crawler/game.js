@@ -1344,13 +1344,13 @@ function playerSpecial(p, now) {
                 for (let i = 0; i < maxSummon; i++) {
                     const s = p._shadowBank[i];
                     const angle = (i / maxSummon) * Math.PI * 2;
-                    const dist = 20 + (i % 3) * 12;
+                    const dist = 25 + (i % 3) * 14;
                     summonedMinions.push({ x: p.x+Math.cos(angle)*dist, y: p.y+Math.sin(angle)*dist, owner: p,
-                        hp: Math.round(s.hp * 0.5), maxHp: Math.round(s.hp * 0.5),
-                        damage: Math.round(s.damage * 0.6), speed: s.speed * 0.9,
-                        radius: s.radius, attackRange: 25, lastAttack: 0, attackSpeed: 450,
-                        life: now + 12000, color: '#6a3aaa', type: 'shadow',
-                        shadowOf: s.enemyType }); // blue-pink shadow
+                        hp: Math.round(s.hp * 0.7), maxHp: Math.round(s.hp * 0.7),
+                        damage: Math.round(s.damage * 0.8), speed: 2.6,
+                        radius: 14, attackRange: 30, lastAttack: 0, attackSpeed: 400,
+                        life: now + 15000, color: '#6a3aaa', type: 'shadow',
+                        shadowOf: 'warrior' }); // all arise as shadow warriors
                 }
                 p._shadowBank = []; // empty the bank after summoning
             }
@@ -2515,42 +2515,66 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
     // Summoned minions (imps, shadows, clones, dogs)
     for (const m of summonedMinions) {
         if (m.type === 'shadow' && m.shadowOf) {
-            // Jin-Woo shadow soldiers — draw like the original enemy but blue-pink
-            ctx.globalAlpha = 0.85;
+            // Jin-Woo shadow warriors — big armored soldiers
+            ctx.globalAlpha = 0.9;
             ctx.save(); ctx.translate(m.x, m.y);
-            // Blue-pink glow aura
-            ctx.shadowColor = '#aa44ff'; ctx.shadowBlur = 10;
-            // Draw enemy silhouette in shadow color
-            const sCol = '#6a3aaa'; // blue-purple
-            const sHi = '#ff44aa'; // pink highlight
-            switch (m.shadowOf) {
-                case 'skeleton': case 'archerSkeleton':
-                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, -8, 6, 0, Math.PI*2); ctx.fill();
-                    ctx.fillRect(-3, -2, 6, 10);
-                    ctx.fillStyle = sHi; ctx.fillRect(-3, -10, 2, 2); ctx.fillRect(1, -10, 2, 2);
-                    ctx.fillStyle = sCol; ctx.fillRect(-2, 8, 2, 6); ctx.fillRect(1, 8, 2, 6); break;
-                case 'slime':
-                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, 0, m.radius, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = sHi; ctx.beginPath(); ctx.arc(-3,-3,2,0,Math.PI*2); ctx.fill();
-                    ctx.beginPath(); ctx.arc(3,-3,2,0,Math.PI*2); ctx.fill(); break;
-                case 'bat':
-                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
-                    const wa = Math.sin(gameTime*0.02)*0.5;
-                    ctx.save();ctx.rotate(wa);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-12,-6);ctx.lineTo(-8,2);ctx.fill();ctx.restore();
-                    ctx.save();ctx.rotate(-wa);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(12,-6);ctx.lineTo(8,2);ctx.fill();ctx.restore();
-                    ctx.fillStyle = sHi; ctx.fillRect(-2,-2,1.5,1.5); ctx.fillRect(1,-2,1.5,1.5); break;
-                case 'darkKnight':
-                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0,-10,8,0,Math.PI*2); ctx.fill();
-                    ctx.fillRect(-6,-2,12,14);
-                    ctx.fillStyle = sHi; ctx.fillRect(-5,-12,10,3); break;
-                case 'necromancer':
-                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.moveTo(-7,0); ctx.lineTo(7,0); ctx.lineTo(10,16); ctx.lineTo(-10,16); ctx.fill();
-                    ctx.beginPath(); ctx.arc(0,-6,6,0,Math.PI*2); ctx.fill();
-                    ctx.fillStyle = sHi; ctx.fillRect(-3,-8,2,2); ctx.fillRect(1,-8,2,2); break;
-                default:
-                    ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, 0, m.radius, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = sHi; ctx.fillRect(-2,-2,4,4); break;
-            }
+            const sCol = '#3a1a6a'; // dark shadow purple
+            const sHi = '#7c4dff'; // bright purple highlight
+            const sGlow = '#aa44ff';
+            // Purple aura glow
+            ctx.shadowColor = sGlow; ctx.shadowBlur = 12;
+            const ag = ctx.createRadialGradient(0, -4, 0, 0, -4, 20);
+            ag.addColorStop(0, 'rgba(124,77,255,0.12)'); ag.addColorStop(1, 'rgba(124,77,255,0)');
+            ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -4, 20, 0, Math.PI * 2); ctx.fill();
+            // Helmet (big armored head)
+            ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, -12, 10, 0, Math.PI * 2); ctx.fill();
+            // Helmet visor
+            ctx.fillStyle = '#1a0a30'; ctx.fillRect(-7, -14, 14, 4);
+            // Glowing eyes
+            ctx.fillStyle = sHi; ctx.shadowColor = sHi; ctx.shadowBlur = 8;
+            ctx.fillRect(-5, -14, 3, 2.5); ctx.fillRect(2, -14, 3, 2.5);
+            ctx.shadowBlur = 12; ctx.shadowColor = sGlow;
+            // Helmet crest
+            ctx.fillStyle = sHi;
+            ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(-3, -16); ctx.lineTo(3, -16); ctx.fill();
+            // Armored body (wide)
+            ctx.fillStyle = sCol;
+            ctx.fillRect(-9, -2, 18, 18);
+            // Chest plate
+            ctx.fillStyle = '#2a1050';
+            ctx.fillRect(-7, 0, 14, 8);
+            // Purple glowing lines on armor
+            ctx.strokeStyle = sHi; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
+            ctx.beginPath(); ctx.moveTo(-7, 2); ctx.lineTo(7, 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-7, 6); ctx.lineTo(7, 6); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 8); ctx.stroke();
+            ctx.globalAlpha = 0.9;
+            // Shoulder pads
+            ctx.fillStyle = sCol;
+            ctx.beginPath(); ctx.arc(-11, -1, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(11, -1, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = sHi; ctx.globalAlpha = 0.4;
+            ctx.beginPath(); ctx.arc(-11, -2, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(11, -2, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 0.9;
+            // Sword (right side)
+            ctx.fillStyle = '#8a8a9a';
+            ctx.shadowColor = sHi; ctx.shadowBlur = 6;
+            ctx.fillRect(12, -4, 3, 20);
+            // Sword edge glow
+            ctx.fillStyle = sHi; ctx.globalAlpha = 0.3;
+            ctx.fillRect(13, -4, 1, 20); ctx.globalAlpha = 0.9;
+            // Shield (left side)
+            ctx.fillStyle = '#2a1050';
+            ctx.fillRect(-16, -2, 5, 14);
+            ctx.strokeStyle = sHi; ctx.lineWidth = 0.8;
+            ctx.strokeRect(-16, -2, 5, 14);
+            // Legs (armored)
+            ctx.fillStyle = sCol;
+            ctx.fillRect(-6, 16, 5, 8); ctx.fillRect(1, 16, 5, 8);
+            // Boot glow
+            ctx.fillStyle = sHi; ctx.globalAlpha = 0.3;
+            ctx.fillRect(-6, 22, 5, 2); ctx.fillRect(1, 22, 5, 2);
             ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1;
         } else {
             // Imps, clones, dogs — generic minion drawing
