@@ -1340,27 +1340,12 @@ function playerSpecial(p, now) {
                     e.x += Math.cos(a) * 40; e.y += Math.sin(a) * 40;
                     spawnParticles(e.x, e.y, '#e91e63', 4); } }
             spawnParticles(p.x, p.y, '#f48fb1', 14); triggerShake(4, 6); } break;
-        case 'jinwoo': // Shadow Army — always summon 8 shadow warriors
-            { // Count existing shadows
+        case 'jinwoo': // Shadow Army — start spawning shadows 1 at a time
+            { p._shadowSpawning = true; p._lastShadowSpawn = now;
             const existing = summonedMinions.filter(m => m.type === 'shadow' && m.owner === p).length;
-            const toSpawn = Math.max(0, 8 - existing); // fill up to 8
-            for (let i = 0; i < toSpawn; i++) {
-                const total = existing + toSpawn;
-                const angle = ((existing + i) / total) * Math.PI * 2;
-                summonedMinions.push({ x: p.x+Math.cos(angle)*30, y: p.y+Math.sin(angle)*30, owner: p,
-                    hp: 20, maxHp: 20, damage: 6, speed: 3.2,
-                    radius: 5, attackRange: 140, lastAttack: now + (existing + i) * 150, attackSpeed: 600,
-                    life: Infinity, color: '#6a3aaa', type: 'shadow',
-                    shadowOf: 'warrior', _guardIndex: existing + i, _guardTotal: 8, ranged: true });
-            }
-            // Reassign guard indices for smooth circle
-            let idx = 0;
-            for (const m of summonedMinions) {
-                if (m.type === 'shadow' && m.owner === p) { m._guardIndex = idx; m._guardTotal = 8; idx++; }
-            }
-            damageNumbers.push({ x: p.x, y: p.y - 30, text: `ARISE! (${maxSummon || 2})`, color: '#7c4dff', life: 50 });
-            spawnParticles(p.x, p.y, '#311b92', 20); spawnParticles(p.x, p.y, '#7c4dff', 12);
-            triggerShake(6 + maxSummon * 0.3, 12); } break;
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: 'ARISE!', color: '#7c4dff', life: 50 });
+            spawnParticles(p.x, p.y, '#311b92', 12); spawnParticles(p.x, p.y, '#7c4dff', 6);
+            triggerShake(4, 8); } break;
         case 'saitama': // Serious Punch — one-shots everything
             { const range = 80;
             const snap = enemies.slice(); // snapshot to prevent iteration over newly spawned splits
@@ -2103,6 +2088,31 @@ function update(now) {
                 color: '#43a047'
             });
             spawnParticles(p.x, p.y, '#66bb6a', 8);
+        }
+    }
+
+    // Jin-Woo passive — spawn 1 shadow every 2s after pressing E (up to 8)
+    for (const p of players) {
+        if (!p.alive || p.classId !== 'jinwoo' || !p._shadowSpawning) continue;
+        if (!p._lastShadowSpawn) p._lastShadowSpawn = 0;
+        if (now - p._lastShadowSpawn >= 2000) {
+            p._lastShadowSpawn = now;
+            const existing = summonedMinions.filter(m => m.type === 'shadow' && m.owner === p).length;
+            if (existing < 8) {
+                const angle = (existing / 8) * Math.PI * 2;
+                summonedMinions.push({ x: p.x + Math.cos(angle) * 30, y: p.y + Math.sin(angle) * 30, owner: p,
+                    hp: 20, maxHp: 20, damage: 6, speed: 3.2,
+                    radius: 5, attackRange: 140, lastAttack: now, attackSpeed: 800,
+                    life: Infinity, color: '#6a3aaa', type: 'shadow',
+                    shadowOf: 'warrior', _guardIndex: existing, _guardTotal: 8, ranged: true });
+                spawnParticles(p.x + Math.cos(angle) * 30, p.y + Math.sin(angle) * 30, '#7c4dff', 6);
+                damageNumbers.push({ x: p.x, y: p.y - 25, text: `Shadow ${existing + 1}/8`, color: '#448aff', life: 30 });
+                // Reassign guard indices
+                let idx = 0;
+                for (const m of summonedMinions) {
+                    if (m.type === 'shadow' && m.owner === p) { m._guardIndex = idx; m._guardTotal = 8; idx++; }
+                }
+            }
         }
     }
 
