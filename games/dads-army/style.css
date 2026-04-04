@@ -30,6 +30,8 @@
   --border-active: rgba(184, 167, 126, 0.6);
 
   --font-body: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-heading: 'Oswald', 'Arial Narrow', sans-serif;
+  --font-flavor: 'Special Elite', 'Courier New', monospace;
   --font-mono: 'Courier New', 'Consolas', monospace;
 
   --panel-width: 340px;
@@ -103,9 +105,10 @@ html, body {
 h1, h2, h3 {
   margin: 0 0 0.5em 0;
   color: var(--text-heading);
-  font-family: var(--font-mono);
-  letter-spacing: 1px;
+  font-family: var(--font-heading);
+  letter-spacing: 2px;
   text-transform: uppercase;
+  font-weight: 700;
 }
 
 h1 {
@@ -151,14 +154,15 @@ a:hover {
   background: linear-gradient(180deg, var(--color-olive-light), var(--color-olive));
   color: #fff;
   border: 1px solid rgba(139, 158, 82, 0.4);
-  border-radius: 4px;
-  font-family: var(--font-mono);
+  border-radius: 2px;
+  font-family: var(--font-heading);
   font-size: 0.95em;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   cursor: pointer;
   transition: all var(--transition-fast);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -643,12 +647,30 @@ input[type="text"]:focus {
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
-  background: var(--bg-panel);
+  background: linear-gradient(180deg, rgba(75, 83, 32, 0.5), rgba(22, 33, 62, 0.95));
   z-index: 1;
 }
 
 .panel-header h3 {
   margin: 0;
+  font-family: var(--font-heading);
+  letter-spacing: 3px;
+}
+
+.side-panel::before {
+  content: 'CLASSIFIED';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-35deg);
+  font-family: var(--font-heading);
+  font-size: 3em;
+  font-weight: 700;
+  color: rgba(192, 57, 43, 0.04);
+  letter-spacing: 8px;
+  pointer-events: none;
+  z-index: 0;
+  white-space: nowrap;
 }
 
 .panel-section {
@@ -1212,11 +1234,11 @@ input[type="text"]:focus {
   background: rgba(107, 122, 63, 0.2);
   color: var(--text-primary);
   border: 1px solid rgba(107, 122, 63, 0.3);
-  border-radius: 4px;
-  font-family: var(--font-mono);
+  border-radius: 2px;
+  font-family: var(--font-heading);
   font-size: 0.8em;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -1326,11 +1348,12 @@ input[type="text"]:focus {
 }
 
 .collapsible-title {
-  font-family: var(--font-mono);
-  font-size: 0.75em;
+  font-family: var(--font-heading);
+  font-size: 0.8em;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 .collapsible-chevron {
@@ -1457,10 +1480,10 @@ input[type="text"]:focus {
 
 .commander-tab {
   padding: 10px 18px;
-  font-family: var(--font-mono);
-  font-size: 0.75em;
+  font-family: var(--font-heading);
+  font-size: 0.8em;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--text-secondary);
   cursor: pointer;
   border-bottom: 2px solid transparent;

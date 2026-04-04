@@ -358,4 +358,24 @@ Continued cleanup of owner_id→player_id mismatches and type errors across reso
 
 ---
 
+## 2026-04-04 (continued) — Visual Overhaul Phase 1: Map Rendering + Typography
+
+### What was built
+- **TextureManager** (`src/map/TextureManager.js`, ~370 lines): Procedurally generates terrain textures on offscreen canvases — 13 terrain types x 4 variants = 52 cached textures. Each terrain type has unique pattern: forest=canopy dots, mountain=jagged lines, farmland=plowed rows, water=wave arcs, desert=stipple dots. Also generates parchment paper overlay texture, noise grain, and 10 resource silhouette icons (oil derrick, pickaxe, wheat, fish, etc.).
+- **10-Layer Rendering Pipeline** (HexRenderer rewrite, ~480 lines): Complete rewrite of the render method into a layered system: textured terrain (clip+drawImage), terrain edge blending (gradient fades between different terrain types), paper overlay (parchment multiply blend), selective borders (only at ownership boundaries, not every hex), elevation shadows (mountains/forests cast SE shadows), animated road dashes, textured fog of war (noise grain on unexplored tiles), resource silhouette icons, NATO-style rectangular army counters (blue=friendly, red=hostile, with X for infantry), vignette post-processing.
+- **Typography Upgrade**: Google Fonts "Oswald" (military headings) + "Special Elite" (typewriter) loaded. Applied to all headings, panel headers, collapsible titles, action buttons, commander tabs.
+- **CSS Panel Reskin**: Panel headers get olive gradient backgrounds. Buttons get sharp 2px corners with text shadows. "CLASSIFIED" watermark on side panels (very subtle). Commander tabs use Oswald font.
+
+### Key visual changes
+- Flat colored hexes → textured terrain with patterns
+- Borders on every hex → borders only at ownership boundaries
+- Colored dots for resources → silhouette icon sprites (oil derrick, pickaxe, wheat, etc.)
+- Shield-shaped army counters → NATO rectangular counters with type icons
+- System fonts → Oswald headings + Special Elite body
+- Flat fog of war → noise-textured fog
+- No post-processing → vignette + paper overlay
+- Round buttons → sharp military 2px corners
+
+---
+
 *More entries will be added as development progresses.*
