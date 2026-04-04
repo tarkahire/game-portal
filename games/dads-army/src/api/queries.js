@@ -208,6 +208,25 @@ export async function getPlayerCities(serverId) {
 }
 
 /**
+ * Get all cities on a server (all players, for map display).
+ * @param {string} serverId
+ * @returns {Promise<object[]>}
+ */
+export async function getAllCities(serverId) {
+  const { data, error } = await supabase
+    .from('cities')
+    .select('id, name, tile_id, level, is_capital, player_id')
+    .eq('server_id', serverId);
+
+  if (error) {
+    console.error('[queries] getAllCities:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
  * Build a new city on a tile via RPC.
  * @param {string} tileId
  * @param {string} serverId

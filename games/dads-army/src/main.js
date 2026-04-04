@@ -15,6 +15,7 @@ import {
   getServerTiles,
   getCityResources,
   getPlayerCities,
+  getAllCities,
 } from './api/queries.js';
 import { HexRenderer } from './map/HexRenderer.js';
 
@@ -423,24 +424,31 @@ scenes.register('game', {
       showTileInfo(tile);
     });
 
-    // Load tiles from Supabase
+    // Load tiles and cities from Supabase
     try {
-      const tiles = await getServerTiles(serverId);
-      console.log(`[Main] Loaded ${tiles.length} tiles`);
-      hexRenderer.loadTiles(tiles, playerId);
-    } catch (err) {
-      console.error('[Main] Failed to load tiles:', err);
-    }
+      const [tiles, allCities, myCities] = await Promise.all([
+        getServerTiles(serverId),
+        getAllCities(serverId),
+        getPlayerCities(serverId),
+      ]);
+      console.log(`[Main] Loaded ${tiles.length} tiles, ${allCities.length} cities (${myCities.length} mine)`);
 
-    // Load player resources for the resource bar
-    try {
-      const cities = await getPlayerCities(serverId);
-      if (cities && cities.length > 0) {
-        const resources = await getCityResources(cities[0].id);
+      // Mark tiles that have cities so we don't show "Build City" on them
+      const cityTileIds = new Set(allCities.map(c => c.tile_id));
+      for (const tile of tiles) {
+        tile._hasCity = cityTileIds.has(tile.id);
+      }
+
+      hexRenderer.loadTiles(tiles, playerId);
+
+      // Load resources from capital city
+      if (myCities.length > 0) {
+        const capital = myCities.find(c => c.is_capital) || myCities[0];
+        const resources = await getCityResources(capital.id);
         updateResourceBar(resources);
       }
     } catch (err) {
-      console.error('[Main] Failed to load resources:', err);
+      console.error('[Main] Failed to load game data:', err);
     }
   },
   exit() {
@@ -468,7 +476,8 @@ function showTileInfo(tile) {
   const hasResource = !!tile.resource_type;
   const isExhausted = tile.resource_reserves_total > 0 &&
     (tile.resource_reserves_remaining / tile.resource_reserves_total) < 0.20;
-  const canBuildCity = isOwned && isLand &&
+  const hasCity = !!tile._hasCity;
+  const canBuildCity = isOwned && isLand && !hasCity &&
     (!hasResource || isExhausted);
 
   const ownerText = tile.owner_id
@@ -479,6 +488,10 @@ function showTileInfo(tile) {
     <div class="tile-info-row"><strong>Terrain:</strong> ${tile.terrain_type}</div>
     <div class="tile-info-row"><strong>Owner:</strong> ${ownerText}</div>
   `;
+
+  if (hasCity) {
+    html += `<div class="tile-info-row"><strong>City</strong></div>`;
+  }
 
   if (hasResource) {
     html += `<div class="tile-info-row"><strong>Resource:</strong> ${tile.resource_type}</div>`;
@@ -581,7 +594,14 @@ function showTileInfo(tile) {
 async function refreshMap() {
   if (!hexRenderer || !selectedServerId) return;
   try {
-    const tiles = await getServerTiles(selectedServerId);
+    const [tiles, allCities] = await Promise.all([
+      getServerTiles(selectedServerId),
+      getAllCities(selectedServerId),
+    ]);
+    const cityTileIds = new Set(allCities.map(c => c.tile_id));
+    for (const tile of tiles) {
+      tile._hasCity = cityTileIds.has(tile.id);
+    }
     hexRenderer.loadTiles(tiles, currentPlayerRecord);
     // Re-select the same tile to refresh the panel
     if (hexRenderer.selectedTile) {
