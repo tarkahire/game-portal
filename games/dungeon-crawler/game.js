@@ -1359,13 +1359,14 @@ function playerSpecial(p, now) {
             triggerShake(6 + maxSummon * 0.3, 12); } break;
         case 'saitama': // Serious Punch — one-shots everything
             { const range = 80;
-            for (const e of enemies) { if (!e.alive) continue;
+            const snap = enemies.slice(); // snapshot to prevent iteration over newly spawned splits
+            for (const e of snap) { if (!e.alive) continue;
                 const dx = e.x-p.x, dy = e.y-p.y;
                 const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
                 const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
                 if (along > 0 && along < range && perp < 30) dealDamageToEnemy(e, 9999, p); }
             activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: range, width: 30, life: 15, maxLife: 15, color: '#fdd835' });
-            spawnParticles(p.x, p.y, '#fdd835', 24); spawnParticles(p.x, p.y, '#fff', 16);
+            spawnParticles(p.x, p.y, '#fdd835', 16); spawnParticles(p.x, p.y, '#fff', 8);
             triggerShake(12, 20); } break;
         case 'genos': // Incinerate — wide fire beam
             { const beamLen = 220, beamW = 22;
@@ -1527,7 +1528,8 @@ function animeSecondary(p, now) {
         case 'saitama': // Normal Punch — quick burst (since Serious Punch has 20s CD)
             if (now - p._secondaryCd < 2000) return; p._secondaryCd = now;
             { const range = 45, dmg = Math.round(p.damage * 4);
-            for (const e of enemies) { if (!e.alive) continue;
+            const snap2 = enemies.slice();
+            for (const e of snap2) { if (!e.alive) continue;
                 const dx = e.x-p.x, dy = e.y-p.y;
                 const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
                 const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
@@ -1655,12 +1657,12 @@ function dealDamageToEnemy(e, dmg, p) {
             runStats.itemsFound++;
         }
 
-        // Slime split
-        if (e.splits && !e.isBoss) {
+        // Slime split (cap at 50 total enemies to prevent lag)
+        if (e.splits && !e.isBoss && enemies.length < 50) {
             for (let s = 0; s < 2; s++) {
                 const se = createEnemy('bat', Math.floor(e.x / TILE), Math.floor(e.y / TILE), currentFloor);
-                se.x = e.x + (Math.random() - 0.5) * 20;
-                se.y = e.y + (Math.random() - 0.5) * 20;
+                se.x = e.x + (Math.random() - 0.5) * 40; // spawn further away
+                se.y = e.y + (Math.random() - 0.5) * 40;
                 se.hp = 8; se.maxHp = 8; se.color = '#3a7a3a';
                 enemies.push(se);
             }
