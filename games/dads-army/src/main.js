@@ -1590,12 +1590,11 @@ async function refreshMap() {
     }
     hexRenderer.loadTiles(tiles, currentPlayerRecord);
     hexRenderer.loadArmies(armies, currentPlayerRecord);
-    // Re-select the same tile to refresh the panel
+    // Update selected tile data (but don't re-open panels — avoids interrupting the user)
     if (hexRenderer.selectedTile) {
       const updated = tiles.find(t => t.q === hexRenderer.selectedTile.q && t.r === hexRenderer.selectedTile.r);
       if (updated) {
         hexRenderer.selectedTile = updated;
-        showTileInfo(updated);
       }
     }
   } catch (err) {
