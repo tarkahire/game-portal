@@ -270,7 +270,7 @@ const CLASSES = {
     chimera: { name: 'Chimera', maxHp: 110, speed: 2.6, attackRange: 35, attackDamage: 13, attackSpeed: 400, attackType: 'melee', color: '#ff8f00', specialCooldown: 3000, specialName: 'Switch Head', specialDesc: 'Cycle heads — lion fire, goat lightning, snake poison', drawChar: drawChimera },
     mimic: { name: 'Mimic', maxHp: 90, speed: 2.8, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#8d6e63', specialCooldown: 5000, specialName: 'Copy', specialDesc: 'Transform into last enemy killed — gain their power', drawChar: drawMimic },
     supernova: { name: 'Supernova', maxHp: 85, speed: 2.4, attackRange: 130, attackDamage: 8, attackSpeed: 500, attackType: 'ranged', color: '#fff176', specialCooldown: 0, specialName: 'Charge & Release', specialDesc: 'Hold E to charge — release for massive explosion', drawChar: drawSupernova },
-    puppet: { name: 'Puppet Master', maxHp: 75, speed: 2.5, attackRange: 160, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#9c27b0', specialCooldown: 4000, specialName: 'Strings', specialDesc: 'Attach strings to enemies — slam them into each other', drawChar: drawPuppet }
+    puppet: { name: 'Puppet Master', maxHp: 75, speed: 2.5, attackRange: 160, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#9c27b0', specialCooldown: 500, specialName: 'Strings', specialDesc: 'Attach strings to enemies — slam them into each other', drawChar: drawPuppet }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
