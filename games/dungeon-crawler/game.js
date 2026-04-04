@@ -1524,6 +1524,23 @@ function animeSecondary(p, now) {
             activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 12, maxLife: 12, color: '#ff6f00' });
             spawnParticles(p.x, p.y, '#ff9800', 14); spawnParticles(p.x, p.y, '#ff5722', 8);
             triggerShake(6, 10); } break;
+        case 'saitama': // Normal Punch — quick burst (since Serious Punch has 20s CD)
+            if (now - p._secondaryCd < 2000) return; p._secondaryCd = now;
+            { const range = 45, dmg = Math.round(p.damage * 4);
+            for (const e of enemies) { if (!e.alive) continue;
+                const dx = e.x-p.x, dy = e.y-p.y;
+                const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
+                const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
+                if (along > 0 && along < range && perp < 20) dealDamageToEnemy(e, dmg, p); }
+            spawnParticles(p.x+Math.cos(p.facingAngle)*20, p.y+Math.sin(p.facingAngle)*20, '#fdd835', 12);
+            triggerShake(5, 8); } break;
+        case 'genos': // Machine Gun Blows — rapid 8 projectiles
+            if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
+            for (let i = 0; i < 8; i++) { const a = p.facingAngle + (Math.random()-0.5)*0.4;
+                projectiles.push({ x: p.x, y: p.y, vx: Math.cos(a)*8, vy: Math.sin(a)*8,
+                    damage: Math.round(p.damage * 0.6), owner: 'player', ownerRef: p, range: 180, traveled: 0,
+                    color: '#ff8f00', radius: 3 }); }
+            spawnParticles(p.x, p.y, '#ff8f00', 10); triggerShake(4, 6); break;
         default: return;
     }
 }
@@ -1601,7 +1618,9 @@ function dealDamageToEnemy(e, dmg, p) {
     }
     e.hp -= dmg;
     e.attackAnim = 5;
-    damageNumbers.push({ x: e.x, y: e.y - 20, text: dmg.toString(), color: '#fff', life: 40 });
+    if (damageNumbers.length < 100) { // Cap to prevent lag from mass kills
+        damageNumbers.push({ x: e.x, y: e.y - 20, text: dmg >= 9999 ? 'K.O.' : dmg.toString(), color: dmg >= 9999 ? '#fdd835' : '#fff', life: 40 });
+    }
     spawnParticles(e.x, e.y, PAL.blood, 4);
     triggerShake(2, 4);
 
@@ -1816,7 +1835,10 @@ function triggerShake(intensity, duration) {
 }
 
 function spawnParticles(x, y, color, count) {
-    for (let i = 0; i < count; i++) {
+    // Cap total particles to prevent lag from mass kills
+    const maxTotal = 500;
+    const toSpawn = particles.length > maxTotal ? Math.min(count, 2) : count;
+    for (let i = 0; i < toSpawn; i++) {
         const a = Math.random() * Math.PI * 2;
         const s = 1 + Math.random() * 3;
         particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 20 + Math.random() * 15, maxLife: 35, color, size: 1 + Math.random() * 2 });
@@ -2746,16 +2768,14 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, -b.width * 0.1, b.length * 0.6, b.width * 0.2);
         } else {
-            // Dragon Beam (Draco)
+            // Generic beam — uses b.color
+            const bc = b.color || '#9c27b0';
             ctx.globalAlpha = alpha * 0.4;
-            ctx.fillStyle = '#ce93d8';
-            ctx.shadowColor = '#9c27b0'; ctx.shadowBlur = 30;
+            ctx.fillStyle = bc;
+            ctx.shadowColor = bc; ctx.shadowBlur = 30;
             ctx.fillRect(0, -b.width, b.length, b.width * 2);
             ctx.globalAlpha = alpha * 0.8;
-            const bg = ctx.createLinearGradient(0, 0, b.length, 0);
-            bg.addColorStop(0, '#e1bee7'); bg.addColorStop(0.3, '#ce93d8');
-            bg.addColorStop(0.7, '#ab47bc'); bg.addColorStop(1, 'rgba(156,39,176,0)');
-            ctx.fillStyle = bg;
+            ctx.fillStyle = bc;
             ctx.fillRect(0, -b.width * 0.5, b.length, b.width);
             ctx.globalAlpha = alpha;
             ctx.fillStyle = '#fff';
