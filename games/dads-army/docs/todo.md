@@ -45,13 +45,13 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 - [ ] Map data loading from Supabase
 
 ### Resource Fields
-- [ ] Claim unclaimed resource tiles
-- [ ] Build extraction infrastructure on claimed tiles
+- [x] Claim unclaimed resource tiles
+- [x] Build extraction infrastructure on claimed tiles
 - [ ] Production rate calculation (base rate * infrastructure level * tech bonuses)
 - [ ] Depletion mechanic (gradual reserve reduction per tick)
 - [ ] Soil quality for farmland (degradation + fallow recovery)
-- [ ] Resource display on tile info panel (type, reserves remaining, yield, extraction intensity)
-- [ ] Extraction intensity toggle (sustainable vs intensive)
+- [x] Resource display on tile info panel (type, reserves remaining, yield, extraction intensity)
+- [x] Extraction intensity toggle (sustainable vs intensive)
 
 ### City Building
 - [ ] Build city on disused land tiles

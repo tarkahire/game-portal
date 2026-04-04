@@ -11,7 +11,7 @@
 | Phase | Status | Summary |
 |-------|--------|---------|
 | Phase 0: Docs & Scaffolding | DONE | 27 docs, file structure, auto-doc system |
-| Phase 1: MVP | IN PROGRESS | Auth, server join, hex map rendering done. Tile interaction next. |
+| Phase 1: MVP | IN PROGRESS | Auth, server join, hex map, tile interaction done. City management next. |
 | Phase 2: Strategic Depth | NOT STARTED | Full resources, research, naval, air, alliances, fog of war |
 | Phase 3: War Economy | NOT STARTED | Supply chains, stranding, debt, trade, intelligence |
 | Phase 4: Endgame & Polish | NOT STARTED | Victory conditions, coalitions, tutorial, mobile |
@@ -37,9 +37,9 @@
 ### Next Up — Tile Interaction
 - [x] Claim adjacent unclaimed tiles (click tile → "Claim" button in info panel)
 - [x] Develop resource field (build extraction on owned resource tile)
-- [ ] Set extraction intensity (sustainable / normal / intensive)
+- [x] Set extraction intensity (sustainable / normal / intensive)
 - [x] Build city on disused land (or depleted field <20%)
-- [ ] Visual feedback: owned tiles glow, claimed animation
+- [x] Visual feedback: owned tiles glow, city markers
 
 ### Then — City Management
 - [ ] City view panel (buildings, slots, construction queue)

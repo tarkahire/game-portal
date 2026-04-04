@@ -339,6 +339,49 @@ export async function getResourceFields(serverId) {
 }
 
 /**
+ * Get the resource field record for a specific tile on a server.
+ * Returns null if the tile has no developed resource field.
+ * @param {number} tileId — tile integer ID
+ * @param {string} serverId — UUID
+ * @returns {Promise<object|null>}
+ */
+export async function getResourceFieldForTile(tileId, serverId) {
+  const { data, error } = await supabase
+    .from('resource_fields')
+    .select('id, tile_id, player_id, extraction_intensity, infrastructure_level, production_rate, status')
+    .eq('tile_id', tileId)
+    .eq('server_id', serverId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[queries] getResourceFieldForTile:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Change extraction intensity on a resource field via RPC.
+ * @param {string} fieldId — resource_fields UUID
+ * @param {string} intensity — 'sustainable' | 'normal' | 'intensive'
+ * @returns {Promise<void>}
+ */
+export async function setExtractionIntensity(fieldId, intensity) {
+  const { data, error } = await supabase.rpc('set_extraction_intensity', {
+    p_field_id: fieldId,
+    p_intensity: intensity,
+  });
+
+  if (error) {
+    console.error('[queries] setExtractionIntensity:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
  * Develop (upgrade) a resource field tile via RPC.
  * @param {string} tileId
  * @param {string} serverId

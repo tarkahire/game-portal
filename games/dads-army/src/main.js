@@ -462,7 +462,7 @@ scenes.register('game', {
 });
 
 /** Show tile info in the side panel with action buttons. */
-function showTileInfo(tile) {
+async function showTileInfo(tile) {
   const panel = document.getElementById('panel-tile-info');
   const title = document.getElementById('tile-info-title');
   const content = document.getElementById('tile-info-content');
@@ -474,6 +474,7 @@ function showTileInfo(tile) {
   const isUnclaimed = !tile.owner_id;
   const isWater = tile.terrain_type === 'water';
   const isMountain = tile.terrain_type === 'mountain';
+  const isLand = !isWater;
   // A tile "has resource" if it has resource_type OR terrain is farmland (farmland IS a resource)
   const hasResource = !!tile.resource_type || tile.terrain_type === 'farmland';
   const resourceType = tile.resource_type || (tile.terrain_type === 'farmland' ? 'farmland' : null);
@@ -492,6 +493,17 @@ function showTileInfo(tile) {
     ? (isOwned ? 'You' : 'Enemy')
     : 'Unclaimed';
 
+  // Fetch resource field data if this is an owned resource tile
+  let resourceField = null;
+  if (isOwned && hasResource) {
+    try {
+      const { getResourceFieldForTile } = await import('./api/queries.js');
+      resourceField = await getResourceFieldForTile(tile.id, selectedServerId);
+    } catch (err) {
+      console.error('[Main] Failed to fetch resource field:', err);
+    }
+  }
+
   let html = `
     <div class="tile-info-row"><strong>Terrain:</strong> ${tile.terrain_type}</div>
     <div class="tile-info-row"><strong>Owner:</strong> ${ownerText}</div>
@@ -509,6 +521,37 @@ function showTileInfo(tile) {
     } else {
       html += `<div class="tile-info-row"><strong>Reserves:</strong> Undeveloped</div>`;
     }
+  }
+
+  // Resource field details (infrastructure, intensity, production)
+  if (resourceField) {
+    html += `<div class="tile-info-row"><strong>Infrastructure:</strong> Level ${resourceField.infrastructure_level}</div>`;
+    html += `<div class="tile-info-row"><strong>Status:</strong> ${capitalize(resourceField.status)}</div>`;
+    if (resourceField.production_rate > 0) {
+      html += `<div class="tile-info-row"><strong>Production:</strong> ${resourceField.production_rate.toFixed(1)} / tick</div>`;
+    }
+
+    // Extraction intensity selector
+    const intensities = ['sustainable', 'normal', 'intensive'];
+    const intensityLabels = {
+      sustainable: 'Sustainable (0.7x)',
+      normal: 'Normal (1.0x)',
+      intensive: 'Intensive (1.5x)',
+    };
+    html += `
+      <div class="tile-info-section">
+        <div class="tile-info-row"><strong>Extraction Intensity:</strong></div>
+        <div class="intensity-selector">
+    `;
+    for (const int of intensities) {
+      const isActive = resourceField.extraction_intensity === int;
+      const isDisabled = int === 'intensive' && resourceField.infrastructure_level < 3;
+      html += `<button class="intensity-btn${isActive ? ' active' : ''}"
+        data-intensity="${int}"
+        ${isDisabled ? 'disabled title="Requires infrastructure level 3+"' : ''}
+      >${intensityLabels[int]}</button>`;
+    }
+    html += `</div></div>`;
   }
 
   if (tile.war_damage_level > 0) {
@@ -532,8 +575,8 @@ function showTileInfo(tile) {
     html += `<button class="btn-action" id="btn-claim-tile">Claim Tile</button>`;
   }
 
-  // Develop resource: owned, has resource, reserves available
-  if (isOwned && hasResource && reservesRemaining > 0) {
+  // Develop resource: owned, has resource, not yet developed (no resource field)
+  if (isOwned && hasResource && !resourceField && reservesRemaining > 0) {
     html += `<button class="btn-action" id="btn-develop-field">Develop Resource</button>`;
   }
 
@@ -545,6 +588,29 @@ function showTileInfo(tile) {
   html += '</div>';
   content.innerHTML = html;
   panel.style.display = 'block';
+
+  // Wire up extraction intensity buttons
+  if (resourceField) {
+    const intensityBtns = content.querySelectorAll('.intensity-btn');
+    for (const btn of intensityBtns) {
+      btn.addEventListener('click', async () => {
+        const intensity = btn.dataset.intensity;
+        if (intensity === resourceField.extraction_intensity) return;
+        // Disable all buttons during update
+        intensityBtns.forEach(b => b.disabled = true);
+        try {
+          const { setExtractionIntensity } = await import('./api/queries.js');
+          await setExtractionIntensity(resourceField.id, intensity);
+          // Refresh the panel to show updated state
+          await refreshMap();
+        } catch (err) {
+          console.error('[Main] Set intensity failed:', err);
+          alert('Failed to change intensity: ' + (err.message || 'Unknown error'));
+          intensityBtns.forEach(b => b.disabled = false);
+        }
+      });
+    }
+  }
 
   // Wire up action buttons
   const btnClaim = document.getElementById('btn-claim-tile');

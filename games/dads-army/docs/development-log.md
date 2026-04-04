@@ -126,4 +126,26 @@ Why: A game this complex needs clear design docs as source of truth. Every syste
 
 ---
 
+## 2026-04-04 (continued) — Extraction Intensity + Visual Feedback
+
+### What was built
+- **Extraction intensity selector**: Tile info panel now shows infrastructure level, production rate, status, and a 3-button intensity selector (Sustainable 0.7x / Normal 1.0x / Intensive 1.5x) for developed resource fields. Intensive is disabled below infrastructure level 3. Wires up to `set_extraction_intensity` RPC.
+- **Owned tile visual feedback**: Hex map now renders a semi-transparent color tint over owned tiles — gold for the current player, player colors for enemies. Tiles are clearly distinguishable as owned vs unclaimed.
+- **City markers**: Tiles with cities now show a small gold house icon on the hex, visible at moderate zoom levels and above.
+- **Resource field info in panel**: Developed tiles show infrastructure level, field status (productive/declining/exhausted), and production rate per tick.
+
+### Bugs found & fixed
+- **BUG-019**: `set_extraction_intensity` RPC references `v_field.owner_id` but resource_fields table uses `player_id` — same root cause as BUG-002/003. SQL fix file created (`011_fix_extraction_intensity.sql`), needs to be run in Supabase.
+- **BUG-020**: `isLand` variable was referenced in `showTileInfo` but never defined, causing ReferenceError when clicking unclaimed tiles. Added the missing declaration.
+
+### Queries added
+- `getResourceFieldForTile(tileId, serverId)` — fetch resource field record for a tile
+- `setExtractionIntensity(fieldId, intensity)` — call RPC to change extraction mode
+
+### Current state
+- Tile interaction is now **complete** (claim, develop, build city, extraction intensity, visual feedback)
+- Next: city management panel (building slots, construction queue, resource production)
+
+---
+
 *More entries will be added as development progresses.*

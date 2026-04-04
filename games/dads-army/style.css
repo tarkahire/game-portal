@@ -659,6 +659,52 @@ input[type="text"]:focus {
   background: rgba(212, 168, 67, 0.35);
 }
 
+/* ---------- Extraction Intensity Selector ---------- */
+.tile-info-section {
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.intensity-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.intensity-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.78em;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.intensity-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-active);
+  color: var(--text-primary);
+}
+
+.intensity-btn.active {
+  background: rgba(107, 122, 63, 0.3);
+  border-color: var(--color-olive-light);
+  color: var(--color-olive-light);
+  font-weight: 700;
+}
+
+.intensity-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .panel-section-title {
   font-family: var(--font-mono);
   font-size: 0.75em;

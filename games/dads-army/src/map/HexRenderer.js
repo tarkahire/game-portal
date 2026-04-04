@@ -46,6 +46,19 @@ const PLAYER_COLORS = [
   '#3A0CA3', '#4CC9F0', '#80B918', '#FF6B6B',
 ];
 
+/**
+ * Convert a hex color string to rgba with given alpha.
+ * @param {string} hex — e.g. '#E63946'
+ * @param {number} alpha — 0.0 to 1.0
+ * @returns {string}
+ */
+function hexColorToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export class HexRenderer {
   /**
    * @param {HTMLCanvasElement} canvas — the game canvas
@@ -98,10 +111,12 @@ export class HexRenderer {
     this.tiles.clear();
     this.playerColors.clear();
     this.currentPlayerId = currentPlayerId;
+    this._cityTileKeys = new Set();
 
     let colorIdx = 0;
     for (const tile of tileArray) {
       this.tiles.set(`${tile.q},${tile.r}`, tile);
+      if (tile._hasCity) this._cityTileKeys.add(`${tile.q},${tile.r}`);
       if (tile.owner_id && !this.playerColors.has(tile.owner_id)) {
         this.playerColors.set(tile.owner_id, PLAYER_COLORS[colorIdx % PLAYER_COLORS.length]);
         colorIdx++;
@@ -178,6 +193,17 @@ export class HexRenderer {
       ctx.fillStyle = TERRAIN_COLORS[tile.terrain_type] || '#555';
       ctx.fill();
 
+      // Ownership tint — semi-transparent player color over terrain
+      if (tile.owner_id) {
+        const color = this.playerColors.get(tile.owner_id) || '#FFF';
+        const isMine = tile.owner_id === this.currentPlayerId;
+        hexPath(ctx, screen.x, screen.y, screenSize);
+        ctx.fillStyle = isMine
+          ? 'rgba(255, 215, 0, 0.12)'
+          : hexColorToRgba(color, 0.15);
+        ctx.fill();
+      }
+
       // Ownership border
       if (tile.owner_id) {
         hexPath(ctx, screen.x, screen.y, screenSize);
@@ -193,10 +219,33 @@ export class HexRenderer {
         ctx.stroke();
       }
 
-      // Resource indicator (small colored dot)
-      if (tile.resource_type && screenSize > 8) {
+      // City marker (house icon)
+      const tileKey = `${tile.q},${tile.r}`;
+      if (this._cityTileKeys.has(tileKey) && screenSize > 10) {
+        const cs = Math.max(screenSize * 0.3, 5);
+        ctx.fillStyle = '#FFD700';
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 1;
+        // Simple house shape
         ctx.beginPath();
-        ctx.arc(screen.x, screen.y, Math.max(screenSize * 0.18, 2), 0, Math.PI * 2);
+        ctx.moveTo(screen.x, screen.y - cs * 0.8);          // roof peak
+        ctx.lineTo(screen.x - cs * 0.6, screen.y - cs * 0.1); // left eave
+        ctx.lineTo(screen.x - cs * 0.4, screen.y - cs * 0.1); // left wall top
+        ctx.lineTo(screen.x - cs * 0.4, screen.y + cs * 0.5); // left wall bottom
+        ctx.lineTo(screen.x + cs * 0.4, screen.y + cs * 0.5); // right wall bottom
+        ctx.lineTo(screen.x + cs * 0.4, screen.y - cs * 0.1); // right wall top
+        ctx.lineTo(screen.x + cs * 0.6, screen.y - cs * 0.1); // right eave
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // Resource indicator (small colored dot) — shift down if city present
+      const hasCity = this._cityTileKeys.has(tileKey);
+      if (tile.resource_type && screenSize > 8) {
+        const dotY = hasCity ? screen.y + screenSize * 0.4 : screen.y;
+        ctx.beginPath();
+        ctx.arc(screen.x, dotY, Math.max(screenSize * 0.18, 2), 0, Math.PI * 2);
         ctx.fillStyle = RESOURCE_COLORS[tile.resource_type] || '#FFF';
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
@@ -210,7 +259,8 @@ export class HexRenderer {
         ctx.font = `${Math.max(screenSize * 0.28, 8)}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText(tile.resource_type, screen.x, screen.y + screenSize * 0.25);
+        const labelY = hasCity ? screen.y + screenSize * 0.5 : screen.y + screenSize * 0.25;
+        ctx.fillText(tile.resource_type, screen.x, labelY);
       }
 
       // Terrain label (when very zoomed in)
