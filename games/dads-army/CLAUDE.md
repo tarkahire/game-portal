@@ -70,7 +70,7 @@ games/dads-army/
 
 ## Current Phase
 
-**Phase 0: Documentation & Scaffolding** — establishing docs and project structure before code.
+**Phase 1: MVP** — Supabase live, auth working, server list + alignment selection functional. Next: hex map renderer.
 
 ## Conventions
 
@@ -78,4 +78,24 @@ games/dads-army/
 - camelCase for JS variables/functions, PascalCase for classes/scenes
 - SQL: snake_case for tables/columns
 - Commit messages: imperative mood, describe the "what" and "why"
-- Update docs when mechanics change — docs are the source of truth
+
+## Documentation Process (MANDATORY)
+
+After **every** code change, follow this process. See `docs/doc-map.json` for the full mapping config.
+
+**1. Bug fix?** → Add `BUG-XXX` entry to `docs/bug.md` (use next sequential number)
+**2. Feature done?** → Mark `[x]` in `docs/todo.md`
+**3. Code changed?** → Check which docs are affected:
+
+| Code Path | Update These Docs |
+|-----------|------------------|
+| `src/api/queries.js` | architecture.md, setup.md |
+| `src/main.js`, `src/systems/*` | architecture.md |
+| `src/config/*` | matching system doc (resources, military, etc.) |
+| `src/map/*` | map.md, architecture.md |
+| `src/scenes/*` | architecture.md + matching system doc |
+| `sql/*_tables*` | architecture.md + matching system doc |
+| `sql/*_functions*`, `sql/*_rls*` | architecture.md |
+
+**4. End of session?** → Add dated entry to `docs/development-log.md`
+**5. Run audit**: `bash docs/doc-audit.sh` to verify nothing was missed
