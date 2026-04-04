@@ -80,6 +80,10 @@
 Addressing fundamental gameplay issues before Phase 2.
 
 - [x] Fog of war (unexplored/stale/visible states, vision from cities+troops)
+- [x] Tile control levels (claimed 50% / occupied 75% / improved 100% yield)
+- [x] Fish/uranium resource support (constraint fix, base rates, mapping)
+- [x] City upgrade system (level 1-5 with increasing slots and storage)
+- [x] Warehouse storage_capacity connected to buildings
 - [ ] Troop-based territory control (remove click-to-claim, require engineers)
 - [ ] Resource development rework (require engineers, construction time, costs)
 - [ ] Research tree UI (visual tech tree panel, start/cancel research)

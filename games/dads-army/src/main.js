@@ -30,6 +30,7 @@ import {
   getPlayerBattleReports,
   buildRoad,
   improveTile,
+  upgradeCity,
 } from './api/queries.js';
 import { HexRenderer } from './map/HexRenderer.js';
 
@@ -974,11 +975,22 @@ async function showCityPanel(cityId) {
     // Build the panel HTML
     let html = '';
 
-    // City header info
+    // City header info + upgrade button
+    const upgradeCosts = {
+      1: { money: 1000, steel: 200, manpower: 100 },
+      2: { money: 3000, steel: 500, manpower: 200 },
+      3: { money: 8000, steel: 1200, manpower: 400 },
+      4: { money: 20000, steel: 3000, manpower: 800 },
+    };
+    const canUpgradeCity = cityLevel < 5 && upgradeCosts[cityLevel];
+    const upgradeCost = upgradeCosts[cityLevel];
+    const nextSlots = CITY_SLOTS[cityLevel + 1] || maxSlots;
+
     html += `<div class="panel-section">
       <div class="panel-row"><span class="label">Level</span><span class="value">${cityLevel}</span></div>
       <div class="panel-row"><span class="label">Slots</span><span class="value">${buildings.length} / ${maxSlots}</span></div>
       ${isCapital ? '<div class="panel-row"><span class="label">Capital</span><span class="value" style="color:var(--color-gold)">Yes</span></div>' : ''}
+      ${canUpgradeCity ? `<button class="btn-action btn-action-primary" id="btn-upgrade-city">Upgrade to Lv ${cityLevel + 1} (${upgradeCost.money} money, ${upgradeCost.steel} steel, ${upgradeCost.manpower} manpower) → ${nextSlots} slots</button>` : cityLevel >= 5 ? '<div class="building-maxed">Max City Level</div>' : ''}
     </div>`;
 
     // Resource production summary
@@ -1102,6 +1114,23 @@ async function showCityPanel(cityId) {
     html += `</div>`;
 
     contentEl.innerHTML = html;
+
+    // Wire up upgrade city button
+    document.getElementById('btn-upgrade-city')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-upgrade-city');
+      btn.disabled = true;
+      btn.textContent = 'Upgrading...';
+      try {
+        await upgradeCity(cityId, selectedServerId);
+        await refreshMap();
+        await refreshResources();
+        await showCityPanel(cityId);
+      } catch (err) {
+        console.error('[Main] City upgrade failed:', err);
+        alert('Upgrade failed: ' + (err.message || 'Unknown error'));
+        btn.disabled = false;
+      }
+    });
 
     // Wire up train button
     document.getElementById('btn-train-units')?.addEventListener('click', () => {

@@ -420,6 +420,30 @@ export async function developResourceField(tileId, serverId) {
 }
 
 // ==========================================================================
+// City Upgrades
+// ==========================================================================
+
+/**
+ * Upgrade a city to the next level via RPC.
+ * @param {string} cityId
+ * @param {string} serverId
+ * @returns {Promise<void>}
+ */
+export async function upgradeCity(cityId, serverId) {
+  const { data, error } = await supabase.rpc('upgrade_city', {
+    p_city_id: cityId,
+    p_server_id: serverId,
+  });
+
+  if (error) {
+    console.error('[queries] upgradeCity:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+// ==========================================================================
 // Tile Control
 // ==========================================================================
 

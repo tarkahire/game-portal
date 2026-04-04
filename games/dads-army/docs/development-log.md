@@ -266,4 +266,25 @@ Full resource set, production chains, research tree, naval/air warfare, alliance
 
 ---
 
+## 2026-04-04 (continued) — Fish, City Upgrades, Warehouse, Slot Alignment
+
+### Investigation findings
+- **Fish**: Database CHECK constraint blocked 'fish' resource type entirely. Fish tiles were seeded but couldn't be stored.
+- **City upgrades**: No upgrade_city RPC or UI existed. Cities were permanently level 1 with 3 slots.
+- **Warehouse**: storage_capacity effect defined but never applied. All cities stuck at default 500.
+- **Slot mismatch**: SQL used 3/5/7/9/12 but docs specified 3/5/8/12/16. Aligned to docs.
+- **Research**: Full system missing (no start_research RPC, effects not applied). Deferred to Phase 2.
+
+### What was fixed
+- ALTER tiles constraint to allow 'fish' and 'uranium' resource types
+- develop_resource_field now handles fish (8.0/tick) and uranium (1.0/tick) base rates
+- City upgrade RPC: costs from cities.md (1000/200/100 for Lv2 up to 20000/3000/800 for Lv5)
+- Upgrade City button in city panel showing cost and resulting slot count
+- City level increases storage capacity (500→1000→2000→4000→8000 per level)
+- Warehouse building effects now applied: +500/+1200/+2500 storage per level
+- materialize_resources resets and recalculates storage_capacity each cycle
+- build_building slot counts aligned to 3/5/8/12/16
+
+---
+
 *More entries will be added as development progresses.*
