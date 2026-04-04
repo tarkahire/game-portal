@@ -219,11 +219,13 @@ function handleKeyDown(e) {
     if (gameState === 'playing') {
         if (e.code === 'Tab') { e.preventDefault(); toggleInventory(0); }
         if (e.code === 'Numpad3') { e.preventDefault(); if (coopMode && players[1]) toggleInventory(1); }
-        if (e.code === 'Escape') { gameState = 'paused'; document.getElementById('pause-overlay').style.display = ''; }
+        if (e.code === 'Escape') {
+            // Close any open inventories first
+            for (const p of players) { if (p.inventoryOpen) { closeInventory(p.playerIndex); } }
+            gameState = 'paused'; document.getElementById('pause-overlay').style.display = '';
+        }
     } else if (gameState === 'paused') {
         if (e.code === 'Escape') resumeGame();
-    } else if (gameState === 'inventory') {
-        if (e.code === 'Tab' || e.code === 'Escape' || e.code === 'Numpad3') { e.preventDefault(); closeInventory(); }
     }
 }
 
@@ -329,6 +331,7 @@ function createPlayer(classId, playerIndex) {
         alive: true,
         attackAnim: 0,
         currentRoom: null,
+        inventoryOpen: false,
     };
 
     // Starting equipment from shop unlocks
@@ -594,19 +597,31 @@ function resumeGame() {
     document.getElementById('pause-overlay').style.display = 'none';
 }
 
-let activeInventoryPlayer = 0;
+let activeInventoryPlayer = -1;
 function toggleInventory(playerIdx) {
-    if (gameState === 'playing') {
+    if (!players[playerIdx]) return;
+    if (players[playerIdx].inventoryOpen) {
+        closeInventory(playerIdx);
+    } else {
+        players[playerIdx].inventoryOpen = true;
         activeInventoryPlayer = playerIdx;
-        gameState = 'inventory';
         renderInventoryUI(players[playerIdx]);
         document.getElementById('inventory-overlay').style.display = '';
-    } else if (gameState === 'inventory') {
-        closeInventory();
+        // Position overlay on the correct side in split screen
+        const overlay = document.getElementById('inventory-overlay');
+        if (coopMode && players.length === 2) {
+            overlay.style.left = playerIdx === 0 ? '0' : '50%';
+            overlay.style.width = '50%';
+        } else {
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+        }
     }
 }
-function closeInventory() {
-    gameState = 'playing';
+function closeInventory(playerIdx) {
+    if (playerIdx === undefined) playerIdx = activeInventoryPlayer;
+    if (playerIdx >= 0 && players[playerIdx]) players[playerIdx].inventoryOpen = false;
+    activeInventoryPlayer = -1;
     document.getElementById('inventory-overlay').style.display = 'none';
 }
 
@@ -1335,6 +1350,7 @@ function update(now) {
 }
 
 function updatePlayer(p, now) {
+    if (p.inventoryOpen) return; // Frozen while in inventory
     const speedMult = p.activeEffects.some(e => e.effect === 'speed') ? 1.5 : 1;
     const spd = p.speed * speedMult;
 
@@ -1405,7 +1421,7 @@ function render() {
     ctx.fillStyle = PAL.fog;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (gameState !== 'playing' && gameState !== 'paused' && gameState !== 'inventory') return;
+    if (gameState !== 'playing' && gameState !== 'paused') return;
 
     const splitScreen = coopMode && players.length === 2;
 
