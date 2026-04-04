@@ -29,10 +29,36 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ### BUG-028: process_supply_chains and degrade_fortifications use owner_id instead of player_id
 - **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Fix notes**: **Fix file**: `sql/015_fix_supply_functions.sql`.
+
+### BUG-029: armies.is_garrison column missing — causes 400 on every armies query
+- **Severity**: CRITICAL
 - **Status**: OPEN (SQL fix created, needs to be run in Supabase)
 - **Reported**: 2026-04-04
 - **Fixed**: —
-- **Fix notes**: **Fix file**: `sql/015_fix_supply_functions.sql` — run both statements in Supabase SQL Editor.
+- **Steps to reproduce**: Load game → console shows `column armies.is_garrison does not exist`
+- **Actual behavior**: getAllArmies fails with 400, cascading to affect city loading and all downstream features
+- **Fix notes**: Column was noted in BUG-002 as needing ALTER TABLE but was never run. **Fix file**: `sql/016_critical_fixes.sql` statement 1.
+
+### BUG-030: join_server creates capital city with owner_id instead of player_id — city never created
+- **Severity**: CRITICAL
+- **Status**: OPEN (SQL fix created, needs to be run in Supabase)
+- **Reported**: 2026-04-04
+- **Fixed**: —
+- **Steps to reproduce**: Join a server → enter game → console shows "0 cities"
+- **Expected behavior**: Capital city created with starting resources
+- **Actual behavior**: INSERT into cities uses `owner_id` (doesn't exist), silently fails. Player and tiles created but no city. All city-dependent features broken: no city markers, no resource bar, no building, no training, no armies.
+- **Fix notes**: Same root cause as BUG-002/003 but in the join_server function. Also affects build_city RPC and all cities RLS policies. **Fix file**: `sql/016_critical_fixes.sql` — run ALL 4 statements.
+
+### BUG-031: Cities RLS policies reference owner_id instead of player_id
+- **Severity**: CRITICAL
+- **Status**: OPEN (SQL fix created)
+- **Reported**: 2026-04-04
+- **Fixed**: —
+- **Fix notes**: All 4 cities policies (SELECT/INSERT/UPDATE/DELETE) use owner_id. Fixed in `sql/016_critical_fixes.sql` statement 3.
 
 ---
 
