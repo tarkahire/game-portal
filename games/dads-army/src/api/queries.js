@@ -739,6 +739,41 @@ export async function getPlayerBattleReports(serverId) {
 }
 
 // ==========================================================================
+// Research
+// ==========================================================================
+
+/**
+ * Get the current player's research progress on a server.
+ * @param {string} serverId
+ * @returns {Promise<object[]>}
+ */
+export async function getPlayerResearch(serverId) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: playerData } = await supabase
+    .from('players')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('server_id', serverId)
+    .single();
+
+  if (!playerData) return [];
+
+  const { data, error } = await supabase
+    .from('player_research')
+    .select('research_def, level, is_researching, research_started_at, research_completes_at')
+    .eq('player_id', playerData.id);
+
+  if (error) {
+    console.error('[queries] getPlayerResearch:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+// ==========================================================================
 // Notifications
 // ==========================================================================
 

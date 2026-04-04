@@ -287,4 +287,20 @@ Full resource set, production chains, research tree, naval/air warfare, alliance
 
 ---
 
+## 2026-04-04 (continued) — UI Improvements: Tooltips, Commander Screen, Collapsible Panels
+
+### What was built
+- **Resource tooltips**: Hovering any resource in the top bar shows a styled tooltip with full name, amount/storage capacity, production rate, and per-city breakdown. Resources now cached across all player cities for accurate totals.
+- **Commander Screen**: Full statistics dashboard overlay accessible via "Commander" button. 6 tabs: Overview (territory/army/battle stats), Cities (table of all cities), Resources (all 12 with amounts/rates/storage bars), Military (units by category, army list, garrison), Research (tech tree status), Battles (win/loss/draw stats + history).
+- **Collapsible sections**: City panel sections (Resources, Buildings, Training, Garrison) now expand/collapse on click with smooth animation. State persists across panel refreshes via sessionStorage.
+- **Code extraction**: Started populating `src/ui/` directory — CollapsibleSection.js, ResourceTooltip.js, CommanderScreen.js. Reduces main.js bloat.
+
+### Architecture decisions
+- Extracted UI components to separate modules in src/ui/ (first step toward breaking up main.js)
+- Resource data now aggregated across all cities, not just the capital
+- Commander Screen uses full-screen overlay (not side panel) for dashboard-width content
+- Collapsible state stored in sessionStorage (persists within tab, resets on new session)
+
+---
+
 *More entries will be added as development progresses.*

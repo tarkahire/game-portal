@@ -31,8 +31,13 @@ import {
   buildRoad,
   improveTile,
   upgradeCity,
+  getPlayerResearch,
+  getResearchDefs,
 } from './api/queries.js';
 import { HexRenderer } from './map/HexRenderer.js';
+import { collapsibleSection, wireCollapsibles } from './ui/CollapsibleSection.js';
+import { ResourceTooltip } from './ui/ResourceTooltip.js';
+import { CommanderScreen } from './ui/CommanderScreen.js';
 
 // ---------- Globals ----------
 
@@ -56,6 +61,13 @@ let autoRefreshInterval = null;
 
 /** Construction countdown interval ID. */
 let constructionTimerInterval = null;
+
+/** Resource tooltip instance. */
+let resourceTooltip = null;
+
+/** Cached per-city resource data for tooltip breakdown. */
+let allCityResources = new Map();
+let playerCitiesCache = [];
 
 /** Current player record on the active server. */
 let currentPlayerRecord = null;
@@ -467,6 +479,15 @@ scenes.register('game', {
     });
 
     // Wire up action bar buttons
+    document.getElementById('btn-commander')?.addEventListener('click', () => {
+      const cs = new CommanderScreen({
+        getPlayerCities, getCityResources, getCityBuildings, getPlayerArmies,
+        getPlayerBattleReports, getPlayerResearch, getResearchDefs,
+        serverId, playerId, hexRenderer, unitDefsCache, buildingDefsCache,
+      });
+      cs.open();
+    });
+
     document.getElementById('btn-battle-reports')?.addEventListener('click', () => showBattleReports());
 
     document.getElementById('btn-build-road')?.addEventListener('click', () => {
@@ -529,6 +550,10 @@ scenes.register('game', {
       console.error('[Main] Failed to load game data:', err);
     }
 
+    // Set up resource tooltip
+    resourceTooltip = new ResourceTooltip();
+    resourceTooltip.attach(document.getElementById('resource-bar'));
+
     // Auto-refresh resources, map, and open panels every 15 seconds
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
@@ -550,6 +575,7 @@ scenes.register('game', {
     window.removeEventListener('resize', resizeGameCanvas);
     if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
     if (constructionTimerInterval) { clearInterval(constructionTimerInterval); constructionTimerInterval = null; }
+    if (resourceTooltip) { resourceTooltip.detach(); resourceTooltip = null; }
     if (hexRenderer) {
       hexRenderer.detach();
       hexRenderer = null;
@@ -993,22 +1019,22 @@ async function showCityPanel(cityId) {
       ${canUpgradeCity ? `<button class="btn-action btn-action-primary" id="btn-upgrade-city">Upgrade to Lv ${cityLevel + 1} (${upgradeCost.money} money, ${upgradeCost.steel} steel, ${upgradeCost.manpower} manpower) → ${nextSlots} slots</button>` : cityLevel >= 5 ? '<div class="building-maxed">Max City Level</div>' : ''}
     </div>`;
 
-    // Resource production summary
+    // Resource production summary (collapsible)
     if (resources && resources.length > 0) {
-      html += `<div class="panel-section"><div class="panel-section-title">Resources</div>`;
+      let resHtml = '';
       for (const r of resources) {
         const rateClass = r.production_rate >= 0 ? '' : ' negative';
         const rateSign = r.production_rate >= 0 ? '+' : '';
-        html += `<div class="panel-row">
+        resHtml += `<div class="panel-row">
           <span class="label">${capitalize(r.resource_type)}</span>
           <span class="value">${Math.floor(r.amount)} <span class="resource-rate${rateClass}">${rateSign}${r.production_rate.toFixed(1)}/t</span></span>
         </div>`;
       }
-      html += `</div>`;
+      html += collapsibleSection('city-resources', 'Resources', resHtml);
     }
 
-    // Building slots
-    html += `<div class="panel-section"><div class="panel-section-title">Buildings</div>`;
+    // Building slots (collapsible)
+    let buildingsHtml = '';
 
     // Create a map of slot_index → building
     const slotMap = new Map();
@@ -1037,7 +1063,7 @@ async function showCityPanel(cityId) {
           const elapsed = Date.now() - new Date(startedAt);
           const pct = totalDuration > 0 ? Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100) : 0;
 
-          html += `<div class="building-slot constructing">
+          buildingsHtml += `<div class="building-slot constructing">
             <div class="building-slot-header">
               <span class="building-name">${escapeHtml(bName)}</span>
               <span class="building-level">Lv ${targetLevel}</span>
@@ -1060,7 +1086,7 @@ async function showCityPanel(cityId) {
             }
           }
 
-          html += `<div class="building-slot">
+          buildingsHtml += `<div class="building-slot">
             <div class="building-slot-header">
               <span class="building-name">${escapeHtml(bName)}</span>
               <span class="building-level">Lv ${building.level}</span>
@@ -1071,13 +1097,13 @@ async function showCityPanel(cityId) {
         }
       } else {
         // Empty slot — show build button
-        html += `<div class="building-slot empty">
+        buildingsHtml += `<div class="building-slot empty">
           <button class="btn-action btn-build-slot" data-slot="${i}" data-city-id="${cityId}">+ Build (Slot ${i + 1})</button>
         </div>`;
       }
     }
 
-    html += `</div>`;
+    html += collapsibleSection('city-buildings', 'Buildings', buildingsHtml);
 
     // Training queue section
     const hasBarracks = buildings.some(b => b.building_def === 'barracks' && b.level >= 1 && !b.is_constructing);
@@ -1085,9 +1111,7 @@ async function showCityPanel(cityId) {
     const hasMilitaryBuilding = hasBarracks || hasTankFactory;
 
     if (hasMilitaryBuilding) {
-      html += `<div class="panel-section"><div class="panel-section-title">Training</div>`;
-
-      // Show current training queue
+      let trainHtml = '';
       if (trainingQueue && trainingQueue.length > 0) {
         for (const tq of trainingQueue) {
           const uDef = unitDefsCache?.find(u => u.id === tq.unit_def);
@@ -1095,25 +1119,25 @@ async function showCityPanel(cityId) {
           const remaining = Math.max(0, new Date(tq.completes_at) - Date.now());
           const mins = Math.floor(remaining / 60000);
           const secs = Math.floor((remaining % 60000) / 1000);
-          html += `<div class="training-item">
+          trainHtml += `<div class="training-item">
             <span class="training-name">${escapeHtml(uName)} x${tq.quantity}</span>
             <span class="training-eta" data-completes-at="${tq.completes_at}">${mins}m ${secs}s</span>
           </div>`;
         }
       } else {
-        html += `<div class="training-item"><span class="training-name" style="color:var(--text-muted)">No units training</span></div>`;
+        trainHtml += `<div class="training-item"><span class="training-name" style="color:var(--text-muted)">No units training</span></div>`;
       }
-
-      html += `<button class="btn-action" id="btn-train-units">Train Units</button>`;
-      html += `</div>`;
+      trainHtml += `<button class="btn-action" id="btn-train-units">Train Units</button>`;
+      html += collapsibleSection('city-training', 'Training', trainHtml);
     }
 
     // Garrison section
-    html += `<div class="panel-section"><div class="panel-section-title">Garrison & Armies</div>`;
-    html += `<button class="btn-action" id="btn-view-armies" data-city-id="${cityId}">View Armies</button>`;
-    html += `</div>`;
+    html += collapsibleSection('city-garrison', 'Garrison & Armies',
+      `<button class="btn-action" id="btn-view-armies" data-city-id="${cityId}">View Armies</button>`
+    );
 
     contentEl.innerHTML = html;
+    wireCollapsibles(contentEl);
 
     // Wire up upgrade city button
     document.getElementById('btn-upgrade-city')?.addEventListener('click', async () => {
@@ -1696,13 +1720,46 @@ async function refreshMap() {
   }
 }
 
-/** Reload player resources for the resource bar. */
+/** Reload player resources for the resource bar (all cities). */
 async function refreshResources() {
   try {
     const cities = await getPlayerCities(selectedServerId);
-    if (cities && cities.length > 0) {
-      const resources = await getCityResources(cities[0].id);
-      updateResourceBar(resources);
+    playerCitiesCache = cities || [];
+    if (!cities || cities.length === 0) return;
+
+    // Fetch resources for all cities in parallel
+    const cityResPromises = cities.map(c => getCityResources(c.id));
+    const allRes = await Promise.all(cityResPromises);
+
+    // Cache per-city data for tooltip breakdown
+    allCityResources.clear();
+    for (let i = 0; i < cities.length; i++) {
+      allCityResources.set(cities[i].id, allRes[i] || []);
+    }
+
+    // Aggregate across all cities
+    const aggregate = {};
+    for (const cityRes of allRes) {
+      if (!cityRes) continue;
+      for (const r of cityRes) {
+        if (!aggregate[r.resource_type]) {
+          aggregate[r.resource_type] = { amount: 0, production_rate: 0, storage_capacity: 0 };
+        }
+        aggregate[r.resource_type].amount += r.amount;
+        aggregate[r.resource_type].production_rate += r.production_rate;
+        aggregate[r.resource_type].storage_capacity += r.storage_capacity;
+      }
+    }
+
+    const resources = Object.entries(aggregate).map(([type, data]) => ({
+      resource_type: type, ...data,
+    }));
+
+    updateResourceBar(resources);
+
+    // Feed tooltip with per-city data
+    if (resourceTooltip) {
+      resourceTooltip.setCityData(cities, allCityResources);
     }
   } catch (err) {
     console.error('[Main] Failed to refresh resources:', err);
@@ -1738,7 +1795,8 @@ function updateResourceBar(resources) {
       const rateSign = rate >= 0 ? '+' : '';
       const rateClass = rate > 0 ? 'positive' : rate < 0 ? 'negative' : '';
       const amountClass = amount === 0 && rate <= 0 ? 'zero' : '';
-      return `<div class="resource-item ${amountClass}" title="${capitalize(key)}: ${amount} (${rateSign}${rate.toFixed(1)}/tick)">
+      const cap = r ? Math.floor(r.storage_capacity || 0) : 0;
+      return `<div class="resource-item ${amountClass}" data-resource-key="${key}" data-amount="${amount}" data-rate="${rate.toFixed(1)}" data-cap="${cap}">
         <span class="resource-icon">${icons[key] || '📦'}</span>
         <span class="resource-amount">${amount >= 1000 ? (amount / 1000).toFixed(1) + 'k' : amount}</span>
         ${rate !== 0 ? `<span class="resource-rate ${rateClass}">${rateSign}${rate.toFixed(1)}</span>` : ''}
