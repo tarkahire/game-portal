@@ -1207,11 +1207,11 @@ function playerSpecial(p, now) {
                 const tx = target.x, ty = target.y; target.x = p.x; target.y = p.y; p.x = tx; p.y = ty;
                 dealDamageToEnemy(target, Math.round(p.damage * 1.5), p); }
             triggerShake(4, 6); } break;
-        case 'megumi': // Divine Dogs — summon 8
+        case 'megumi': // Divine Dogs — summon 8 fiends
             for (let i = 0; i < 8; i++) { const angle = (i / 8) * Math.PI * 2;
-                summonedMinions.push({ x: p.x+Math.cos(angle)*25, y: p.y+Math.sin(angle)*25, owner: p,
-                    hp: 20, maxHp: 20, damage: 6, speed: 3.2, radius: 7, attackRange: 22,
-                    lastAttack: 0, attackSpeed: 450, life: now + 8000, color: '#1a237e', type: 'dog' }); }
+                summonedMinions.push({ x: p.x+Math.cos(angle)*35, y: p.y+Math.sin(angle)*35, owner: p,
+                    hp: 30, maxHp: 30, damage: 8, speed: 3.5, radius: 14, attackRange: 28,
+                    lastAttack: 0, attackSpeed: 400, life: now + 10000, color: '#1a237e', type: 'dog' }); }
             spawnParticles(p.x, p.y, '#283593', 16); triggerShake(4, 8); break;
         case 'maki': // Weapon sweep
             { const range = 50; for (const e of enemies) { if (!e.alive) continue;
@@ -2649,8 +2649,57 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
                 ctx.fillStyle = 'rgba(150,0,0,0.5)';
                 ctx.save(); ctx.rotate(wf); ctx.beginPath(); ctx.moveTo(-3,-2); ctx.lineTo(-10,-7); ctx.lineTo(-5,1); ctx.fill(); ctx.restore();
                 ctx.save(); ctx.rotate(-wf); ctx.beginPath(); ctx.moveTo(3,-2); ctx.lineTo(10,-7); ctx.lineTo(5,1); ctx.fill(); ctx.restore();
+            } else if (m.type === 'dog') {
+                // Divine Dogs — big shadow fiends with rows of teeth
+                ctx.shadowColor = '#283593'; ctx.shadowBlur = 8;
+                // Muscular body
+                ctx.fillStyle = '#0d1442';
+                ctx.beginPath(); ctx.ellipse(0, 2, m.radius * 1.1, m.radius * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+                // Head (wolf-like, forward)
+                ctx.fillStyle = '#111';
+                ctx.beginPath(); ctx.ellipse(m.radius * 0.6, -2, 8, 6, 0, 0, Math.PI * 2); ctx.fill();
+                // Snout
+                ctx.fillStyle = '#0a0a2a';
+                ctx.beginPath(); ctx.moveTo(m.radius * 0.6 + 6, -4); ctx.lineTo(m.radius * 0.6 + 14, -1);
+                ctx.lineTo(m.radius * 0.6 + 6, 2); ctx.fill();
+                // Rows of teeth (jagged)
+                ctx.fillStyle = '#fff';
+                for (let t = 0; t < 5; t++) {
+                    const tx = m.radius * 0.6 + 6 + t * 1.8;
+                    ctx.beginPath(); ctx.moveTo(tx, -2); ctx.lineTo(tx + 0.8, -4); ctx.lineTo(tx + 1.6, -2); ctx.fill(); // top teeth
+                    ctx.beginPath(); ctx.moveTo(tx, 0); ctx.lineTo(tx + 0.8, 2); ctx.lineTo(tx + 1.6, 0); ctx.fill(); // bottom teeth
+                }
+                // Glowing red eyes
+                ctx.fillStyle = '#ff1744'; ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 6;
+                ctx.beginPath(); ctx.arc(m.radius * 0.5, -5, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(m.radius * 0.7, -5, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0;
+                // Pointed ears
+                ctx.fillStyle = '#111';
+                ctx.beginPath(); ctx.moveTo(m.radius * 0.3, -6); ctx.lineTo(m.radius * 0.2, -14); ctx.lineTo(m.radius * 0.5, -7); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(m.radius * 0.7, -6); ctx.lineTo(m.radius * 0.8, -14); ctx.lineTo(m.radius * 0.9, -7); ctx.fill();
+                // Legs (4 clawed)
+                ctx.fillStyle = '#0d1442';
+                ctx.fillRect(-m.radius * 0.6, m.radius * 0.4, 3, 7);
+                ctx.fillRect(-m.radius * 0.2, m.radius * 0.4, 3, 7);
+                ctx.fillRect(m.radius * 0.2, m.radius * 0.4, 3, 7);
+                ctx.fillRect(m.radius * 0.6, m.radius * 0.4, 3, 7);
+                // Claws
+                ctx.fillStyle = '#aaa';
+                for (let l = 0; l < 4; l++) {
+                    const lx = -m.radius * 0.6 + l * (m.radius * 0.4);
+                    ctx.beginPath(); ctx.moveTo(lx, m.radius * 0.4 + 7); ctx.lineTo(lx + 1.5, m.radius * 0.4 + 10); ctx.lineTo(lx + 3, m.radius * 0.4 + 7); ctx.fill();
+                }
+                // Shadow wisps trailing
+                ctx.fillStyle = 'rgba(26,35,126,0.3)';
+                const wt = gameTime * 0.008;
+                for (let w = 0; w < 3; w++) {
+                    const wx = -m.radius * 0.5 - w * 4 + Math.sin(wt + w) * 3;
+                    const wy = Math.sin(wt * 0.7 + w * 2) * 4;
+                    ctx.beginPath(); ctx.arc(wx, wy, 3 + w, 0, Math.PI * 2); ctx.fill();
+                }
             } else {
-                // Generic (clones, dogs)
+                // Generic (clones)
                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-2,-2,1.5,0,Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(2,-2,1.5,0,Math.PI*2); ctx.fill();
             }
