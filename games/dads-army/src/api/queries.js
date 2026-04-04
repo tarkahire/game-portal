@@ -256,7 +256,7 @@ export async function buildCity(tileId, serverId, name) {
 export async function getCityBuildings(cityId) {
   const { data, error } = await supabase
     .from('buildings')
-    .select('id, building_def, slot_index, level, is_constructing, construction_completes_at')
+    .select('id, building_def, slot_index, level, is_constructing, construction_started_at, construction_completes_at')
     .eq('city_id', cityId)
     .order('slot_index', { ascending: true });
 

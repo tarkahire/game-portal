@@ -49,6 +49,12 @@ let selectedAlignment = null;
 /** Hex map renderer instance (created when game scene enters). */
 let hexRenderer = null;
 
+/** Auto-refresh interval ID. */
+let autoRefreshInterval = null;
+
+/** Construction countdown interval ID. */
+let constructionTimerInterval = null;
+
 /** Current player record on the active server. */
 let currentPlayerRecord = null;
 
@@ -517,9 +523,24 @@ scenes.register('game', {
     } catch (err) {
       console.error('[Main] Failed to load game data:', err);
     }
+
+    // Auto-refresh resources and map every 30 seconds
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(async () => {
+      await refreshResources();
+      await refreshMap();
+    }, 30000);
+
+    // Live construction countdown — update all visible timers every second
+    if (constructionTimerInterval) clearInterval(constructionTimerInterval);
+    constructionTimerInterval = setInterval(() => {
+      updateConstructionTimers();
+    }, 1000);
   },
   exit() {
     window.removeEventListener('resize', resizeGameCanvas);
+    if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+    if (constructionTimerInterval) { clearInterval(constructionTimerInterval); constructionTimerInterval = null; }
     if (hexRenderer) {
       hexRenderer.detach();
       hexRenderer = null;
@@ -919,11 +940,17 @@ async function showCityPanel(cityId) {
 
         if (building.is_constructing) {
           // Under construction — show progress
-          const completesAt = new Date(building.construction_completes_at);
-          const now = Date.now();
-          const remaining = Math.max(0, completesAt - now);
-          const mins = Math.ceil(remaining / 60000);
+          const completesAt = building.construction_completes_at;
+          const startedAt = building.construction_started_at || completesAt;
+          const remaining = Math.max(0, new Date(completesAt) - Date.now());
+          const mins = Math.floor(remaining / 60000);
+          const secs = Math.floor((remaining % 60000) / 1000);
           const targetLevel = building.level + 1;
+
+          // Calculate initial progress
+          const totalDuration = new Date(completesAt) - new Date(startedAt);
+          const elapsed = Date.now() - new Date(startedAt);
+          const pct = totalDuration > 0 ? Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100) : 0;
 
           html += `<div class="building-slot constructing">
             <div class="building-slot-header">
@@ -931,8 +958,8 @@ async function showCityPanel(cityId) {
               <span class="building-level">Lv ${targetLevel}</span>
             </div>
             <div class="building-category">${capitalize(bCategory)}</div>
-            <div class="building-progress-bar"><div class="building-progress-fill" style="width:0%"></div></div>
-            <div class="building-eta">Building... ~${mins} min</div>
+            <div class="building-progress-bar"><div class="building-progress-fill" data-started-at="${startedAt}" data-completes-at="${completesAt}" style="width:${pct.toFixed(1)}%"></div></div>
+            <div class="building-eta" data-completes-at="${completesAt}">${mins}m ${secs}s remaining</div>
           </div>`;
         } else {
           // Completed building — show info + upgrade button
@@ -980,12 +1007,12 @@ async function showCityPanel(cityId) {
         for (const tq of trainingQueue) {
           const uDef = unitDefsCache?.find(u => u.id === tq.unit_def);
           const uName = uDef ? uDef.name : tq.unit_def;
-          const completesAt = new Date(tq.completes_at);
-          const remaining = Math.max(0, completesAt - Date.now());
-          const mins = Math.ceil(remaining / 60000);
+          const remaining = Math.max(0, new Date(tq.completes_at) - Date.now());
+          const mins = Math.floor(remaining / 60000);
+          const secs = Math.floor((remaining % 60000) / 1000);
           html += `<div class="training-item">
             <span class="training-name">${escapeHtml(uName)} x${tq.quantity}</span>
-            <span class="training-eta">~${mins} min</span>
+            <span class="training-eta" data-completes-at="${tq.completes_at}">${mins}m ${secs}s</span>
           </div>`;
         }
       } else {
@@ -1598,6 +1625,57 @@ function updateResourceBar(resources) {
       <span class="resource-amount">${Math.floor(r.amount)}</span>
     </div>`
   ).join('');
+}
+
+/**
+ * Update all visible construction countdown timers and progress bars.
+ * Called every second by setInterval.
+ */
+function updateConstructionTimers() {
+  const now = Date.now();
+
+  // Update building ETAs in city panel
+  document.querySelectorAll('.building-eta').forEach(el => {
+    const completesAt = el.dataset.completesAt;
+    if (!completesAt) return;
+    const remaining = Math.max(0, new Date(completesAt) - now);
+    if (remaining <= 0) {
+      el.textContent = 'Complete! (refresh)';
+      el.style.color = 'var(--color-green)';
+    } else {
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      el.textContent = `${mins}m ${secs}s remaining`;
+    }
+  });
+
+  // Update progress bars
+  document.querySelectorAll('.building-progress-fill').forEach(bar => {
+    const startedAt = bar.dataset.startedAt;
+    const completesAt = bar.dataset.completesAt;
+    if (!startedAt || !completesAt) return;
+    const start = new Date(startedAt).getTime();
+    const end = new Date(completesAt).getTime();
+    const total = end - start;
+    const elapsed = now - start;
+    const pct = Math.min(Math.max((elapsed / total) * 100, 0), 100);
+    bar.style.width = pct + '%';
+  });
+
+  // Update training ETAs
+  document.querySelectorAll('.training-eta').forEach(el => {
+    const completesAt = el.dataset.completesAt;
+    if (!completesAt) return;
+    const remaining = Math.max(0, new Date(completesAt) - now);
+    if (remaining <= 0) {
+      el.textContent = 'Done!';
+      el.style.color = 'var(--color-green)';
+    } else {
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      el.textContent = `${mins}m ${secs}s`;
+    }
+  });
 }
 
 function resizeGameCanvas() {
