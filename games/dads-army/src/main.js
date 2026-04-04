@@ -400,7 +400,9 @@ scenes.register('game', {
     window.addEventListener('resize', resizeGameCanvas);
 
     const serverId = data?.serverId;
-    const playerId = data?.player;
+    // data.player is either a UUID string (from joinServer RPC) or a player object (from getPlayerOnServer)
+    const playerRaw = data?.player;
+    const playerId = typeof playerRaw === 'object' && playerRaw !== null ? playerRaw.id : playerRaw;
     currentPlayerRecord = playerId;
 
     console.log('[Main] Entered game scene', { serverId, playerId });

@@ -156,6 +156,20 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Actual behavior**: 400 error from Supabase, empty server list
 - **Fix notes**: The `getActiveServers()` query in queries.js selected `player_count` which is a computed value (COUNT of players), not a stored column on `game_servers`. Also, the status filter used `['active', 'upcoming', 'full']` but our server statuses are `['lobby', 'active', 'paused', 'ended']`. **Resolution**: Removed `player_count` from SELECT, updated status filter to `['lobby', 'active']`, updated main.js server card template to remove player_count reference.
 
+### BUG-015: Owned tiles show as "Enemy" — player ID type mismatch
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**:
+  1. Join a server and enter the game
+  2. Click on one of your gold-bordered starting tiles
+  3. Info panel shows Owner: "Enemy" instead of "You"
+  4. No action buttons (Claim/Develop/Build) appear on owned tiles
+- **Expected behavior**: Owner shows "You", action buttons for Develop Resource or Build City appear
+- **Actual behavior**: Owner shows "Enemy", no actions available
+- **Fix notes**: Two code paths pass `data.player` to the game scene differently. `getPlayerOnServer` returns a full player object `{id: "uuid", ...}` for returning players, but `joinServer` RPC returns just a UUID string `"uuid"` for new players. The game scene stored whichever it got as `currentPlayerRecord` and compared it against `tile.owner_id` (always a string). When the player object was passed, `"uuid" === {id: "uuid"}` is always false. **Resolution**: Extract the ID with `typeof playerRaw === 'object' ? playerRaw.id : playerRaw` to always get a string.
+
 ### BUG-012: getServerTiles query uses wrong column names
 - **Severity**: HIGH
 - **Status**: FIXED
