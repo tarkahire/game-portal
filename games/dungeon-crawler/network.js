@@ -8,9 +8,10 @@ const NET = {
     isHost: false,
     isOnline: false,
     roomCode: '',
-    playerIndex: 0,    // 0=host, 1=client1, 2=client2
+    playerIndex: 0,    // first local player index
+    localPlayerCount: 1, // how many players on THIS device (1 or 2)
     maxPlayers: 3,
-    lobbyPlayers: [],  // { id, classId, ready }
+    lobbyPlayers: [],  // { id, classId, ready, local }
     remoteInputs: {},  // playerIndex -> input state
     lastState: null,
     stateInterval: null,
@@ -23,12 +24,16 @@ function generateRoomCode() {
     return code;
 }
 
-function createRoom() {
+function createRoom(localCount) {
     NET.isHost = true;
     NET.isOnline = true;
+    NET.localPlayerCount = localCount || 1;
     NET.roomCode = generateRoomCode();
     NET.playerIndex = 0;
-    NET.lobbyPlayers = [{ id: 'host', classId: null, ready: false }];
+    NET.lobbyPlayers = [{ id: 'host-p1', classId: null, ready: false }];
+    if (NET.localPlayerCount >= 2) {
+        NET.lobbyPlayers.push({ id: 'host-p2', classId: null, ready: false });
+    }
     NET.connections = [];
 
     document.getElementById('room-code-display').textContent = NET.roomCode;
@@ -44,12 +49,15 @@ function createRoom() {
     });
 
     NET.peer.on('connection', (conn) => {
-        if (NET.connections.length >= NET.maxPlayers - 1) {
+        const totalPlayers = NET.lobbyPlayers.length;
+        if (totalPlayers >= NET.maxPlayers) {
             conn.on('open', () => { conn.send({ type: 'full' }); conn.close(); });
             return;
         }
-        const pIdx = NET.connections.length + 1;
+        // Assign player index based on current lobby size
+        const pIdx = totalPlayers;
         conn._playerIndex = pIdx;
+        conn._localCount = 1; // updated when client sends info
         NET.connections.push(conn);
         NET.lobbyPlayers.push({ id: conn.peer, classId: null, ready: false });
 
@@ -76,9 +84,10 @@ function createRoom() {
     });
 }
 
-function joinRoom(code) {
+function joinRoom(code, localCount) {
     NET.isHost = false;
     NET.isOnline = true;
+    NET.localPlayerCount = localCount || 1;
     NET.roomCode = code.toUpperCase();
 
     document.getElementById('lobby-status').textContent = 'Connecting...';
@@ -94,6 +103,8 @@ function joinRoom(code) {
 
         conn.on('open', () => {
             document.getElementById('lobby-status').textContent = 'Connected!';
+            // Tell host how many local players we have
+            conn.send({ type: 'localCount', count: NET.localPlayerCount });
         });
 
         conn.on('data', (data) => handleClientReceive(data, conn));
@@ -113,15 +124,42 @@ function joinRoom(code) {
 // ─── HOST: receive from clients ──────────────────────────────
 function handleHostReceive(data, conn) {
     switch (data.type) {
+        case 'localCount':
+            // Client has multiple local players — add extra lobby slots
+            conn._localCount = data.count;
+            if (data.count >= 2) {
+                const extraId = conn.peer + '-p2';
+                if (!NET.lobbyPlayers.find(p => p.id === extraId)) {
+                    NET.lobbyPlayers.push({ id: extraId, classId: null, ready: false });
+                    // Reassign player indices
+                    NET.lobbyPlayers.forEach((lp, i) => lp._idx = i);
+                    conn._playerIndex2 = NET.lobbyPlayers.length - 1;
+                }
+            }
+            broadcastLobby();
+            updateLobbyUI();
+            break;
         case 'classSelect':
             const lp = NET.lobbyPlayers.find(p => p.id === conn.peer);
             if (lp) { lp.classId = data.classId; lp.ready = true; }
             broadcastLobby();
             updateLobbyUI();
-            checkAllReady();
+            break;
+        case 'classSelect2':
+            // Second local player on client device
+            const lp2 = NET.lobbyPlayers.find(p => p.id === conn.peer + '-p2');
+            if (lp2) { lp2.classId = data.classId; lp2.ready = true; }
+            broadcastLobby();
+            updateLobbyUI();
             break;
         case 'input':
             NET.remoteInputs[conn._playerIndex] = data.input;
+            break;
+        case 'input2':
+            // Second local player input from client
+            if (conn._playerIndex2 !== undefined) {
+                NET.remoteInputs[conn._playerIndex2] = data.input;
+            }
             break;
     }
 }
@@ -193,16 +231,43 @@ function checkAllReady() {
     // Auto-check not needed — host clicks start
 }
 
+let lobbySelectingLocal2 = false; // toggled after P1 picks
+
 function hostSelectClass(classId) {
-    NET.lobbyPlayers[0].classId = classId;
-    NET.lobbyPlayers[0].ready = true;
+    if (!lobbySelectingLocal2) {
+        NET.lobbyPlayers[0].classId = classId;
+        NET.lobbyPlayers[0].ready = true;
+        if (NET.localPlayerCount >= 2) {
+            lobbySelectingLocal2 = true;
+            document.getElementById('lobby-status').textContent = 'Player 2 — choose your class';
+        }
+    } else {
+        // Host's local P2
+        const p2 = NET.lobbyPlayers[1]; // host-p2
+        if (p2) { p2.classId = classId; p2.ready = true; }
+        lobbySelectingLocal2 = false;
+        document.getElementById('lobby-status').textContent = 'Ready! Waiting for others or start.';
+    }
     broadcastLobby();
     updateLobbyUI();
 }
 
 function clientSelectClass(classId) {
-    if (NET.connections[0] && NET.connections[0].open) {
-        NET.connections[0].send({ type: 'classSelect', classId });
+    if (!lobbySelectingLocal2) {
+        if (NET.connections[0] && NET.connections[0].open) {
+            NET.connections[0].send({ type: 'classSelect', classId });
+        }
+        if (NET.localPlayerCount >= 2) {
+            lobbySelectingLocal2 = true;
+            document.getElementById('lobby-status').textContent = 'Player 2 — choose your class';
+        }
+    } else {
+        // Client's local P2
+        if (NET.connections[0] && NET.connections[0].open) {
+            NET.connections[0].send({ type: 'classSelect2', classId });
+        }
+        lobbySelectingLocal2 = false;
+        document.getElementById('lobby-status').textContent = 'Ready!';
     }
 }
 
@@ -332,23 +397,29 @@ function applyRemoteGameState(state) {
 // ─── CLIENT INPUT SEND ──────────────────────────────────────
 function sendClientInput() {
     if (NET.isHost || !NET.isOnline || !NET.connections[0]) return;
+    if (!NET.connections[0].open) return;
 
-    const input = {
-        keys: {},
-        mouseX: mouse.x,
-        mouseY: mouse.y,
-        mouseDown: mouse.down,
-        clicked: mouse.clicked
-    };
-    // Only send relevant keys
     const relevantKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
         'KeyE','KeyR','Space','Tab','Numpad0','Numpad1','Numpad2','Numpad3','Numpad5'];
-    for (const k of relevantKeys) {
-        if (keys[k]) input.keys[k] = true;
-    }
 
-    if (NET.connections[0].open) {
-        NET.connections[0].send({ type: 'input', input });
+    // Local player 1 input (WASD + mouse)
+    const input = { keys: {}, mouseX: mouse.x, mouseY: mouse.y, mouseDown: mouse.down, clicked: mouse.clicked };
+    for (const k of relevantKeys) { if (keys[k]) input.keys[k] = true; }
+    NET.connections[0].send({ type: 'input', input });
+
+    // Local player 2 input (Arrows + Numpad) — sent as separate message
+    if (NET.localPlayerCount >= 2) {
+        const input2 = { keys: {}, mouseX: 0, mouseY: 0, mouseDown: false, clicked: false };
+        // Map arrow/numpad keys to WASD for the host to process uniformly
+        if (keys['ArrowUp']) input2.keys['KeyW'] = true;
+        if (keys['ArrowDown']) input2.keys['KeyS'] = true;
+        if (keys['ArrowLeft']) input2.keys['KeyA'] = true;
+        if (keys['ArrowRight']) input2.keys['KeyD'] = true;
+        if (keys['Numpad1']) input2.keys['KeyE'] = true;
+        if (keys['Numpad2']) input2.keys['Space'] = true;
+        if (keys['Numpad0']) input2.keys['mouseDown'] = true;
+        input2.mouseDown = !!keys['Numpad0'];
+        NET.connections[0].send({ type: 'input2', input: input2 });
     }
 }
 

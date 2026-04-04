@@ -106,6 +106,12 @@ const CLASSES = {
         attackType: 'ranged', color: '#4fc3f7', specialCooldown: 15000,
         specialName: 'Domain Expansion', specialDesc: 'Unlimited Void — all enemies take massive damage',
         drawChar: drawGojo
+    },
+    sukuna: {
+        name: 'Sukuna', maxHp: 130, speed: 2.8, attackRange: 35, attackDamage: 16, attackSpeed: 350,
+        attackType: 'melee', color: '#8b0000', specialCooldown: 15000,
+        specialName: 'Malevolent Shrine', specialDesc: 'Domain Expansion — slashing void shreds all enemies',
+        drawChar: drawSukuna
     }
 };
 
@@ -172,6 +178,9 @@ const WEAPON_BASES = [
     { name: 'Cursed Orb', type: 'weapon', subtype: 'cursed', damage: 13, speed: 400, range: 180, forClass: 'gojo' },
     { name: 'Six Eyes Focus', type: 'weapon', subtype: 'cursed', damage: 17, speed: 370, range: 200, forClass: 'gojo' },
     { name: 'Infinite Void', type: 'weapon', subtype: 'cursed', damage: 20, speed: 350, range: 210, forClass: 'gojo' },
+    { name: 'Cursed Claw', type: 'weapon', subtype: 'claw', damage: 14, speed: 350, range: 35, forClass: 'sukuna' },
+    { name: 'Dismantle Blade', type: 'weapon', subtype: 'claw', damage: 19, speed: 320, range: 38, forClass: 'sukuna' },
+    { name: 'Cleave', type: 'weapon', subtype: 'claw', damage: 23, speed: 300, range: 42, forClass: 'sukuna' },
 ];
 const ARMOR_BASES = [
     { name: 'Cloth Robe', type: 'armor', defense: 2 },
@@ -194,6 +203,7 @@ const SHOP_ITEMS = [
     { id: 'startRod', name: 'Storm Rod', desc: 'Start with a better lightning rod', cost: 50 },
     { id: 'startOrb', name: 'Void Orb', desc: 'Start with a better rift orb', cost: 50 },
     { id: 'startCursed', name: 'Six Eyes Focus', desc: 'Start with a better cursed orb', cost: 50 },
+    { id: 'startSukunaClaw', name: 'Dismantle Blade', desc: 'Start with a better cursed claw', cost: 50 },
     { id: 'extraHP', name: 'Vitality Charm', desc: '+20 starting HP', cost: 80 },
     { id: 'potionStart', name: 'Potion Belt', desc: 'Start with 2 health potions', cost: 40 },
 ];
@@ -337,7 +347,7 @@ function createPlayer(classId, playerIndex) {
 }
 
 function applyShopUnlocks(p) {
-    const classWeaponMap = { angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw', healer: 'startCane', lightning: 'startRod', portal: 'startOrb', gojo: 'startCursed' };
+    const classWeaponMap = { angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw', healer: 'startCane', lightning: 'startRod', portal: 'startOrb', gojo: 'startCursed', sukuna: 'startSukunaClaw' };
     const wUnlock = classWeaponMap[p.classId];
     if (meta.unlocks.includes(wUnlock)) {
         const bases = WEAPON_BASES.filter(w => w.forClass === p.classId);
@@ -833,7 +843,64 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#fff', 15);
             triggerShake(10, 20);
             break;
+        case 'sukuna': // Domain Expansion — Malevolent Shrine
+            domainExpansion = {
+                x: p.x, y: p.y, owner: p,
+                radius: 0, maxRadius: 220,
+                life: now + 4500, startTime: now,
+                damage: 35, hasDamaged: false,
+                phase: 'expand', isSukuna: true
+            };
+            // Stun all enemies
+            for (const e of enemies) {
+                if (e.alive) e.stunned = Math.max(e.stunned, now + 4500);
+            }
+            spawnParticles(p.x, p.y, '#8b0000', 30);
+            spawnParticles(p.x, p.y, '#ff4444', 15);
+            triggerShake(12, 24);
+            break;
     }
+}
+
+function sukunaBlackFlash(p, now) {
+    if (p.classId !== 'sukuna') return;
+    if (!p._blackFlashCd) p._blackFlashCd = 0;
+    if (now - p._blackFlashCd < 3000) return; // 3s cooldown
+    p._blackFlashCd = now;
+
+    // Black Flash — devastating melee strike in facing direction
+    const flashRange = 50;
+    const flashDmg = Math.round(p.damage * 2.5);
+    let hitAny = false;
+    for (const e of enemies) {
+        if (!e.alive) continue;
+        const dx = e.x - p.x, dy = e.y - p.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < flashRange) {
+            const angleToEnemy = Math.atan2(dy, dx);
+            let angleDiff = angleToEnemy - p.facingAngle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            if (Math.abs(angleDiff) < Math.PI * 0.7) {
+                dealDamageToEnemy(e, flashDmg, p);
+                hitAny = true;
+            }
+        }
+    }
+    // Black flash visual — dark lightning burst
+    const fx = p.x + Math.cos(p.facingAngle) * 25;
+    const fy = p.y + Math.sin(p.facingAngle) * 25;
+    spawnParticles(fx, fy, '#111', 12);
+    spawnParticles(fx, fy, '#ff1744', 8);
+    spawnParticles(fx, fy, '#000', 6);
+    activeBeams.push({
+        x: p.x, y: p.y, angle: p.facingAngle,
+        length: 55, width: 12,
+        life: 8, maxLife: 8, color: '#111',
+        isBlackFlash: true
+    });
+    triggerShake(8, 12);
+    p.attackAnim = 10;
 }
 
 function gojoHollowPurple(p, now) {
@@ -1450,14 +1517,20 @@ function update(now) {
 
 // Get input keys/mouse for a player (supports local + online)
 function pKey(p, code) {
-    if (NET.isOnline && NET.isHost && p.playerIndex > 0) {
+    // Host's local P2 — use arrow/numpad keys mapped to their bindings
+    if (NET.isOnline && NET.isHost && p.playerIndex === 1 && NET.localPlayerCount >= 2) {
+        return keys[code] || false; // Uses local keyboard (arrows/numpad handled in updatePlayer)
+    }
+    // Remote player on host
+    if (NET.isOnline && NET.isHost && p.playerIndex >= NET.localPlayerCount) {
         const ri = NET.remoteInputs[p.playerIndex];
         return ri ? (ri.keys[code] || false) : false;
     }
     return keys[code] || false;
 }
 function pMouse(p) {
-    if (NET.isOnline && NET.isHost && p.playerIndex > 0) {
+    // Remote player on host
+    if (NET.isOnline && NET.isHost && p.playerIndex >= NET.localPlayerCount) {
         const ri = NET.remoteInputs[p.playerIndex];
         return ri ? { x: ri.mouseX, y: ri.mouseY, down: ri.mouseDown, clicked: ri.clicked } : mouse;
     }
@@ -1483,14 +1556,15 @@ function updatePlayer(p, now) {
         return;
     }
 
-    // Movement — online: all players use WASD; local: P1=WASD, P2=arrows
+    // Movement — determine if this player uses WASD or Arrows
     let dx = 0, dy = 0;
-    if (NET.isOnline || p.playerIndex === 0) {
-        if (pKey(p, 'KeyW')) dy = -1; if (pKey(p, 'KeyS')) dy = 1;
-        if (pKey(p, 'KeyA')) dx = -1; if (pKey(p, 'KeyD')) dx = 1;
-    } else {
+    const isLocalP2 = (p.playerIndex === 1 && NET.localPlayerCount >= 2) || (!NET.isOnline && p.playerIndex > 0);
+    if (isLocalP2) {
         if (pKey(p, 'ArrowUp')) dy = -1; if (pKey(p, 'ArrowDown')) dy = 1;
         if (pKey(p, 'ArrowLeft')) dx = -1; if (pKey(p, 'ArrowRight')) dx = 1;
+    } else {
+        if (pKey(p, 'KeyW')) dy = -1; if (pKey(p, 'KeyS')) dy = 1;
+        if (pKey(p, 'KeyA')) dx = -1; if (pKey(p, 'KeyD')) dx = 1;
     }
     if (dx !== 0 || dy !== 0) {
         const len = Math.sqrt(dx*dx + dy*dy);
@@ -1501,7 +1575,7 @@ function updatePlayer(p, now) {
     }
 
     // Facing direction
-    if (NET.isOnline || p.playerIndex === 0) {
+    if (!isLocalP2) {
         // Mouse aim (adjust for split screen viewport)
         const m = pMouse(p);
         const numV = coopMode ? players.length : 1;
@@ -1510,7 +1584,7 @@ function updatePlayer(p, now) {
         const wy = m.y - canvas.height/2 + p.y;
         p.facingAngle = Math.atan2(wy - p.y, wx - p.x);
     } else {
-        // Local P2+ aims at nearest enemy
+        // Local P2 aims at nearest enemy
         let closest = null, closestDist = Infinity;
         for (const e of enemies) {
             if (!e.alive) continue;
@@ -1521,18 +1595,20 @@ function updatePlayer(p, now) {
         else if (dx !== 0 || dy !== 0) p.facingAngle = Math.atan2(dy, dx);
     }
 
-    // Attacks — online: all use WASD+mouse+E+R+Space; local: P1=mouse/E/R/Space, P2=numpad
-    if (NET.isOnline || p.playerIndex === 0) {
+    // Attacks
+    if (!isLocalP2) {
+        // P1 / remote online player: mouse + E + R + Space
         const m = pMouse(p);
         if (m.down) playerAttack(p, now);
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
-        if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); }
+        if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); }
     } else {
+        // Local P2: Numpad
         if (pKey(p, 'Numpad0')) playerAttack(p, now);
         if (pKey(p, 'Numpad1')) playerSpecial(p, now);
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
-        if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); }
+        if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); }
     }
 
     // Reduce attackAnim
@@ -1835,43 +1911,79 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         ctx.globalAlpha = 1;
     }
 
-    // Domain Expansion (Gojo)
+    // Domain Expansion
     if (domainExpansion) {
         const de = domainExpansion;
         const alpha = de.phase === 'collapse' ? de.radius / de.maxRadius : 1;
-        // Dark void background
-        ctx.globalAlpha = alpha * 0.7;
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.fill();
-        // Void inner pattern — infinite darkness with stars
-        ctx.globalAlpha = alpha * 0.5;
         const t = gameTime * 0.002;
-        for (let s = 0; s < 30; s++) {
-            const sx = de.x + Math.sin(t + s * 1.7) * de.radius * 0.8;
-            const sy = de.y + Math.cos(t * 0.7 + s * 2.3) * de.radius * 0.8;
-            const dist = Math.hypot(sx - de.x, sy - de.y);
-            if (dist < de.radius) {
-                ctx.fillStyle = s % 3 === 0 ? '#4fc3f7' : '#e0e0e0';
-                const starSize = 1 + Math.sin(t * 3 + s) * 0.5;
-                ctx.fillRect(sx, sy, starSize, starSize);
+
+        if (de.isSukuna) {
+            // ── Malevolent Shrine (Sukuna) ──
+            // Blood-red void
+            ctx.globalAlpha = alpha * 0.75;
+            ctx.fillStyle = '#1a0000';
+            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.fill();
+            // Slash marks filling the domain
+            ctx.strokeStyle = 'rgba(255,20,20,0.5)'; ctx.lineWidth = 1.5;
+            ctx.globalAlpha = alpha * 0.6;
+            for (let s = 0; s < 20; s++) {
+                const sx = de.x + Math.sin(t * 1.5 + s * 1.3) * de.radius * 0.7;
+                const sy = de.y + Math.cos(t * 1.1 + s * 1.7) * de.radius * 0.7;
+                if (Math.hypot(sx - de.x, sy - de.y) < de.radius) {
+                    const angle = t * 2 + s;
+                    ctx.beginPath();
+                    ctx.moveTo(sx - Math.cos(angle) * 12, sy - Math.sin(angle) * 12);
+                    ctx.lineTo(sx + Math.cos(angle) * 12, sy + Math.sin(angle) * 12);
+                    ctx.stroke();
+                }
             }
+            // Shrine pillars at edges
+            ctx.fillStyle = '#4a0000'; ctx.globalAlpha = alpha * 0.7;
+            for (let p = 0; p < 8; p++) {
+                const a = (p / 8) * Math.PI * 2 + t * 0.5;
+                const px = de.x + Math.cos(a) * de.radius * 0.85;
+                const py = de.y + Math.sin(a) * de.radius * 0.85;
+                ctx.fillRect(px - 3, py - 10, 6, 20);
+                // Skull on top
+                ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.arc(px, py - 12, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#4a0000';
+            }
+            // Edge ring — dark red
+            ctx.globalAlpha = alpha * 0.9;
+            ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 4;
+            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius * (0.6 + Math.sin(t * 4) * 0.1), 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        } else {
+            // ── Unlimited Void (Gojo) ──
+            ctx.globalAlpha = alpha * 0.7;
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = alpha * 0.5;
+            for (let s = 0; s < 30; s++) {
+                const sx = de.x + Math.sin(t + s * 1.7) * de.radius * 0.8;
+                const sy = de.y + Math.cos(t * 0.7 + s * 2.3) * de.radius * 0.8;
+                if (Math.hypot(sx - de.x, sy - de.y) < de.radius) {
+                    ctx.fillStyle = s % 3 === 0 ? '#4fc3f7' : '#e0e0e0';
+                    ctx.fillRect(sx, sy, 1 + Math.sin(t * 3 + s) * 0.5, 1 + Math.sin(t * 3 + s) * 0.5);
+                }
+            }
+            ctx.strokeStyle = 'rgba(79,195,247,0.3)'; ctx.lineWidth = 0.5;
+            ctx.globalAlpha = alpha * 0.4;
+            for (let g = -de.radius; g < de.radius; g += 20) {
+                ctx.beginPath(); ctx.moveTo(de.x + g, de.y - de.radius); ctx.lineTo(de.x + g, de.y + de.radius); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(de.x - de.radius, de.y + g); ctx.lineTo(de.x + de.radius, de.y + g); ctx.stroke();
+            }
+            ctx.globalAlpha = alpha * 0.8;
+            ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 3;
+            ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = 25;
+            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius * (0.5 + Math.sin(t * 5) * 0.1), 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
         }
-        // Blue grid lines (Unlimited Void look)
-        ctx.strokeStyle = 'rgba(79,195,247,0.3)'; ctx.lineWidth = 0.5;
-        ctx.globalAlpha = alpha * 0.4;
-        for (let g = -de.radius; g < de.radius; g += 20) {
-            ctx.beginPath(); ctx.moveTo(de.x + g, de.y - de.radius); ctx.lineTo(de.x + g, de.y + de.radius); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(de.x - de.radius, de.y + g); ctx.lineTo(de.x + de.radius, de.y + g); ctx.stroke();
-        }
-        // Edge ring
-        ctx.globalAlpha = alpha * 0.8;
-        ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 3;
-        ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = 25;
-        ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.stroke();
-        // Inner pulse ring
-        ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(de.x, de.y, de.radius * (0.5 + Math.sin(t * 5) * 0.1), 0, Math.PI * 2); ctx.stroke();
-        ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
     }
 
@@ -1900,28 +2012,39 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         }
     }
 
-    // Beam effects (Draco)
+    // Beam effects (Draco / Black Flash)
     for (const b of activeBeams) {
         const alpha = b.life / b.maxLife;
         ctx.save();
         ctx.translate(b.x, b.y);
         ctx.rotate(b.angle);
-        // Outer glow
-        ctx.globalAlpha = alpha * 0.4;
-        ctx.fillStyle = '#ce93d8';
-        ctx.shadowColor = '#9c27b0'; ctx.shadowBlur = 30;
-        ctx.fillRect(0, -b.width, b.length, b.width * 2);
-        // Core beam
-        ctx.globalAlpha = alpha * 0.8;
-        const bg = ctx.createLinearGradient(0, 0, b.length, 0);
-        bg.addColorStop(0, '#e1bee7'); bg.addColorStop(0.3, '#ce93d8');
-        bg.addColorStop(0.7, '#ab47bc'); bg.addColorStop(1, 'rgba(156,39,176,0)');
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, -b.width * 0.5, b.length, b.width);
-        // White-hot center
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, -b.width * 0.15, b.length * 0.8, b.width * 0.3);
+        if (b.isBlackFlash) {
+            // Black Flash — dark lightning burst
+            ctx.globalAlpha = alpha * 0.8;
+            ctx.fillStyle = '#000';
+            ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 20;
+            ctx.fillRect(0, -b.width, b.length, b.width * 2);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#ff1744';
+            ctx.fillRect(0, -b.width * 0.3, b.length, b.width * 0.6);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, -b.width * 0.1, b.length * 0.6, b.width * 0.2);
+        } else {
+            // Dragon Beam (Draco)
+            ctx.globalAlpha = alpha * 0.4;
+            ctx.fillStyle = '#ce93d8';
+            ctx.shadowColor = '#9c27b0'; ctx.shadowBlur = 30;
+            ctx.fillRect(0, -b.width, b.length, b.width * 2);
+            ctx.globalAlpha = alpha * 0.8;
+            const bg = ctx.createLinearGradient(0, 0, b.length, 0);
+            bg.addColorStop(0, '#e1bee7'); bg.addColorStop(0.3, '#ce93d8');
+            bg.addColorStop(0.7, '#ab47bc'); bg.addColorStop(1, 'rgba(156,39,176,0)');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, -b.width * 0.5, b.length, b.width);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, -b.width * 0.15, b.length * 0.8, b.width * 0.3);
+        }
         ctx.shadowBlur = 0;
         ctx.restore();
         ctx.globalAlpha = 1;
@@ -2611,6 +2734,61 @@ function drawGojo(ctx, p, time) {
     ctx.restore();
 }
 
+function drawSukuna(ctx, p, time) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Malevolent aura
+    ctx.globalAlpha = 0.12 + Math.sin(time * 0.005) * 0.06;
+    const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 30);
+    ag.addColorStop(0, '#8b0000'); ag.addColorStop(1, 'rgba(139,0,0,0)');
+    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Head
+    ctx.fillStyle = '#e8d0b0';
+    ctx.beginPath(); ctx.arc(0, -8, 8, 0, Math.PI * 2); ctx.fill();
+    // Pink/salmon hair — spiky
+    ctx.fillStyle = '#d4736a';
+    ctx.beginPath(); ctx.moveTo(-6, -12); ctx.lineTo(-4, -21); ctx.lineTo(-1, -14); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-1, -14); ctx.lineTo(1, -23); ctx.lineTo(3, -14); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(3, -14); ctx.lineTo(6, -20); ctx.lineTo(8, -11); ctx.fill();
+    // Four eyes (two pairs)
+    ctx.fillStyle = '#8b0000';
+    ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 4;
+    ctx.fillRect(-5, -11, 2, 2); ctx.fillRect(3, -11, 2, 2); // Top eyes
+    ctx.fillRect(-4, -8, 1.5, 1.5); ctx.fillRect(2.5, -8, 1.5, 1.5); // Bottom eyes
+    ctx.shadowBlur = 0;
+    // Curse marks on face
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(-6, -5); ctx.lineTo(-3, -3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6, -5); ctx.lineTo(3, -3); ctx.stroke();
+    // Body — dark kimono
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.moveTo(-7, -1); ctx.lineTo(7, -1); ctx.lineTo(8, 16); ctx.lineTo(-8, 16); ctx.fill();
+    // Kimono collar V
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-4, -1); ctx.lineTo(0, 5); ctx.lineTo(4, -1); ctx.stroke();
+    // Curse marks on body
+    ctx.strokeStyle = 'rgba(139,0,0,0.4)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-5, 3); ctx.lineTo(-2, 8); ctx.lineTo(-5, 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, 3); ctx.lineTo(2, 8); ctx.lineTo(5, 12); ctx.stroke();
+    // Claw weapon (aimed direction)
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.fillStyle = p.attackAnim > 0 ? '#ff1744' : '#8b0000';
+    ctx.shadowColor = '#ff0000'; ctx.shadowBlur = p.attackAnim > 0 ? 12 : 0;
+    const ext = p.attackAnim > 0 ? 8 : 0;
+    ctx.beginPath(); ctx.moveTo(8, -4); ctx.lineTo(18 + ext, -6); ctx.lineTo(15 + ext, -2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(20 + ext, 0); ctx.lineTo(16 + ext, 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(8, 4); ctx.lineTo(18 + ext, 6); ctx.lineTo(15 + ext, 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    // Legs
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-4, 16, 3, 6); ctx.fillRect(2, 16, 3, 6);
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -25, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
 // ─── ENEMY DRAWING ──────────────────────────────────────────
 function drawEnemy(ctx, e, flash) {
     ctx.save(); ctx.translate(e.x, e.y);
@@ -2833,10 +3011,15 @@ document.getElementById('btn-back-title').onclick = () => showScreen('title-scre
 document.getElementById('btn-back-shop').onclick = () => showScreen('title-screen');
 document.getElementById('btn-back-stats').onclick = () => showScreen('title-screen');
 document.getElementById('btn-back-online').onclick = () => showScreen('title-screen');
-document.getElementById('btn-create-room').onclick = () => { createRoom(); populateLobbyClassGrid(); };
+document.getElementById('btn-create-room').onclick = () => { createRoom(1); populateLobbyClassGrid(); };
+document.getElementById('btn-create-room-2').onclick = () => { createRoom(2); populateLobbyClassGrid(); };
 document.getElementById('btn-join-room').onclick = () => {
     const code = document.getElementById('join-code-input').value.trim();
-    if (code.length === 4) { joinRoom(code); setTimeout(populateLobbyClassGrid, 500); }
+    if (code.length === 4) { joinRoom(code, 1); setTimeout(populateLobbyClassGrid, 500); }
+};
+document.getElementById('btn-join-room-2').onclick = () => {
+    const code = document.getElementById('join-code-input').value.trim();
+    if (code.length === 4) { joinRoom(code, 2); setTimeout(populateLobbyClassGrid, 500); }
 };
 document.getElementById('btn-start-online').onclick = () => hostStartGame();
 document.getElementById('btn-leave-lobby').onclick = () => { cleanupNetwork(); showScreen('title-screen'); };

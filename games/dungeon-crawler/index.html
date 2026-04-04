@@ -32,14 +32,19 @@
     <!-- Online Screen -->
     <div id="online-screen" class="screen">
         <h2>ONLINE CO-OP</h2>
-        <p class="tagline">Up to 3 players</p>
+        <p class="tagline">Up to 3 players across devices</p>
         <div class="menu-buttons">
-            <button id="btn-create-room" class="menu-btn">Create Room</button>
+            <button id="btn-create-room" class="menu-btn">Create Room (1 local)</button>
+            <button id="btn-create-room-2" class="menu-btn">Create Room (2 local)</button>
             <div class="join-row">
                 <input id="join-code-input" type="text" maxlength="4" placeholder="CODE" class="code-input">
-                <button id="btn-join-room" class="menu-btn">Join</button>
+                <button id="btn-join-room" class="menu-btn">Join (1 local)</button>
+            </div>
+            <div class="join-row">
+                <button id="btn-join-room-2" class="menu-btn">Join (2 local)</button>
             </div>
         </div>
+        <p class="controls-hint">2 local = share keyboard (P1: WASD+Mouse, P2: Arrows+Numpad)</p>
         <button id="btn-back-online" class="menu-btn secondary back-btn">Back</button>
     </div>
 
@@ -129,6 +134,16 @@
                     <div class="stat-row"><span>SPD</span><div class="stat-bar"><div class="stat-fill" style="width:80%"></div></div></div>
                 </div>
                 <p class="class-desc">R: Hollow Purple. E: Domain Expansion. Six Eyes.</p>
+            </div>
+            <div class="class-card" data-class="sukuna">
+                <div class="class-icon sukuna-icon"></div>
+                <h3>Sukuna</h3>
+                <div class="class-stats">
+                    <div class="stat-row"><span>HP</span><div class="stat-bar"><div class="stat-fill" style="width:80%"></div></div></div>
+                    <div class="stat-row"><span>ATK</span><div class="stat-bar"><div class="stat-fill" style="width:90%"></div></div></div>
+                    <div class="stat-row"><span>SPD</span><div class="stat-bar"><div class="stat-fill" style="width:60%"></div></div></div>
+                </div>
+                <p class="class-desc">E: Malevolent Shrine. R: Black Flash. King of Curses.</p>
             </div>
         </div>
         <button id="btn-back-title" class="menu-btn secondary back-btn">Back</button>
