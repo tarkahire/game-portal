@@ -73,7 +73,7 @@ games/dads-army/
 
 ## Current Phase
 
-**Phase 1: MVP** — COMPLETE. All MVP features built: auth, hex map, tile interaction, city management, military, combat, supply/roads, portal integration. Next: Phase 2 (strategic depth).
+**Phase 1.5: Gameplay Rework** — IN PROGRESS. Fog of war done. Next: troop-based territory control, resource development rework, research tree UI.
 
 ## Conventions
 

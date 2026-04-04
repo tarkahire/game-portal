@@ -565,6 +565,14 @@ async function showTileInfo(tile) {
 
   title.textContent = `Tile (${tile.q}, ${tile.r})`;
 
+  // Fog of war — show limited info for non-visible tiles
+  const fogState = tile.fog_state || 'visible';
+  if (fogState === 'unexplored') {
+    content.innerHTML = `<div class="tile-info-row" style="color:var(--text-muted);padding:16px">Unexplored territory. Send scouts to reveal.</div>`;
+    panel.style.display = 'block';
+    return;
+  }
+
   const isOwned = tile.owner_id === currentPlayerRecord;
   const isUnclaimed = !tile.owner_id;
   const isWater = tile.terrain_type === 'water';
@@ -599,7 +607,13 @@ async function showTileInfo(tile) {
     }
   }
 
-  let html = `
+  let html = '';
+
+  if (fogState === 'stale') {
+    html += `<div class="tile-info-row" style="color:var(--color-gold);font-size:0.8em">Last scouted — info may be outdated</div>`;
+  }
+
+  html += `
     <div class="tile-info-row"><strong>Terrain:</strong> ${tile.terrain_type}</div>
     <div class="tile-info-row"><strong>Owner:</strong> ${ownerText}</div>
   `;
@@ -668,8 +682,16 @@ async function showTileInfo(tile) {
   if (tile.infrastructure_road) html += `<div class="tile-info-row">Road</div>`;
   if (tile.infrastructure_rail) html += `<div class="tile-info-row">Railway</div>`;
 
-  // --- Action buttons ---
+  // --- Action buttons (only on visible tiles) ---
   html += '<div class="tile-actions">';
+
+  if (fogState === 'stale') {
+    // No actions on stale tiles — need current vision
+    html += '</div>';
+    content.innerHTML = html;
+    panel.style.display = 'block';
+    return;
+  }
 
   // Road building mode
   if (window._roadBuildMode && isOwned) {

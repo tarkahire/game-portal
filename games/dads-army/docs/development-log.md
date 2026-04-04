@@ -244,4 +244,26 @@ Full resource set, production chains, research tree, naval/air warfare, alliance
 
 ---
 
+## 2026-04-04 (continued) — Phase 1.5: Fog of War
+
+### What was built
+- **Server-side fog of war**: `get_visible_tiles` RPC computes vision from cities (2-hex), armies (1-2 hex based on unit type), and owned tiles (1-hex). Returns all 999 tiles with `fog_state` (visible/stale/unexplored). Sensitive data (owner, resources, fortifications) is NULLed on non-visible tiles. Previously explored tiles show terrain but marked stale.
+- **`get_visible_armies` RPC**: Only returns enemy armies within the player's vision range. Your own armies always visible.
+- **`explore_on_arrival` function**: When armies move to a tile, all tiles within their vision range are marked as explored for the player.
+- **`vision_range` column**: Added to unit_defs. Armored cars get 2-hex vision, all others 1-hex.
+- **Fog overlay in renderer**: Unexplored tiles rendered with dark overlay (88% opacity). Stale tiles rendered with dim overlay (55% opacity). Visible tiles render normally.
+- **Minimap fog**: Unexplored tiles dark, stale tiles dimmed, visible tiles full color.
+- **Tile info fog**: Unexplored tiles show "Unexplored territory. Send scouts to reveal." Stale tiles show warning "info may be outdated" and no action buttons. Only visible tiles allow interaction.
+
+### Key decisions
+- **Hybrid approach**: All 999 tiles are sent to client (needed for map shape) but sensitive columns stripped server-side. This prevents data-mining while keeping rendering simple.
+- **Vision sources**: Cities (2), troops (1-2), owned tiles (1). Players start seeing only ~15-20 tiles out of 999.
+- **Stale state preserved**: Previously explored tiles remember terrain and last-known owner. Encourages scouting to update information.
+
+### Current state
+- Fog of war is **complete**
+- Next: troop-based territory control (remove click-to-claim)
+
+---
+
 *More entries will be added as development progresses.*

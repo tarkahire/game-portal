@@ -289,6 +289,27 @@ export class HexRenderer {
       }
     }
 
+    // Fog of war overlay — draw after terrain but before roads/armies
+    for (const tile of this.tiles.values()) {
+      if (!tile.fog_state || tile.fog_state === 'visible') continue;
+
+      const world = hexToPixel(tile.q, tile.r, size);
+      if (world.x < topLeft.x - pad || world.x > bottomRight.x + pad ||
+          world.y < topLeft.y - pad || world.y > bottomRight.y + pad) continue;
+
+      const screen = camera.worldToScreen(world.x, world.y);
+      const screenSize = size * camera.zoom;
+
+      hexPath(ctx, screen.x, screen.y, screenSize);
+      if (tile.fog_state === 'unexplored') {
+        ctx.fillStyle = 'rgba(8, 10, 18, 0.88)';
+      } else {
+        // stale — dim overlay, can still see terrain shape
+        ctx.fillStyle = 'rgba(20, 25, 40, 0.55)';
+      }
+      ctx.fill();
+    }
+
     // Road connections — draw lines between tiles with roads
     if (camera.zoom > 0.15) {
       ctx.strokeStyle = 'rgba(200,180,120,0.5)';
@@ -455,13 +476,20 @@ export class HexRenderer {
     const offsetX = (cw - mapW * scale) / 2 - minX * scale + HEX_SIZE * scale;
     const offsetY = (ch - mapH * scale) / 2 - minY * scale + HEX_SIZE * scale;
 
-    // Draw each tile as a small dot
+    // Draw each tile as a small dot (with fog)
     for (const tile of this.tiles.values()) {
       const p = hexToPixel(tile.q, tile.r);
       const sx = p.x * scale + offsetX;
       const sy = p.y * scale + offsetY;
 
-      if (tile.owner_id) {
+      const fog = tile.fog_state || 'visible';
+      if (fog === 'unexplored') {
+        ctx.fillStyle = '#0a0c14';
+      } else if (fog === 'stale') {
+        ctx.fillStyle = tile.owner_id
+          ? (tile.owner_id === this.currentPlayerId ? '#8B7530' : '#444')
+          : '#2a2e38';
+      } else if (tile.owner_id) {
         ctx.fillStyle = tile.owner_id === this.currentPlayerId
           ? '#FFD700'
           : (this.playerColors.get(tile.owner_id) || '#888');

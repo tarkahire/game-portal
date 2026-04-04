@@ -130,19 +130,19 @@ export async function getAlignmentDefs() {
 // ==========================================================================
 
 /**
- * Load all tiles for a server's map. For large maps, consider using
- * viewport-based pagination instead.
+ * Load all tiles with fog of war applied. Returns fog_state per tile:
+ * 'visible' (full info), 'stale' (previously seen), 'unexplored' (no info).
+ * Sensitive data (owner, resources, fortifications) is hidden outside vision.
  * @param {string} serverId
  * @returns {Promise<object[]>}
  */
 export async function getServerTiles(serverId) {
-  const { data, error } = await supabase
-    .from('tiles')
-    .select('id, q, r, terrain_type, owner_id, resource_type, resource_reserves_total, resource_reserves_remaining, soil_quality, war_damage_level, land_quality, infrastructure_road, infrastructure_rail, fortification_type, fortification_hp')
-    .eq('server_id', serverId);
+  const { data, error } = await supabase.rpc('get_visible_tiles', {
+    p_server_id: serverId,
+  });
 
   if (error) {
-    console.error('[queries] getServerTiles:', error);
+    console.error('[queries] getServerTiles (get_visible_tiles):', error);
     throw error;
   }
 
@@ -509,19 +509,18 @@ export async function getTrainingQueue(cityId) {
 }
 
 /**
- * Get all armies on a specific server (for map display).
+ * Get all visible armies on a server (fog-of-war filtered).
+ * Only returns armies the player can see.
  * @param {string} serverId
  * @returns {Promise<object[]>}
  */
 export async function getAllArmies(serverId) {
-  const { data, error } = await supabase
-    .from('armies')
-    .select('id, player_id, tile_id, name, status, is_garrison')
-    .eq('server_id', serverId)
-    .eq('is_garrison', false);
+  const { data, error } = await supabase.rpc('get_visible_armies', {
+    p_server_id: serverId,
+  });
 
   if (error) {
-    console.error('[queries] getAllArmies:', error);
+    console.error('[queries] getAllArmies (get_visible_armies):', error);
     return [];
   }
 

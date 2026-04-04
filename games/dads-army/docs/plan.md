@@ -12,6 +12,7 @@
 |-------|--------|---------|
 | Phase 0: Docs & Scaffolding | DONE | 27 docs, file structure, auto-doc system |
 | Phase 1: MVP | DONE | All MVP features complete: auth, hex map, tiles, cities, military, combat, supply/roads, portal integration. |
+| Phase 1.5: Gameplay Rework | IN PROGRESS | Fog of war done. Troop territory, resource rework, research tree next. |
 | Phase 2: Strategic Depth | NOT STARTED | Full resources, research, naval, air, alliances, fog of war |
 | Phase 3: War Economy | NOT STARTED | Supply chains, stranding, debt, trade, intelligence |
 | Phase 4: Endgame & Polish | NOT STARTED | Victory conditions, coalitions, tutorial, mobile |
@@ -74,7 +75,18 @@
 
 ---
 
-## Phase 2 — Strategic Depth (after Phase 1 complete)
+## Phase 1.5 — Core Gameplay Rework
+
+Addressing fundamental gameplay issues before Phase 2.
+
+- [x] Fog of war (unexplored/stale/visible states, vision from cities+troops)
+- [ ] Troop-based territory control (remove click-to-claim, require engineers)
+- [ ] Resource development rework (require engineers, construction time, costs)
+- [ ] Research tree UI (visual tech tree panel, start/cancel research)
+
+---
+
+## Phase 2 — Strategic Depth (after Phase 1.5 complete)
 
 - Full resource set (aluminum, rubber, copper, tungsten, ammunition)
 - Production chains (iron+coal→steel, bauxite→aluminum, etc.)
