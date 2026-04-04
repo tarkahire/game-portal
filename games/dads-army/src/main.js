@@ -28,6 +28,7 @@ import {
   formArmy,
   marchArmy,
   getPlayerBattleReports,
+  buildRoad,
 } from './api/queries.js';
 import { HexRenderer } from './map/HexRenderer.js';
 
@@ -62,6 +63,12 @@ let citiesByTile = new Map();
 
 /** All non-garrison armies on the current server. */
 let armiesOnMap = [];
+
+/** Road building mode: tile ID of the first selected tile, or null. */
+let roadBuildFrom = null;
+
+/** Whether the supply overlay is visible. */
+let showSupplyOverlay = false;
 
 // ---------- DOM References ----------
 
@@ -448,9 +455,27 @@ scenes.register('game', {
       showTileInfo(tile);
     });
 
-    // Wire up battle reports button
-    document.getElementById('btn-battle-reports')?.addEventListener('click', () => {
-      showBattleReports();
+    // Wire up action bar buttons
+    document.getElementById('btn-battle-reports')?.addEventListener('click', () => showBattleReports());
+
+    document.getElementById('btn-build-road')?.addEventListener('click', () => {
+      roadBuildFrom = null;
+      const btn = document.getElementById('btn-build-road');
+      const isActive = btn.classList.toggle('active');
+      if (isActive) {
+        window._roadBuildMode = true;
+      } else {
+        window._roadBuildMode = false;
+      }
+    });
+
+    document.getElementById('btn-toggle-supply')?.addEventListener('click', () => {
+      showSupplyOverlay = !showSupplyOverlay;
+      document.getElementById('btn-toggle-supply')?.classList.toggle('active', showSupplyOverlay);
+      if (hexRenderer) {
+        hexRenderer.showSupplyOverlay = showSupplyOverlay;
+        hexRenderer.requestRender();
+      }
     });
 
     // Load tiles, cities, and building defs from Supabase
@@ -618,6 +643,16 @@ async function showTileInfo(tile) {
   // --- Action buttons ---
   html += '<div class="tile-actions">';
 
+  // Road building mode
+  if (window._roadBuildMode && isOwned) {
+    if (!roadBuildFrom) {
+      html += `<button class="btn-action" id="btn-road-from">Road: Select as Start</button>`;
+    } else if (roadBuildFrom !== tile.id) {
+      html += `<button class="btn-action btn-action-primary" id="btn-road-to">Build Road Here (50 money, 10 steel)</button>`;
+      html += `<button class="btn-action" id="btn-road-reset">Reset Start</button>`;
+    }
+  }
+
   // March destination (if a march is pending)
   if (window._pendingMarchArmyId && isLand) {
     // Show combat predictor if marching to an enemy tile
@@ -667,6 +702,31 @@ async function showTileInfo(tile) {
   html += '</div>';
   content.innerHTML = html;
   panel.style.display = 'block';
+
+  // Wire up road building buttons
+  document.getElementById('btn-road-from')?.addEventListener('click', () => {
+    roadBuildFrom = tile.id;
+    showTileInfo(tile); // Refresh panel to show "Build Road Here"
+  });
+  document.getElementById('btn-road-to')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-road-to');
+    btn.disabled = true;
+    btn.textContent = 'Building...';
+    try {
+      await buildRoad(roadBuildFrom, tile.id, selectedServerId);
+      roadBuildFrom = null;
+      await refreshMap();
+    } catch (err) {
+      console.error('[Main] Road build failed:', err);
+      alert('Road failed: ' + (err.message || 'Tiles must be adjacent'));
+      btn.disabled = false;
+      btn.textContent = 'Build Road Here';
+    }
+  });
+  document.getElementById('btn-road-reset')?.addEventListener('click', () => {
+    roadBuildFrom = null;
+    showTileInfo(tile);
+  });
 
   // Wire up march buttons
   const btnMarchHere = document.getElementById('btn-march-here');

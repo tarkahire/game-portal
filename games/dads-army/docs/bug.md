@@ -27,7 +27,12 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ## Open Bugs
 
-*No open bugs at this time.*
+### BUG-028: process_supply_chains and degrade_fortifications use owner_id instead of player_id
+- **Severity**: HIGH
+- **Status**: OPEN (SQL fix created, needs to be run in Supabase)
+- **Reported**: 2026-04-04
+- **Fixed**: —
+- **Fix notes**: **Fix file**: `sql/015_fix_supply_functions.sql` — run both statements in Supabase SQL Editor.
 
 ---
 

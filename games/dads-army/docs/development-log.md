@@ -215,4 +215,33 @@ Why: A game this complex needs clear design docs as source of truth. Every syste
 
 ---
 
+## 2026-04-04 (continued) — Supply, Roads & Portal Integration — PHASE 1 COMPLETE
+
+### What was built
+- **Road building**: "Road" button in action bar enters road build mode. Click first owned tile (start), then adjacent owned tile (end) to build a road (50 money, 10 steel). Roads halve movement cost and extend supply range from 10 to 15 hexes.
+- **Road visualization**: Dashed tan lines drawn between adjacent road-connected tiles on the hex map.
+- **Supply range overlay**: "Supply" button toggles a green tint overlay showing all tiles within supply range of your cities (10 hexes without roads, 15 with roads).
+- **Supply chain processing**: Server-side tick function checks army supply status based on hex distance to nearest friendly city, with road bonus. Armies lose supply progressively: supplied → low → critical → desperate → collapsed.
+- **Portal integration**: Dad's Army card added to portal index.html with description and tags (Strategy, Multiplayer, Persistent, WW2).
+
+### SQL fixes (015_fix_supply_functions.sql)
+- `process_supply_chains`: owner_id→player_id, supply_status values matched to schema CHECK constraint
+- `degrade_fortifications`: owner_id→player_id
+
+### Phase 1 MVP — COMPLETE
+All planned MVP features are now built:
+- Auth (login/register)
+- 999-hex map (renderer, pan/zoom, minimap, tile selection)
+- Tile interaction (claim, develop, build city, extraction intensity)
+- City management (building slots, construction, upgrades, resource display)
+- Military (training, garrison, form army, march orders, map sprites)
+- Combat (multi-round resolution, battle reports, combat predictor, war damage, XP)
+- Supply & Roads (road building, visualization, supply range overlay, supply chain tick)
+- Portal integration (game card on landing page)
+
+### Next: Phase 2 — Strategic Depth
+Full resource set, production chains, research tree, naval/air warfare, alliances/diplomacy, fog of war.
+
+---
+
 *More entries will be added as development progresses.*

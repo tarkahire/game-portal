@@ -420,6 +420,32 @@ export async function developResourceField(tileId, serverId) {
 }
 
 // ==========================================================================
+// Roads & Infrastructure
+// ==========================================================================
+
+/**
+ * Build a road between two adjacent tiles via RPC.
+ * @param {number} fromTile — tile ID
+ * @param {number} toTile — tile ID
+ * @param {string} serverId — UUID
+ * @returns {Promise<void>}
+ */
+export async function buildRoad(fromTile, toTile, serverId) {
+  const { data, error } = await supabase.rpc('build_road', {
+    p_from_tile: fromTile,
+    p_to_tile: toTile,
+    p_server_id: serverId,
+  });
+
+  if (error) {
+    console.error('[queries] buildRoad:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+// ==========================================================================
 // Military
 // ==========================================================================
 

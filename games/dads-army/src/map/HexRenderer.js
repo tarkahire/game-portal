@@ -85,6 +85,7 @@ export class HexRenderer {
     // Render state
     this._renderRequested = false;
     this._onClick = null;
+    this.showSupplyOverlay = false;
 
     // Click handler
     this.canvas.addEventListener('mouseup', (e) => {
@@ -281,6 +282,65 @@ export class HexRenderer {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillText(tile.terrain_type, screen.x, screen.y - screenSize * 0.15);
+      }
+    }
+
+    // Road connections — draw lines between tiles with roads
+    if (camera.zoom > 0.15) {
+      ctx.strokeStyle = 'rgba(200,180,120,0.5)';
+      ctx.lineWidth = Math.max(size * camera.zoom * 0.08, 1);
+      ctx.setLineDash([4, 3]);
+      for (const tile of this.tiles.values()) {
+        if (!tile.infrastructure_road) continue;
+        const world1 = hexToPixel(tile.q, tile.r, size);
+        const screen1 = camera.worldToScreen(world1.x, world1.y);
+        // Check all 6 hex neighbors for roads
+        const dirs = [[1,0],[0,1],[-1,1],[-1,0],[0,-1],[1,-1]];
+        for (const [dq, dr] of dirs) {
+          const nKey = `${tile.q + dq},${tile.r + dr}`;
+          const neighbor = this.tiles.get(nKey);
+          if (neighbor && neighbor.infrastructure_road) {
+            // Only draw each edge once (tile with lower key draws it)
+            if (nKey > `${tile.q},${tile.r}`) {
+              const world2 = hexToPixel(neighbor.q, neighbor.r, size);
+              const screen2 = camera.worldToScreen(world2.x, world2.y);
+              ctx.beginPath();
+              ctx.moveTo(screen1.x, screen1.y);
+              ctx.lineTo(screen2.x, screen2.y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+      ctx.setLineDash([]);
+    }
+
+    // Supply range overlay (green tint on tiles within supply range of player's cities)
+    if (this.showSupplyOverlay) {
+      const cityTiles = [];
+      for (const tile of this.tiles.values()) {
+        if (this._cityTileKeys.has(`${tile.q},${tile.r}`) && tile.owner_id === this.currentPlayerId) {
+          cityTiles.push(tile);
+        }
+      }
+      for (const tile of this.tiles.values()) {
+        const world = hexToPixel(tile.q, tile.r, size);
+        if (world.x < topLeft.x - pad || world.x > bottomRight.x + pad ||
+            world.y < topLeft.y - pad || world.y > bottomRight.y + pad) continue;
+        // Check if within supply range of any city
+        const range = tile.infrastructure_road ? 15 : 10;
+        let inRange = false;
+        for (const ct of cityTiles) {
+          const dist = (Math.abs(ct.q - tile.q) + Math.abs(ct.r - tile.r) + Math.abs(ct.q + ct.r - tile.q - tile.r)) / 2;
+          if (dist <= range) { inRange = true; break; }
+        }
+        if (inRange) {
+          const screen = camera.worldToScreen(world.x, world.y);
+          const screenSize = size * camera.zoom;
+          hexPath(ctx, screen.x, screen.y, screenSize);
+          ctx.fillStyle = 'rgba(39, 174, 96, 0.1)';
+          ctx.fill();
+        }
       }
     }
 

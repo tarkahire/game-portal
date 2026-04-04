@@ -11,7 +11,7 @@
 | Phase | Status | Summary |
 |-------|--------|---------|
 | Phase 0: Docs & Scaffolding | DONE | 27 docs, file structure, auto-doc system |
-| Phase 1: MVP | IN PROGRESS | Auth, hex map, tiles, cities, military, combat done. Supply & roads next. |
+| Phase 1: MVP | DONE | All MVP features complete: auth, hex map, tiles, cities, military, combat, supply/roads, portal integration. |
 | Phase 2: Strategic Depth | NOT STARTED | Full resources, research, naval, air, alliances, fog of war |
 | Phase 3: War Economy | NOT STARTED | Supply chains, stranding, debt, trade, intelligence |
 | Phase 4: Endgame & Polish | NOT STARTED | Victory conditions, coalitions, tutorial, mobile |
@@ -63,14 +63,14 @@
 - [x] Combat predictor (estimated outcome before committing)
 
 ### Then — Supply & Roads
-- [ ] Build roads between tiles
-- [ ] Resource transport along roads (field → city)
-- [ ] Supply line visualization on map
-- [ ] Basic supply range check for armies
+- [x] Build roads between tiles
+- [x] Resource transport along roads (field → city)
+- [x] Supply line visualization on map
+- [x] Basic supply range check for armies
 
 ### Portal Integration
-- [ ] Add Dad's Army card to portal index.html
-- [ ] Create thumbnail image
+- [x] Add Dad's Army card to portal index.html
+- [x] Create thumbnail image
 
 ---
 

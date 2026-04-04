@@ -63,10 +63,10 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 - [x] City resource display (stored resources, production rates, storage capacity)
 
 ### Supply Lines
-- [ ] Road construction between tiles
-- [ ] Resource transport along roads (field → city)
-- [ ] Supply line visualization on map
-- [ ] Supply disruption when roads are cut
+- [x] Road construction between tiles
+- [x] Resource transport along roads (field → city)
+- [x] Supply line visualization on map
+- [x] Supply disruption when roads are cut
 
 ### Military
 - [x] 3 unit types for MVP (infantry, armor, artillery)
@@ -86,8 +86,8 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 - [ ] Money — universal currency
 
 ### Portal Integration
-- [ ] Add Dad's Army card to portal index.html
-- [ ] Create thumbnail for assets/thumbnails/
+- [x] Add Dad's Army card to portal index.html
+- [x] Create thumbnail for assets/thumbnails/
 
 ---
 
