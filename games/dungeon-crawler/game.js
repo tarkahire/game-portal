@@ -703,7 +703,7 @@ function nextFloor() {
     projectiles = [];
     particles = [];
     // Keep Jin-Woo shadow soldiers alive across floors, clear everything else
-    summonedMinions = summonedMinions.filter(m => (m.type === 'shadow' || m.type === 'shadowBoss') && m.life === Infinity);
+    summonedMinions = summonedMinions.filter(m => (m.type === 'shadow' || m.type === 'shadowBoss' || m.type === 'insect') && m.life === Infinity);
     // Teleport surviving shadows to start room
     const floorStart = dungeon.rooms[0];
     summonedMinions.forEach(m => {
@@ -1451,6 +1451,26 @@ function sukunaBlackFlash(p, now) {
     });
     triggerShake(8, 12);
     p.attackAnim = 10;
+}
+
+function frogInsects(p, now) {
+    if (p.classId !== 'frog') return;
+    if (p._insectsSpawned) return; // only summon once
+    p._insectsSpawned = true;
+    // Spawn 10 insects in a ring
+    for (let i = 0; i < 10; i++) {
+        const angle = (i / 10) * Math.PI * 2;
+        summonedMinions.push({
+            x: p.x + Math.cos(angle) * 30, y: p.y + Math.sin(angle) * 30, owner: p,
+            hp: 999, maxHp: 999, damage: 1, speed: 3.5,
+            radius: 3, attackRange: 30, lastAttack: now + i * 200, attackSpeed: 2000,
+            life: Infinity, color: '#222', type: 'insect',
+            _guardIndex: i, _guardTotal: 10, _orbit: true
+        });
+    }
+    damageNumbers.push({ x: p.x, y: p.y - 25, text: 'BZZZZ!', color: '#8d6e63', life: 40 });
+    spawnParticles(p.x, p.y, '#5d4037', 12);
+    triggerShake(3, 5);
 }
 
 function jinwooAriseBoss(p, now) {
@@ -2533,7 +2553,7 @@ function updatePlayer(p, now) {
         if (m.down) playerAttack(p, now);
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
-        if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); }
+        if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); frogInsects(p, now); }
         if (pKey(p, 'KeyQ')) { gojoDash(p, now); jinwooRecall(p, now); }
         if (pKey(p, 'KeyF')) jinwooAriseBoss(p, now);
     } else {
@@ -2541,7 +2561,8 @@ function updatePlayer(p, now) {
         if (pKey(p, 'Numpad0')) playerAttack(p, now);
         if (pKey(p, 'Numpad1')) playerSpecial(p, now);
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
-        if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); }
+        if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); frogInsects(p, now); }
+        if (pKey(p, 'Numpad6') && !pKey(p, 'Numpad5')) frogInsects(p, now);
         if (pKey(p, 'Numpad4')) { gojoDash(p, now); jinwooRecall(p, now); }
         if (pKey(p, 'Numpad6')) jinwooAriseBoss(p, now);
     }
@@ -2899,6 +2920,23 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
                     const wy = Math.sin(wt * 0.7 + w * 2) * 4;
                     ctx.beginPath(); ctx.arc(wx, wy, 3 + w, 0, Math.PI * 2); ctx.fill();
                 }
+            } else if (m.type === 'insect') {
+                // Fly/insect — tiny dark buzzing bug with wings
+                const buzz = Math.sin(gameTime * 0.05 + (m._guardIndex || 0) * 2) * 2;
+                ctx.fillStyle = '#222';
+                ctx.beginPath(); ctx.ellipse(0, buzz, 3, 2, 0, 0, Math.PI * 2); ctx.fill();
+                // Wings (fast flapping)
+                ctx.fillStyle = 'rgba(200,200,255,0.4)';
+                const wFlap = Math.sin(gameTime * 0.08 + (m._guardIndex || 0)) * 0.8;
+                ctx.save(); ctx.rotate(wFlap);
+                ctx.beginPath(); ctx.ellipse(-2, buzz - 2, 3, 1.5, -0.3, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+                ctx.save(); ctx.rotate(-wFlap);
+                ctx.beginPath(); ctx.ellipse(2, buzz - 2, 3, 1.5, 0.3, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+                // Red eyes
+                ctx.fillStyle = '#f44336';
+                ctx.fillRect(-1.5, buzz - 1, 1, 1); ctx.fillRect(0.5, buzz - 1, 1, 1);
             } else {
                 // Generic (clones)
                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-2,-2,1.5,0,Math.PI*2); ctx.fill();
