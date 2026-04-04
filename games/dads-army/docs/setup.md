@@ -192,9 +192,13 @@ All SQL files will live in `games/dads-army/sql/` (created during Phase 1):
 | `008_rls_policies.sql` | Row Level Security for all tables |
 | `009_functions.sql` | PL/pgSQL game tick, combat resolution, resource materialization |
 | `010_cron.sql` | pg_cron job registration |
-| `seed_map_european_theater.sql` | 999-hex European theater map data |
-| `seed_definitions.sql` | WW2 building/unit/research definitions |
-| `seed_server.sql` | Create a playable game server |
+| `seed_definitions_fixed.sql` | WW2 alignment definitions |
+| `seed_buildings_fixed.sql` | 23 building definitions |
+| `seed_units_fixed.sql` | 15 unit definitions |
+| `seed_research_fixed.sql` | 25 research tech definitions |
+| `seed_server_v2.sql` | Game server + 999-hex map + tile adjacency (corrected hex spiral) |
+
+**Note**: The original `seed_definitions.sql`, `seed_server.sql` files had column mismatches. Use the `*_fixed.sql` / `*_v2.sql` versions above. See bug.md BUG-004, BUG-005 for details.
 
 ---
 

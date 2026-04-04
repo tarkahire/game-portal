@@ -35,10 +35,10 @@
 - [x] Auto-documentation system (doc-audit.sh + Stop hook)
 
 ### Next Up — Tile Interaction
-- [ ] Claim adjacent unclaimed tiles (click tile → "Claim" button in info panel)
-- [ ] Develop resource field (build extraction on owned resource tile)
+- [x] Claim adjacent unclaimed tiles (click tile → "Claim" button in info panel)
+- [x] Develop resource field (build extraction on owned resource tile)
 - [ ] Set extraction intensity (sustainable / normal / intensive)
-- [ ] Build city on disused land (or depleted field <20%)
+- [x] Build city on disused land (or depleted field <20%)
 - [ ] Visual feedback: owned tiles glow, claimed animation
 
 ### Then — City Management

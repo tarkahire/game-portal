@@ -156,6 +156,36 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Actual behavior**: 400 error from Supabase, empty server list
 - **Fix notes**: The `getActiveServers()` query in queries.js selected `player_count` which is a computed value (COUNT of players), not a stored column on `game_servers`. Also, the status filter used `['active', 'upcoming', 'full']` but our server statuses are `['lobby', 'active', 'paused', 'ended']`. **Resolution**: Removed `player_count` from SELECT, updated status filter to `['lobby', 'active']`, updated main.js server card template to remove player_count reference.
 
+### BUG-016: Build City button shows on capital tile that already has a city
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Click your capital tile — "Build City" button appears even though a city exists
+- **Expected behavior**: No Build City button on tiles with existing cities
+- **Actual behavior**: _hasCity flag failed due to type mismatch (INT vs Number in Set comparison)
+- **Fix notes**: Cast both `city.tile_id` and `tile.id` to `Number()` before Set comparison.
+
+### BUG-017: Farmland tiles show Build City instead of Develop Resource
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Click a farmland tile you own — shows "Build City" not "Develop Resource"
+- **Expected behavior**: Farmland detected as resource tile, showing Develop Resource button
+- **Actual behavior**: Some farmland tiles have `terrain_type = 'farmland'` but `resource_type = NULL`. The hasResource check only looked at resource_type, missing terrain-based resources. Also NULL reserves caused the Develop button check to fail.
+- **Fix notes**: Added fallback: `hasResource = !!tile.resource_type || tile.terrain_type === 'farmland'`. Handle NULL reserves as 0. Show "Undeveloped" for tiles with no reserve data.
+
+### BUG-018: Mountain tiles show Build City button
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Click a mountain tile you own — "Build City" appears
+- **Expected behavior**: Mountains should not allow city building
+- **Actual behavior**: Mountain is `terrain_type !== 'water'` so `isLand` was true, and no resource → canBuildCity was true
+- **Fix notes**: Added `isMountain` check and `cityBuildableTerrain` whitelist. Only plains, disused, farmland, forest, desert, marsh allow city building.
+
 ### BUG-015: Owned tiles show as "Enemy" — player ID type mismatch
 - **Severity**: HIGH
 - **Status**: FIXED

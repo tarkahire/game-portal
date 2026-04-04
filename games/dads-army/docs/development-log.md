@@ -92,4 +92,38 @@ Why: A game this complex needs clear design docs as source of truth. Every syste
 
 ---
 
+## 2026-04-04 (continued) — Hex Map + Tile Interaction
+
+### What was built
+- **Hex map renderer**: HexGrid.js (math), HexCamera.js (pan/zoom), HexRenderer.js (Canvas rendering)
+- **999 hex tiles** rendered with terrain colors, resource dots, ownership borders, labels
+- **Pan and zoom**: mouse drag to pan, scroll wheel to zoom, camera follows player territory
+- **Tile selection**: click any hex to see info panel (terrain, owner, resource, reserves, land quality)
+- **Minimap**: bottom-right overview of full map with gold viewport rectangle
+- **Resource bar**: top bar showing player's capital city resources
+- **Tile action buttons**: Claim Tile, Develop Resource, Build City — context-sensitive based on tile state
+- **Auto-documentation system**: doc-map.json, doc-audit.sh, Stop hook, project-playbook.md
+
+### Bugs fixed (BUG-010 through BUG-018)
+- BUG-010: sort_order column doesn't exist on definition tables
+- BUG-011: align.key should be align.id — Confirm & Deploy button did nothing
+- BUG-012/013/014: More column name mismatches in tile/city/resource queries
+- BUG-015: Player ID type mismatch — owned tiles showed as "Enemy"
+- BUG-016: Build City showing on tiles that already have cities (Number type cast fix)
+- BUG-017: Farmland not detected as resource (terrain_type fallback needed)
+- BUG-018: Mountains incorrectly allowed city building (terrain whitelist added)
+
+### Lessons learned
+1. **Screenshot debugging is invaluable**: Screenshots 5-8 from the user immediately revealed button logic issues that console logs wouldn't catch. Always ask for screenshots of UI problems.
+2. **Data type awareness**: Supabase returns INTs as numbers but Set comparison needs explicit `Number()` casts when mixing with JSON data. Never assume types match across query boundaries.
+3. **Terrain vs resource distinction**: Farmland is both a terrain type AND a resource type. The seed data doesn't always set both consistently. Need fallback logic to handle both cases.
+4. **Whitelist > blacklist for terrain rules**: Instead of "not water and not mountain", use a whitelist of city-buildable terrains. Easier to maintain and catches edge cases.
+
+### Current state
+- Full hex map rendering with 999 tiles, pan/zoom, tile selection
+- Tile action buttons working (Claim, Develop, Build City)
+- Next: city management panel, building construction, unit training
+
+---
+
 *More entries will be added as development progresses.*
