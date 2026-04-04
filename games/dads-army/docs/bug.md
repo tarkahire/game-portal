@@ -27,20 +27,11 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ## Open Bugs
 
-### BUG-021: build_building / upgrade_building / complete_buildings RPCs have multiple column mismatches
-- **Severity**: CRITICAL
-- **Status**: OPEN (SQL fix created, needs to be run in Supabase)
-- **Reported**: 2026-04-04
-- **Fixed**: —
-- **Steps to reproduce**: Call build_building or upgrade_building RPC
-- **Expected behavior**: Building created/upgraded
-- **Actual behavior**: Multiple crashes due to:
-  1. `c.owner_id` → should be `c.player_id` (all three functions)
-  2. `v_def.cost_money` / `v_def.cost_steel` → don't exist, should parse from `costs_per_level` JSONB
-  3. `v_def.build_time_ticks` → doesn't exist, should parse from `build_time_per_level` JSONB
-  4. Building def matched by `name` instead of `id`
-  5. Slot counts didn't match CLAUDE.md spec (was 3/5/7/9/12, should be 3/5/8/12/16)
-- **Fix notes**: Same root cause as BUG-002/003/019 — functions generated with assumed column names. **Fix file**: `sql/012_fix_building_functions.sql` — run all 3 statements in Supabase SQL Editor.
+*No open bugs at this time.*
+
+---
+
+## Fixed Bugs
 
 ### BUG-022: getCityBuildings query references wrong table and column names
 - **Severity**: HIGH
@@ -52,9 +43,20 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Actual behavior**: Query uses `city_buildings` (table is `buildings`), `building_def_key` (column is `building_def`), `is_upgrading` (column is `is_constructing`), `upgrade_finishes_at` (column is `construction_completes_at`)
 - **Fix notes**: Same root cause as BUG-008/012/013. Corrected all column names in queries.js.
 
----
-
-## Fixed Bugs
+### BUG-021: build_building / upgrade_building / complete_buildings RPCs have multiple column mismatches
+- **Severity**: CRITICAL
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Call build_building or upgrade_building RPC
+- **Expected behavior**: Building created/upgraded
+- **Actual behavior**: Multiple crashes due to:
+  1. `c.owner_id` → should be `c.player_id` (all three functions)
+  2. `v_def.cost_money` / `v_def.cost_steel` → don't exist, should parse from `costs_per_level` JSONB
+  3. `v_def.build_time_ticks` → doesn't exist, should parse from `build_time_per_level` JSONB
+  4. Building def matched by `name` instead of `id`
+  5. Slot counts didn't match CLAUDE.md spec (was 3/5/7/9/12, should be 3/5/8/12/16)
+- **Fix notes**: Same root cause as BUG-002/003/019 — functions generated with assumed column names. **Fix file**: `sql/012_fix_building_functions.sql`.
 
 ### BUG-020: isLand variable undefined in showTileInfo — crashes on unclaimed tile click
 - **Severity**: HIGH
