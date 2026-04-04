@@ -1348,10 +1348,10 @@ function playerSpecial(p, now) {
                 const total = existing + toSpawn;
                 const angle = ((existing + i) / total) * Math.PI * 2;
                 summonedMinions.push({ x: p.x+Math.cos(angle)*30, y: p.y+Math.sin(angle)*30, owner: p,
-                    hp: 25, maxHp: 25, damage: 8, speed: 3.2,
-                    radius: 7, attackRange: 22, lastAttack: 0, attackSpeed: 400,
+                    hp: 20, maxHp: 20, damage: 6, speed: 3.2,
+                    radius: 5, attackRange: 140, lastAttack: 0, attackSpeed: 600,
                     life: Infinity, color: '#6a3aaa', type: 'shadow',
-                    shadowOf: 'warrior', _guardIndex: existing + i, _guardTotal: 8 });
+                    shadowOf: 'warrior', _guardIndex: existing + i, _guardTotal: 8, ranged: true });
             }
             // Reassign guard indices for smooth circle
             let idx = 0;
@@ -1962,21 +1962,34 @@ function update(now) {
         const m = summonedMinions[i];
         if (now > m.life || m.hp <= 0) { spawnParticles(m.x, m.y, m.color || '#880000', 6); summonedMinions.splice(i, 1); continue; }
 
-        if (enraged) {
-            // ATTACK MODE — chase and attack nearest enemy
+        // Shadows always shoot when enemies in range (don't need enrage)
+        if (m.type === 'shadow' && m.ranged) {
             let closest = null, closestDist = Infinity;
-            for (const e of enemies) {
-                if (!e.alive) continue;
+            for (const e of enemies) { if (!e.alive) continue;
                 const d = Math.hypot(e.x - m.x, e.y - m.y);
-                if (d < closestDist) { closestDist = d; closest = e; }
+                if (d < m.attackRange && d < closestDist) { closestDist = d; closest = e; } }
+            if (closest && now - m.lastAttack > m.attackSpeed) {
+                m.lastAttack = now;
+                const angle = Math.atan2(closest.y - m.y, closest.x - m.x);
+                projectiles.push({ x: m.x, y: m.y, vx: Math.cos(angle) * 6, vy: Math.sin(angle) * 6,
+                    damage: m.damage, owner: 'player', ownerRef: m.owner, range: m.attackRange, traveled: 0,
+                    color: '#448aff', radius: 3 });
+                spawnParticles(m.x, m.y, '#448aff', 2);
             }
+        }
+
+        if (enraged && !(m.type === 'shadow')) {
+            // ATTACK MODE (non-shadow) — chase and attack nearest enemy
+            let closest = null, closestDist = Infinity;
+            for (const e of enemies) { if (!e.alive) continue;
+                const d = Math.hypot(e.x - m.x, e.y - m.y);
+                if (d < closestDist) { closestDist = d; closest = e; } }
             if (closest) {
                 if (closestDist > m.attackRange) {
                     const dx = closest.x - m.x, dy = closest.y - m.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     const spd = m.speed * 1.5;
                     const nx = m.x + (dx/dist) * spd, ny = m.y + (dy/dist) * spd;
-                    // Try both axes to avoid getting stuck on walls
                     if (isWalkableRadius(nx, ny, m.radius || 6)) { m.x = nx; m.y = ny; }
                     else if (isWalkableRadius(nx, m.y, m.radius || 6)) m.x = nx;
                     else if (isWalkableRadius(m.x, ny, m.radius || 6)) m.y = ny;
@@ -1987,16 +2000,19 @@ function update(now) {
                 }
             }
         } else {
-            // FOLLOW MODE — guard in circle around owner (shadows) or trail (others)
+            // FOLLOW MODE — shadows form wall, others trail
             const owner = m.owner;
             if (owner && owner.alive) {
                 let targetX, targetY;
                 if (m.type === 'shadow' && m._guardIndex !== undefined) {
-                    // Circle formation around owner
-                    const gAngle = (m._guardIndex / (m._guardTotal || 8)) * Math.PI * 2 + now * 0.0005;
-                    const guardRadius = 35;
-                    targetX = owner.x + Math.cos(gAngle) * guardRadius;
-                    targetY = owner.y + Math.sin(gAngle) * guardRadius;
+                    // Loose wall formation in front of owner
+                    const wallSpacing = 14;
+                    const wallOffset = (m._guardIndex - (m._guardTotal || 8) / 2 + 0.5) * wallSpacing;
+                    const facingAngle = owner.facingAngle || 0;
+                    const perpAngle = facingAngle + Math.PI / 2;
+                    const guardDist = 30;
+                    targetX = owner.x + Math.cos(facingAngle) * guardDist + Math.cos(perpAngle) * wallOffset;
+                    targetY = owner.y + Math.sin(facingAngle) * guardDist + Math.sin(perpAngle) * wallOffset;
                 } else {
                     targetX = owner.x;
                     targetY = owner.y;
@@ -2571,63 +2587,29 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
             // Jin-Woo shadow warriors — big armored soldiers
             ctx.globalAlpha = 0.9;
             ctx.save(); ctx.translate(m.x, m.y);
-            const sCol = '#3a1a6a'; // dark shadow purple
-            const sHi = '#7c4dff'; // bright purple highlight
-            const sGlow = '#aa44ff';
-            // Purple aura glow
-            ctx.shadowColor = sGlow; ctx.shadowBlur = 12;
-            const ag = ctx.createRadialGradient(0, -4, 0, 0, -4, 20);
-            ag.addColorStop(0, 'rgba(124,77,255,0.12)'); ag.addColorStop(1, 'rgba(124,77,255,0)');
-            ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -4, 20, 0, Math.PI * 2); ctx.fill();
-            // Helmet (big armored head)
-            ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, -12, 10, 0, Math.PI * 2); ctx.fill();
-            // Helmet visor
-            ctx.fillStyle = '#1a0a30'; ctx.fillRect(-7, -14, 14, 4);
-            // Glowing eyes
-            ctx.fillStyle = sHi; ctx.shadowColor = sHi; ctx.shadowBlur = 8;
-            ctx.fillRect(-5, -14, 3, 2.5); ctx.fillRect(2, -14, 3, 2.5);
-            ctx.shadowBlur = 12; ctx.shadowColor = sGlow;
-            // Helmet crest
-            ctx.fillStyle = sHi;
-            ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(-3, -16); ctx.lineTo(3, -16); ctx.fill();
-            // Armored body (wide)
+            const sCol = '#1a1040';
+            const sHi = '#448aff'; // blue flame
+            // Blue flame aura
+            ctx.shadowColor = sHi; ctx.shadowBlur = 8;
+            const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 12);
+            ag.addColorStop(0, 'rgba(68,138,255,0.15)'); ag.addColorStop(1, 'rgba(68,138,255,0)');
+            ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 12, 0, Math.PI * 2); ctx.fill();
+            // Hooded head
+            ctx.fillStyle = sCol; ctx.beginPath(); ctx.arc(0, -6, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -6, 6, Math.PI, Math.PI * 2); ctx.fill(); // hood
+            // Glowing blue eyes
+            ctx.fillStyle = sHi; ctx.shadowColor = sHi; ctx.shadowBlur = 6;
+            ctx.fillRect(-3, -7, 2, 1.5); ctx.fillRect(1, -7, 2, 1.5);
+            ctx.shadowBlur = 8;
+            // Body — slim cloak
             ctx.fillStyle = sCol;
-            ctx.fillRect(-9, -2, 18, 18);
-            // Chest plate
-            ctx.fillStyle = '#2a1050';
-            ctx.fillRect(-7, 0, 14, 8);
-            // Purple glowing lines on armor
-            ctx.strokeStyle = sHi; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
-            ctx.beginPath(); ctx.moveTo(-7, 2); ctx.lineTo(7, 2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(-7, 6); ctx.lineTo(7, 6); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 8); ctx.stroke();
-            ctx.globalAlpha = 0.9;
-            // Shoulder pads
-            ctx.fillStyle = sCol;
-            ctx.beginPath(); ctx.arc(-11, -1, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(11, -1, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = sHi; ctx.globalAlpha = 0.4;
-            ctx.beginPath(); ctx.arc(-11, -2, 3, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(11, -2, 3, 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = 0.9;
-            // Sword (right side)
-            ctx.fillStyle = '#8a8a9a';
-            ctx.shadowColor = sHi; ctx.shadowBlur = 6;
-            ctx.fillRect(12, -4, 3, 20);
-            // Sword edge glow
-            ctx.fillStyle = sHi; ctx.globalAlpha = 0.3;
-            ctx.fillRect(13, -4, 1, 20); ctx.globalAlpha = 0.9;
-            // Shield (left side)
-            ctx.fillStyle = '#2a1050';
-            ctx.fillRect(-16, -2, 5, 14);
-            ctx.strokeStyle = sHi; ctx.lineWidth = 0.8;
-            ctx.strokeRect(-16, -2, 5, 14);
-            // Legs (armored)
-            ctx.fillStyle = sCol;
-            ctx.fillRect(-6, 16, 5, 8); ctx.fillRect(1, 16, 5, 8);
-            // Boot glow
-            ctx.fillStyle = sHi; ctx.globalAlpha = 0.3;
-            ctx.fillRect(-6, 22, 5, 2); ctx.fillRect(1, 22, 5, 2);
+            ctx.beginPath(); ctx.moveTo(-4, -1); ctx.lineTo(4, -1); ctx.lineTo(5, 10); ctx.lineTo(-5, 10); ctx.fill();
+            // Blue flame wisps
+            const ft = gameTime * 0.012 + m._guardIndex * 1.5;
+            ctx.fillStyle = 'rgba(68,138,255,0.4)';
+            ctx.beginPath(); ctx.arc(Math.sin(ft) * 3, -8 - Math.abs(Math.sin(ft * 1.3)) * 4, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(68,138,255,0.25)';
+            ctx.beginPath(); ctx.arc(Math.sin(ft + 1) * 2, -10 - Math.abs(Math.sin(ft * 0.9)) * 3, 1.5, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1;
         } else {
             // Imps, clones, dogs — generic minion drawing
