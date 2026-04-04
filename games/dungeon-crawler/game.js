@@ -1400,50 +1400,15 @@ function playerSpecial(p, now) {
             activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 55, width: 12, life: 10, maxLife: 10, color: '#222' });
             spawnParticles(p.x, p.y, '#111', 16); spawnParticles(p.x, p.y, '#69f0ae', 8);
             triggerShake(6, 10); } break;
-        case 'frog': // Electric Tongue — spinning spiral catches all enemies
-            { const tongueRadius = 150; // ~15 meters (15 tiles * 10px)
-            let eaten = 0;
-            // Spinning tongue beams (8 directions for spiral visual)
-            for (let s = 0; s < 8; s++) {
-                const spiralAngle = p.facingAngle + (s / 8) * Math.PI * 2;
-                activeBeams.push({ x: p.x, y: p.y, angle: spiralAngle,
-                    length: tongueRadius, width: 3, life: 12 + s * 2, maxLife: 28, color: '#76ff03', isTongue: true });
+        case 'frog': // Electric Tongue — spinning wide arc traps everything
+            { // Start or continue tongue spin
+            if (!p._tongueActive) {
+                p._tongueActive = true;
+                p._tongueStart = now;
+                p._tongueAngle = p.facingAngle;
+                p._tongueTrapped = new Set();
             }
-            // Catch ALL enemies in radius
-            const snap = enemies.slice();
-            for (const e of snap) { if (!e.alive) continue;
-                const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < tongueRadius) {
-                    // Electric shock
-                    spawnParticles(e.x, e.y, '#ffeb3b', 4);
-                    e.stunned = Math.max(e.stunned, now + 1500);
-                    // Pull to mouth
-                    e.x = p.x + (Math.random()-0.5) * 15;
-                    e.y = p.y + (Math.random()-0.5) * 15;
-                    if (e.isBoss) {
-                        // Bosses take big damage but don't get eaten
-                        dealDamageToEnemy(e, Math.round(p.damage * 3), p);
-                    } else {
-                        // Devour non-bosses
-                        dealDamageToEnemy(e, 9999, p);
-                        eaten++;
-                    }
-                }
-            }
-            // Heal from eating
-            if (eaten > 0) {
-                const heal = eaten * 5;
-                p.hp = Math.min(p.hp + heal, p.maxHp);
-                damageNumbers.push({ x: p.x, y: p.y - 25, text: `*CHOMP x${eaten}* +${heal}hp`, color: '#76ff03', life: 50 });
-            }
-            // Electric spiral particles
-            for (let s = 0; s < 12; s++) {
-                const a = (s / 12) * Math.PI * 2;
-                const r = tongueRadius * (s / 12);
-                spawnParticles(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, '#ffeb3b', 2);
-            }
-            spawnParticles(p.x, p.y, '#4caf50', 8);
-            triggerShake(6, 12); } break;
+            } break;
     }
 }
 
@@ -2224,6 +2189,78 @@ function update(now) {
                 color: '#43a047'
             });
             spawnParticles(p.x, p.y, '#66bb6a', 8);
+        }
+    }
+
+    // Frog tongue — spinning arc that traps enemies
+    for (const p of players) {
+        if (!p.alive || p.classId !== 'frog' || !p._tongueActive) continue;
+        const tongueRadius = 150;
+        const spinSpeed = 0.08; // radians per frame — full circle in ~80 frames
+        const spinDuration = 1500; // 1.5 seconds for full sweep
+        const elapsed = now - p._tongueStart;
+        if (elapsed > spinDuration) {
+            // Spin done — devour all trapped enemies
+            p._tongueActive = false;
+            let eaten = 0;
+            const snap = enemies.slice();
+            for (const e of snap) {
+                if (!e.alive || !p._tongueTrapped.has(e)) continue;
+                e.x = p.x + (Math.random()-0.5) * 15;
+                e.y = p.y + (Math.random()-0.5) * 15;
+                if (e.isBoss) {
+                    dealDamageToEnemy(e, Math.round(p.damage * 3), p);
+                } else {
+                    dealDamageToEnemy(e, 9999, p);
+                    eaten++;
+                }
+            }
+            if (eaten > 0) {
+                const heal = eaten * 5;
+                p.hp = Math.min(p.hp + heal, p.maxHp);
+                damageNumbers.push({ x: p.x, y: p.y - 25, text: `*CHOMP x${eaten}* +${heal}hp`, color: '#76ff03', life: 50 });
+            }
+            spawnParticles(p.x, p.y, '#4caf50', 12);
+            triggerShake(6, 12);
+            p._tongueTrapped = null;
+            continue;
+        }
+        // Advance tongue angle
+        p._tongueAngle += spinSpeed;
+        // Tongue beam at current angle
+        activeBeams.push({ x: p.x, y: p.y, angle: p._tongueAngle,
+            length: tongueRadius, width: 4, life: 3, maxLife: 3, color: '#76ff03', isTongue: true });
+        // Spark particles at tongue tip
+        const tipX = p.x + Math.cos(p._tongueAngle) * tongueRadius;
+        const tipY = p.y + Math.sin(p._tongueAngle) * tongueRadius;
+        spawnParticles(tipX, tipY, '#ffeb3b', 1);
+        // Check what the tongue sweeps over — trap and stun
+        for (const e of enemies) {
+            if (!e.alive || p._tongueTrapped.has(e)) continue;
+            const dist = Math.hypot(e.x - p.x, e.y - p.y);
+            if (dist > tongueRadius) continue;
+            // Check if enemy is near the tongue line
+            const eAngle = Math.atan2(e.y - p.y, e.x - p.x);
+            let diff = eAngle - p._tongueAngle;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            if (Math.abs(diff) < 0.25) {
+                // Caught! Trap on the tongue
+                p._tongueTrapped.add(e);
+                e.stunned = Math.max(e.stunned, now + spinDuration);
+                spawnParticles(e.x, e.y, '#ffeb3b', 4);
+                damageNumbers.push({ x: e.x, y: e.y - 15, text: 'CAUGHT!', color: '#76ff03', life: 30 });
+            }
+        }
+        // Drag trapped enemies along with tongue
+        for (const e of p._tongueTrapped) {
+            if (!e.alive) continue;
+            const dragDist = Math.hypot(e.x - p.x, e.y - p.y);
+            const dragAngle = p._tongueAngle + (Math.random()-0.5) * 0.3;
+            e.x = p.x + Math.cos(dragAngle) * Math.min(dragDist, tongueRadius * 0.8);
+            e.y = p.y + Math.sin(dragAngle) * Math.min(dragDist, tongueRadius * 0.8);
+            // Constant shock damage while trapped
+            if (Math.random() < 0.1) dealDamageToEnemy(e, 2, p);
         }
     }
 
