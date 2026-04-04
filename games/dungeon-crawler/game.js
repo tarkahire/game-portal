@@ -1207,12 +1207,12 @@ function playerSpecial(p, now) {
                 const tx = target.x, ty = target.y; target.x = p.x; target.y = p.y; p.x = tx; p.y = ty;
                 dealDamageToEnemy(target, Math.round(p.damage * 1.5), p); }
             triggerShake(4, 6); } break;
-        case 'megumi': // Divine Dogs
-            for (let i = 0; i < 2; i++) { const angle = p.facingAngle + (i===0?-0.5:0.5);
-                summonedMinions.push({ x: p.x+Math.cos(angle)*20, y: p.y+Math.sin(angle)*20, owner: p,
-                    hp: 25, maxHp: 25, damage: 8, speed: 3, radius: 8, attackRange: 25,
-                    lastAttack: 0, attackSpeed: 500, life: now + 6000, color: '#1a237e', type: 'dog' }); }
-            spawnParticles(p.x, p.y, '#283593', 12); triggerShake(3, 5); break;
+        case 'megumi': // Divine Dogs — summon 8
+            for (let i = 0; i < 8; i++) { const angle = (i / 8) * Math.PI * 2;
+                summonedMinions.push({ x: p.x+Math.cos(angle)*25, y: p.y+Math.sin(angle)*25, owner: p,
+                    hp: 20, maxHp: 20, damage: 6, speed: 3.2, radius: 7, attackRange: 22,
+                    lastAttack: 0, attackSpeed: 450, life: now + 8000, color: '#1a237e', type: 'dog' }); }
+            spawnParticles(p.x, p.y, '#283593', 16); triggerShake(4, 8); break;
         case 'maki': // Weapon sweep
             { const range = 50; for (const e of enemies) { if (!e.alive) continue;
                 if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, Math.round(p.damage * 1.8), p); }
@@ -1342,7 +1342,7 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#f48fb1', 14); triggerShake(4, 6); } break;
         case 'jinwoo': // Shadow Army — raise ALL killed enemies as shadow soldiers
             { if (!p._shadowBank) p._shadowBank = [];
-            const maxSummon = Math.min(p._shadowBank.length, 15); // cap at 15
+            const maxSummon = Math.min(p._shadowBank.length, 10); // cap at 10
             if (maxSummon === 0) { // fallback if no kills yet
                 for (let i = 0; i < 2; i++) { const angle = p.facingAngle + (i-0.5) * 0.8;
                     summonedMinions.push({ x: p.x+Math.cos(angle)*25, y: p.y+Math.sin(angle)*25, owner: p,
