@@ -156,6 +156,19 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Actual behavior**: 400 error from Supabase, empty server list
 - **Fix notes**: The `getActiveServers()` query in queries.js selected `player_count` which is a computed value (COUNT of players), not a stored column on `game_servers`. Also, the status filter used `['active', 'upcoming', 'full']` but our server statuses are `['lobby', 'active', 'paused', 'ended']`. **Resolution**: Removed `player_count` from SELECT, updated status filter to `['lobby', 'active']`, updated main.js server card template to remove player_count reference.
 
+### BUG-010: Alignment/definition queries reference non-existent `sort_order` column
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**:
+  1. Log in and click on a server
+  2. Console error: `column alignment_defs.sort_order does not exist`
+  3. Alignment picker fails to load
+- **Expected behavior**: 7 nation alignments displayed for selection
+- **Actual behavior**: 400 error, empty alignment screen
+- **Fix notes**: Four queries in queries.js (getAlignmentDefs, getBuildingDefs, getUnitDefs, getResearchDefs) all used `.order('sort_order', ...)` but none of the definition tables have a `sort_order` column. **Resolution**: Changed all four to `.order('name', ...)` which exists on all definition tables.
+
 ### BUG-009: Login screen elements not visible — overflow clipping
 - **Severity**: MEDIUM
 - **Status**: FIXED

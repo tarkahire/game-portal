@@ -115,7 +115,7 @@ export async function getAlignmentDefs() {
   const { data, error } = await supabase
     .from('alignment_defs')
     .select('*')
-    .order('sort_order', { ascending: true });
+    .order('name', { ascending: true });
 
   if (error) {
     console.error('[queries] getAlignmentDefs:', error);
@@ -438,7 +438,7 @@ export async function getBuildingDefs() {
   const { data, error } = await supabase
     .from('building_defs')
     .select('*')
-    .order('sort_order', { ascending: true });
+    .order('name', { ascending: true });
 
   if (error) {
     console.error('[queries] getBuildingDefs:', error);
@@ -456,7 +456,7 @@ export async function getUnitDefs() {
   const { data, error } = await supabase
     .from('unit_defs')
     .select('*')
-    .order('sort_order', { ascending: true });
+    .order('name', { ascending: true });
 
   if (error) {
     console.error('[queries] getUnitDefs:', error);
@@ -474,7 +474,7 @@ export async function getResearchDefs() {
   const { data, error } = await supabase
     .from('research_defs')
     .select('*')
-    .order('sort_order', { ascending: true });
+    .order('name', { ascending: true });
 
   if (error) {
     console.error('[queries] getResearchDefs:', error);
