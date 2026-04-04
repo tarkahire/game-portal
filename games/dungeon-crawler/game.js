@@ -12,20 +12,25 @@ const MAP_COLS = 60, MAP_ROWS = 60;
 const MAX_FLOORS = Infinity;
 const VIEWPORT_TILES_X = 25, VIEWPORT_TILES_Y = 18;
 
-// ─── COLOR PALETTE ───────────────────────────────────────────
+// ─── COLOR PALETTE (CYBERPUNK) ───────────────────────────────
 const PAL = {
-    floor: ['#1e1a16', '#1c1814', '#201c18', '#1a1612'],
-    wall: '#0e0c0a',
-    wallTop: '#2a2520',
-    door: '#3a2a1a',
-    fog: '#0a0a0f',
-    blood: '#5a1010',
-    torchLight: '#ff8c40',
-    hpBar: '#8b0000',
-    hpBg: '#1a1215',
-    manaBar: '#2244aa',
-    xpBar: '#daa520',
-    minimap: { explored: '#333', current: '#8b0000', unexplored: '#111', boss: '#aa0000', treasure: '#aa8800', shop: '#2288aa' }
+    floor: ['#0a0a14', '#0c0c18', '#08081a', '#0e0e16'],
+    wall: '#04040c',
+    wallTop: '#1a1a2e',
+    door: '#1a0a2a',
+    fog: '#020208',
+    blood: '#ff0055',
+    torchLight: '#00ffcc',
+    hpBar: '#ff0055',
+    hpBg: '#1a0a1a',
+    manaBar: '#00ccff',
+    xpBar: '#ff00ff',
+    neonPink: '#ff0080',
+    neonCyan: '#00ffee',
+    neonPurple: '#aa00ff',
+    neonYellow: '#eeff00',
+    gridLine: 'rgba(0,255,200,0.04)',
+    minimap: { explored: '#1a1a3a', current: '#ff0080', unexplored: '#060612', boss: '#ff0055', treasure: '#eeff00', shop: '#00ffee' }
 };
 
 // ─── GAME STATE ──────────────────────────────────────────────
@@ -1210,15 +1215,12 @@ function playerSpecial(p, now) {
                 if (dist < 130) { e.stunned = Math.max(e.stunned, now + 3000); dealDamageToEnemy(e, 5, p);
                     spawnParticles(e.x, e.y, '#5d4037', 4); } }
             spawnParticles(p.x, p.y, '#4e342e', 16); triggerShake(4, 8); } break;
-        case 'gohan': // Beast Mode + Masenko
+        case 'gohan': // Beast Mode — damage buff + scatter Masenko (5 projectiles in fan)
             p.activeEffects.push({ effect: 'damage', value: 1.4, endTime: now + 5000 });
-            { const beamLen = 200, beamW = 16;
-            for (const e of enemies) { if (!e.alive) continue; const dx = e.x-p.x, dy = e.y-p.y;
-                const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
-                if (along > 0 && along < beamLen && perp < beamW) dealDamageToEnemy(e, Math.round(p.damage * 1.8), p); }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 18, maxLife: 18, color: '#e91e63' });
-            spawnParticles(p.x, p.y, '#f48fb1', 16); triggerShake(7, 12); } break;
+            for (let i = -2; i <= 2; i++) { const a = p.facingAngle + i * 0.2;
+                projectiles.push({ x: p.x, y: p.y, vx: Math.cos(a)*6, vy: Math.sin(a)*6,
+                    damage: Math.round(p.damage * 1.2), owner: 'player', ownerRef: p, range: 200, traveled: 0, color: '#e91e63', radius: 4 }); }
+            spawnParticles(p.x, p.y, '#f48fb1', 16); triggerShake(7, 12); break;
         case 'frieza': // Death Beam — piercing snipe
             { const speed = 10;
             projectiles.push({ x: p.x, y: p.y, vx: Math.cos(p.facingAngle)*speed, vy: Math.sin(p.facingAngle)*speed,
@@ -1236,11 +1238,16 @@ function playerSpecial(p, now) {
             projectiles.push({ x: p.x, y: p.y, vx: Math.cos(p.facingAngle)*7, vy: Math.sin(p.facingAngle)*7,
                 damage: Math.round(p.damage * 1.5), owner: 'player', ownerRef: p, range: 200, traveled: 0, color: '#7c4dff', radius: 6 });
             spawnParticles(p.x, p.y, '#b388ff', 14); triggerShake(5, 8); } break;
-        case 'sanji': // Diable Jambe — fire kicks + speed
-            p.activeEffects.push({ effect: 'speed', value: 1.4, endTime: now + 4000 });
-            p.activeEffects.push({ effect: 'damage', value: 1.3, endTime: now + 4000 });
-            { const range = 40; for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x-p.x, e.y-p.y) < range) { dealDamageToEnemy(e, Math.round(p.damage * 1.8), p); spawnParticles(e.x, e.y, '#ff6f00', 5); } }
+        case 'sanji': // Diable Jambe — speed boost + fire kick chain (3 rapid dashes)
+            p.activeEffects.push({ effect: 'speed', value: 1.5, endTime: now + 4000 });
+            { const dmg = Math.round(p.damage * 1.3);
+            for (let kick = 0; kick < 3; kick++) { const a = p.facingAngle + (kick - 1) * 0.5;
+                for (const e of enemies) { if (!e.alive) continue;
+                    const dx = e.x-p.x, dy = e.y-p.y;
+                    const along = dx*Math.cos(a)+dy*Math.sin(a);
+                    const perp = Math.abs(-dx*Math.sin(a)+dy*Math.cos(a));
+                    if (along > 0 && along < 50 && perp < 15) dealDamageToEnemy(e, dmg, p); }
+                activeBeams.push({ x: p.x, y: p.y, angle: a, length: 50, width: 6, life: 6+kick*3, maxLife: 15, color: '#ff6f00' }); }
             spawnParticles(p.x, p.y, '#ff9800', 16); triggerShake(5, 8); } break;
         case 'law': // Room + Gamma Knife
             { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
@@ -1248,24 +1255,34 @@ function playerSpecial(p, now) {
                     spawnParticles(e.x, e.y, '#fdd835', 5); } }
             spawnParticles(p.x, p.y, '#fff176', 16); spawnParticles(p.x, p.y, '#42a5f5', 8);
             triggerShake(6, 10); } break;
-        case 'shanks': // Conqueror's Haki — stun all
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 150) { e.stunned = Math.max(e.stunned, now + 2500); spawnParticles(e.x, e.y, '#b71c1c', 4); } }
+        case 'shanks': // Conqueror's Haki — expanding shockwave that stuns + pushes
+            { const waves = 3; for (let w = 0; w < waves; w++) { const wRange = 50 + w * 40;
+                for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
+                    if (dist < wRange && dist > wRange - 40) {
+                        e.stunned = Math.max(e.stunned, now + 2000);
+                        const a = Math.atan2(e.y-p.y, e.x-p.x); e.x += Math.cos(a) * 20; e.y += Math.sin(a) * 20;
+                        dealDamageToEnemy(e, Math.round(p.damage * 0.5), p); } } }
             spawnParticles(p.x, p.y, '#f44336', 20); spawnParticles(p.x, p.y, '#000', 10);
-            triggerShake(8, 14); } break;
-        case 'rengoku': // Flame Tiger
-            { const beamLen = 80, beamW = 18, dmg = Math.round(p.damage * 2);
+            triggerShake(10, 16); } break;
+        case 'rengoku': // Flame Tiger — dash forward + fire trail that burns enemies who touch it
+            { p.dodging = true; p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
+            p.dodgeTimer = 12; p.invincible = now + 500;
+            // Leave fire trail healing circles that damage enemies
+            for (let f = 0; f < 4; f++) {
+                const fx = p.x + Math.cos(p.facingAngle) * f * 20, fy = p.y + Math.sin(p.facingAngle) * f * 20;
+                lightningNets.push({ x: fx, y: fy, owner: p, radius: 25, life: now + 3000, damage: 4, damageRate: 300, lastDamage: 0, color: '#ff6f00' });
+                spawnParticles(fx, fy, '#ff9800', 4); }
+            // Hit enemies in dash path
             for (const e of enemies) { if (!e.alive) continue; const dx = e.x-p.x, dy = e.y-p.y;
                 const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
                 const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
-                if (along > 0 && along < beamLen && perp < beamW) dealDamageToEnemy(e, dmg, p); }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 14, maxLife: 14, color: '#ff6f00' });
-            spawnParticles(p.x, p.y, '#ff9800', 18); spawnParticles(p.x, p.y, '#d84315', 10);
-            triggerShake(7, 12); } break;
-        case 'muichiro': // Obscuring Clouds — enemies miss
+                if (along > 0 && along < 80 && perp < 20) dealDamageToEnemy(e, Math.round(p.damage * 2), p); }
+            spawnParticles(p.x, p.y, '#d84315', 14); triggerShake(7, 12); } break;
+        case 'muichiro': // Obscuring Clouds — create mist zone, enemies inside are slowed+miss
+            healingCircles.push({ x: p.x, y: p.y, owner: p, radius: 80, life: now + 5000, healRate: 800, lastHeal: 0, color: '#b3e5fc' });
             { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 120) { e.stunned = Math.max(e.stunned, now + 4000); spawnParticles(e.x, e.y, '#b3e5fc', 4); } }
-            spawnParticles(p.x, p.y, '#e1f5fe', 20); spawnParticles(p.x, p.y, '#b3e5fc', 12);
+                if (dist < 80) { e.stunned = Math.max(e.stunned, now + 2000); spawnParticles(e.x, e.y, '#e1f5fe', 3); } }
+            spawnParticles(p.x, p.y, '#e1f5fe', 20);
             triggerShake(3, 6); } break;
         case 'akaza': // Destructive Death — auto-aim punch barrage
             { const range = 60; let hitCount = 0;
@@ -1273,25 +1290,28 @@ function playerSpecial(p, now) {
                 if (dist < range) { dealDamageToEnemy(e, Math.round(p.damage * 1.5), p); hitCount++;
                     spawnParticles(e.x, e.y, '#e040fb', 5); } }
             spawnParticles(p.x, p.y, '#ce93d8', 16); triggerShake(6, 10); } break;
-        case 'ichigo': // Getsuga Tensho + Bankai
+        case 'ichigo': // Getsuga Tensho — crescent slash projectile + Bankai speed
             p.activeEffects.push({ effect: 'speed', value: 1.4, endTime: now + 5000 });
-            { const beamLen = 120, beamW = 14;
-            for (const e of enemies) { if (!e.alive) continue; const dx = e.x-p.x, dy = e.y-p.y;
-                const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
-                if (along > 0 && along < beamLen && perp < beamW) dealDamageToEnemy(e, Math.round(p.damage * 2), p); }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 14, maxLife: 14, color: '#ff6f00' });
-            spawnParticles(p.x, p.y, '#ffab40', 16); triggerShake(7, 12); } break;
-        case 'byakuya': // Senbonzakura
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 110) { dealDamageToEnemy(e, Math.round(p.damage * 2), p); spawnParticles(e.x, e.y, '#f48fb1', 8); } }
-            spawnParticles(p.x, p.y, '#f8bbd0', 24); spawnParticles(p.x, p.y, '#f48fb1', 12);
-            triggerShake(6, 10); } break;
-        case 'aizen': // Kyoka Suigetsu — confuse
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 140) { e.stunned = Math.max(e.stunned, now + 4000); dealDamageToEnemy(e, 8, p);
-                    spawnParticles(e.x, e.y, '#9c27b0', 5); } }
-            spawnParticles(p.x, p.y, '#7b1fa2', 18); spawnParticles(p.x, p.y, '#e1bee7', 10);
+            // Fire a massive slow crescent projectile that pierces
+            projectiles.push({ x: p.x, y: p.y, vx: Math.cos(p.facingAngle)*4, vy: Math.sin(p.facingAngle)*4,
+                damage: Math.round(p.damage * 2.5), owner: 'player', ownerRef: p, range: 250, traveled: 0,
+                color: '#ff6f00', radius: 12, piercing: true, isHollowPurple: false });
+            spawnParticles(p.x, p.y, '#ffab40', 16); triggerShake(7, 12); break;
+        case 'byakuya': // Senbonzakura — 8 homing petal projectiles
+            for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2;
+                projectiles.push({ x: p.x, y: p.y, vx: Math.cos(a)*5, vy: Math.sin(a)*5,
+                    damage: Math.round(p.damage * 0.8), owner: 'player', ownerRef: p, range: 150, traveled: 0,
+                    color: '#f48fb1', radius: 3 }); }
+            spawnParticles(p.x, p.y, '#f8bbd0', 24);
+            triggerShake(4, 8); break;
+        case 'aizen': // Kyoka Suigetsu — become invisible + all enemies walk toward a decoy
+            p.invincible = now + 4000; p.activeEffects.push({ effect: 'stealth', value: 1, endTime: now + 4000 });
+            // Spawn a decoy that attracts enemies
+            { const dx = p.x + Math.cos(p.facingAngle) * 60, dy = p.y + Math.sin(p.facingAngle) * 60;
+            lootDrops.push({ x: dx, y: dy, type: 'trap', owner: p, active: true }); // decoy acts as bait
+            for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
+                if (dist < 140) { dealDamageToEnemy(e, 8, p); spawnParticles(e.x, e.y, '#9c27b0', 5); } }
+            spawnParticles(p.x, p.y, '#7b1fa2', 18);
             triggerShake(5, 10); } break;
         case 'gon': // Jajanken Rock — charged punch
             { const range = 35, dmg = Math.round(p.damage * 3);
@@ -2293,47 +2313,66 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
             if (!visible) { ctx.fillStyle = PAL.fog; ctx.fillRect(tx, ty, TILE, TILE); continue; }
 
             if (dungeon.map[r][c] === 1) {
-                // Floor tile
+                // Cyberpunk floor tile
                 ctx.fillStyle = PAL.floor[(c + r * 7) % PAL.floor.length];
                 ctx.fillRect(tx, ty, TILE, TILE);
-                // Subtle grid lines
-                ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+                // Neon grid lines
+                ctx.strokeStyle = PAL.gridLine;
                 ctx.strokeRect(tx, ty, TILE, TILE);
-                // Random floor cracks
-                if ((c * 13 + r * 7) % 17 === 0) {
-                    ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
-                    ctx.beginPath(); ctx.moveTo(tx + 5, ty + 10); ctx.lineTo(tx + 20, ty + 25); ctx.stroke();
+                // Circuit traces
+                if ((c + r * 3) % 5 === 0) {
+                    ctx.strokeStyle = 'rgba(0,255,200,0.06)'; ctx.lineWidth = 0.5;
+                    ctx.beginPath(); ctx.moveTo(tx, ty + TILE/2); ctx.lineTo(tx + TILE, ty + TILE/2); ctx.stroke();
+                }
+                if ((c * 7 + r) % 8 === 0) {
+                    ctx.strokeStyle = 'rgba(255,0,128,0.05)'; ctx.lineWidth = 0.5;
+                    ctx.beginPath(); ctx.moveTo(tx + TILE/2, ty); ctx.lineTo(tx + TILE/2, ty + TILE); ctx.stroke();
+                }
+                // Neon dot at intersections
+                if ((c + r) % 6 === 0) {
+                    ctx.fillStyle = 'rgba(0,255,200,0.08)';
+                    ctx.fillRect(tx + TILE/2 - 1, ty + TILE/2 - 1, 2, 2);
                 }
             } else {
-                // Wall tile
+                // Cyberpunk wall tile
                 ctx.fillStyle = PAL.wall;
                 ctx.fillRect(tx, ty, TILE, TILE);
-                // Wall top edge (3D effect)
+                // Neon wall edge
                 if (r + 1 < MAP_ROWS && dungeon.map[r + 1][c] === 1) {
                     ctx.fillStyle = PAL.wallTop;
                     ctx.fillRect(tx, ty + TILE - 8, TILE, 8);
+                    // Neon strip on wall edge
+                    ctx.fillStyle = 'rgba(0,255,200,0.1)';
+                    ctx.fillRect(tx, ty + TILE - 1, TILE, 1);
+                }
+                // Side neon strip
+                if (c + 1 < MAP_COLS && dungeon.map[r][c + 1] === 1) {
+                    ctx.fillStyle = 'rgba(255,0,128,0.08)';
+                    ctx.fillRect(tx + TILE - 1, ty, 1, TILE);
                 }
             }
         }
     }
 
-    // Torches
+    // Neon light nodes (cyberpunk torches)
     for (const torch of dungeon.torches) {
         if (!isTileVisible(torch.x, torch.y)) continue;
         const tx = torch.x * TILE + TILE/2, ty = torch.y * TILE + TILE/2;
-        // Torch holder
-        ctx.fillStyle = '#3a2a1a'; ctx.fillRect(tx - 2, ty - 6, 4, 8);
-        // Flame
-        const flicker = Math.sin(gameTime * 0.01 + torch.x * 3) * 2;
-        const fg = ctx.createRadialGradient(tx, ty - 8 + flicker, 0, tx, ty - 8 + flicker, 6);
-        fg.addColorStop(0, '#ffcc44'); fg.addColorStop(0.5, '#ff8833'); fg.addColorStop(1, 'rgba(255,80,20,0)');
-        ctx.fillStyle = fg;
-        ctx.beginPath(); ctx.arc(tx, ty - 8 + flicker, 6, 0, Math.PI * 2); ctx.fill();
-        // Light radius
-        const lg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 60);
-        lg.addColorStop(0, 'rgba(255,140,64,0.08)'); lg.addColorStop(1, 'rgba(255,140,64,0)');
+        const pulse = Math.sin(gameTime * 0.008 + torch.x * 2) * 0.3;
+        const neonCol = (torch.x + torch.y) % 2 === 0 ? '#00ffcc' : '#ff0080';
+        const neonRgba = neonCol === '#00ffcc' ? '0,255,200' : '255,0,128';
+        // Light pillar
+        ctx.fillStyle = `rgba(${neonRgba},0.15)`; ctx.fillRect(tx - 1, ty - 8, 2, 10);
+        // Holographic orb
+        ctx.shadowColor = neonCol; ctx.shadowBlur = 12 + pulse * 5;
+        ctx.fillStyle = neonCol; ctx.globalAlpha = 0.7 + pulse * 0.2;
+        ctx.beginPath(); ctx.arc(tx, ty - 10, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        // Light radius — neon glow
+        const lg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 65);
+        lg.addColorStop(0, `rgba(${neonRgba},0.06)`); lg.addColorStop(1, `rgba(${neonRgba},0)`);
         ctx.fillStyle = lg;
-        ctx.beginPath(); ctx.arc(tx, ty, 60, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(tx, ty, 65, 0, Math.PI * 2); ctx.fill();
     }
 
     // Loot drops
@@ -2698,15 +2737,21 @@ function isTileVisible(c, r) {
 }
 
 function drawFogOfWar(startCol, endCol, startRow, endRow) {
-    // Radial light around players
+    // Neon scan light around players
     for (const p of players) {
         if (!p.alive) continue;
-        const lg = ctx.createRadialGradient(p.x, p.y, 30, p.x, p.y, 180);
-        lg.addColorStop(0, 'rgba(255,200,140,0.04)');
-        lg.addColorStop(0.5, 'rgba(255,160,100,0.02)');
+        // Cyan holographic scan ring
+        const lg = ctx.createRadialGradient(p.x, p.y, 20, p.x, p.y, 190);
+        lg.addColorStop(0, 'rgba(0,255,200,0.04)');
+        lg.addColorStop(0.4, 'rgba(0,200,255,0.02)');
+        lg.addColorStop(0.8, 'rgba(255,0,128,0.01)');
         lg.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = lg;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 180, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, 190, 0, Math.PI * 2); ctx.fill();
+        // Faint scan ring pulse
+        ctx.strokeStyle = 'rgba(0,255,200,0.04)'; ctx.lineWidth = 1;
+        const scanR = 100 + Math.sin(gameTime * 0.003) * 30;
+        ctx.beginPath(); ctx.arc(p.x, p.y, scanR, 0, Math.PI * 2); ctx.stroke();
     }
 }
 
@@ -3579,19 +3624,37 @@ function drawDeku(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
 // ─── MORE ANIME CHARACTER DRAWING ───────────────────────────
 function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
     ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill();
+    // Neon outline glow
+    ctx.shadowColor = outfitColor; ctx.shadowBlur = p.attackAnim > 0 ? 14 : 6;
+    // Head with neon accent
+    ctx.fillStyle = '#d0c0b0'; ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = outfitColor; ctx.lineWidth = 0.6; ctx.globalAlpha = 0.4;
+    ctx.beginPath(); ctx.arc(0, -8, 8, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+    // Hair
     ctx.fillStyle = hairColor;
-    if (hairStyle === 'spiky') { for(let i=0;i<5;i++){const a=-0.8+i*0.4;ctx.beginPath();ctx.moveTo(Math.cos(a)*5,-8+Math.sin(a)*5);ctx.lineTo(Math.cos(a)*12,-8+Math.sin(a)*12-3);ctx.lineTo(Math.cos(a+0.2)*6,-8+Math.sin(a+0.2)*6);ctx.fill();} }
-    else if (hairStyle === 'long') { ctx.beginPath();ctx.moveTo(-7,-10);ctx.lineTo(-6,-16);ctx.lineTo(0,-12);ctx.lineTo(6,-16);ctx.lineTo(7,-10);ctx.fill();ctx.fillRect(-7,-8,2,12);ctx.fillRect(5,-8,2,12); }
+    if (hairStyle === 'spiky') { for(let i=0;i<5;i++){const a=-0.8+i*0.4;ctx.beginPath();ctx.moveTo(Math.cos(a)*5,-8+Math.sin(a)*5);ctx.lineTo(Math.cos(a)*13,-8+Math.sin(a)*13-4);ctx.lineTo(Math.cos(a+0.2)*6,-8+Math.sin(a+0.2)*6);ctx.fill();} }
+    else if (hairStyle === 'long') { ctx.beginPath();ctx.moveTo(-7,-10);ctx.lineTo(-6,-17);ctx.lineTo(0,-13);ctx.lineTo(6,-17);ctx.lineTo(7,-10);ctx.fill();ctx.fillRect(-7,-8,2,13);ctx.fillRect(5,-8,2,13); }
     else { ctx.beginPath();ctx.arc(0,-12,8,Math.PI+0.3,-0.3);ctx.fill(); }
+    // Body with cyber trim
     ctx.fillStyle = outfitColor; ctx.fillRect(-6, -1, 12, 14);
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(-6, 5, 12, 1); // belt line
+    // Neon piping on outfit
+    ctx.strokeStyle = outfitColor; ctx.lineWidth = 0.5; ctx.globalAlpha = 0.5;
+    ctx.strokeRect(-6, -1, 12, 14); ctx.globalAlpha = 1;
+    // Legs
     ctx.fillStyle = outfitColor; ctx.fillRect(-4, 13, 3, 7); ctx.fillRect(2, 13, 3, 7);
+    ctx.shadowBlur = 0;
     if (extra) extra(ctx, p);
+    // Weapon with neon glow
     ctx.save(); ctx.rotate(p.facingAngle);
-    ctx.fillStyle = p.attackAnim > 0 ? '#fff' : '#bbb';
-    if (p.attackAnim > 0) { ctx.shadowColor = outfitColor; ctx.shadowBlur = 10; }
+    ctx.fillStyle = p.attackAnim > 0 ? '#fff' : outfitColor;
+    ctx.shadowColor = outfitColor; ctx.shadowBlur = p.attackAnim > 0 ? 14 : 5;
     ctx.fillRect(8, -1.5, 12 + (p.attackAnim > 0 ? 6 : 0), 3); ctx.shadowBlur = 0; ctx.restore();
-    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff'; ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2); ctx.fill();
+    // Player indicator (neon dot)
+    ctx.fillStyle = p.playerIndex === 0 ? '#00ffcc' : '#ff0080';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.restore();
 }
 
