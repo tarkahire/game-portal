@@ -1340,27 +1340,23 @@ function playerSpecial(p, now) {
                     e.x += Math.cos(a) * 40; e.y += Math.sin(a) * 40;
                     spawnParticles(e.x, e.y, '#e91e63', 4); } }
             spawnParticles(p.x, p.y, '#f48fb1', 14); triggerShake(4, 6); } break;
-        case 'jinwoo': // Shadow Army — raise ALL killed enemies as shadow soldiers
-            { if (!p._shadowBank) p._shadowBank = [];
-            const maxSummon = Math.min(p._shadowBank.length, 8); // cap at 8
-            if (maxSummon === 0) { // fallback if no kills yet
-                for (let i = 0; i < 2; i++) { const angle = (i / 2) * Math.PI * 2;
-                    summonedMinions.push({ x: p.x+Math.cos(angle)*30, y: p.y+Math.sin(angle)*30, owner: p,
-                        hp: 20, maxHp: 20, damage: 7, speed: 3.2, radius: 7, attackRange: 22,
-                        lastAttack: 0, attackSpeed: 450, life: Infinity, color: '#311b92', type: 'shadow',
-                        shadowOf: 'warrior', _guardIndex: i, _guardTotal: 2 }); }
-            } else {
-                for (let i = 0; i < maxSummon; i++) {
-                    const s = p._shadowBank[i];
-                    const angle = (i / maxSummon) * Math.PI * 2;
-                    summonedMinions.push({ x: p.x+Math.cos(angle)*30, y: p.y+Math.sin(angle)*30, owner: p,
-                        hp: Math.round(s.hp * 0.7), maxHp: Math.round(s.hp * 0.7),
-                        damage: Math.round(s.damage * 0.8), speed: 3.2,
-                        radius: 7, attackRange: 22, lastAttack: 0, attackSpeed: 400,
-                        life: Infinity, color: '#6a3aaa', type: 'shadow',
-                        shadowOf: 'warrior', _guardIndex: i, _guardTotal: maxSummon });
-                }
-                p._shadowBank = []; // empty the bank after summoning
+        case 'jinwoo': // Shadow Army — always summon 8 shadow warriors
+            { // Count existing shadows
+            const existing = summonedMinions.filter(m => m.type === 'shadow' && m.owner === p).length;
+            const toSpawn = Math.max(0, 8 - existing); // fill up to 8
+            for (let i = 0; i < toSpawn; i++) {
+                const total = existing + toSpawn;
+                const angle = ((existing + i) / total) * Math.PI * 2;
+                summonedMinions.push({ x: p.x+Math.cos(angle)*30, y: p.y+Math.sin(angle)*30, owner: p,
+                    hp: 25, maxHp: 25, damage: 8, speed: 3.2,
+                    radius: 7, attackRange: 22, lastAttack: 0, attackSpeed: 400,
+                    life: Infinity, color: '#6a3aaa', type: 'shadow',
+                    shadowOf: 'warrior', _guardIndex: existing + i, _guardTotal: 8 });
+            }
+            // Reassign guard indices for smooth circle
+            let idx = 0;
+            for (const m of summonedMinions) {
+                if (m.type === 'shadow' && m.owner === p) { m._guardIndex = idx; m._guardTotal = 8; idx++; }
             }
             damageNumbers.push({ x: p.x, y: p.y - 30, text: `ARISE! (${maxSummon || 2})`, color: '#7c4dff', life: 50 });
             spawnParticles(p.x, p.y, '#311b92', 20); spawnParticles(p.x, p.y, '#7c4dff', 12);
