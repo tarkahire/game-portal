@@ -55,6 +55,7 @@ let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
 let camera = { x: 0, y: 0 };
 let gameTime = 0;
 let runStats = { enemiesKilled: 0, goldCollected: 0, floorsCleared: 0, bossesKilled: 0, itemsFound: 0 };
+let lives = 5;
 
 // ─── META PROGRESSION (localStorage) ────────────────────────
 const SAVE_KEY = 'dungeonCrawlerSave';
@@ -650,6 +651,7 @@ function selectClass(classId) {
 
 function startGame() {
     currentFloor = 1;
+    lives = 5;
     runStats = { enemiesKilled: 0, goldCollected: 0, floorsCleared: 0, bossesKilled: 0, itemsFound: 0 };
     // Use host's dungeon if we're a client, otherwise generate our own
     if (NET.isOnline && !NET.isHost && NET._hostDungeon) {
@@ -683,9 +685,16 @@ function nextFloor() {
     populateDungeon();
     const startRoom = dungeon.rooms[0];
     players.forEach((p, i) => {
-        if (p.alive) {
-            p.x = (startRoom.cx + (i === 0 ? -1 : 1)) * TILE + TILE/2;
-            p.y = startRoom.cy * TILE + TILE/2;
+        const offsets = [-1, 1, 0];
+        p.x = (startRoom.cx + (offsets[i] || 0)) * TILE + TILE/2;
+        p.y = startRoom.cy * TILE + TILE/2;
+        if (!p.alive) {
+            // Respawn dead players on new floor
+            p.alive = true;
+            p.hp = Math.round(p.maxHp * 0.5); // respawn at half HP
+            spawnParticles(p.x, p.y, '#00ffcc', 12);
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: 'RESPAWNED', color: '#00ffcc', life: 50 });
+        } else {
             p.hp = Math.min(p.hp + 20, p.maxHp);
         }
     });
@@ -1698,9 +1707,12 @@ function dealDamageToPlayer(p, dmg) {
     if (p.hp <= 0) {
         p.alive = false;
         p.hp = 0;
+        lives--;
         spawnParticles(p.x, p.y, '#888', 20);
-        // Check if all players dead
-        if (players.every(pl => !pl.alive)) gameOver();
+        damageNumbers.push({ x: p.x, y: p.y - 35, text: `Lives: ${lives}`, color: '#ff0055', life: 60 });
+        if (lives <= 0) {
+            gameOver();
+        }
     }
 }
 
@@ -3013,12 +3025,17 @@ function drawHUD() {
     }
 
     // Floor indicator
-    ctx.fillStyle = '#c8c0b0'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#00ffcc'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
     ctx.fillText(`Floor ${currentFloor}`, canvas.width / 2, 25);
 
+    // Lives
+    ctx.fillStyle = lives > 2 ? '#00ffcc' : lives > 1 ? '#ffeb3b' : '#ff0055';
+    ctx.font = '12px monospace';
+    ctx.fillText(`Lives: ${lives}`, canvas.width / 2, 42);
+
     // Gold
-    ctx.fillStyle = '#daa520'; ctx.font = '12px monospace';
-    ctx.fillText(`Gold: ${runStats.goldCollected}`, canvas.width / 2, 42);
+    ctx.fillStyle = '#eeff00'; ctx.font = '12px monospace';
+    ctx.fillText(`Gold: ${runStats.goldCollected}`, canvas.width / 2, 56);
 
     // Boss HP bar (if boss in room)
     const boss = enemies.find(e => e.isBoss && e.alive);
