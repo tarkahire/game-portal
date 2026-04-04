@@ -33,6 +33,36 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ## Fixed Bugs
 
+### BUG-047: form_army sets garrison quantity to 0 violating CHECK constraint
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Form army taking all units of a type (e.g. 1/1 engineers)
+- **Actual behavior**: UPDATE sets garrison quantity to 0, violating `army_units_quantity_check` (quantity > 0)
+- **Fix notes**: Now DELETEs the garrison row when taking all units, only UPDATEs for partial. Also skips units with qty < 1.
+
+### BUG-046: march_army invalid lateral join in movement cost calculation
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Fix notes**: Simplified to use path length as cost (1 per hop). Original lateral join syntax was invalid.
+
+### BUG-045: find_path BFS function missing from database
+- **Severity**: CRITICAL
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Fix notes**: Function was in 009_functions.sql but never run in Supabase. Created via 028_add_find_path.sql.
+
+### BUG-044: formArmy query parameter name mismatch (p_army_name vs p_name)
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Fix notes**: Changed queries.js to use p_name matching the RPC signature.
+
 ### BUG-043: armies and army_units RLS had no policies — all reads blocked
 - **Severity**: CRITICAL
 - **Status**: FIXED

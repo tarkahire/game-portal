@@ -91,6 +91,13 @@ Addressing fundamental gameplay issues before Phase 2.
 - [x] City tile control level corrected (claimed→occupied)
 - [x] Building slot counts aligned to spec (3/5/8/12/16)
 - [x] Armies and army_units RLS policies added
+- [x] Resource tooltips (hover for name, amount/cap, rate, per-city breakdown)
+- [x] Commander Screen (6-tab dashboard: Overview, Cities, Resources, Military, Research, Battles)
+- [x] Collapsible city panel sections (Resources, Buildings, Training, Garrison)
+- [x] Army management overhaul (selective unit picker, fortify, garrison, disband, detail view)
+- [x] Army controls on tile info panel (manage armies from map, not just city)
+- [x] Army merge (combine armies on same tile)
+- [x] Engineer improve tile functionality verified
 - [ ] Troop-based territory control (remove click-to-claim, require engineers)
 - [ ] Resource development rework (require engineers, construction time, costs)
 - [ ] Research tree UI (visual tech tree panel, start/cancel research)

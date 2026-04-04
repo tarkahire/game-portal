@@ -73,7 +73,7 @@ games/dads-army/
 
 ## Current Phase
 
-**Phase 1.5: Gameplay Rework** — IN PROGRESS. Fog of war, tile control levels, fish/uranium support, city upgrades (Lv1-5), warehouse storage, resource function fixes (deduct/total/materialize), farmland→food mapping, missing resource types (aluminum/rubber/tungsten), building slot alignment, and armies/army_units RLS all done. Next: troop-based territory control, resource development rework, research tree UI.
+**Phase 1.5: Gameplay Rework** — IN PROGRESS. Done: fog of war, tile control levels, fish/uranium, city upgrades, warehouse, resource fixes, RLS, resource tooltips, commander screen, collapsible panels, army management overhaul (selective picking, fortify, garrison, disband, merge, tile-level controls). Next: troop-based territory control, resource development rework, research tree UI.
 
 ## Conventions
 
