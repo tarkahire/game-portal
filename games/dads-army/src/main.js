@@ -538,6 +538,7 @@ scenes.register('game', {
       }
 
       hexRenderer.loadTiles(tiles, playerId);
+      hexRenderer.setCityData(citiesByTile);
       hexRenderer.loadArmies(armies, playerId);
 
       // Load resources from capital city
@@ -1990,6 +1991,7 @@ async function refreshMap() {
       tile._hasCity = cityTileIds.has(Number(tile.id));
     }
     hexRenderer.loadTiles(tiles, currentPlayerRecord);
+    hexRenderer.setCityData(citiesByTile);
     hexRenderer.loadArmies(armies, currentPlayerRecord);
     // Update selected tile data (but don't re-open panels — avoids interrupting the user)
     if (hexRenderer.selectedTile) {

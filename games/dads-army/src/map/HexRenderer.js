@@ -95,6 +95,11 @@ export class HexRenderer {
     this.requestRender();
   }
 
+  /** Set city data for rendering banners. Call after loadTiles. */
+  setCityData(citiesByTileMap) {
+    this._cityDataMap = citiesByTileMap; // Map<tileId, {name, level, is_capital}>
+  }
+
   loadTiles(tileArray, currentPlayerId) {
     this.tiles.clear();
     this.playerColors.clear();
@@ -124,8 +129,52 @@ export class HexRenderer {
     this.renderMinimap();
   }
 
-  attach() { this.camera.attach(); this.canvas.style.cursor = 'grab'; }
-  detach() { this.camera.detach(); }
+  attach() {
+    this.camera.attach();
+    this.canvas.style.cursor = 'grab';
+    // Minimap click-to-pan
+    if (this.minimapCanvas) {
+      this._minimapClickHandler = (e) => {
+        const rect = this.minimapCanvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        this._panToMinimapClick(mx, my);
+      };
+      this.minimapCanvas.addEventListener('click', this._minimapClickHandler);
+      this.minimapCanvas.style.cursor = 'pointer';
+    }
+  }
+  detach() {
+    this.camera.detach();
+    if (this.minimapCanvas && this._minimapClickHandler) {
+      this.minimapCanvas.removeEventListener('click', this._minimapClickHandler);
+    }
+  }
+
+  _panToMinimapClick(mx, my) {
+    if (this.tiles.size === 0) return;
+    // Recalculate minimap transform (same as renderMinimap)
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const tile of this.tiles.values()) {
+      const p = hexToPixel(tile.q, tile.r);
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const cw = this.minimapCanvas.width, ch = this.minimapCanvas.height;
+    const mapW = maxX - minX + HEX_SIZE * 2;
+    const mapH = maxY - minY + HEX_SIZE * 2;
+    const scale = Math.min((cw - 10) / mapW, (ch - 10) / mapH);
+    const offsetX = (cw - mapW * scale) / 2 - minX * scale + HEX_SIZE * scale;
+    const offsetY = (ch - mapH * scale) / 2 - minY * scale + HEX_SIZE * scale;
+    // Reverse: minimap coords → world coords
+    const worldX = (mx - offsetX) / scale;
+    const worldY = (my - offsetY) / scale;
+    this.camera.centerOn(worldX, worldY);
+    this.requestRender();
+    this.renderMinimap();
+  }
 
   requestRender() {
     if (this._renderRequested) return;
@@ -369,56 +418,107 @@ export class HexRenderer {
       const tileKey = `${tile.q},${tile.r}`;
       const hasCity = this._cityTileKeys.has(tileKey);
 
-      // City marker
-      if (hasCity && screenSize > 8) {
-        const cs = Math.max(screenSize * 0.3, 5);
-        ctx.fillStyle = '#FFD700';
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-        ctx.lineWidth = 1.5;
-        // Improved city shape — multiple buildings
-        if (screenSize > 20) {
-          // Detailed: multiple buildings
-          ctx.fillRect(screen.x - cs * 0.4, screen.y - cs * 0.3, cs * 0.3, cs * 0.6);
-          ctx.fillRect(screen.x - cs * 0.05, screen.y - cs * 0.5, cs * 0.25, cs * 0.8);
-          ctx.fillRect(screen.x + cs * 0.25, screen.y - cs * 0.2, cs * 0.2, cs * 0.5);
-          ctx.strokeRect(screen.x - cs * 0.5, screen.y - cs * 0.55, cs, cs * 0.95);
+      // --- Zoom-dependent city rendering ---
+      if (hasCity && screenSize > 5) {
+        const cs = Math.max(screenSize * 0.3, 4);
+
+        if (screenSize > 30) {
+          // HIGH ZOOM: Detailed city — multiple buildings with walls
+          ctx.fillStyle = '#C4A35A';
+          ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+          ctx.lineWidth = 1.5;
+          // Wall outline
+          ctx.strokeStyle = '#8B7D6B';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(screen.x - cs * 0.55, screen.y - cs * 0.6, cs * 1.1, cs * 1.1);
+          // Buildings (varying heights)
+          ctx.fillStyle = '#D4A843';
+          ctx.fillRect(screen.x - cs * 0.4, screen.y - cs * 0.15, cs * 0.22, cs * 0.45);
+          ctx.fillStyle = '#BF9B30';
+          ctx.fillRect(screen.x - cs * 0.12, screen.y - cs * 0.45, cs * 0.2, cs * 0.75);
+          ctx.fillStyle = '#D4A843';
+          ctx.fillRect(screen.x + cs * 0.15, screen.y - cs * 0.25, cs * 0.25, cs * 0.55);
+          // Tower/keep
+          ctx.fillStyle = '#E8C860';
+          ctx.fillRect(screen.x - cs * 0.08, screen.y - cs * 0.5, cs * 0.16, cs * 0.2);
+          // Flag
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(screen.x, screen.y - cs * 0.5);
+          ctx.lineTo(screen.x, screen.y - cs * 0.75);
+          ctx.stroke();
+          ctx.fillStyle = '#E63946';
+          ctx.fillRect(screen.x, screen.y - cs * 0.75, cs * 0.15, cs * 0.1);
+        } else if (screenSize > 14) {
+          // MEDIUM ZOOM: Simple city silhouette
+          ctx.fillStyle = '#D4A843';
+          ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+          ctx.lineWidth = 1;
+          // Simplified buildings cluster
+          ctx.fillRect(screen.x - cs * 0.3, screen.y - cs * 0.1, cs * 0.2, cs * 0.35);
+          ctx.fillRect(screen.x - cs * 0.05, screen.y - cs * 0.35, cs * 0.15, cs * 0.6);
+          ctx.fillRect(screen.x + cs * 0.15, screen.y - cs * 0.05, cs * 0.18, cs * 0.3);
+          // Wall hint
+          ctx.strokeRect(screen.x - cs * 0.4, screen.y - cs * 0.4, cs * 0.8, cs * 0.7);
         } else {
-          // Simple: single rectangle
-          ctx.fillRect(screen.x - cs * 0.3, screen.y - cs * 0.3, cs * 0.6, cs * 0.6);
+          // FAR ZOOM: Just a dot
+          ctx.fillStyle = '#FFD700';
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, Math.max(cs * 0.3, 3), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // City name banner (at medium+ zoom)
+        if (screenSize > 18) {
+          const cityData = this._cityDataMap?.get(Number(tile.id));
+          if (cityData) {
+            const label = `${cityData.name} Lv${cityData.level}`;
+            ctx.font = `bold ${Math.max(screenSize * 0.18, 8)}px Oswald, sans-serif`;
+            ctx.textAlign = 'center';
+            // Banner background
+            const tw = ctx.measureText(label).width + 8;
+            const bannerY = screen.y - screenSize * 0.7;
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(screen.x - tw / 2, bannerY - 6, tw, 14);
+            ctx.fillStyle = '#FFD700';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, screen.x, bannerY + 1);
+          }
         }
       }
 
-      // Resource icon (from TextureManager)
+      // --- Resource icon ---
       if (tile.resource_type && screenSize > 8 && tile.fog_state !== 'stale') {
         const icon = this._texMgr.getResourceIcon(tile.resource_type);
-        const dotY = hasCity ? screen.y + screenSize * 0.35 : screen.y;
-        const iconSize = Math.max(screenSize * 0.4, 10);
+        const dotY = hasCity ? screen.y + screenSize * 0.4 : screen.y;
+        const iconSize = Math.max(screenSize * 0.35, 8);
         if (icon) {
           ctx.drawImage(icon, screen.x - iconSize / 2, dotY - iconSize / 2, iconSize, iconSize);
         }
       }
 
-      // Resource label
-      if (tile.resource_type && screenSize > 22 && tile.fog_state === 'visible') {
-        ctx.fillStyle = 'rgba(255,255,255,0.75)';
-        ctx.font = `bold ${Math.max(screenSize * 0.24, 8)}px Oswald, sans-serif`;
+      // --- Resource label (only at high zoom, below icon) ---
+      if (tile.resource_type && screenSize > 28 && tile.fog_state === 'visible') {
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = `bold ${Math.max(screenSize * 0.2, 7)}px Oswald, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        const labelY = hasCity ? screen.y + screenSize * 0.5 : screen.y + screenSize * 0.28;
+        const labelY = hasCity ? screen.y + screenSize * 0.55 : screen.y + screenSize * 0.25;
         ctx.fillText(tile.resource_type, screen.x, labelY);
       }
 
-      // Terrain label (at high zoom)
-      if (screenSize > 38 && tile.fog_state === 'visible') {
-        ctx.fillStyle = 'rgba(255,255,255,0.35)';
-        ctx.font = `${Math.max(screenSize * 0.18, 7)}px Oswald, sans-serif`;
+      // --- Terrain label (only at very high zoom, subtle) ---
+      if (screenSize > 45 && tile.fog_state === 'visible' && !hasCity && !tile.resource_type) {
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.font = `${Math.max(screenSize * 0.15, 6)}px Oswald, sans-serif`;
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(tile.terrain_type, screen.x, screen.y - screenSize * 0.2);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(tile.terrain_type, screen.x, screen.y);
       }
     }
 
-    // Army counters (NATO-style rectangular)
+    // --- Army counters (NATO-style with category icons + health) ---
     if (this._armies) {
       for (const [tileId, armies] of this._armies) {
         let armyTile = null;
@@ -435,60 +535,99 @@ export class HexRenderer {
         const screenSize = size * camera.zoom;
         if (screenSize < 6) continue;
 
-        // Draw NATO-style counter for primary army + count badge
         const primary = armies[0];
         const isMine = primary.player_id === this.currentPlayerId;
-        const cw = Math.max(screenSize * 0.5, 14);
-        const ch = Math.max(screenSize * 0.35, 10);
+        const cw = Math.max(screenSize * 0.55, 16);
+        const ch = Math.max(screenSize * 0.38, 12);
         const cx = screen.x - cw / 2;
-        const cy = screen.y - screenSize * 0.45;
+        const cy = screen.y - screenSize * 0.5;
+
+        // Counter shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(cx + 2, cy + 2, cw, ch);
 
         // Counter background
-        ctx.fillStyle = isMine ? 'rgba(60, 100, 180, 0.9)' : 'rgba(180, 50, 50, 0.9)';
+        ctx.fillStyle = isMine ? '#3A6EA5' : '#A53A3A';
         ctx.fillRect(cx, cy, cw, ch);
-        ctx.strokeStyle = isMine ? '#2A5A9A' : '#8B0000';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(cx, cy, cw, ch);
 
-        // Unit type icon (X for infantry)
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        if (screenSize > 12) {
+        // Counter border (double line for NATO style)
+        ctx.strokeStyle = isMine ? '#5A9ED6' : '#D65A5A';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx, cy, cw, ch);
+        ctx.strokeStyle = isMine ? '#2A5080' : '#802A2A';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx + 2, cy + 2, cw - 4, ch - 4);
+
+        // Unit type icon (NATO symbol)
+        if (screenSize > 10) {
+          ctx.strokeStyle = '#fff';
+          ctx.fillStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          const icx = cx + cw / 2, icy = cy + ch / 2;
+          const ir = Math.min(cw, ch) * 0.3;
+
+          // Default: infantry X
           ctx.beginPath();
-          ctx.moveTo(cx + 3, cy + 3);
-          ctx.lineTo(cx + cw - 3, cy + ch - 3);
-          ctx.moveTo(cx + cw - 3, cy + 3);
-          ctx.lineTo(cx + 3, cy + ch - 3);
+          ctx.moveTo(icx - ir, icy - ir * 0.8);
+          ctx.lineTo(icx + ir, icy + ir * 0.8);
+          ctx.moveTo(icx + ir, icy - ir * 0.8);
+          ctx.lineTo(icx - ir, icy + ir * 0.8);
           ctx.stroke();
         }
 
+        // Army name (at high zoom)
+        if (screenSize > 22 && primary.name) {
+          ctx.fillStyle = '#fff';
+          ctx.font = `bold ${Math.max(ch * 0.35, 6)}px Oswald, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(primary.name, cx + cw / 2, cy - 2);
+        }
+
         // Status indicator
+        const statusX = cx + cw + 3;
         if (primary.status === 'marching') {
           ctx.fillStyle = '#FFD700';
-          ctx.font = `bold ${Math.max(ch * 0.6, 8)}px sans-serif`;
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'top';
-          ctx.fillText('→', cx + cw + 8, cy);
+          ctx.font = `bold ${Math.max(ch * 0.7, 9)}px sans-serif`;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('▶', statusX, cy + ch / 2);
         } else if (primary.status === 'fortified') {
           ctx.fillStyle = '#4CAF50';
-          ctx.font = `${Math.max(ch * 0.5, 7)}px sans-serif`;
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'top';
-          ctx.fillText('🛡', cx + cw + 8, cy);
+          ctx.font = `bold ${Math.max(ch * 0.6, 8)}px sans-serif`;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('◆', statusX, cy + ch / 2);
+        }
+
+        // Health bar below counter
+        if (screenSize > 12) {
+          const hbW = cw;
+          const hbH = Math.max(screenSize * 0.05, 3);
+          const hbY = cy + ch + 2;
+          // Background
+          ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          ctx.fillRect(cx, hbY, hbW, hbH);
+          // Fill (green/yellow/red based on health — use 100% for now)
+          ctx.fillStyle = '#4CAF50';
+          ctx.fillRect(cx, hbY, hbW, hbH);
         }
 
         // Stack count badge
         if (armies.length > 1) {
-          const badgeR = Math.max(cw * 0.2, 6);
+          const badgeR = Math.max(cw * 0.18, 7);
           ctx.fillStyle = '#FFD700';
           ctx.beginPath();
-          ctx.arc(cx + cw, cy, badgeR, 0, Math.PI * 2);
+          ctx.arc(cx + cw + 1, cy - 1, badgeR, 0, Math.PI * 2);
           ctx.fill();
+          ctx.strokeStyle = '#000';
+          ctx.lineWidth = 1;
+          ctx.stroke();
           ctx.fillStyle = '#000';
-          ctx.font = `bold ${badgeR}px sans-serif`;
+          ctx.font = `bold ${Math.max(badgeR * 1.2, 8)}px Oswald, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(armies.length, cx + cw, cy);
+          ctx.fillText(String(armies.length), cx + cw + 1, cy - 1);
         }
       }
     }
