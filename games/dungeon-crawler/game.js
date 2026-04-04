@@ -9,7 +9,7 @@ const ctx = canvas.getContext('2d');
 const TILE = 40;
 const ROOM_MIN = 5, ROOM_MAX = 9;
 const MAP_COLS = 60, MAP_ROWS = 60;
-const MAX_FLOORS = 5;
+const MAX_FLOORS = Infinity;
 const VIEWPORT_TILES_X = 25, VIEWPORT_TILES_Y = 18;
 
 // ─── COLOR PALETTE ───────────────────────────────────────────
@@ -520,10 +520,6 @@ function startGame() {
 function nextFloor() {
     currentFloor++;
     runStats.floorsCleared++;
-    if (currentFloor > MAX_FLOORS) {
-        victory();
-        return;
-    }
     dungeon = generateDungeon(currentFloor);
     dungeon.rooms[0].explored = true;
     populateDungeon();
@@ -566,7 +562,7 @@ function victory() {
     meta.totalRuns++;
     meta.totalKills += runStats.enemiesKilled;
     meta.gold += runStats.goldCollected;
-    meta.bestFloor = MAX_FLOORS;
+    if (currentFloor > meta.bestFloor) meta.bestFloor = currentFloor;
     saveMeta();
 
     const title = document.getElementById('gameover-title');
@@ -1102,9 +1098,24 @@ function update(now) {
         proj.x += proj.vx;
         proj.y += proj.vy;
         proj.traveled += Math.sqrt(proj.vx*proj.vx + proj.vy*proj.vy);
+        if (!proj.bounces) proj.bounces = 0;
 
-        // Wall collision
-        if (!isWalkable(proj.x, proj.y)) { projectiles.splice(i, 1); spawnParticles(proj.x, proj.y, proj.color, 3); continue; }
+        // Wall collision — bounce off walls
+        if (!isWalkable(proj.x, proj.y)) {
+            // Step back
+            proj.x -= proj.vx;
+            proj.y -= proj.vy;
+            // Determine which axis to reflect
+            const hitH = !isWalkable(proj.x + proj.vx, proj.y);
+            const hitV = !isWalkable(proj.x, proj.y + proj.vy);
+            if (hitH) proj.vx = -proj.vx;
+            if (hitV) proj.vy = -proj.vy;
+            if (!hitH && !hitV) { proj.vx = -proj.vx; proj.vy = -proj.vy; }
+            proj.bounces++;
+            spawnParticles(proj.x, proj.y, proj.color, 2);
+            // Max 5 bounces then destroy
+            if (proj.bounces > 5) { projectiles.splice(i, 1); continue; }
+        }
 
         if (proj.traveled > proj.range) { projectiles.splice(i, 1); continue; }
 
@@ -1787,7 +1798,7 @@ function drawHUD() {
 
     // Floor indicator
     ctx.fillStyle = '#c8c0b0'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
-    ctx.fillText(`Floor ${currentFloor}/${MAX_FLOORS}`, canvas.width / 2, 25);
+    ctx.fillText(`Floor ${currentFloor}`, canvas.width / 2, 25);
 
     // Gold
     ctx.fillStyle = '#daa520'; ctx.font = '12px monospace';
