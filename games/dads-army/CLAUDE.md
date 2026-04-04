@@ -58,6 +58,8 @@ games/dads-army/
 | [server-lifecycle.md](docs/server-lifecycle.md) | 45-day cycle, depletion progression, victory conditions |
 | [research-tree.md](docs/research-tree.md) | Tech tree, categories, effects, quality vs quantity |
 | [monetization.md](docs/monetization.md) | Pay-to-play model (NOT pay-to-win) |
+| [project-playbook.md](docs/project-playbook.md) | How this build was structured — requests, patterns, lessons for future builds |
+| [doc-map.json](docs/doc-map.json) | Auto-documentation: maps code paths to docs that need updating |
 
 ## Key Rules
 
