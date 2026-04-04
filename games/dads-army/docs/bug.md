@@ -27,17 +27,11 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ## Open Bugs
 
-### BUG-019: set_extraction_intensity RPC references wrong column name
-- **Severity**: HIGH
-- **Status**: OPEN (SQL fix created, needs to be run in Supabase)
-- **Reported**: 2026-04-04
-- **Fixed**: —
-- **Steps to reproduce**:
-  1. Call set_extraction_intensity RPC
-  2. Error: `record "v_field" has no field "owner_id"`
-- **Expected behavior**: Intensity changes successfully
-- **Actual behavior**: Function crashes because it references `v_field.owner_id` but resource_fields table uses `player_id`
-- **Fix notes**: Same root cause as BUG-002/003 — schema uses `player_id`, function code uses `owner_id`. **Fix file**: `sql/011_fix_extraction_intensity.sql` — run in Supabase SQL Editor.
+*No open bugs at this time.*
+
+---
+
+## Fixed Bugs
 
 ### BUG-020: isLand variable undefined in showTileInfo — crashes on unclaimed tile click
 - **Severity**: HIGH
@@ -49,9 +43,17 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Actual behavior**: ReferenceError: `isLand is not defined` — the variable was used in the claim button condition but never declared
 - **Fix notes**: Added `const isLand = !isWater;` to the showTileInfo function.
 
----
-
-## Fixed Bugs
+### BUG-019: set_extraction_intensity RPC references wrong column name
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**:
+  1. Call set_extraction_intensity RPC
+  2. Error: `record "v_field" has no field "owner_id"`
+- **Expected behavior**: Intensity changes successfully
+- **Actual behavior**: Function crashes because it references `v_field.owner_id` but resource_fields table uses `player_id`
+- **Fix notes**: Same root cause as BUG-002/003 — schema uses `player_id`, function code uses `owner_id`. **Fix file**: `sql/011_fix_extraction_intensity.sql` — run in Supabase SQL Editor.
 
 ### BUG-001: SQL migrations fail silently — Supabase SQL Editor stops after first statement
 - **Severity**: CRITICAL
