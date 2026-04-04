@@ -1451,6 +1451,24 @@ function sukunaBlackFlash(p, now) {
     p.attackAnim = 10;
 }
 
+function jinwooRecall(p, now) {
+    if (p.classId !== 'jinwoo') return;
+    // Teleport all shadows back to Jin-Woo in a circle
+    let count = 0;
+    for (const m of summonedMinions) {
+        if (m.type === 'shadow' && m.owner === p) {
+            spawnParticles(m.x, m.y, '#7c4dff', 3);
+            const angle = (count / 8) * Math.PI * 2;
+            m.x = p.x + Math.cos(angle) * 30;
+            m.y = p.y + Math.sin(angle) * 30;
+            m._stuckSince = 0;
+            spawnParticles(m.x, m.y, '#6a3aaa', 3);
+            count++;
+        }
+    }
+    if (count > 0) spawnParticles(p.x, p.y, '#7c4dff', 8);
+}
+
 function gojoDash(p, now) {
     if (p.classId !== 'gojo') return;
     if (!p._gojoDashCd) p._gojoDashCd = 0;
@@ -2321,14 +2339,14 @@ function updatePlayer(p, now) {
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
         if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); }
-        if (pKey(p, 'KeyQ')) gojoDash(p, now);
+        if (pKey(p, 'KeyQ')) { gojoDash(p, now); jinwooRecall(p, now); }
     } else {
         // Local P2: Numpad
         if (pKey(p, 'Numpad0')) playerAttack(p, now);
         if (pKey(p, 'Numpad1')) playerSpecial(p, now);
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
         if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); }
-        if (pKey(p, 'Numpad4')) gojoDash(p, now);
+        if (pKey(p, 'Numpad4')) { gojoDash(p, now); jinwooRecall(p, now); }
     }
 
     // Reduce attackAnim
