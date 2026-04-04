@@ -2182,7 +2182,7 @@ function update(now) {
                     hp: 20, maxHp: 20, damage: 6, speed: 3.2,
                     radius: 5, attackRange: 140, lastAttack: now, attackSpeed: 800,
                     life: Infinity, color: '#6a3aaa', type: 'shadow',
-                    shadowOf: 'warrior', _guardIndex: existing, _guardTotal: 8, ranged: true });
+                    shadowOf: 'warrior', _guardIndex: existing, _guardTotal: 8, ranged: true, _orbit: true });
                 spawnParticles(p.x + Math.cos(angle) * 30, p.y + Math.sin(angle) * 30, '#7c4dff', 6);
                 damageNumbers.push({ x: p.x, y: p.y - 25, text: `Shadow ${existing + 1}/8`, color: '#448aff', life: 30 });
                 // Reassign guard indices
