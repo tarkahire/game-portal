@@ -239,7 +239,7 @@ CREATE OR REPLACE FUNCTION materialize_resources(p_server_id UUID)
 RETURNS void AS $$
 DECLARE
   v_field RECORD; v_city_id UUID; v_building RECORD; v_effects JSONB;
-  v_effect_key TEXT; v_effect_val REAL; v_resource TEXT; v_production REAL;
+  v_effect_key TEXT; v_effect_val TEXT; v_resource TEXT; v_production REAL;
   v_yield_mod REAL; v_mapped_resource TEXT;
 BEGIN
   -- Reset production rates
