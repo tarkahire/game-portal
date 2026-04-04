@@ -92,6 +92,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
 }
 
 #screen-game.active {
@@ -271,6 +272,8 @@ input[type="text"]:focus {
   text-align: center;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
+  overflow-y: auto;
+  max-height: 90vh;
 }
 
 .login-container h1 {
