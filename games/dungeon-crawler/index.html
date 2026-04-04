@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dungeon Crawler</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
@@ -16,7 +17,8 @@
             <p class="tagline">Descend into darkness. Survive.</p>
             <div class="menu-buttons">
                 <button id="btn-solo" class="menu-btn">Solo</button>
-                <button id="btn-coop" class="menu-btn">2P Co-op</button>
+                <button id="btn-coop" class="menu-btn">2P Local Co-op</button>
+                <button id="btn-online" class="menu-btn">Online Co-op</button>
                 <button id="btn-shop" class="menu-btn secondary">Shop</button>
                 <button id="btn-stats" class="menu-btn secondary">Stats</button>
             </div>
@@ -25,6 +27,32 @@
             </div>
             <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
         </div>
+    </div>
+
+    <!-- Online Screen -->
+    <div id="online-screen" class="screen">
+        <h2>ONLINE CO-OP</h2>
+        <p class="tagline">Up to 3 players</p>
+        <div class="menu-buttons">
+            <button id="btn-create-room" class="menu-btn">Create Room</button>
+            <div class="join-row">
+                <input id="join-code-input" type="text" maxlength="4" placeholder="CODE" class="code-input">
+                <button id="btn-join-room" class="menu-btn">Join</button>
+            </div>
+        </div>
+        <button id="btn-back-online" class="menu-btn secondary back-btn">Back</button>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen">
+        <h2>LOBBY</h2>
+        <p class="room-code-label">Room Code: <span id="room-code-display" class="room-code">----</span></p>
+        <p id="lobby-status" class="tagline">Connecting...</p>
+        <div id="lobby-players" class="lobby-list"></div>
+        <h3 class="lobby-class-title">Choose Your Class</h3>
+        <div class="class-grid lobby-class-grid" id="lobby-class-grid"></div>
+        <button id="btn-start-online" class="menu-btn" style="display:none">Start Game</button>
+        <button id="btn-leave-lobby" class="menu-btn secondary back-btn">Leave</button>
     </div>
 
     <!-- Class Select Screen -->
@@ -154,6 +182,7 @@
         </div>
     </div>
 
+    <script src="network.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

@@ -127,6 +127,27 @@ body { background: #0a0a0f; color: #c8c0b0; font-family: 'Segoe UI', sans-serif;
 .pause-panel .menu-btn { margin-bottom: 0.5rem; }
 
 /* Responsive */
+/* Online / Lobby */
+.join-row { display: flex; gap: 0.5rem; align-items: center; }
+.code-input { background: #1a1520; border: 1px solid #3a3040; color: #fff; padding: 0.8rem 1rem;
+    font-size: 1.3rem; letter-spacing: 0.3em; text-align: center; width: 120px; text-transform: uppercase;
+    font-family: monospace; }
+.code-input:focus { outline: none; border-color: #8b0000; }
+.room-code-label { color: #666; font-size: 1rem; margin-bottom: 0.5rem; }
+.room-code { color: #daa520; font-size: 1.8rem; letter-spacing: 0.3em; font-family: monospace; }
+.lobby-list { background: #12101a; border: 1px solid #2a2535; padding: 1rem 1.5rem; min-width: 300px;
+    margin-bottom: 1rem; }
+.lobby-player { display: flex; justify-content: space-between; padding: 0.4rem 0;
+    border-bottom: 1px solid #1a1820; font-size: 0.95rem; }
+.lobby-player span:first-child { color: #666; }
+.lobby-player span:last-child { color: #c8c0b0; }
+.lobby-class-title { color: #666; font-size: 0.9rem; letter-spacing: 0.15em; margin-bottom: 0.5rem; }
+.lobby-class-grid { max-width: 800px; }
+.lobby-class-grid .class-card { padding: 0.8rem; }
+.lobby-class-grid .class-card h3 { font-size: 0.95rem; }
+.lobby-class-grid .class-stats { display: none; }
+.lobby-class-grid .class-desc { font-size: 0.7rem; }
+
 @media (max-width: 800px) {
     .class-grid { grid-template-columns: repeat(2, 1fr); }
     .title-content h1 { font-size: 3rem; }

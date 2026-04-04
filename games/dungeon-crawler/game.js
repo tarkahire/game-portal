@@ -291,7 +291,8 @@ function generateDungeon(floor) {
 function createPlayer(classId, playerIndex) {
     const cls = CLASSES[classId];
     const startRoom = dungeon.rooms[0];
-    const offsetX = playerIndex === 0 ? -1 : 1;
+    const offsets = [-1, 1, 0];
+    const offsetX = offsets[playerIndex] || 0;
     let bonusHp = 0;
     if (meta.unlocks.includes('extraHP')) bonusHp = 20;
 
@@ -1130,13 +1131,18 @@ function update(now) {
     if (gameState !== 'playing') return;
     gameTime = now;
 
+    // Network: send input from client / apply remote inputs on host
+    if (NET.isOnline && !NET.isHost) { sendClientInput(); }
+    if (NET.isOnline && NET.isHost) { applyRemoteInputs(); }
+
     // Update players
     for (const p of players) {
         if (!p.alive) continue;
         updatePlayer(p, now);
     }
 
-    // Update enemies
+    // Update enemies (host only in online mode)
+    if (!NET.isOnline || NET.isHost)
     for (const e of enemies) updateEnemy(e, now);
 
     // Update projectiles
@@ -1442,8 +1448,27 @@ function update(now) {
     mouse.clicked = false;
 }
 
+// Get input keys/mouse for a player (supports local + online)
+function pKey(p, code) {
+    if (NET.isOnline && NET.isHost && p.playerIndex > 0) {
+        const ri = NET.remoteInputs[p.playerIndex];
+        return ri ? (ri.keys[code] || false) : false;
+    }
+    return keys[code] || false;
+}
+function pMouse(p) {
+    if (NET.isOnline && NET.isHost && p.playerIndex > 0) {
+        const ri = NET.remoteInputs[p.playerIndex];
+        return ri ? { x: ri.mouseX, y: ri.mouseY, down: ri.mouseDown, clicked: ri.clicked } : mouse;
+    }
+    return mouse;
+}
+
 function updatePlayer(p, now) {
     if (p.inventoryOpen) return; // Frozen while in inventory
+    // Clients don't simulate — they receive state from host
+    if (NET.isOnline && !NET.isHost) return;
+
     const speedMult = p.activeEffects.some(e => e.effect === 'speed') ? 1.5 : 1;
     const spd = p.speed * speedMult;
 
@@ -1458,14 +1483,14 @@ function updatePlayer(p, now) {
         return;
     }
 
-    // Movement
+    // Movement — online: all players use WASD; local: P1=WASD, P2=arrows
     let dx = 0, dy = 0;
-    if (p.playerIndex === 0) {
-        if (keys['KeyW']) dy = -1; if (keys['KeyS']) dy = 1;
-        if (keys['KeyA']) dx = -1; if (keys['KeyD']) dx = 1;
+    if (NET.isOnline || p.playerIndex === 0) {
+        if (pKey(p, 'KeyW')) dy = -1; if (pKey(p, 'KeyS')) dy = 1;
+        if (pKey(p, 'KeyA')) dx = -1; if (pKey(p, 'KeyD')) dx = 1;
     } else {
-        if (keys['ArrowUp']) dy = -1; if (keys['ArrowDown']) dy = 1;
-        if (keys['ArrowLeft']) dx = -1; if (keys['ArrowRight']) dx = 1;
+        if (pKey(p, 'ArrowUp')) dy = -1; if (pKey(p, 'ArrowDown')) dy = 1;
+        if (pKey(p, 'ArrowLeft')) dx = -1; if (pKey(p, 'ArrowRight')) dx = 1;
     }
     if (dx !== 0 || dy !== 0) {
         const len = Math.sqrt(dx*dx + dy*dy);
@@ -1476,14 +1501,16 @@ function updatePlayer(p, now) {
     }
 
     // Facing direction
-    if (p.playerIndex === 0) {
+    if (NET.isOnline || p.playerIndex === 0) {
         // Mouse aim (adjust for split screen viewport)
-        const vpW = (coopMode && players.length === 2) ? Math.floor(canvas.width / 2) : canvas.width;
-        const wx = mouse.x - vpW/2 + p.x;
-        const wy = mouse.y - canvas.height/2 + p.y;
+        const m = pMouse(p);
+        const numV = coopMode ? players.length : 1;
+        const vpW = numV > 1 ? Math.floor(canvas.width / numV) : canvas.width;
+        const wx = m.x - vpW/2 + p.x;
+        const wy = m.y - canvas.height/2 + p.y;
         p.facingAngle = Math.atan2(wy - p.y, wx - p.x);
     } else {
-        // P2 aims at nearest enemy
+        // Local P2+ aims at nearest enemy
         let closest = null, closestDist = Infinity;
         for (const e of enemies) {
             if (!e.alive) continue;
@@ -1494,17 +1521,18 @@ function updatePlayer(p, now) {
         else if (dx !== 0 || dy !== 0) p.facingAngle = Math.atan2(dy, dx);
     }
 
-    // Attacks
-    if (p.playerIndex === 0) {
-        if (mouse.down) playerAttack(p, now);
-        if (keys['KeyE']) playerSpecial(p, now);
-        if (keys['Space']) playerDodge(p, now);
-        if (keys['KeyR']) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); }
+    // Attacks — online: all use WASD+mouse+E+R+Space; local: P1=mouse/E/R/Space, P2=numpad
+    if (NET.isOnline || p.playerIndex === 0) {
+        const m = pMouse(p);
+        if (m.down) playerAttack(p, now);
+        if (pKey(p, 'KeyE')) playerSpecial(p, now);
+        if (pKey(p, 'Space')) playerDodge(p, now);
+        if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); }
     } else {
-        if (keys['Numpad0']) playerAttack(p, now);
-        if (keys['Numpad1']) playerSpecial(p, now);
-        if (keys['Numpad2']) playerDodge(p, now);
-        if (keys['Numpad5']) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); }
+        if (pKey(p, 'Numpad0')) playerAttack(p, now);
+        if (pKey(p, 'Numpad1')) playerSpecial(p, now);
+        if (pKey(p, 'Numpad2')) playerDodge(p, now);
+        if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); }
     }
 
     // Reduce attackAnim
@@ -1518,30 +1546,31 @@ function render() {
 
     if (gameState !== 'playing' && gameState !== 'paused') return;
 
-    const splitScreen = coopMode && players.length === 2;
+    const numViews = coopMode ? players.length : 1;
 
-    if (splitScreen) {
-        // Split screen — left half P1, right half P2
-        for (let v = 0; v < 2; v++) {
-            const vx = v === 0 ? 0 : Math.floor(canvas.width / 2);
-            const vw = Math.floor(canvas.width / 2);
-            const vh = canvas.height;
+    if (numViews >= 2) {
+        // Split screen — divide evenly
+        const vpW = Math.floor(canvas.width / numViews);
+        for (let v = 0; v < numViews; v++) {
+            const vx = v * vpW;
             ctx.save();
             ctx.beginPath();
-            ctx.rect(vx, 0, vw, vh);
+            ctx.rect(vx, 0, vpW, canvas.height);
             ctx.clip();
-            const target = players[v].alive ? players[v] : players[1 - v];
-            renderWorldView(target.x, target.y, vx, 0, vw, vh);
+            // Follow this player, or fallback to first alive player
+            let target = players[v];
+            if (!target || !target.alive) target = players.find(p => p.alive) || players[0];
+            renderWorldView(target.x, target.y, vx, 0, vpW, canvas.height);
             ctx.restore();
         }
-        // Divider line
+        // Divider lines
         ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(Math.floor(canvas.width / 2), 0);
-        ctx.lineTo(Math.floor(canvas.width / 2), canvas.height);
-        ctx.stroke();
+        for (let d = 1; d < numViews; d++) {
+            const dx = d * vpW;
+            ctx.beginPath(); ctx.moveTo(dx, 0); ctx.lineTo(dx, canvas.height); ctx.stroke();
+        }
     } else {
-        // Solo — full screen follows P1
+        // Solo — full screen
         const p = players[0];
         if (p) renderWorldView(p.alive ? p.x : 0, p.alive ? p.y : 0, 0, 0, canvas.width, canvas.height);
     }
@@ -2797,23 +2826,50 @@ function drawLichLord(ctx, e, time) {
 // ─── UI BUTTONS ─────────────────────────────────────────────
 document.getElementById('btn-solo').onclick = () => startRun(false);
 document.getElementById('btn-coop').onclick = () => startRun(true);
+document.getElementById('btn-online').onclick = () => showScreen('online-screen');
 document.getElementById('btn-shop').onclick = () => { showScreen('shop-screen'); renderShop(); };
 document.getElementById('btn-stats').onclick = () => { showScreen('stats-screen'); renderStats(); };
 document.getElementById('btn-back-title').onclick = () => showScreen('title-screen');
 document.getElementById('btn-back-shop').onclick = () => showScreen('title-screen');
 document.getElementById('btn-back-stats').onclick = () => showScreen('title-screen');
-document.getElementById('btn-retry').onclick = () => { gameState = 'classSelect'; showScreen('class-screen'); };
-document.getElementById('btn-menu').onclick = () => { gameState = 'title'; showScreen('title-screen'); };
+document.getElementById('btn-back-online').onclick = () => showScreen('title-screen');
+document.getElementById('btn-create-room').onclick = () => { createRoom(); populateLobbyClassGrid(); };
+document.getElementById('btn-join-room').onclick = () => {
+    const code = document.getElementById('join-code-input').value.trim();
+    if (code.length === 4) { joinRoom(code); setTimeout(populateLobbyClassGrid, 500); }
+};
+document.getElementById('btn-start-online').onclick = () => hostStartGame();
+document.getElementById('btn-leave-lobby').onclick = () => { cleanupNetwork(); showScreen('title-screen'); };
+document.getElementById('btn-retry').onclick = () => { cleanupNetwork(); gameState = 'classSelect'; showScreen('class-screen'); };
+document.getElementById('btn-menu').onclick = () => { cleanupNetwork(); gameState = 'title'; showScreen('title-screen'); };
 document.getElementById('btn-resume').onclick = resumeGame;
-document.getElementById('btn-quit').onclick = () => { gameState = 'title'; showScreen('title-screen'); document.getElementById('pause-overlay').style.display = 'none'; };
+document.getElementById('btn-quit').onclick = () => { cleanupNetwork(); gameState = 'title'; showScreen('title-screen'); document.getElementById('pause-overlay').style.display = 'none'; };
 
-document.querySelectorAll('.class-card').forEach(card => {
+document.querySelectorAll('#class-screen .class-card').forEach(card => {
     card.onclick = () => {
-        document.querySelectorAll('.class-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('#class-screen .class-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
         setTimeout(() => selectClass(card.dataset.class), 200);
     };
 });
+
+function populateLobbyClassGrid() {
+    const grid = document.getElementById('lobby-class-grid');
+    grid.innerHTML = '';
+    for (const [id, cls] of Object.entries(CLASSES)) {
+        const card = document.createElement('div');
+        card.className = 'class-card';
+        card.dataset.class = id;
+        card.innerHTML = `<div class="class-icon ${id}-icon"></div><h3>${cls.name}</h3><p class="class-desc">${cls.specialDesc}</p>`;
+        card.onclick = () => {
+            grid.querySelectorAll('.class-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            if (NET.isHost) hostSelectClass(id);
+            else clientSelectClass(id);
+        };
+        grid.appendChild(card);
+    }
+}
 
 function renderShop() {
     const grid = document.getElementById('shop-items');
