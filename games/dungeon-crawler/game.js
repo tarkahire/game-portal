@@ -3088,7 +3088,7 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         ctx.translate(b.x, b.y);
         ctx.rotate(b.angle);
         if (b.isTongue) {
-            // Frog tongue — green with electric sparks
+            // Frog tongue — green with blue lightning arcs
             ctx.globalAlpha = alpha * 0.9;
             ctx.fillStyle = '#e91e63'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill(); // mouth
             ctx.fillStyle = '#76ff03';
@@ -3096,14 +3096,34 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
             ctx.fillRect(0, -2, b.length, 4); // tongue
             // Tip
             ctx.beginPath(); ctx.arc(b.length, 0, 5, 0, Math.PI * 2); ctx.fill();
-            // Electric crackle along tongue
-            ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 1; ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 8;
-            for (let s = 0; s < 4; s++) {
-                const sx = 10 + s * (b.length / 4);
+            // Blue lightning arcs along the tongue
+            ctx.strokeStyle = '#448aff'; ctx.lineWidth = 1.5; ctx.shadowColor = '#448aff'; ctx.shadowBlur = 12;
+            for (let s = 0; s < 6; s++) {
+                const sx = 8 + s * (b.length / 6);
+                // Top arc — jagged lightning bolt
                 ctx.beginPath(); ctx.moveTo(sx, -2);
-                ctx.lineTo(sx + 5, -5 - Math.random() * 4); ctx.lineTo(sx + 10, -2); ctx.stroke();
+                ctx.lineTo(sx + 3, -6 - Math.random() * 6);
+                ctx.lineTo(sx + 6, -3 - Math.random() * 4);
+                ctx.lineTo(sx + 9, -7 - Math.random() * 5);
+                ctx.lineTo(sx + 12, -2); ctx.stroke();
+                // Bottom arc
                 ctx.beginPath(); ctx.moveTo(sx, 2);
-                ctx.lineTo(sx + 5, 5 + Math.random() * 4); ctx.lineTo(sx + 10, 2); ctx.stroke();
+                ctx.lineTo(sx + 3, 6 + Math.random() * 6);
+                ctx.lineTo(sx + 6, 3 + Math.random() * 4);
+                ctx.lineTo(sx + 9, 7 + Math.random() * 5);
+                ctx.lineTo(sx + 12, 2); ctx.stroke();
+            }
+            // Blue glow at tip
+            ctx.fillStyle = '#448aff'; ctx.shadowColor = '#448aff'; ctx.shadowBlur = 14;
+            ctx.beginPath(); ctx.arc(b.length, 0, 3, 0, Math.PI * 2); ctx.fill();
+            // Random blue sparks jumping off tongue
+            ctx.strokeStyle = '#82b1ff'; ctx.lineWidth = 1;
+            for (let j = 0; j < 3; j++) {
+                const jx = Math.random() * b.length;
+                const jy = (Math.random() - 0.5) * 20;
+                ctx.beginPath(); ctx.moveTo(jx, 0);
+                ctx.lineTo(jx + (Math.random()-0.5) * 8, jy);
+                ctx.stroke();
             }
         } else if (b.isBlackFlash) {
             // Black Flash — dark lightning burst
