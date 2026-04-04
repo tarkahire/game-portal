@@ -609,7 +609,7 @@ export async function trainUnits(cityId, unitDef, quantity) {
 export async function formArmy(cityId, name, units) {
   const { data, error } = await supabase.rpc('form_army', {
     p_city_id: cityId,
-    p_army_name: name,
+    p_name: name,
     p_units: units,
   });
 
