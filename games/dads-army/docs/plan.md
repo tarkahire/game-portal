@@ -12,7 +12,7 @@
 |-------|--------|---------|
 | Phase 0: Docs & Scaffolding | DONE | 27 docs, file structure, auto-doc system |
 | Phase 1: MVP | DONE | All MVP features complete: auth, hex map, tiles, cities, military, combat, supply/roads, portal integration. |
-| Phase 1.5: Gameplay Rework | IN PROGRESS | Fog of war done. Troop territory, resource rework, research tree next. |
+| Phase 1.5: Gameplay Rework | IN PROGRESS | Fog of war, tile control, fish/uranium, city upgrades, warehouse, resource functions, RLS fixes all done. Troop territory, resource rework, research tree next. |
 | Phase 2: Strategic Depth | NOT STARTED | Full resources, research, naval, air, alliances, fog of war |
 | Phase 3: War Economy | NOT STARTED | Supply chains, stranding, debt, trade, intelligence |
 | Phase 4: Endgame & Polish | NOT STARTED | Victory conditions, coalitions, tutorial, mobile |
@@ -84,6 +84,13 @@ Addressing fundamental gameplay issues before Phase 2.
 - [x] Fish/uranium resource support (constraint fix, base rates, mapping)
 - [x] City upgrade system (level 1-5 with increasing slots and storage)
 - [x] Warehouse storage_capacity connected to buildings
+- [x] Resource function fixes (deduct_player_resource, get_player_resource_total, materialize_resources)
+- [x] materialize_resources tick scheduling fix (was only running every 5th minute)
+- [x] Farmland→food resource type mapping
+- [x] Missing resource types added (aluminum, rubber, tungsten)
+- [x] City tile control level corrected (claimed→occupied)
+- [x] Building slot counts aligned to spec (3/5/8/12/16)
+- [x] Armies and army_units RLS policies added
 - [ ] Troop-based territory control (remove click-to-claim, require engineers)
 - [ ] Resource development rework (require engineers, construction time, costs)
 - [ ] Research tree UI (visual tech tree panel, start/cancel research)

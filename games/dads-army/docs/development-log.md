@@ -303,4 +303,35 @@ Full resource set, production chains, research tree, naval/air warfare, alliance
 
 ---
 
+## 2026-04-04 (continued) — Resource Function Fixes & RLS Cleanup
+
+### Bugs fixed (BUG-032 through BUG-043)
+Continued cleanup of owner_id→player_id mismatches and type errors across resource and military functions:
+
+- **BUG-032**: deduct_player_resource used owner_id and REAL instead of DOUBLE PRECISION
+- **BUG-033**: get_player_resource_total used owner_id
+- **BUG-034**: materialize_resources v_effect_val was REAL — crashed on non-numeric building effects (e.g., 'enables' JSON arrays)
+- **BUG-035**: materialize_resources only ran every 5th minute — production rates stayed at 0
+- **BUG-036**: Farmland resource type mapped to 'farmland' not 'food' in city_resources
+- **BUG-037**: Fish resource type blocked by tiles CHECK constraint
+- **BUG-038**: City tiles showed as 'claimed' (50% yield) instead of 'occupied'
+- **BUG-039**: Missing resource types (aluminum, rubber, tungsten) in city_resources CHECK constraint
+- **BUG-040**: No city upgrade RPC or UI existed — cities stuck at level 1
+- **BUG-041**: Warehouse storage_capacity effect never applied
+- **BUG-042**: build_building SQL had wrong slot counts (3/5/7/9/12 → 3/5/8/12/16)
+- **BUG-043**: armies and army_units RLS had no policies — all reads blocked
+
+### Lessons learned
+1. **RLS "no policy" is silent denial**: When RLS is enabled but no policies exist, all queries return empty results with no error. This is especially insidious because the data exists and the query is correct — you just can't see it. Always verify RLS policies exist after enabling RLS on a table.
+2. **Type precision matters in PostgreSQL**: REAL vs DOUBLE PRECISION mismatch in function signatures causes hard failures. Always match the column's declared type exactly.
+3. **Non-numeric JSONB values need guards**: Building effects contain both numeric values (e.g., storage_capacity: 500) and non-numeric values (e.g., enables: ["infantry"]). Any function iterating over effects must check for numeric types before casting.
+4. **pg_cron tick alignment**: A function scheduled to run every minute but with an internal "only run on ticks divisible by 5" guard will silently skip most runs. Verify that scheduled functions actually execute by checking resource amounts after a few tick cycles.
+
+### Current state
+- All 43 bugs fixed (BUG-001 through BUG-043)
+- Phase 1.5 in progress: fog of war, tile control, fish/uranium, city upgrades, warehouse, resource functions, RLS all done
+- Next: troop-based territory control, resource development rework, research tree UI
+
+---
+
 *More entries will be added as development progresses.*

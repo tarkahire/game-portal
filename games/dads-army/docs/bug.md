@@ -27,21 +27,128 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ## Open Bugs
 
-### BUG-028: process_supply_chains and degrade_fortifications use owner_id instead of player_id
-- **Severity**: HIGH
-- **Status**: FIXED
-- **Reported**: 2026-04-04
-- **Fixed**: 2026-04-04
-- **Fix notes**: **Fix file**: `sql/015_fix_supply_functions.sql`.
+*(No open bugs)*
 
-### BUG-029: armies.is_garrison column missing — causes 400 on every armies query
+---
+
+## Fixed Bugs
+
+### BUG-043: armies and army_units RLS had no policies — all reads blocked
 - **Severity**: CRITICAL
 - **Status**: FIXED
 - **Reported**: 2026-04-04
 - **Fixed**: 2026-04-04
-- **Steps to reproduce**: Load game → console shows `column armies.is_garrison does not exist`
-- **Actual behavior**: getAllArmies fails with 400, cascading to affect city loading and all downstream features
-- **Fix notes**: Column was noted in BUG-002 as needing ALTER TABLE but was never run. **Fix file**: `sql/016_critical_fixes.sql` statement 1.
+- **Steps to reproduce**: Load game → army queries return empty arrays despite armies existing in the database
+- **Expected behavior**: Players can read their own armies and army_units
+- **Actual behavior**: RLS was enabled on armies and army_units tables but no policies were created, so all SELECT/INSERT/UPDATE/DELETE operations were silently blocked
+- **Fix notes**: Added SELECT/INSERT/UPDATE/DELETE policies for both armies and army_units tables, scoped to player_id ownership.
+
+### BUG-042: build_building SQL had wrong slot counts (3/5/7/9/12 instead of 3/5/8/12/16)
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: City levels 1-5 allow 3/5/8/12/16 building slots per CLAUDE.md spec
+- **Actual behavior**: build_building function used 3/5/7/9/12 slot limits
+- **Fix notes**: Aligned slot counts in build_building SQL to match documented values (3/5/8/12/16).
+
+### BUG-041: Warehouse storage_capacity effect never applied
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: Warehouse buildings increase city storage capacity (+500/+1200/+2500 per level)
+- **Actual behavior**: storage_capacity effect was defined in building_defs but never read or applied by materialize_resources. All cities stuck at default 500 storage.
+- **Fix notes**: Updated materialize_resources to reset and recalculate storage_capacity each cycle, applying base capacity per city level plus warehouse building effects.
+
+### BUG-040: No city upgrade RPC or UI existed — cities stuck at level 1
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: Players can upgrade cities from level 1 to 5, unlocking more building slots and storage
+- **Actual behavior**: No upgrade_city RPC existed and no UI button was available. All cities permanently level 1 with 3 slots.
+- **Fix notes**: Created upgrade_city RPC with costs from cities.md (1000/200/100 for Lv2 up to 20000/3000/800 for Lv5). Added "Upgrade City" button to city panel showing cost and resulting slot count. City level now increases base storage capacity (500/1000/2000/4000/8000).
+
+### BUG-039: Missing resource types (aluminum, rubber, tungsten) in city_resources
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: city_resources table supports all resource types including aluminum, rubber, tungsten
+- **Actual behavior**: CHECK constraint on city_resources.resource_type did not include aluminum, rubber, or tungsten
+- **Fix notes**: ALTER TABLE to expand CHECK constraint to include all required resource types.
+
+### BUG-038: City tiles showed as 'claimed' (50% yield) instead of 'occupied'
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: Tiles with cities should be at 'occupied' control level (75% yield) or higher
+- **Actual behavior**: City tiles had control_level = 'claimed' giving only 50% yield
+- **Fix notes**: Updated tile control logic so city tiles are set to 'occupied' control level at minimum.
+
+### BUG-037: fish resource type blocked by tiles CHECK constraint
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Steps to reproduce**: Fish tiles seeded but resource_type couldn't be stored
+- **Expected behavior**: tiles table accepts 'fish' as a valid resource_type
+- **Actual behavior**: CHECK constraint on tiles.resource_type did not include 'fish', blocking all fish tile storage
+- **Fix notes**: ALTER TABLE to expand CHECK constraint to include 'fish' and 'uranium'. Also updated develop_resource_field to handle fish (8.0/tick) and uranium (1.0/tick) base rates.
+
+### BUG-036: farmland resource type mapped to 'farmland' not 'food' in city_resources
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: Farmland tiles produce 'food' resource type in city_resources
+- **Actual behavior**: Farmland resource type was mapped as 'farmland' in city_resources instead of 'food'
+- **Fix notes**: Fixed resource type mapping so farmland terrain produces 'food' in city_resources.
+
+### BUG-035: materialize_resources only ran every 5th minute — production rates stayed at 0
+- **Severity**: CRITICAL
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: materialize_resources runs every game tick, updating production rates and resource amounts
+- **Actual behavior**: pg_cron schedule was set to every 5 minutes but the function only executed on ticks divisible by 5, meaning resources never accumulated and production_rate stayed at 0
+- **Fix notes**: Fixed tick scheduling so materialize_resources runs and updates resources on every tick cycle.
+
+### BUG-034: materialize_resources v_effect_val was REAL — crashed on non-numeric building effects
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: materialize_resources processes all building effects including non-numeric ones (e.g., 'enables' arrays)
+- **Actual behavior**: v_effect_val declared as REAL caused a crash when encountering non-numeric building effects like JSON arrays for 'enables' keys
+- **Fix notes**: Changed v_effect_val handling to skip non-numeric effect values instead of trying to cast them to REAL.
+
+### BUG-033: get_player_resource_total used owner_id
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: Function queries cities by player_id
+- **Actual behavior**: get_player_resource_total referenced owner_id which doesn't exist on cities table
+- **Fix notes**: Changed owner_id to player_id. Same root cause as BUG-002/003.
+
+### BUG-032: deduct_player_resource used owner_id + wrong type signature (REAL instead of DOUBLE PRECISION)
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Expected behavior**: Function deducts resources from player's cities using player_id and correct numeric type
+- **Actual behavior**: deduct_player_resource referenced owner_id (doesn't exist on cities) and used REAL type instead of DOUBLE PRECISION, causing type mismatch errors
+- **Fix notes**: Changed owner_id to player_id and REAL to DOUBLE PRECISION in function signature.
+
+### BUG-031: Cities RLS policies reference owner_id instead of player_id
+- **Severity**: CRITICAL
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Fix notes**: All 4 cities policies (SELECT/INSERT/UPDATE/DELETE) use owner_id. Fixed in `sql/016_critical_fixes.sql` statement 3.
 
 ### BUG-030: join_server creates capital city with owner_id instead of player_id — city never created
 - **Severity**: CRITICAL
@@ -53,16 +160,21 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 - **Actual behavior**: INSERT into cities uses `owner_id` (doesn't exist), silently fails. Player and tiles created but no city. All city-dependent features broken: no city markers, no resource bar, no building, no training, no armies.
 - **Fix notes**: Same root cause as BUG-002/003 but in the join_server function. Also affects build_city RPC and all cities RLS policies. **Fix file**: `sql/016_critical_fixes.sql` — run ALL 4 statements.
 
-### BUG-031: Cities RLS policies reference owner_id instead of player_id
+### BUG-029: armies.is_garrison column missing — causes 400 on every armies query
 - **Severity**: CRITICAL
 - **Status**: FIXED
 - **Reported**: 2026-04-04
 - **Fixed**: 2026-04-04
-- **Fix notes**: All 4 cities policies (SELECT/INSERT/UPDATE/DELETE) use owner_id. Fixed in `sql/016_critical_fixes.sql` statement 3.
+- **Steps to reproduce**: Load game → console shows `column armies.is_garrison does not exist`
+- **Actual behavior**: getAllArmies fails with 400, cascading to affect city loading and all downstream features
+- **Fix notes**: Column was noted in BUG-002 as needing ALTER TABLE but was never run. **Fix file**: `sql/016_critical_fixes.sql` statement 1.
 
----
-
-## Fixed Bugs
+### BUG-028: process_supply_chains and degrade_fortifications use owner_id instead of player_id
+- **Severity**: HIGH
+- **Status**: FIXED
+- **Reported**: 2026-04-04
+- **Fixed**: 2026-04-04
+- **Fix notes**: **Fix file**: `sql/015_fix_supply_functions.sql`.
 
 ### BUG-027: getPlayerBattleReports uses wrong column names
 - **Severity**: HIGH
