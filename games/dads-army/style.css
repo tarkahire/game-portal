@@ -507,32 +507,35 @@ input[type="text"]:focus {
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  gap: 20px;
+  padding: 0 10px;
+  gap: 4px;
   z-index: 100;
   font-family: var(--font-mono);
-  font-size: 0.85em;
+  font-size: 0.8em;
+  flex-wrap: wrap;
+  overflow: hidden;
 }
 
 .resource-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.03);
+  cursor: default;
+  white-space: nowrap;
 }
 
 .resource-item .resource-icon {
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9em;
+  font-size: 0.85em;
 }
 
 .resource-item .resource-amount {
   color: var(--text-primary);
   font-weight: 700;
+  font-size: 0.95em;
 }
 
 .resource-item .resource-rate {

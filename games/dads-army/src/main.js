@@ -1719,15 +1719,16 @@ function updateResourceBar(resources) {
     ammunition: '🔫', copper: '🔶', coal: '⬛', iron: '🔩',
   };
 
-  bar.innerHTML = resources.map(r => {
+  // Only show resources with amount > 0 or production > 0
+  const visible = resources.filter(r => r.amount > 0 || r.production_rate > 0);
+  bar.innerHTML = visible.map(r => {
     const rate = r.production_rate || 0;
     const rateSign = rate >= 0 ? '+' : '';
     const rateClass = rate > 0 ? 'positive' : rate < 0 ? 'negative' : '';
-    return `<div class="resource-item">
+    return `<div class="resource-item" title="${capitalize(r.resource_type)}: ${Math.floor(r.amount)} (${rateSign}${rate.toFixed(1)}/tick)">
       <span class="resource-icon">${icons[r.resource_type] || '📦'}</span>
-      <span class="resource-name">${r.resource_type}</span>
       <span class="resource-amount">${Math.floor(r.amount)}</span>
-      <span class="resource-rate ${rateClass}">${rateSign}${rate.toFixed(1)}/t</span>
+      ${rate !== 0 ? `<span class="resource-rate ${rateClass}">${rateSign}${rate.toFixed(1)}</span>` : ''}
     </div>`;
   }).join('');
 }
