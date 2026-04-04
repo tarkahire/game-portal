@@ -1216,11 +1216,12 @@ function playerSpecial(p, now) {
                 const tx = target.x, ty = target.y; target.x = p.x; target.y = p.y; p.x = tx; p.y = ty;
                 dealDamageToEnemy(target, Math.round(p.damage * 1.5), p); }
             triggerShake(4, 6); } break;
-        case 'megumi': // Divine Dogs — summon 8 fiends
+        case 'megumi': // Divine Dogs — summon 8 fiends orbiting player
             for (let i = 0; i < 8; i++) { const angle = (i / 8) * Math.PI * 2;
                 summonedMinions.push({ x: p.x+Math.cos(angle)*35, y: p.y+Math.sin(angle)*35, owner: p,
                     hp: 30, maxHp: 30, damage: 8, speed: 3.5, radius: 14, attackRange: 28,
-                    lastAttack: 0, attackSpeed: 400, life: now + 10000, color: '#1a237e', type: 'dog' }); }
+                    lastAttack: 0, attackSpeed: 400, life: now + 10000, color: '#1a237e', type: 'dog',
+                    _guardIndex: i, _guardTotal: 8, _orbit: true }); }
             spawnParticles(p.x, p.y, '#283593', 16); triggerShake(4, 8); break;
         case 'maki': // Weapon sweep
             { const range = 50; for (const e of enemies) { if (!e.alive) continue;
@@ -2001,8 +2002,14 @@ function update(now) {
             const owner = m.owner;
             if (owner && owner.alive) {
                 let targetX, targetY;
-                if (m.type === 'shadow' && m._guardIndex !== undefined) {
-                    // Loose wall formation in front of owner
+                if (m._orbit && m._guardIndex !== undefined) {
+                    // Fast orbit circle around owner (divine dogs)
+                    const orbitAngle = (m._guardIndex / (m._guardTotal || 8)) * Math.PI * 2 + now * 0.004;
+                    const orbitRadius = 40;
+                    targetX = owner.x + Math.cos(orbitAngle) * orbitRadius;
+                    targetY = owner.y + Math.sin(orbitAngle) * orbitRadius;
+                } else if (m.type === 'shadow' && m._guardIndex !== undefined) {
+                    // Loose wall formation in front of owner (Jin-Woo shadows)
                     const wallSpacing = 14;
                     const wallOffset = (m._guardIndex - (m._guardTotal || 8) / 2 + 0.5) * wallSpacing;
                     const facingAngle = owner.facingAngle || 0;
