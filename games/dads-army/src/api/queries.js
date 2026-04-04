@@ -19,8 +19,8 @@ import { supabase } from './supabaseClient.js';
 export async function getActiveServers() {
   const { data, error } = await supabase
     .from('game_servers')
-    .select('id, name, status, current_day, player_count, max_players, created_at')
-    .in('status', ['active', 'upcoming', 'full'])
+    .select('id, name, status, current_day, max_players, created_at')
+    .in('status', ['lobby', 'active'])
     .order('created_at', { ascending: false });
 
   if (error) {

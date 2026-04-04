@@ -261,7 +261,7 @@ async function loadServerList() {
         </div>
         <div class="server-meta">
           <span>Day ${server.current_day || 1}</span>
-          <span>${server.player_count || 0} / ${server.max_players || '?'} players</span>
+          <span>${server.max_players || '?'} max players</span>
           <span>${capitalize(server.status)}</span>
         </div>
       `;
