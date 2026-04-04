@@ -35,7 +35,7 @@ body { background: #0a0a0f; color: #c8c0b0; font-family: 'Segoe UI', sans-serif;
 #class-screen h2 { font-size: 2rem; letter-spacing: 0.2em; color: #8b0000; margin-bottom: 0.5rem;
     text-shadow: 0 0 20px rgba(139,0,0,0.4); }
 .p2-label { font-size: 1.1rem; color: #4a9eff; margin-bottom: 1rem; letter-spacing: 0.1em; }
-.class-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; padding: 1.5rem; max-width: 900px; }
+.class-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; padding: 1.5rem; max-width: 960px; }
 .class-card { background: linear-gradient(180deg, #1e1828 0%, #12101a 100%); border: 1px solid #2a2535;
     padding: 1.2rem; cursor: pointer; transition: all 0.25s; text-align: center; }
 .class-card:hover { border-color: #8b0000; transform: translateY(-3px);
@@ -49,6 +49,9 @@ body { background: #0a0a0f; color: #c8c0b0; font-family: 'Segoe UI', sans-serif;
 .mage-icon { background: radial-gradient(circle, #4a2080 40%, #2a1050 100%); }
 .rogue-icon { background: radial-gradient(circle, #2a4a2a 40%, #1a2a1a 100%); }
 .ranger-icon { background: radial-gradient(circle, #4a6a2a 40%, #2a4a1a 100%); }
+.angel-icon { background: radial-gradient(circle, #f0e68c 30%, #daa520 70%, #b8860b 100%); }
+.demon-icon { background: radial-gradient(circle, #cc2222 30%, #8b0000 70%, #4a0000 100%); }
+.draco-icon { background: radial-gradient(circle, #9c27b0 30%, #6a1b9a 70%, #4a148c 100%); }
 
 .class-card h3 { color: #c8c0b0; font-size: 1.1rem; letter-spacing: 0.1em; margin-bottom: 0.6rem; }
 .class-stats { margin-bottom: 0.6rem; }

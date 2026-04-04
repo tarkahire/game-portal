@@ -40,6 +40,8 @@ let projectiles = [];
 let particles = [];
 let lootDrops = [];
 let damageNumbers = [];
+let summonedMinions = [];
+let activeBeams = [];
 let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
 let camera = { x: 0, y: 0 };
 let gameTime = 0;
@@ -82,6 +84,24 @@ const CLASSES = {
         attackType: 'ranged', color: '#5d8a3c', specialCooldown: 5000,
         specialName: 'Bear Trap', specialDesc: 'Place a trap that snares enemies',
         drawChar: drawRanger
+    },
+    angel: {
+        name: 'Angel', maxHp: 90, speed: 3.25, attackRange: 160, attackDamage: 13, attackSpeed: 450,
+        attackType: 'ranged', color: '#f0e68c', specialCooldown: 6000,
+        specialName: 'Divine Wings', specialDesc: '+30% speed & heal allies for 5s',
+        drawChar: drawAngel
+    },
+    demon: {
+        name: 'Demon', maxHp: 100, speed: 2.4, attackRange: 35, attackDamage: 14, attackSpeed: 450,
+        attackType: 'melee', color: '#cc2222', specialCooldown: 5000,
+        specialName: 'Summon Imps', specialDesc: 'Summon 3 imp minions to fight',
+        drawChar: drawDemon
+    },
+    draco: {
+        name: 'Draco', maxHp: 110, speed: 2.3, attackRange: 40, attackDamage: 11, attackSpeed: 400,
+        attackType: 'melee', color: '#6a1b9a', specialCooldown: 4000,
+        specialName: 'Dragon Beam', specialDesc: 'Fire a devastating energy beam',
+        drawChar: drawDraco
     }
 };
 
@@ -127,6 +147,15 @@ const WEAPON_BASES = [
     { name: 'Short Bow', type: 'weapon', subtype: 'bow', damage: 10, speed: 500, range: 200, forClass: 'ranger' },
     { name: 'Long Bow', type: 'weapon', subtype: 'bow', damage: 14, speed: 550, range: 240, forClass: 'ranger' },
     { name: 'Hunter Bow', type: 'weapon', subtype: 'bow', damage: 17, speed: 480, range: 230, forClass: 'ranger' },
+    { name: 'Holy Scepter', type: 'weapon', subtype: 'scepter', damage: 12, speed: 450, range: 160, forClass: 'angel' },
+    { name: 'Seraph Rod', type: 'weapon', subtype: 'scepter', damage: 16, speed: 420, range: 180, forClass: 'angel' },
+    { name: 'Divine Rod', type: 'weapon', subtype: 'scepter', damage: 19, speed: 400, range: 190, forClass: 'angel' },
+    { name: 'Hell Claw', type: 'weapon', subtype: 'claw', damage: 12, speed: 420, range: 32, forClass: 'demon' },
+    { name: 'Inferno Fist', type: 'weapon', subtype: 'claw', damage: 16, speed: 400, range: 35, forClass: 'demon' },
+    { name: 'Abyssal Talon', type: 'weapon', subtype: 'claw', damage: 20, speed: 380, range: 38, forClass: 'demon' },
+    { name: 'Dragon Claw', type: 'weapon', subtype: 'dragonclaw', damage: 10, speed: 400, range: 38, forClass: 'draco' },
+    { name: 'Wyrm Fang', type: 'weapon', subtype: 'dragonclaw', damage: 14, speed: 370, range: 42, forClass: 'draco' },
+    { name: 'Elder Scale', type: 'weapon', subtype: 'dragonclaw', damage: 18, speed: 350, range: 45, forClass: 'draco' },
 ];
 const ARMOR_BASES = [
     { name: 'Cloth Robe', type: 'armor', defense: 2 },
@@ -146,6 +175,9 @@ const SHOP_ITEMS = [
     { id: 'startStaff', name: 'Fire Staff', desc: 'Start with a better staff', cost: 50 },
     { id: 'startDagger', name: 'Venom Dagger', desc: 'Start with a better dagger', cost: 50 },
     { id: 'startBow', name: 'Oak Longbow', desc: 'Start with a better bow', cost: 50 },
+    { id: 'startScepter', name: 'Seraph Rod', desc: 'Start with a better scepter', cost: 50 },
+    { id: 'startClaw', name: 'Inferno Fist', desc: 'Start with a better claw', cost: 50 },
+    { id: 'startDragonClaw', name: 'Wyrm Fang', desc: 'Start with a better dragon claw', cost: 50 },
     { id: 'extraHP', name: 'Vitality Charm', desc: '+20 starting HP', cost: 80 },
     { id: 'potionStart', name: 'Potion Belt', desc: 'Start with 2 health potions', cost: 40 },
 ];
@@ -285,7 +317,7 @@ function createPlayer(classId, playerIndex) {
 }
 
 function applyShopUnlocks(p) {
-    const classWeaponMap = { warrior: 'startSword', mage: 'startStaff', rogue: 'startDagger', ranger: 'startBow' };
+    const classWeaponMap = { warrior: 'startSword', mage: 'startStaff', rogue: 'startDagger', ranger: 'startBow', angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw' };
     const wUnlock = classWeaponMap[p.classId];
     if (meta.unlocks.includes(wUnlock)) {
         const bases = WEAPON_BASES.filter(w => w.forClass === p.classId);
@@ -453,6 +485,8 @@ function startGame() {
     projectiles = [];
     particles = [];
     damageNumbers = [];
+    summonedMinions = [];
+    activeBeams = [];
     gameState = 'playing';
     showScreen(null);
     gameTime = 0;
@@ -478,8 +512,10 @@ function nextFloor() {
     });
     projectiles = [];
     particles = [];
-    enemies = enemies.filter(e => false);
-    lootDrops = lootDrops.filter(l => false);
+    summonedMinions = [];
+    activeBeams = [];
+    enemies = [];
+    lootDrops = [];
     populateDungeon();
 }
 
@@ -686,6 +722,64 @@ function playerSpecial(p, now) {
                 y: p.y + Math.sin(p.facingAngle) * 40,
                 type: 'trap', owner: p, active: true
             });
+            break;
+        case 'angel': // Divine Wings — speed boost + heal
+            p.activeEffects.push({ effect: 'speed', value: 1.3, endTime: now + 5000 });
+            p.activeEffects.push({ effect: 'wings', value: 1, endTime: now + 5000 });
+            p.hp = Math.min(p.hp + 25, p.maxHp);
+            // Heal co-op partner too
+            for (const ally of players) {
+                if (ally !== p && ally.alive) {
+                    ally.hp = Math.min(ally.hp + 15, ally.maxHp);
+                    spawnParticles(ally.x, ally.y, '#fffacd', 10);
+                    damageNumbers.push({ x: ally.x, y: ally.y - 20, text: '+15', color: '#f0e68c', life: 40 });
+                }
+            }
+            spawnParticles(p.x, p.y, '#f0e68c', 20);
+            spawnParticles(p.x, p.y, '#fff', 10);
+            damageNumbers.push({ x: p.x, y: p.y - 20, text: '+25', color: '#f0e68c', life: 40 });
+            triggerShake(3, 6);
+            break;
+        case 'demon': // Summon Imps
+            for (let i = 0; i < 3; i++) {
+                const angle = p.facingAngle + (i - 1) * 0.8;
+                const sx = p.x + Math.cos(angle) * 30;
+                const sy = p.y + Math.sin(angle) * 30;
+                summonedMinions.push({
+                    x: sx, y: sy, owner: p,
+                    hp: 20, maxHp: 20, damage: 6,
+                    speed: 2.5, radius: 7, attackRange: 22,
+                    lastAttack: 0, attackSpeed: 600,
+                    life: now + 8000, // 8 seconds lifespan
+                    color: '#ff4444', type: 'imp'
+                });
+                spawnParticles(sx, sy, '#cc2222', 8);
+            }
+            spawnParticles(p.x, p.y, '#880000', 12);
+            triggerShake(4, 8);
+            break;
+        case 'draco': // Dragon Beam
+            const beamLen = 250;
+            const beamWidth = 18;
+            // Damage all enemies in beam path
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                // Check if enemy is in beam rectangle
+                const dx = e.x - p.x, dy = e.y - p.y;
+                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
+                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
+                if (along > 0 && along < beamLen && perp < beamWidth) {
+                    dealDamageToEnemy(e, Math.round(p.damage * 2), p);
+                }
+            }
+            // Beam visual effect
+            activeBeams.push({
+                x: p.x, y: p.y, angle: p.facingAngle,
+                length: beamLen, width: beamWidth,
+                life: 20, maxLife: 20, color: '#9c27b0'
+            });
+            spawnParticles(p.x + Math.cos(p.facingAngle) * 20, p.y + Math.sin(p.facingAngle) * 20, '#ce93d8', 16);
+            triggerShake(6, 12);
             break;
     }
 }
@@ -981,6 +1075,37 @@ function update(now) {
                 }
             }
         }
+    }
+
+    // Update summoned minions (Demon imps)
+    for (let i = summonedMinions.length - 1; i >= 0; i--) {
+        const m = summonedMinions[i];
+        if (now > m.life || m.hp <= 0) { spawnParticles(m.x, m.y, '#880000', 6); summonedMinions.splice(i, 1); continue; }
+        // Find nearest enemy and chase/attack
+        let closest = null, closestDist = Infinity;
+        for (const e of enemies) {
+            if (!e.alive) continue;
+            const d = Math.hypot(e.x - m.x, e.y - m.y);
+            if (d < closestDist) { closestDist = d; closest = e; }
+        }
+        if (closest) {
+            if (closestDist > m.attackRange) {
+                const dx = closest.x - m.x, dy = closest.y - m.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const nx = m.x + (dx/dist) * m.speed, ny = m.y + (dy/dist) * m.speed;
+                if (isWalkable(nx, ny)) { m.x = nx; m.y = ny; }
+            } else if (now - m.lastAttack > m.attackSpeed) {
+                m.lastAttack = now;
+                dealDamageToEnemy(closest, m.damage, m.owner);
+                spawnParticles(closest.x, closest.y, '#ff4444', 3);
+            }
+        }
+    }
+
+    // Update beam effects
+    for (let i = activeBeams.length - 1; i >= 0; i--) {
+        activeBeams[i].life--;
+        if (activeBeams[i].life <= 0) activeBeams.splice(i, 1);
     }
 
     // Update particles
@@ -1305,6 +1430,65 @@ function render() {
         ctx.globalAlpha = 1;
     }
 
+    // Summoned minions (imps)
+    for (const m of summonedMinions) {
+        ctx.save(); ctx.translate(m.x, m.y);
+        // Imp body
+        ctx.fillStyle = m.color;
+        ctx.beginPath(); ctx.arc(0, 0, m.radius, 0, Math.PI * 2); ctx.fill();
+        // Horns
+        ctx.fillStyle = '#880000';
+        ctx.beginPath(); ctx.moveTo(-4, -5); ctx.lineTo(-6, -11); ctx.lineTo(-2, -7); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(6, -11); ctx.lineTo(2, -7); ctx.fill();
+        // Eyes
+        ctx.fillStyle = '#ff0';
+        ctx.shadowColor = '#ff0'; ctx.shadowBlur = 4;
+        ctx.fillRect(-3, -3, 2, 2); ctx.fillRect(1, -3, 2, 2);
+        ctx.shadowBlur = 0;
+        // Wings
+        ctx.fillStyle = 'rgba(150,0,0,0.5)';
+        const wf = Math.sin(gameTime * 0.015) * 0.4;
+        ctx.save(); ctx.rotate(wf); ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(-10, -7); ctx.lineTo(-5, 1); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.rotate(-wf); ctx.beginPath(); ctx.moveTo(3, -2); ctx.lineTo(10, -7); ctx.lineTo(5, 1); ctx.fill(); ctx.restore();
+        // Tail
+        ctx.strokeStyle = '#880000'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(0, m.radius);
+        ctx.quadraticCurveTo(5, m.radius + 5, 3, m.radius + 9); ctx.stroke();
+        ctx.restore();
+        // HP bar
+        if (m.hp < m.maxHp) {
+            ctx.fillStyle = '#1a1215'; ctx.fillRect(m.x - 8, m.y - m.radius - 8, 16, 3);
+            ctx.fillStyle = '#cc2222'; ctx.fillRect(m.x - 8, m.y - m.radius - 8, 16 * (m.hp / m.maxHp), 3);
+        }
+    }
+
+    // Beam effects (Draco)
+    for (const b of activeBeams) {
+        const alpha = b.life / b.maxLife;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.angle);
+        // Outer glow
+        ctx.globalAlpha = alpha * 0.4;
+        ctx.fillStyle = '#ce93d8';
+        ctx.shadowColor = '#9c27b0'; ctx.shadowBlur = 30;
+        ctx.fillRect(0, -b.width, b.length, b.width * 2);
+        // Core beam
+        ctx.globalAlpha = alpha * 0.8;
+        const bg = ctx.createLinearGradient(0, 0, b.length, 0);
+        bg.addColorStop(0, '#e1bee7'); bg.addColorStop(0.3, '#ce93d8');
+        bg.addColorStop(0.7, '#ab47bc'); bg.addColorStop(1, 'rgba(156,39,176,0)');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, -b.width * 0.5, b.length, b.width);
+        // White-hot center
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, -b.width * 0.15, b.length * 0.8, b.width * 0.3);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+        ctx.globalAlpha = 1;
+    }
+
     // Particles
     for (const pt of particles) {
         ctx.globalAlpha = pt.life / pt.maxLife;
@@ -1569,6 +1753,193 @@ function drawRanger(ctx, p, time) {
     // Player indicator
     ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
     ctx.beginPath(); ctx.arc(0, -18, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+function drawAngel(ctx, p, time) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    const hasWings = p.activeEffects.some(e => e.effect === 'wings');
+    // Holy glow
+    if (hasWings) {
+        ctx.globalAlpha = 0.15 + Math.sin(time * 0.006) * 0.05;
+        const hg = ctx.createRadialGradient(0, -5, 0, 0, -5, 35);
+        hg.addColorStop(0, '#fffacd'); hg.addColorStop(1, 'rgba(255,250,205,0)');
+        ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(0, -5, 35, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+    // Wings (always visible, bigger when active)
+    const wingSize = hasWings ? 1.4 : 1;
+    const wingFlap = Math.sin(time * (hasWings ? 0.012 : 0.004)) * 0.3;
+    ctx.fillStyle = hasWings ? 'rgba(255,250,220,0.8)' : 'rgba(240,230,140,0.5)';
+    ctx.shadowColor = '#f0e68c'; ctx.shadowBlur = hasWings ? 12 : 4;
+    // Left wing
+    ctx.save(); ctx.rotate(wingFlap - 0.3);
+    ctx.beginPath(); ctx.moveTo(-4, -4);
+    ctx.quadraticCurveTo(-18 * wingSize, -20 * wingSize, -8 * wingSize, -2);
+    ctx.quadraticCurveTo(-22 * wingSize, -10 * wingSize, -14 * wingSize, 4);
+    ctx.lineTo(-4, 2); ctx.fill();
+    ctx.restore();
+    // Right wing
+    ctx.save(); ctx.rotate(-wingFlap + 0.3);
+    ctx.beginPath(); ctx.moveTo(4, -4);
+    ctx.quadraticCurveTo(18 * wingSize, -20 * wingSize, 8 * wingSize, -2);
+    ctx.quadraticCurveTo(22 * wingSize, -10 * wingSize, 14 * wingSize, 4);
+    ctx.lineTo(4, 2); ctx.fill();
+    ctx.restore();
+    ctx.shadowBlur = 0;
+    // Body
+    ctx.fillStyle = p.attackAnim > 0 ? '#fffff0' : '#f5f5dc';
+    ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill(); // Head
+    // Halo
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.ellipse(0, -18, 7, 2, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Robe
+    ctx.fillStyle = '#f0e68c';
+    ctx.beginPath(); ctx.moveTo(-6, -1); ctx.lineTo(6, -1); ctx.lineTo(8, 16); ctx.lineTo(-8, 16); ctx.fill();
+    // Belt
+    ctx.fillStyle = '#daa520'; ctx.fillRect(-6, 4, 12, 2);
+    // Weapon — holy bolt aim
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.fillStyle = '#ffd700';
+    ctx.shadowColor = '#ffd700'; ctx.shadowBlur = p.attackAnim > 0 ? 15 : 6;
+    ctx.beginPath(); ctx.arc(14, 0, 3 + (p.attackAnim > 0 ? 2 : 0), 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -22, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+function drawDemon(ctx, p, time) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Dark aura
+    ctx.globalAlpha = 0.1 + Math.sin(time * 0.005) * 0.05;
+    const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 28);
+    ag.addColorStop(0, '#cc2222'); ag.addColorStop(1, 'rgba(100,0,0,0)');
+    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Body
+    ctx.fillStyle = p.attackAnim > 0 ? '#ff4444' : '#8b1a1a';
+    ctx.beginPath(); ctx.arc(0, -8, 8, 0, Math.PI * 2); ctx.fill(); // Head
+    ctx.fillRect(-6, -1, 12, 14); // Torso
+    // Horns — large curved
+    ctx.fillStyle = '#4a0a0a';
+    ctx.beginPath(); ctx.moveTo(-5, -10); ctx.quadraticCurveTo(-10, -24, -3, -20); ctx.lineTo(-4, -12); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(5, -10); ctx.quadraticCurveTo(10, -24, 3, -20); ctx.lineTo(4, -12); ctx.fill();
+    // Eyes
+    ctx.fillStyle = '#ff4400';
+    ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 6;
+    ctx.fillRect(-4, -10, 2.5, 2); ctx.fillRect(1.5, -10, 2.5, 2);
+    ctx.shadowBlur = 0;
+    // Demon wings (small)
+    ctx.fillStyle = 'rgba(80,0,0,0.6)';
+    const wf = Math.sin(time * 0.008) * 0.25;
+    ctx.save(); ctx.rotate(wf - 0.2);
+    ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-16, -8); ctx.lineTo(-14, -2); ctx.lineTo(-18, 2); ctx.lineTo(-6, 3); ctx.fill();
+    ctx.restore();
+    ctx.save(); ctx.rotate(-wf + 0.2);
+    ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(16, -8); ctx.lineTo(14, -2); ctx.lineTo(18, 2); ctx.lineTo(6, 3); ctx.fill();
+    ctx.restore();
+    // Claws (aimed direction)
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.strokeStyle = '#aaa'; ctx.lineWidth = 2;
+    const clawExt = p.attackAnim > 0 ? 8 : 0;
+    ctx.beginPath(); ctx.moveTo(8, -3); ctx.lineTo(14 + clawExt, -6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(16 + clawExt, 0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, 3); ctx.lineTo(14 + clawExt, 6); ctx.stroke();
+    ctx.restore();
+    // Tail
+    ctx.strokeStyle = '#5a0a0a'; ctx.lineWidth = 2.5;
+    const tailWave = Math.sin(time * 0.006);
+    ctx.beginPath(); ctx.moveTo(0, 13);
+    ctx.quadraticCurveTo(8 + tailWave * 4, 18, 5 + tailWave * 3, 24);
+    ctx.stroke();
+    // Tail point
+    ctx.fillStyle = '#5a0a0a';
+    ctx.beginPath(); ctx.moveTo(5 + tailWave * 3, 24); ctx.lineTo(3, 27); ctx.lineTo(8, 26); ctx.fill();
+    // Legs
+    ctx.fillStyle = '#5a1010';
+    ctx.fillRect(-4, 13, 3, 7); ctx.fillRect(2, 13, 3, 7);
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -26, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+function drawDraco(ctx, p, time) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Energy aura
+    ctx.globalAlpha = 0.08 + Math.sin(time * 0.004) * 0.04;
+    const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 30);
+    ag.addColorStop(0, '#9c27b0'); ag.addColorStop(1, 'rgba(106,27,154,0)');
+    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Dragon body — muscular
+    ctx.fillStyle = p.attackAnim > 0 ? '#8e24aa' : '#4a148c';
+    ctx.beginPath(); ctx.arc(0, -9, 9, 0, Math.PI * 2); ctx.fill(); // Head
+    ctx.fillRect(-7, -1, 14, 15); // Torso (wider)
+    // Snout/jaw
+    ctx.fillStyle = '#6a1b9a';
+    ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(6, -4); ctx.lineTo(4, -1); ctx.lineTo(-4, -1); ctx.lineTo(-6, -4); ctx.fill();
+    // Dragon eyes — glowing
+    ctx.fillStyle = '#e040fb';
+    ctx.shadowColor = '#e040fb'; ctx.shadowBlur = 8;
+    ctx.fillRect(-5, -12, 3, 2.5); ctx.fillRect(2, -12, 3, 2.5);
+    ctx.shadowBlur = 0;
+    // Horns — small swept back
+    ctx.fillStyle = '#311b92';
+    ctx.beginPath(); ctx.moveTo(-5, -14); ctx.lineTo(-9, -22); ctx.lineTo(-3, -16); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(5, -14); ctx.lineTo(9, -22); ctx.lineTo(3, -16); ctx.fill();
+    // Dragon wings — large
+    ctx.fillStyle = 'rgba(74,20,140,0.5)';
+    const wf = Math.sin(time * 0.006) * 0.2;
+    ctx.save(); ctx.rotate(wf - 0.3);
+    ctx.beginPath(); ctx.moveTo(-6, -2);
+    ctx.lineTo(-22, -18); ctx.lineTo(-18, -8); ctx.lineTo(-26, -4);
+    ctx.lineTo(-14, 4); ctx.lineTo(-6, 4); ctx.fill();
+    // Wing membrane lines
+    ctx.strokeStyle = 'rgba(156,39,176,0.3)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(-6, -2); ctx.lineTo(-18, -8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(-14, 4); ctx.stroke();
+    ctx.restore();
+    ctx.save(); ctx.rotate(-wf + 0.3);
+    ctx.beginPath(); ctx.moveTo(6, -2);
+    ctx.lineTo(22, -18); ctx.lineTo(18, -8); ctx.lineTo(26, -4);
+    ctx.lineTo(14, 4); ctx.lineTo(6, 4); ctx.fill();
+    ctx.strokeStyle = 'rgba(156,39,176,0.3)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(6, -2); ctx.lineTo(18, -8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(14, 4); ctx.stroke();
+    ctx.restore();
+    // Claws (aimed direction)
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.fillStyle = p.attackAnim > 0 ? '#e040fb' : '#9c27b0';
+    ctx.shadowColor = '#e040fb'; ctx.shadowBlur = p.attackAnim > 0 ? 10 : 0;
+    const ext = p.attackAnim > 0 ? 6 : 0;
+    // Three dragon claws
+    ctx.beginPath(); ctx.moveTo(8, -4); ctx.lineTo(16 + ext, -7); ctx.lineTo(14 + ext, -3); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(18 + ext, 0); ctx.lineTo(15 + ext, 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(8, 4); ctx.lineTo(16 + ext, 7); ctx.lineTo(14 + ext, 3); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    // Tail
+    ctx.strokeStyle = '#4a148c'; ctx.lineWidth = 3;
+    const tailW = Math.sin(time * 0.005);
+    ctx.beginPath(); ctx.moveTo(0, 14);
+    ctx.quadraticCurveTo(10 + tailW * 5, 22, 6 + tailW * 4, 30);
+    ctx.stroke();
+    // Tail tip (spade shape)
+    ctx.fillStyle = '#6a1b9a';
+    const tx = 6 + tailW * 4, ty = 30;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - 4, ty + 5); ctx.lineTo(tx, ty + 3); ctx.lineTo(tx + 4, ty + 5); ctx.fill();
+    // Legs
+    ctx.fillStyle = '#311b92';
+    ctx.fillRect(-5, 14, 4, 7); ctx.fillRect(2, 14, 4, 7);
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -24, 2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 }
 
