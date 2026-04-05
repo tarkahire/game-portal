@@ -77,5 +77,16 @@ Boss stats scale with floor. Defeating a boss spawns stairs to next floor.
 ## Game Modes
 - **Solo**: Single player, full-screen view
 - **2P Local Co-op**: Split-screen, shared keyboard
-- **Online Co-op**: Up to 3 players across devices via PeerJS
-- **2 Local + 1 Online**: Two players on one computer + one remote
+- **Online Co-op**: Up to 4 players across devices via PeerJS (with auto-retry + STUN servers)
+- **2 Local + Online**: Two players on one computer + up to 2 remote devices
+- HUD layout: P1 top-left, P2 top-right, P3 bottom-left, P4 bottom-right
+
+## Recent Changes
+- **Katakuri class added**: Blox Fruits awakened dough moveset — rapid M1 punches from twin donut rings, Dough Fist Fusillade (E), Restless Dough Fists burst (R), Haki toggle (Q) turns all dough red with +40% damage
+- **Bee Swarm rework**: Basic attack changed from melee to huge honey ball projectile (radius 16, golden glob with drip trail)
+- **Naruto shadow clones**: Now permanent and immortal (never despawn, can't take damage)
+- **4-player online**: Max players increased from 3 to 4; connection retry logic + Google STUN servers for better NAT traversal
+- **Remote player aiming fix**: Clients now compute facingAngle locally and send it to host, fixing broken aim for players 3 & 4
+- **HUD sync fix**: Special cooldown, dodge cooldown, and Haki state now synced to all client screens
+- **44 anime characters removed**: Kept only Naruto, Megumi, Jin-Woo; removed all others (Gojo, Sukuna, Goku, Luffy, etc.)
+- **Bug fixes**: Restored accidentally deleted `makeDrawFn()` and `classWeaponMap` that broke game initialization

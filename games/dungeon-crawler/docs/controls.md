@@ -31,8 +31,10 @@ Local P2 auto-aims at the nearest enemy within 250px range. If no enemies are ne
 All online players use the P1 control scheme (WASD + Mouse) on their own device. When using "2 local" mode online, P1 uses WASD+Mouse and P2 uses Arrows+Numpad on the same keyboard.
 
 ## Class-Specific Controls
-- **Gojo**: Q/Numpad4 = Infinity Dash (1.5s CD)
+- **Katakuri**: Q/Numpad4 = Toggle Haki (all dough turns red, +40% damage for 10s, donut rings stay white)
+- **Katakuri**: R/Numpad5 = Restless Dough Fists (6-punch fan burst in facing direction)
 - **Jin-Woo**: Q/Numpad4 = Recall all shadows, F/Numpad6 = Arise Boss (capture killed bosses)
 - **Portal**: R/Numpad5 = Teleport to nearest ally (2s CD, co-op only)
 - **Frog**: R/Numpad6 = Summon permanent insect swarm (10 flies)
-- All other R/Numpad5 abilities are class-specific secondaries (Rasengan, Amaterasu, etc.)
+- **Naruto**: R/Numpad5 = Rasengan (close-range burst)
+- All other R/Numpad5 abilities are class-specific secondaries

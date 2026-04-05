@@ -1,7 +1,7 @@
 # Online Multiplayer (network.js)
 
 ## Overview
-Online co-op uses **PeerJS** (WebRTC peer-to-peer) for real-time multiplayer with no backend server. Supports up to 3 players across multiple devices, with optional 2-local-players per device.
+Online co-op uses **PeerJS** (WebRTC peer-to-peer) for real-time multiplayer with no backend server. Supports up to 4 players across multiple devices, with optional 2-local-players per device.
 
 ## How It Works
 
@@ -69,5 +69,21 @@ NET = {
     lobbyPlayers,     // lobby state array
     remoteInputs,     // playerIndex -> latest input from remote
     stateInterval,    // setInterval handle for state broadcast
+    maxPlayers: 4,    // max total players across all devices
 }
 ```
+
+## Connection Reliability
+- **Auto-retry**: Clients automatically retry up to 3 times (1.5s delay) on connection failure
+- **Timeout**: 8-second timeout on stalled connections triggers retry
+- **STUN servers**: Google STUN servers configured on both host and client for better NAT traversal
+- **ICE servers**: `stun:stun.l.google.com:19302`, `stun1`, `stun2`, `stun3`
+
+## Client Aiming
+- Clients compute their `facingAngle` locally from mouse position relative to their viewport
+- The pre-computed angle is sent to the host as part of the input message
+- Host uses the received angle directly for remote player facing direction
+- This avoids screen-size/viewport conversion issues between different devices
+
+## Synced HUD Properties
+State broadcast includes: `lastSpecial`, `specialCooldown`, `dodgeCd`, `_haki` — ensuring all client screens show accurate cooldown timers and Katakuri Haki state

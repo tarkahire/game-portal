@@ -8,8 +8,8 @@ Dungeon Crawler is a top-down roguelike dungeon crawler built with HTML5 Canvas,
 | File | Lines | Purpose |
 |------|-------|---------|
 | `index.html` | ~320 | Game page, all UI screens (title, class select, lobby, shop, stats, game over, inventory, pause) |
-| `game.js` | ~5337 | All game logic: 95 classes, enemies, bosses, combat, rendering, dungeon gen, loot, UI |
-| `network.js` | ~482 | PeerJS WebRTC multiplayer: room management, state sync, input relay |
+| `game.js` | ~4500 | All game logic: 58 classes, enemies, bosses, combat, rendering, dungeon gen, loot, UI |
+| `network.js` | ~530 | PeerJS WebRTC multiplayer: room management, state sync, input relay, retry logic |
 | `style.css` | ~244 | Cyberpunk neon themed styling for all menus, overlays, class cards, lobby |
 | `docs/` | — | Documentation (this folder) |
 
@@ -20,7 +20,7 @@ The game is a single monolithic file organized into sections:
 1. **Constants & Config** — Tile size, map dimensions, color palette
 2. **Game State** — Global variables (players, enemies, projectiles, particles, etc.)
 3. **Meta Progression** — localStorage save/load for persistent gold, unlocks, stats
-4. **Class Definitions** — `CLASSES` object with 95 character classes
+4. **Class Definitions** — `CLASSES` object with 58 character classes
 5. **Enemy Definitions** — `ENEMY_TYPES` object with 6 enemy types
 6. **Boss Definitions** — `BOSSES` array with 5 boss types (cycling on infinite floors)
 7. **Loot Tables** — Weapons, armor, potions with rarity system
@@ -33,7 +33,7 @@ The game is a single monolithic file organized into sections:
 14. **Combat System** — Player attacks, specials, secondaries, dodge, enemy AI
 15. **Update Loop** — Main game tick (clients skip simulation, only render)
 16. **Rendering** — Split-screen viewports, world drawing, HUD, minimap
-17. **Character Drawing** — 95 class draw functions (unique + `makeDrawFn` generated)
+17. **Character Drawing** — 58 class draw functions (unique + `makeDrawFn` generated)
 18. **Enemy Drawing** — `drawEnemy` switch + 5 boss draw functions
 19. **UI Buttons** — DOM event handlers for all menu buttons
 20. **Game Loop** — `requestAnimationFrame` loop calling update + render
@@ -71,5 +71,5 @@ gameLoop()
 See `network.md` for full details. Summary:
 - **Host-authoritative**: Host runs all simulation, broadcasts state at 20 Hz
 - **Clients**: Send input only, receive full game state, render locally
-- **PeerJS**: WebRTC peer-to-peer, no backend server needed
-- **Split screen**: Supports 1-3 viewports per device
+- **PeerJS**: WebRTC peer-to-peer, no backend server needed, STUN servers for NAT traversal
+- **Split screen**: Supports 1-4 viewports per device
