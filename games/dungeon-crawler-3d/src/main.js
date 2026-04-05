@@ -37,7 +37,7 @@ function init() {
     // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(PAL.fog);
-    scene.fog = new THREE.FogExp2(PAL.fog, 0.012);
+    scene.fog = new THREE.FogExp2(PAL.fog, 0.008);
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
@@ -48,18 +48,18 @@ function init() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = false; // disabled for performance
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.8;
+    renderer.toneMappingExposure = 1.4;
 
-    // Ambient light — moderate base illumination
-    const ambient = new THREE.AmbientLight('#1a1a2e', 0.6);
+    // Ambient light — bright base
+    const ambient = new THREE.AmbientLight('#2a2a3e', 1.2);
     scene.add(ambient);
 
-    // Hemisphere light — subtle sky/ground fill
-    const hemi = new THREE.HemisphereLight('#0a1a2a', '#04040c', 0.4);
+    // Hemisphere light — strong fill
+    const hemi = new THREE.HemisphereLight('#1a2a3a', '#0a0a14', 0.8);
     scene.add(hemi);
 
-    // Player light — bright, medium range, follows camera
-    playerLight = new THREE.PointLight('#00ffcc', 2.0, TILE * 7, 1.5);
+    // Player light — very bright, long range
+    playerLight = new THREE.PointLight('#00ffcc', 3.5, TILE * 10, 1.2);
     scene.add(playerLight);
 
     // FPS Camera controller
