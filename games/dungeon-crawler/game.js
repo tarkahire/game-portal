@@ -923,8 +923,8 @@ function playerSpecial(p, now) {
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
                 summonedMinions.push({ x: p.x + Math.cos(angle) * 25, y: p.y + Math.sin(angle) * 25, owner: p,
-                    hp: 10, maxHp: 10, damage: Math.round(p.damage * 0.6), speed: p.speed, radius: 7, attackRange: 22,
-                    lastAttack: 0, attackSpeed: 400, life: now + 6000, color: '#ff8f00', type: 'clone' });
+                    hp: 9999, maxHp: 9999, damage: Math.round(p.damage * 0.6), speed: p.speed, radius: 7, attackRange: 22,
+                    lastAttack: 0, attackSpeed: 400, life: Infinity, color: '#ff8f00', type: 'clone' });
             }
             spawnParticles(p.x, p.y, '#ff8f00', 12); triggerShake(3, 5); break;
         case 'megumi': // Divine Dogs — summon 8 fiends orbiting player
@@ -1921,6 +1921,7 @@ function update(now) {
     const enraged = now < impsEnraged;
     for (let i = summonedMinions.length - 1; i >= 0; i--) {
         const m = summonedMinions[i];
+        if (m.type === 'clone') { m.hp = m.maxHp; } // Naruto clones are immortal
         if (now > m.life || m.hp <= 0) { spawnParticles(m.x, m.y, m.color || '#880000', 6); summonedMinions.splice(i, 1); continue; }
 
         // Shadows: melee when close, shoot blue flame when far
