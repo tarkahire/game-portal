@@ -1476,24 +1476,14 @@ function jinwooAriseBoss(p, now) {
 
 function katakuriHaki(p, now) {
     if (p.classId !== 'katakuri') return;
-    if (!p._hakiCd) p._hakiCd = 0;
-    if (now - p._hakiCd < 500) return; // prevent spam toggle
-    p._hakiCd = now;
-    p._haki = !p._haki;
-    if (p._haki) {
-        // Haki ON — damage boost
-        p.activeEffects.push({ effect: 'damage', value: 1.4, endTime: now + 10000, _hakiBuff: true });
-        damageNumbers.push({ x: p.x, y: p.y - 30, text: 'HAKI!', color: '#b71c1c', life: 40 });
-        spawnParticles(p.x, p.y, '#b71c1c', 16);
-        spawnParticles(p.x, p.y, '#111', 8);
-        triggerShake(4, 6);
-        // Auto-expire after 10s
-        setTimeout(() => { if (p._haki) { p._haki = false; } }, 10000);
-    } else {
-        // Haki OFF — remove buff
-        p.activeEffects = p.activeEffects.filter(e => !e._hakiBuff);
-        damageNumbers.push({ x: p.x, y: p.y - 30, text: 'HAKI OFF', color: '#888', life: 30 });
-    }
+    if (p._haki) return; // already permanent
+    p._haki = true;
+    // Permanent damage boost
+    p.activeEffects.push({ effect: 'damage', value: 1.4, endTime: Infinity, _hakiBuff: true });
+    damageNumbers.push({ x: p.x, y: p.y - 30, text: 'HAKI!', color: '#b71c1c', life: 40 });
+    spawnParticles(p.x, p.y, '#b71c1c', 16);
+    spawnParticles(p.x, p.y, '#111', 8);
+    triggerShake(4, 6);
 }
 
 function jinwooRecall(p, now) {
@@ -2740,21 +2730,26 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         const portCount = 8;
         const portRadius = 50;
         const hk = !!p._haki;
+        // Flash between red and black when haki is active
+        const hakiFlash = hk ? Math.sin(gameTime * 0.015) > 0 : false;
+        const ringCol = hk ? (hakiFlash ? '#b71c1c' : '#111') : '#e8b0a0';
+        const glowCol = hk ? (hakiFlash ? '#ff1744' : '#330000') : '#e8b0a0';
+        const fillCol = hk ? (hakiFlash ? '#c62828' : '#0a0a0a') : '#ffccbc';
         for (let i = 0; i < portCount; i++) {
             const angle = (i / portCount) * Math.PI * 2 + gameTime * 0.002;
             const px = p.x + Math.cos(angle) * portRadius;
             const py = p.y + Math.sin(angle) * portRadius;
             const isActive = (p._kataPortIdx || 0) === i;
             // Outer ring
-            ctx.globalAlpha = isActive ? 0.6 : 0.25;
-            ctx.strokeStyle = hk ? '#b71c1c' : '#e8b0a0';
+            ctx.globalAlpha = isActive ? 0.7 : 0.3;
+            ctx.strokeStyle = ringCol;
             ctx.lineWidth = isActive ? 2.5 : 1.5;
-            ctx.shadowColor = hk ? '#ff1744' : '#e8b0a0';
+            ctx.shadowColor = glowCol;
             ctx.shadowBlur = isActive ? 14 : 6;
             ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.stroke();
-            // Inner dough fill
-            ctx.globalAlpha = isActive ? 0.35 : 0.12;
-            ctx.fillStyle = hk ? '#c62828' : '#ffccbc';
+            // Inner fill
+            ctx.globalAlpha = isActive ? 0.4 : 0.15;
+            ctx.fillStyle = fillCol;
             ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fill();
             // Dark center hole
             ctx.globalAlpha = isActive ? 0.7 : 0.35;
@@ -3053,9 +3048,10 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
     for (const p of players) {
         if (!p._fusillade) continue;
         const hk = !!p._haki;
-        const fCol = hk ? '#b71c1c' : '#fff';
-        const fColInner = hk ? '#7f0000' : '#e0e0e0';
-        const fGlow = hk ? '#ff1744' : '#fff';
+        const hakiFlash = hk ? Math.sin(gameTime * 0.015) > 0 : false;
+        const fCol = hk ? (hakiFlash ? '#b71c1c' : '#111') : '#fff';
+        const fColInner = hk ? (hakiFlash ? '#ff1744' : '#0a0a0a') : '#e0e0e0';
+        const fGlow = hk ? (hakiFlash ? '#ff1744' : '#330000') : '#fff';
         for (const f of p._fusillade) {
             const elapsed = gameTime - f.startTime;
             const srcX = f.srcX || p.x;
