@@ -534,7 +534,7 @@ function updateKataPortals(time) {
         kataPortals[i].scale.setScalar(isActive ? 1.15 : 1.0);
     }
 
-    // Update flying fists
+    // Update flying fists (pooled — hide on completion, don't remove)
     for (let i = kataFists.length - 1; i >= 0; i--) {
         const f = kataFists[i];
         f.life--;
@@ -543,52 +543,54 @@ function updateKataPortals(time) {
             const tx = f.mesh.position.x / TILE, tz = f.mesh.position.z / TILE;
             for (const e of enemies3D) {
                 if (!e.data.alive) continue;
-                if (Math.hypot(e.data.x - tx, e.data.z - tz) < 1.5) {
-                    dealDamageToEnemy(e, f.damage);
-                }
+                if (Math.hypot(e.data.x - tx, e.data.z - tz) < 1.5) dealDamageToEnemy(e, f.damage);
             }
-            // Impact flash
-            spawnMeleeSlash(player._haki ? '#1565c0' : '#c62828');
-            scene.remove(f.mesh);
+            f.mesh.visible = false; // return to pool
             kataFists.splice(i, 1);
             continue;
         }
-        // Move toward target
         const progress = 1 - (f.life / f.maxLife);
         f.mesh.position.lerpVectors(f.start, f.target, progress);
-        // Spin the fist
-        f.mesh.rotation.x += 0.2;
-        f.mesh.rotation.z += 0.1;
+    }
+}
+
+// Pool of reusable fist meshes to avoid creating/destroying
+const KATA_FIST_POOL_SIZE = 20;
+let kataFistPool = [];
+let kataFistPoolInit = false;
+
+function ensureFistPool() {
+    if (kataFistPoolInit) return;
+    kataFistPoolInit = true;
+    const col = '#f5f0e0';
+    const geo = new THREE.SphereGeometry(0.25, 4, 4);
+    const mat = new THREE.MeshBasicMaterial({ color: col });
+    for (let i = 0; i < KATA_FIST_POOL_SIZE; i++) {
+        const m = new THREE.Mesh(geo, mat.clone());
+        m.visible = false;
+        scene.add(m);
+        kataFistPool.push(m);
     }
 }
 
 function kataFireFist(fromPortalIdx, targetX, targetY, targetZ, damage) {
     if (fromPortalIdx >= kataPortals.length) return;
+    ensureFistPool();
+    // Find an unused fist from pool
+    let fist = null;
+    for (const f of kataFistPool) { if (!f.visible) { fist = f; break; } }
+    if (!fist) return; // pool exhausted, skip
+
     const portal = kataPortals[fromPortalIdx];
     const isHaki = player && player._haki;
-    const fistColor = isHaki ? '#1565c0' : '#f5f0e0';
-    const innerColor = isHaki ? '#0d47a1' : '#e0d0c0';
-
-    // Fist mesh — simple sphere (no PointLight to avoid lag)
-    const fist = new THREE.Mesh(
-        new THREE.SphereGeometry(0.25, 5, 5),
-        new THREE.MeshBasicMaterial({ color: fistColor })
-    );
-
+    fist.material.color.set(isHaki ? '#1565c0' : '#f5f0e0');
     fist.position.copy(portal.position);
-    scene.add(fist);
+    fist.visible = true;
 
     const start = portal.position.clone();
-    const target = new THREE.Vector3(targetX, targetY, targetZ);
-    // Add some random spread
-    target.x += (Math.random() - 0.5) * 1.5;
-    target.z += (Math.random() - 0.5) * 1.5;
+    const target = new THREE.Vector3(targetX + (Math.random()-0.5)*1.5, targetY, targetZ + (Math.random()-0.5)*1.5);
 
-    kataFists.push({
-        mesh: fist, start, target,
-        life: 12, maxLife: 12,
-        damage: damage
-    });
+    kataFists.push({ mesh: fist, start, target, life: 12, maxLife: 12, damage });
 }
 
 // ─── COMBAT ─────────────────────────────────────────────────
@@ -598,81 +600,60 @@ function playerAttack() {
     if (now - player.lastAttack < player.attackSpeed) return;
     player.lastAttack = now;
 
-    // Katakuri — Awakened Dough M1: two fixed donuts to left+right of player,
-    // each click a big white dough fist on an arm extends from one donut,
-    // alternating sides. Fists are white, dripping dough.
+    // Katakuri — Dough M1: reuse 2 pre-built punch meshes, just reposition
     if (player.classId === 'katakuri') {
         if (kataPortals.length === 0) initKataPortals();
+        // Create reusable punches once
+        if (!player._punchMeshes) {
+            player._punchMeshes = [];
+            const col = player._haki ? '#1565c0' : '#f5f0e0';
+            const armCol = player._haki ? '#90caf9' : '#fff8f0';
+            for (let s = 0; s < 2; s++) {
+                const g = new THREE.Group();
+                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 4, 4), new THREE.MeshBasicMaterial({ color: armCol }));
+                arm.rotation.x = Math.PI / 2; arm.position.z = 2;
+                g.add(arm);
+                const fist = new THREE.Mesh(new THREE.SphereGeometry(0.3, 5, 5), new THREE.MeshBasicMaterial({ color: col }));
+                fist.position.z = 4;
+                g.add(fist);
+                for (let k = 0; k < 4; k++) {
+                    const knuck = new THREE.Mesh(new THREE.SphereGeometry(0.07, 3, 3), new THREE.MeshBasicMaterial({ color: col }));
+                    knuck.position.set((k-1.5)*0.1, 0.2, 4.1); g.add(knuck);
+                }
+                g.visible = false;
+                scene.add(g);
+                player._punchMeshes.push(g);
+            }
+        }
+
         const px = fpsCamera.posX, pz = fpsCamera.posZ;
         const yaw = fpsCamera.yaw;
         const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-        const isHaki = player._haki;
 
-        // Alternate left/right donut
+        // Alternate side
         if (player._m1Side === undefined) player._m1Side = 0;
         player._m1Side = (player._m1Side + 1) % 2;
         const side = player._m1Side === 0 ? -1 : 1;
-
-        // Perpendicular vector (left/right relative to facing)
-        const perpX = -Math.cos(yaw) * side;
-        const perpZ = Math.sin(yaw) * side;
-
-        // Donut position — to the side of the player, slightly forward
+        const perpX = -Math.cos(yaw) * side, perpZ = Math.sin(yaw) * side;
         const donutX = px * TILE + perpX * 2.0 + fwdX * 1.0;
         const donutZ = pz * TILE + perpZ * 2.0 + fwdZ * 1.0;
-        const donutY = EYE_HEIGHT + 0.3;
 
-        // Fist target — well ahead of player in faced direction
-        const reachDist = 4.0; // how far the arm extends in world units
-        const fistEndX = donutX + fwdX * reachDist;
-        const fistEndZ = donutZ + fwdZ * reachDist;
+        // Show the pre-built punch mesh, hide after timeout
+        const punch = player._punchMeshes[player._m1Side];
+        punch.position.set(donutX, EYE_HEIGHT + 0.3, donutZ);
+        punch.lookAt(donutX + fwdX * 5, EYE_HEIGHT + 0.3, donutZ + fwdZ * 5);
+        punch.visible = true;
+        clearTimeout(punch._hideTimer);
+        punch._hideTimer = setTimeout(() => { punch.visible = false; }, 150);
 
-        const doughColor = isHaki ? '#1565c0' : '#f5f0e0';
-        const doughArmColor = isHaki ? '#90caf9' : '#fff8f0';
-        const dripColor = isHaki ? '#42a5f5' : '#fffff0';
-
-        // === DOUGH ARM + FIST — single group, lightweight ===
-        const punchGroup = new THREE.Group();
-        // Arm cylinder
-        const armGeo = new THREE.CylinderGeometry(0.12, 0.15, reachDist, 4);
-        const arm = new THREE.Mesh(armGeo, new THREE.MeshBasicMaterial({ color: doughArmColor }));
-        arm.rotation.x = Math.PI / 2;
-        arm.position.z = reachDist * 0.5;
-        punchGroup.add(arm);
-        // Fist sphere + knuckles
-        const fistMesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 6), new THREE.MeshBasicMaterial({ color: doughColor }));
-        fistMesh.position.z = reachDist;
-        punchGroup.add(fistMesh);
-        for (let k = 0; k < 4; k++) {
-            const knuckle = new THREE.Mesh(new THREE.SphereGeometry(0.07, 3, 3), new THREE.MeshBasicMaterial({ color: doughColor }));
-            knuckle.position.set((k - 1.5) * 0.1, 0.2, reachDist + 0.1);
-            punchGroup.add(knuckle);
-        }
-        // 2 drip blobs on the arm
-        for (let d = 0; d < 2; d++) {
-            const drip = new THREE.Mesh(new THREE.SphereGeometry(0.04, 3, 3), new THREE.MeshBasicMaterial({ color: dripColor, transparent: true, opacity: 0.6 }));
-            drip.position.set(0, -0.2 - d * 0.15, reachDist * (0.3 + d * 0.3));
-            punchGroup.add(drip);
-        }
-        // Position + orient the whole group
-        punchGroup.position.set(donutX, donutY, donutZ);
-        punchGroup.lookAt(donutX + fwdX * 5, donutY, donutZ + fwdZ * 5);
-        scene.add(punchGroup);
-        meleeSlashes.push({ mesh: punchGroup, life: 8 });
-
-        // === DAMAGE — cone in front of player ===
+        // Damage cone
         for (const e of enemies3D) {
             if (!e.data.alive) continue;
             const dx = e.data.x - px, dz = e.data.z - pz;
-            const dist = Math.hypot(dx, dz);
-            if (dist > 3.5) continue;
-            const angleToEnemy = Math.atan2(-dx, -dz);
-            let angleDiff = angleToEnemy - yaw;
-            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-            if (Math.abs(angleDiff) < Math.PI * 0.5) {
-                dealDamageToEnemy(e, player.damage);
-            }
+            if (Math.hypot(dx, dz) > 3.5) continue;
+            let ad = Math.atan2(-dx, -dz) - yaw;
+            while (ad > Math.PI) ad -= Math.PI * 2; while (ad < -Math.PI) ad += Math.PI * 2;
+            if (Math.abs(ad) < Math.PI * 0.5) dealDamageToEnemy(e, player.damage);
         }
         return;
     }
