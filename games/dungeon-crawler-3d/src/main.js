@@ -1517,14 +1517,24 @@ function update() {
         if (e.label) e.label.position.set(e.data.x * TILE, e.data.isBoss ? 5.5 : 3.5, e.data.z * TILE);
         animateEnemyMesh(e.mesh, e.data.enemyType, time);
 
-        // AI — chase and attack player
+        // AI — chase and attack player (with wall collision)
         if (distToPlayer < 12 && distToPlayer > e.data.radius) {
             const dx = px - e.data.x, dz = pz - e.data.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
             if (dist > e.data.radius + 0.3) {
                 const spd = e.data.speed * dt;
-                e.data.x += (dx / dist) * spd;
-                e.data.z += (dz / dist) * spd;
+                const moveX = (dx / dist) * spd;
+                const moveZ = (dz / dist) * spd;
+                const r = e.data.radius;
+                const newX = e.data.x + moveX;
+                const newZ = e.data.z + moveZ;
+                // Axis-separated wall collision (same as player)
+                if (isWalkable(dungeon.map, newX - r, e.data.z) && isWalkable(dungeon.map, newX + r, e.data.z)) {
+                    e.data.x = newX;
+                }
+                if (isWalkable(dungeon.map, e.data.x, newZ - r) && isWalkable(dungeon.map, e.data.x, newZ + r)) {
+                    e.data.z = newZ;
+                }
                 e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
             }
             // Attack
