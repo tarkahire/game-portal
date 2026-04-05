@@ -14,7 +14,7 @@
 // 10. Post-processing (vignette)
 // ==========================================================================
 
-import { hexToPixel, hexPath, HEX_SIZE, pixelToHex, hexRound } from './HexGrid.js';
+import { hexToPixel, hexPath, hexCorners, HEX_SIZE, pixelToHex, hexRound, hexSortDepth, TERRAIN_ELEVATION, ELEVATION_STEP, ISO_Y_SCALE } from './HexGrid.js';
 import { HexCamera } from './HexCamera.js';
 import { TextureManager } from './TextureManager.js';
 
@@ -39,6 +39,16 @@ function hexColorToRgba(hex, alpha) {
 }
 
 const HEX_DIRS = [[1,0],[0,1],[-1,1],[-1,0],[0,-1],[1,-1]];
+
+/** Darken/lighten a hex color by percent (-100 to +100). */
+function shadeColor(hex, percent) {
+  const num = parseInt(hex.slice(1), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amt));
+  const B = Math.min(255, Math.max(0, (num & 0xff) + amt));
+  return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
+}
 
 export class HexRenderer {
   constructor(canvas, minimapCanvas) {
@@ -205,17 +215,26 @@ export class HexRenderer {
     const bottomRight = camera.screenToWorld(w, h);
     const pad = size * 3;
 
-    // Collect visible tiles
+    // Collect visible tiles with elevation
     const visible = [];
     for (const tile of this.tiles.values()) {
-      const world = hexToPixel(tile.q, tile.r, size);
+      const elev = TERRAIN_ELEVATION[tile.terrain_type] || 0;
+      const world = hexToPixel(tile.q, tile.r, size, elev);
       if (world.x < topLeft.x - pad || world.x > bottomRight.x + pad ||
-          world.y < topLeft.y - pad || world.y > bottomRight.y + pad) continue;
+          world.y < topLeft.y - pad * 2 || world.y > bottomRight.y + pad * 2) continue;
       const screen = camera.worldToScreen(world.x, world.y);
       const screenSize = size * camera.zoom;
       if (screenSize < 2) continue;
-      visible.push({ tile, world, screen, screenSize });
+      visible.push({ tile, world, screen, screenSize, elev });
     }
+
+    // Sort back-to-front for proper occlusion (isometric depth)
+    visible.sort((a, b) => {
+      const da = hexSortDepth(a.tile.q, a.tile.r);
+      const db = hexSortDepth(b.tile.q, b.tile.r);
+      if (da !== db) return da - db;
+      return a.elev - b.elev;
+    });
 
     // --- Layer 1: Textured terrain ---
     for (const { tile, screen, screenSize } of visible) {
@@ -230,6 +249,34 @@ export class HexRenderer {
       } else {
         ctx.fillStyle = TERRAIN_COLORS[tile.terrain_type] || '#555';
         ctx.fillRect(screen.x - screenSize, screen.y - screenSize, screenSize * 2, screenSize * 2);
+      }
+
+      // Side wall faces for elevated tiles (3D depth effect)
+      if (elev > 0 && screenSize > 6) {
+        const wallH = elev * ELEVATION_STEP * camera.zoom;
+        const corners = hexCorners(screen.x, screen.y, screenSize);
+        const baseColor = TERRAIN_COLORS[tile.terrain_type] || '#555';
+
+        // Draw south-facing walls (indices 2→3, 3→4, 4→5 for flat-top hex)
+        const wallFaces = [
+          { i: 2, next: 3, shade: -15 },  // SW face
+          { i: 3, next: 4, shade: -30 },  // S face (darkest)
+          { i: 4, next: 5, shade: -10 },  // SE face
+        ];
+        for (const { i, next, shade } of wallFaces) {
+          const c1 = corners[i], c2 = corners[next];
+          ctx.beginPath();
+          ctx.moveTo(c1.x, c1.y);
+          ctx.lineTo(c2.x, c2.y);
+          ctx.lineTo(c2.x, c2.y + wallH);
+          ctx.lineTo(c1.x, c1.y + wallH);
+          ctx.closePath();
+          ctx.fillStyle = shadeColor(baseColor, shade);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
       }
 
       // Ownership tint

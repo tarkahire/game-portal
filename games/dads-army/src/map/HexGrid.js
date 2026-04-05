@@ -1,43 +1,56 @@
 // ==========================================================================
-// HexGrid — Hex coordinate math (axial coordinates)
+// HexGrid — Hex coordinate math (axial coordinates) with isometric projection
 //
 // Uses flat-top hexagons with axial (q, r) coordinates.
-// Provides conversion between hex coords and pixel coords,
-// distance calculation, neighbor lookup, and pixel-to-hex picking.
+// Isometric 2.5D: Y-axis compressed by ISO_Y_SCALE for pseudo-3D feel.
+// Elevation offset shifts tiles vertically based on terrain height.
 // ==========================================================================
 
-// Hex size in pixels (center to corner). Adjust for zoom via camera.
 export const HEX_SIZE = 28;
 
-// Flat-top hex geometry constants
 const SQRT3 = Math.sqrt(3);
 
+// Isometric Y compression (0.5 = 30° tilt, strategy game standard)
+export const ISO_Y_SCALE = 0.55;
+
+// Elevation step in pixels (how much each elevation level raises a hex)
+export const ELEVATION_STEP = 6;
+
+// Terrain elevation map
+export const TERRAIN_ELEVATION = {
+  water: -1, coast: 0, river: -1, marsh: 0,
+  plains: 1, farmland: 1, disused: 1, desert: 1,
+  forest: 2, urban: 2, ruins: 1,
+  mountain: 4, snow: 3,
+};
+
 /**
- * Convert axial hex (q, r) to pixel (x, y) center point.
- * Flat-top orientation.
+ * Convert axial hex (q, r) to isometric pixel (x, y) center point.
+ * Applies Y compression for 2.5D look.
+ * @param {number} elevation — terrain elevation level (0-4)
  */
-export function hexToPixel(q, r, size = HEX_SIZE) {
+export function hexToPixel(q, r, size = HEX_SIZE, elevation = 0) {
   const x = size * (3 / 2 * q);
-  const y = size * (SQRT3 / 2 * q + SQRT3 * r);
+  const flatY = size * (SQRT3 / 2 * q + SQRT3 * r);
+  const y = flatY * ISO_Y_SCALE - elevation * ELEVATION_STEP;
   return { x, y };
 }
 
 /**
  * Convert pixel (x, y) to fractional axial hex (q, r).
- * Use with hexRound() to get the nearest hex.
+ * Inverts the isometric Y compression.
  */
 export function pixelToHex(px, py, size = HEX_SIZE) {
+  const flatPy = py / ISO_Y_SCALE; // Undo Y compression
   const q = (2 / 3 * px) / size;
-  const r = (-1 / 3 * px + SQRT3 / 3 * py) / size;
+  const r = (-1 / 3 * px + SQRT3 / 3 * flatPy) / size;
   return { q, r };
 }
 
 /**
  * Round fractional axial coords to nearest hex.
- * Converts to cube, rounds, converts back to axial.
  */
 export function hexRound(q, r) {
-  // Axial to cube
   const x = q;
   const z = r;
   const y = -x - z;
@@ -61,9 +74,6 @@ export function hexRound(q, r) {
   return { q: rx, r: rz };
 }
 
-/**
- * Get the 6 axial neighbor offsets for a hex.
- */
 export const HEX_DIRECTIONS = [
   { q: 1, r: 0 },   // E
   { q: 1, r: -1 },  // NE
@@ -73,23 +83,17 @@ export const HEX_DIRECTIONS = [
   { q: 0, r: 1 },   // SE
 ];
 
-/**
- * Get neighbors of hex (q, r).
- */
 export function hexNeighbors(q, r) {
   return HEX_DIRECTIONS.map(d => ({ q: q + d.q, r: r + d.r }));
 }
 
-/**
- * Hex distance between two axial coordinates.
- */
 export function hexDistance(q1, r1, q2, r2) {
   return (Math.abs(q1 - q2) + Math.abs(q1 + r1 - q2 - r2) + Math.abs(r1 - r2)) / 2;
 }
 
 /**
- * Get the 6 corner pixel positions of a flat-top hex at (cx, cy).
- * Returns array of {x, y} points.
+ * Get the 6 corner pixel positions of an isometric hex at (cx, cy).
+ * Y coordinates are compressed by ISO_Y_SCALE.
  */
 export function hexCorners(cx, cy, size = HEX_SIZE) {
   const corners = [];
@@ -97,15 +101,14 @@ export function hexCorners(cx, cy, size = HEX_SIZE) {
     const angle = Math.PI / 180 * (60 * i);
     corners.push({
       x: cx + size * Math.cos(angle),
-      y: cy + size * Math.sin(angle),
+      y: cy + size * Math.sin(angle) * ISO_Y_SCALE,
     });
   }
   return corners;
 }
 
 /**
- * Draw a single hex path on a canvas context at pixel center (cx, cy).
- * Does NOT fill or stroke — caller does that.
+ * Draw an isometric hex path on a canvas context.
  */
 export function hexPath(ctx, cx, cy, size = HEX_SIZE) {
   const corners = hexCorners(cx, cy, size);
@@ -115,4 +118,11 @@ export function hexPath(ctx, cx, cy, size = HEX_SIZE) {
     ctx.lineTo(corners[i].x, corners[i].y);
   }
   ctx.closePath();
+}
+
+/**
+ * Get flat (non-isometric) Y for a hex — used for back-to-front sorting.
+ */
+export function hexSortDepth(q, r) {
+  return SQRT3 / 2 * q + SQRT3 * r;
 }
