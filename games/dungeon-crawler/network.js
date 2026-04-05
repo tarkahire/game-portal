@@ -10,7 +10,7 @@ const NET = {
     roomCode: '',
     playerIndex: 0,    // first local player index
     localPlayerCount: 1, // how many players on THIS device (1 or 2)
-    maxPlayers: 3,
+    maxPlayers: 4,
     lobbyPlayers: [],  // { id, classId, ready, local }
     remoteInputs: {},  // playerIndex -> input state
     lastState: null,

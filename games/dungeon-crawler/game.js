@@ -343,7 +343,7 @@ function generateDungeon(floor) {
 function createPlayer(classId, playerIndex) {
     const cls = CLASSES[classId];
     const startRoom = dungeon.rooms[0];
-    const offsets = [-1, 1, 0];
+    const offsets = [-1.5, -0.5, 0.5, 1.5];
     const offsetX = offsets[playerIndex] || 0;
     let bonusHp = 0;
     if (meta.unlocks.includes('extraHP')) bonusHp = 20;
@@ -3131,8 +3131,9 @@ function drawHUD() {
     const pad = 15;
     for (let i = 0; i < players.length; i++) {
         const p = players[i];
-        const hx = i === 0 ? pad : canvas.width - 220 - pad;
-        const hy = pad;
+        // Position HUD panels: P1 top-left, P2 top-right, P3 bottom-left, P4 bottom-right
+        const hx = (i % 2 === 0) ? pad : canvas.width - 220 - pad;
+        const hy = i < 2 ? pad : canvas.height - 85;
 
         // Background
         ctx.fillStyle = 'rgba(10,10,15,0.8)';
