@@ -502,7 +502,7 @@ let kataPortals = []; // 3D torus meshes orbiting player
 let kataFists = [];   // flying dough fist projectiles
 let kataPortIdx = 0;
 const KATA_PORT_COUNT = 2; // just left and right like Blox Fruits
-const KATA_PORT_RADIUS = 1.5;
+const KATA_PORT_RADIUS = 0.6; // right next to the player
 
 function initKataPortals() {
     clearKataPortals();
@@ -680,19 +680,21 @@ function playerAttack() {
             aimX = dx / d; aimZ = dz / d;
         }
 
-        // Alternate side
+        // Alternate side — punch comes FROM the portal
         if (player._m1Side === undefined) player._m1Side = 0;
         player._m1Side = (player._m1Side + 1) % 2;
-        const side = player._m1Side === 0 ? -1 : 1;
-        const perpX = -Math.cos(yaw) * side, perpZ = Math.sin(yaw) * side;
-        const donutX = px * TILE + perpX * 2.0 + aimX * 1.0;
-        const donutZ = pz * TILE + perpZ * 2.0 + aimZ * 1.0;
 
-        // Show punch mesh aimed at target, linger for 400ms
+        // Get the actual portal position
+        const portal = kataPortals[player._m1Side];
+        if (!portal) return;
+        const donutX = portal.position.x;
+        const donutZ = portal.position.z;
+
+        // Show punch mesh originating from portal, aimed at target
         const punch = player._punchMeshes[player._m1Side];
-        punch.position.set(donutX, EYE_HEIGHT + 0.3, donutZ);
+        punch.position.copy(portal.position);
         const aimWorldX = donutX + aimX * 5, aimWorldZ = donutZ + aimZ * 5;
-        punch.lookAt(aimWorldX, EYE_HEIGHT + 0.3, aimWorldZ);
+        punch.lookAt(aimWorldX, portal.position.y, aimWorldZ);
         punch.visible = true;
         clearTimeout(punch._hideTimer);
         punch._hideTimer = setTimeout(() => { punch.visible = false; }, 400);
@@ -1087,116 +1089,139 @@ function playerQAbility() {
 }
 
 // ─── F ABILITY ──────────────────────────────────────────────
-let kataGrabHands = []; // pre-built grab hand meshes
+let kataGrabHands = []; // 2 pre-built grab hand meshes (reusable)
+let kataGrabArms = [];  // 2 arm cylinders connecting hand to portal
 let kataGrabbedEnemies = []; // currently held enemies
+let kataGrabInited = false;
+
+function initKataGrabHands() {
+    if (kataGrabInited) return;
+    kataGrabInited = true;
+    const isHaki = player && player._haki;
+    const col = isHaki ? '#0d47a1' : '#1a1a3a';
+
+    for (let i = 0; i < 2; i++) {
+        // Hand — palm + fingers + thumb
+        const hand = new THREE.Group();
+        hand.add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.3), new THREE.MeshBasicMaterial({ color: col })));
+        for (let f = 0; f < 4; f++) {
+            const finger = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.12), new THREE.MeshBasicMaterial({ color: col }));
+            finger.position.set((f - 1.5) * 0.15, 0.5, 0);
+            hand.add(finger);
+        }
+        const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.12), new THREE.MeshBasicMaterial({ color: col }));
+        thumb.position.set(-0.4, 0.15, 0); thumb.rotation.z = 0.5;
+        hand.add(thumb);
+        hand.visible = false;
+        scene.add(hand);
+        kataGrabHands.push(hand);
+
+        // Arm — cylinder that stretches from portal to hand
+        const arm = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.15, 0.18, 1, 4),
+            new THREE.MeshBasicMaterial({ color: col })
+        );
+        arm.visible = false;
+        scene.add(arm);
+        kataGrabArms.push(arm);
+    }
+}
 
 function playerFAbility() {
     if (!player || !player.alive) return;
 
     if (player.classId === 'katakuri') {
-        const px = fpsCamera.posX, pz = fpsCamera.posZ;
-        const yaw = fpsCamera.yaw;
-        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+        initKataGrabHands();
 
-        // If already holding enemies — THROW them
+        // If already holding — RELEASE (just drop, no damage)
         if (kataGrabbedEnemies.length > 0) {
             for (const grabbed of kataGrabbedEnemies) {
-                if (!grabbed.enemy.data.alive) continue;
-                // Hurl enemy forward
-                grabbed.enemy.data.x = px + fwdX * 8;
-                grabbed.enemy.data.z = pz + fwdZ * 8;
-                grabbed.enemy.mesh.position.set(grabbed.enemy.data.x * TILE, 0, grabbed.enemy.data.z * TILE);
-                // Damage on throw
-                dealDamageToEnemy(grabbed.enemy, Math.round(player.damage * 3));
-                // Damage anything at landing
-                for (const e2 of enemies3D) {
-                    if (!e2.data.alive || e2 === grabbed.enemy) continue;
-                    if (Math.hypot(e2.data.x - grabbed.enemy.data.x, e2.data.z - grabbed.enemy.data.z) < 2) {
-                        dealDamageToEnemy(e2, Math.round(player.damage * 2));
-                    }
-                }
-                // Hide grab hand
-                if (grabbed.handMesh) grabbed.handMesh.visible = false;
+                grabbed.enemy.data.lastAttack = performance.now(); // unstun
             }
+            for (const h of kataGrabHands) h.visible = false;
+            for (const a of kataGrabArms) a.visible = false;
             kataGrabbedEnemies = [];
             return;
         }
 
-        // GRAB — find 2 nearest enemies and grab them with big hands
+        // GRAB — find 2 nearest enemies
+        const px = fpsCamera.posX, pz = fpsCamera.posZ;
         const candidates = [];
         for (const e of enemies3D) {
             if (!e.data.alive || e.data.isBoss) continue;
             const d = Math.hypot(e.data.x - px, e.data.z - pz);
-            if (d < 6) candidates.push({ e, d });
+            if (d < 8) candidates.push({ e, d });
         }
         candidates.sort((a, b) => a.d - b.d);
         const toGrab = candidates.slice(0, 2);
-
         if (toGrab.length === 0) return;
-
-        // Create grab hands if needed (reusable)
-        while (kataGrabHands.length < 2) {
-            const hand = new THREE.Group();
-            const isHaki = player._haki;
-            const col = isHaki ? '#0d47a1' : '#1a1a3a';
-            // Open hand — palm + 4 fingers
-            const palm = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.3), new THREE.MeshBasicMaterial({ color: col }));
-            hand.add(palm);
-            for (let f = 0; f < 4; f++) {
-                const finger = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.12), new THREE.MeshBasicMaterial({ color: col }));
-                finger.position.set((f - 1.5) * 0.15, 0.5, 0);
-                hand.add(finger);
-            }
-            // Thumb
-            const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.12), new THREE.MeshBasicMaterial({ color: col }));
-            thumb.position.set(-0.4, 0.15, 0);
-            thumb.rotation.z = 0.5;
-            hand.add(thumb);
-            // Arm extending back
-            const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 3, 4), new THREE.MeshBasicMaterial({ color: col }));
-            arm.rotation.x = Math.PI / 2; arm.position.z = -1.8;
-            hand.add(arm);
-            hand.visible = false;
-            scene.add(hand);
-            kataGrabHands.push(hand);
-        }
 
         for (let i = 0; i < toGrab.length; i++) {
             const enemy = toGrab[i].e;
-            const hand = kataGrabHands[i];
-            // Position hand at enemy, arm extends back toward player
-            hand.position.set(enemy.data.x * TILE, EYE_HEIGHT * 0.6, enemy.data.z * TILE);
-            hand.lookAt(px * TILE, EYE_HEIGHT * 0.6, pz * TILE);
-            hand.rotateY(Math.PI); // face away from player (grabbing)
-            hand.visible = true;
-            // Stun enemy
-            enemy.data.lastAttack = performance.now() + 5000;
-            kataGrabbedEnemies.push({ enemy, handMesh: hand });
+            // Stun indefinitely while grabbed
+            enemy.data.lastAttack = performance.now() + 999999;
+            kataGrabbedEnemies.push({ enemy, portalIdx: i, handIdx: i });
+            kataGrabHands[i].visible = true;
+            kataGrabArms[i].visible = true;
         }
         return;
     }
 
-    // Other classes — Jin-Woo Arise Boss (existing F binding from 2D)
-    if (player.classId === 'jinwoo') {
-        // Arise boss placeholder
-    }
+    // Other classes
+    if (player.classId === 'jinwoo') { /* Arise boss placeholder */ }
 }
 
-// Update grabbed enemies — keep them near their grab position
+// Update grabbed enemies — carry them with the player, arm connects to portal
 function updateKataGrab() {
-    for (const grabbed of kataGrabbedEnemies) {
+    if (kataGrabbedEnemies.length === 0) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+
+    for (let i = kataGrabbedEnemies.length - 1; i >= 0; i--) {
+        const grabbed = kataGrabbedEnemies[i];
         if (!grabbed.enemy.data.alive) {
-            if (grabbed.handMesh) grabbed.handMesh.visible = false;
+            kataGrabHands[grabbed.handIdx].visible = false;
+            kataGrabArms[grabbed.handIdx].visible = false;
+            kataGrabbedEnemies.splice(i, 1);
             continue;
         }
-        // Keep enemy frozen at hand position
-        grabbed.enemy.data.x = grabbed.handMesh.position.x / TILE;
-        grabbed.enemy.data.z = grabbed.handMesh.position.z / TILE;
-        grabbed.enemy.mesh.position.copy(grabbed.handMesh.position);
-        grabbed.enemy.mesh.position.y = 0;
+
+        // Enemy follows player — offset to the side + forward
+        const side = grabbed.portalIdx === 0 ? -1 : 1;
+        const perpX = -Math.cos(yaw) * side;
+        const perpZ = Math.sin(yaw) * side;
+        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+        const holdX = px + perpX * 1.5 + fwdX * 2.5;
+        const holdZ = pz + perpZ * 1.5 + fwdZ * 2.5;
+
+        grabbed.enemy.data.x = holdX;
+        grabbed.enemy.data.z = holdZ;
+        grabbed.enemy.mesh.position.set(holdX * TILE, 0, holdZ * TILE);
+        grabbed.enemy.data.lastAttack = performance.now() + 999999; // keep stunned
+
+        // Position hand at enemy
+        const handY = EYE_HEIGHT * 0.5;
+        kataGrabHands[grabbed.handIdx].position.set(holdX * TILE, handY, holdZ * TILE);
+        kataGrabHands[grabbed.handIdx].lookAt(px * TILE, handY, pz * TILE);
+        kataGrabHands[grabbed.handIdx].rotateY(Math.PI);
+
+        // Arm stretches from portal to hand
+        const portal = kataPortals[grabbed.portalIdx];
+        if (portal) {
+            const armMesh = kataGrabArms[grabbed.handIdx];
+            const pPos = portal.position;
+            const hPos = kataGrabHands[grabbed.handIdx].position;
+            // Position arm at midpoint, scale to distance
+            const midX = (pPos.x + hPos.x) / 2;
+            const midY = (pPos.y + hPos.y) / 2;
+            const midZ = (pPos.z + hPos.z) / 2;
+            const dist = pPos.distanceTo(hPos);
+            armMesh.position.set(midX, midY, midZ);
+            armMesh.scale.set(1, dist, 1);
+            armMesh.lookAt(hPos);
+            armMesh.rotateX(Math.PI / 2);
+        }
     }
-    // Clean up dead grabbed enemies
-    kataGrabbedEnemies = kataGrabbedEnemies.filter(g => g.enemy.data.alive);
 }
 
 // ─── MINION SYSTEM ──────────────────────────────────────────
