@@ -1131,21 +1131,35 @@ function playerFAbility() {
     if (player.classId === 'katakuri') {
         initKataGrabHands();
 
-        // If already holding — THROW in the direction player is facing
+        // If already holding — UPPERCUT LAUNCH
+        // Hands let go, floor portal appears, fist punches enemy upward,
+        // enemy bounces off ceiling and ricochets around the room
         if (kataGrabbedEnemies.length > 0) {
-            const yaw = fpsCamera.yaw;
-            const throwDirX = -Math.sin(yaw), throwDirZ = -Math.cos(yaw);
-            const throwSpeed = 50; // tiles per second (200px/s equivalent — very fast)
-
             for (const grabbed of kataGrabbedEnemies) {
                 grabbed.enemy.data.lastAttack = performance.now(); // unstun
-                // Launch enemy as a projectile
+                const ex = grabbed.enemy.data.x, ez = grabbed.enemy.data.z;
+
+                // Spawn floor portal (reuse slash system — just visual)
+                spawnMeleeSlash(player._haki ? '#1565c0' : '#f5f0e8');
+
+                // Launch enemy into ricochet mode
+                // Random initial direction after ceiling bounce
+                const bounceAngle = Math.random() * Math.PI * 2;
+                const bounceSpeed = 30;
                 kataThrownEnemies.push({
                     enemy: grabbed.enemy,
-                    vx: throwDirX * throwSpeed,
-                    vz: throwDirZ * throwSpeed,
-                    life: 2.0, // seconds of flight
+                    vx: Math.sin(bounceAngle) * bounceSpeed,
+                    vz: Math.cos(bounceAngle) * bounceSpeed,
+                    life: 4.0, // 4 seconds of bouncing
+                    phase: 'launching', // launching -> bouncing
+                    launchTimer: 0.4, // time going up before ricocheting
+                    bounces: 0,
+                    maxBounces: 12,
                 });
+
+                // Animate enemy flying up (set Y position high temporarily)
+                grabbed.enemy.mesh.position.y = 0;
+                grabbed.enemy._launchY = 0;
             }
             for (const h of kataGrabHands) h.visible = false;
             for (const a of kataGrabArms) a.visible = false;
@@ -1233,55 +1247,99 @@ function updateKataGrab() {
     }
 }
 
-// ─── THROWN ENEMIES (Katakuri F throw) ──────────────────────
+// ─── THROWN ENEMIES (Katakuri F — uppercut launch + ricochet) ─
 function updateThrownEnemies(dt) {
     for (let i = kataThrownEnemies.length - 1; i >= 0; i--) {
         const t = kataThrownEnemies[i];
-        if (!t.enemy.data.alive) { kataThrownEnemies.splice(i, 1); continue; }
+        if (!t.enemy.data.alive) {
+            t.enemy.mesh.position.y = 0;
+            kataThrownEnemies.splice(i, 1); continue;
+        }
 
         t.life -= dt;
-        if (t.life <= 0) { kataThrownEnemies.splice(i, 1); continue; }
+        if (t.life <= 0 || t.bounces >= t.maxBounces) {
+            t.enemy.mesh.position.y = 0; // return to ground
+            kataThrownEnemies.splice(i, 1); continue;
+        }
 
+        // Keep enemy stunned while ricocheting
+        t.enemy.data.lastAttack = performance.now() + 999;
+
+        // PHASE 1: Launching upward (fist punches them to ceiling)
+        if (t.phase === 'launching') {
+            t.launchTimer -= dt;
+            // Fly upward
+            if (!t.enemy._launchY) t.enemy._launchY = 0;
+            t.enemy._launchY = Math.min(WALL_HEIGHT - 0.5, t.enemy._launchY + dt * 12);
+            t.enemy.mesh.position.y = t.enemy._launchY;
+
+            if (t.launchTimer <= 0) {
+                // Hit ceiling — switch to bouncing
+                t.phase = 'bouncing';
+                t.enemy._launchY = WALL_HEIGHT - 1;
+                // Damage on ceiling impact
+                dealDamageToEnemy(t.enemy, Math.round(t.enemy.data.maxHp * 0.3));
+                t.bounces++;
+            }
+            continue;
+        }
+
+        // PHASE 2: Ricocheting around the room
         const moveX = t.vx * dt;
         const moveZ = t.vz * dt;
         const newX = t.enemy.data.x + moveX;
         const newZ = t.enemy.data.z + moveZ;
 
-        // Check wall collision — lose half HP, STOP immediately
-        if (!isWalkable(dungeon.map, newX, newZ)) {
-            if (!t._hitSomething) { // only damage once
-                t._hitSomething = true;
-                dealDamageToEnemy(t.enemy, Math.round(t.enemy.data.maxHp * 0.5));
-            }
-            kataThrownEnemies.splice(i, 1); // remove immediately
-            continue;
+        // Bounce off walls (reflect velocity, don't stop)
+        const wallX = !isWalkable(dungeon.map, newX, t.enemy.data.z);
+        const wallZ = !isWalkable(dungeon.map, t.enemy.data.x, newZ);
+        if (wallX) { t.vx = -t.vx; t.bounces++; }
+        if (wallZ) { t.vz = -t.vz; t.bounces++; }
+        if (wallX || wallZ) {
+            dealDamageToEnemy(t.enemy, Math.round(t.enemy.data.maxHp * 0.1));
         }
 
-        // Check collision with other enemies — both lose half HP, STOP
-        let hitEnemy = false;
+        // Move (use reflected velocity if bounced)
+        const finalX = t.enemy.data.x + t.vx * dt;
+        const finalZ = t.enemy.data.z + t.vz * dt;
+        if (isWalkable(dungeon.map, finalX, finalZ)) {
+            t.enemy.data.x = finalX;
+            t.enemy.data.z = finalZ;
+        }
+
+        // Bob between ceiling and mid-height while ricocheting
+        const bobPhase = Math.sin(performance.now() * 0.01 + i) * 0.5;
+        t.enemy.mesh.position.set(t.enemy.data.x * TILE, WALL_HEIGHT * 0.5 + bobPhase, t.enemy.data.z * TILE);
+
+        // Check collision with other enemies — both take half HP, other starts ricocheting too
         for (const e of enemies3D) {
             if (!e.data.alive || e === t.enemy) continue;
-            if (Math.hypot(e.data.x - newX, e.data.z - newZ) < 1.0) {
-                if (!t._hitSomething) {
-                    t._hitSomething = true;
-                    dealDamageToEnemy(t.enemy, Math.round(t.enemy.data.maxHp * 0.5));
-                    dealDamageToEnemy(e, Math.round(e.data.maxHp * 0.5));
-                    // Knock hit enemy away
-                    const angle = Math.atan2(e.data.x - newX, e.data.z - newZ);
-                    e.data.x += Math.sin(angle) * 1.5;
-                    e.data.z += Math.cos(angle) * 1.5;
-                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
-                }
-                hitEnemy = true;
+            // Also skip enemies already ricocheting
+            if (kataThrownEnemies.some(tt => tt.enemy === e)) continue;
+            if (Math.hypot(e.data.x - t.enemy.data.x, e.data.z - t.enemy.data.z) < 1.2) {
+                dealDamageToEnemy(t.enemy, Math.round(t.enemy.data.maxHp * 0.25));
+                dealDamageToEnemy(e, Math.round(e.data.maxHp * 0.5));
+                // The hit enemy ALSO starts ricocheting
+                const ricochetAngle = Math.atan2(e.data.x - t.enemy.data.x, e.data.z - t.enemy.data.z);
+                kataThrownEnemies.push({
+                    enemy: e,
+                    vx: Math.sin(ricochetAngle) * 25,
+                    vz: Math.cos(ricochetAngle) * 25,
+                    life: 3.0,
+                    phase: 'bouncing', // skip launch, straight to bouncing
+                    launchTimer: 0,
+                    bounces: 0,
+                    maxBounces: 8,
+                });
+                e.mesh.position.y = WALL_HEIGHT * 0.5;
+                e.data.lastAttack = performance.now() + 999;
+                // Deflect the original enemy
+                t.vx = -t.vx * 0.8;
+                t.vz = -t.vz * 0.8;
+                t.bounces++;
                 break;
             }
         }
-        if (hitEnemy) { kataThrownEnemies.splice(i, 1); continue; }
-
-        // Move the thrown enemy
-        t.enemy.data.x = newX;
-        t.enemy.data.z = newZ;
-        t.enemy.mesh.position.set(newX * TILE, 0, newZ * TILE);
     }
 }
 
