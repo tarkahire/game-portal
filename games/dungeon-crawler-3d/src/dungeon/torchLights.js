@@ -21,10 +21,10 @@ export function createTorchLights(dungeon, scene) {
         const color = isCyan ? PAL.torchCyan : PAL.torchPink;
 
         // Point light
-        const light = new THREE.PointLight(color, 1.5, TILE * 5, 1.5);
+        const light = new THREE.PointLight(color, 3.0, TILE * 7, 1.2);
         light.position.set(x, y, z);
         light._torchIndex = i;
-        light._baseIntensity = 1.5;
+        light._baseIntensity = 3.0;
         scene.add(light);
         lights.push(light);
 

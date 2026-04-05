@@ -53,17 +53,23 @@ export class FPSCamera {
     update(dt, dungeonMap) {
         if (!this.locked) return;
 
-        // Movement direction from WASD relative to camera yaw
+        // Movement direction relative to camera facing
         let moveX = 0, moveZ = 0;
-        const forward = -Math.cos(this.yaw); // forward in Z
-        const right = Math.cos(this.yaw + Math.PI / 2);
-        const forwardX = Math.sin(this.yaw);
-        const rightX = Math.sin(this.yaw + Math.PI / 2);
+        // Forward vector (direction camera faces on XZ plane)
+        const fwdX = -Math.sin(this.yaw);
+        const fwdZ = -Math.cos(this.yaw);
+        // Right vector (perpendicular to forward)
+        const rightX = -Math.cos(this.yaw);
+        const rightZ = Math.sin(this.yaw);
 
-        if (this.keys['KeyW']) { moveX += forwardX; moveZ += forward; }
-        if (this.keys['KeyS']) { moveX -= forwardX; moveZ -= forward; }
-        if (this.keys['KeyA']) { moveX -= rightX; moveZ -= right; }
-        if (this.keys['KeyD']) { moveX += rightX; moveZ += right; }
+        // W / Up Arrow = forward
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) { moveX += fwdX; moveZ += fwdZ; }
+        // S / Down Arrow = backward
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) { moveX -= fwdX; moveZ -= fwdZ; }
+        // A / Left Arrow = strafe left
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) { moveX -= rightX; moveZ -= rightZ; }
+        // D / Right Arrow = strafe right
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) { moveX += rightX; moveZ += rightZ; }
 
         // Normalize diagonal
         const len = Math.sqrt(moveX * moveX + moveZ * moveZ);

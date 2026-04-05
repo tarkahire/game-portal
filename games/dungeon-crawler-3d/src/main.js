@@ -37,7 +37,7 @@ function init() {
     // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(PAL.fog);
-    scene.fog = new THREE.FogExp2(PAL.fog, 0.018);
+    scene.fog = new THREE.FogExp2(PAL.fog, 0.012);
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
@@ -50,12 +50,16 @@ function init() {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.8;
 
-    // Ambient light — very dim (cyberpunk dark)
-    const ambient = new THREE.AmbientLight(PAL.ambient, 0.3);
+    // Ambient light — moderate base illumination
+    const ambient = new THREE.AmbientLight('#1a1a2e', 0.6);
     scene.add(ambient);
 
-    // Player light — short range, follows camera
-    playerLight = new THREE.PointLight('#00ffcc', 0.8, TILE * 4, 2);
+    // Hemisphere light — subtle sky/ground fill
+    const hemi = new THREE.HemisphereLight('#0a1a2a', '#04040c', 0.4);
+    scene.add(hemi);
+
+    // Player light — bright, medium range, follows camera
+    playerLight = new THREE.PointLight('#00ffcc', 2.0, TILE * 7, 1.5);
     scene.add(playerLight);
 
     // FPS Camera controller
