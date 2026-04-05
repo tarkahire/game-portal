@@ -282,6 +282,41 @@ function startGame() {
 
     // Init Katakuri portals if needed
     if (player.classId === 'katakuri') initKataPortals();
+
+    // Create player model for 3rd person view
+    if (fpsCamera.playerModel) scene.remove(fpsCamera.playerModel);
+    const pm = new THREE.Group();
+    const bodyCol = player.cls.color;
+    // Body cylinder
+    const pmBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 1.2, 6), new THREE.MeshStandardMaterial({ color: bodyCol, roughness: 0.5 }));
+    pmBody.position.y = 1.0;
+    pm.add(pmBody);
+    // Head sphere
+    const pmHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 6, 6), new THREE.MeshStandardMaterial({ color: '#e8d0b0', roughness: 0.5 }));
+    pmHead.position.y = 1.85;
+    pm.add(pmHead);
+    // Eyes
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat).translateX(-0.1).translateY(1.9).translateZ(0.2));
+    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat).translateX(0.1).translateY(1.9).translateZ(0.2));
+    // Legs
+    const legMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e' });
+    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.6, 4), legMat).translateX(-0.12).translateY(0.3));
+    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.6, 4), legMat).translateX(0.12).translateY(0.3));
+    // Class name label
+    const labelCanvas = document.createElement('canvas');
+    labelCanvas.width = 128; labelCanvas.height = 32;
+    const lctx = labelCanvas.getContext('2d');
+    lctx.fillStyle = bodyCol; lctx.font = 'bold 16px monospace'; lctx.textAlign = 'center';
+    lctx.fillText(player.cls.name, 64, 20);
+    const labelTex = new THREE.CanvasTexture(labelCanvas);
+    const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true }));
+    labelSprite.scale.set(1.5, 0.4, 1);
+    labelSprite.position.y = 2.3;
+    pm.add(labelSprite);
+    pm.visible = false; // hidden in 1st person by default
+    scene.add(pm);
+    fpsCamera.playerModel = pm;
 }
 
 function loadFloor(floor) {

@@ -13,6 +13,12 @@ export class FPSCamera {
         this.yaw = 0;    // horizontal rotation
         this.pitch = 0;  // vertical rotation
         this.locked = false;
+        this.thirdPerson = false; // toggle with C
+        this.tpDistance = 6;      // distance behind player in 3rd person
+        this.tpHeight = 3.5;     // height above player in 3rd person
+
+        // Player model (visible in 3rd person)
+        this.playerModel = null;
 
         // Player position in tile coords (col, row)
         this.posX = 0;
@@ -21,7 +27,10 @@ export class FPSCamera {
 
         // Keys
         this.keys = {};
-        this._onKeyDown = (e) => { this.keys[e.code] = true; };
+        this._onKeyDown = (e) => {
+            this.keys[e.code] = true;
+            if (e.code === 'KeyC') this.thirdPerson = !this.thirdPerson;
+        };
         this._onKeyUp = (e) => { this.keys[e.code] = false; };
         this._onMouseMove = (e) => {
             if (!this.locked) return;
@@ -101,16 +110,36 @@ export class FPSCamera {
         this.posX = Math.max(1, Math.min(MAP_COLS - 1, this.posX));
         this.posZ = Math.max(1, Math.min(MAP_ROWS - 1, this.posZ));
 
-        // Update camera
-        this.camera.position.set(
-            this.posX * TILE,
-            EYE_HEIGHT,
-            this.posZ * TILE
-        );
+        // Player world position
+        const worldX = this.posX * TILE;
+        const worldZ = this.posZ * TILE;
 
-        // Apply rotation
-        const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
-        this.camera.quaternion.setFromEuler(euler);
+        if (this.thirdPerson) {
+            // 3rd person: camera behind + above player, looking at player
+            const behindX = Math.sin(this.yaw) * this.tpDistance;
+            const behindZ = Math.cos(this.yaw) * this.tpDistance;
+            this.camera.position.set(
+                worldX + behindX,
+                EYE_HEIGHT + this.tpHeight,
+                worldZ + behindZ
+            );
+            this.camera.lookAt(worldX, EYE_HEIGHT, worldZ);
+
+            // Show player model
+            if (this.playerModel) {
+                this.playerModel.visible = true;
+                this.playerModel.position.set(worldX, 0, worldZ);
+                this.playerModel.rotation.y = -this.yaw;
+            }
+        } else {
+            // 1st person
+            this.camera.position.set(worldX, EYE_HEIGHT, worldZ);
+            const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
+            this.camera.quaternion.setFromEuler(euler);
+
+            // Hide player model
+            if (this.playerModel) this.playerModel.visible = false;
+        }
     }
 
     // Get facing angle on the XZ plane (for combat)
