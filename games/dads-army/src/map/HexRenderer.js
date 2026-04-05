@@ -237,7 +237,7 @@ export class HexRenderer {
     });
 
     // --- Layer 1: Textured terrain ---
-    for (const { tile, screen, screenSize } of visible) {
+    for (const { tile, screen, screenSize, elev } of visible) {
       ctx.save();
       hexPath(ctx, screen.x, screen.y, screenSize);
       ctx.clip();
@@ -291,7 +291,7 @@ export class HexRenderer {
 
     // --- Layer 2: Edge blending (at higher zoom) ---
     if (camera.zoom > 0.4) {
-      for (const { tile, screen, screenSize } of visible) {
+      for (const { tile, screen, screenSize, elev } of visible) {
         for (const [dq, dr] of HEX_DIRS) {
           const nKey = `${tile.q + dq},${tile.r + dr}`;
           const neighbor = this.tiles.get(nKey);
@@ -338,7 +338,7 @@ export class HexRenderer {
     }
 
     // --- Layer 4: Selective borders (ownership boundaries only) ---
-    for (const { tile, screen, screenSize } of visible) {
+    for (const { tile, screen, screenSize, elev } of visible) {
       if (!tile.owner_id) continue;
 
       const isMine = tile.owner_id === this.currentPlayerId;
@@ -372,7 +372,7 @@ export class HexRenderer {
 
     // --- Layer 5: Elevation shadows ---
     if (camera.zoom > 0.3) {
-      for (const { tile, screen, screenSize } of visible) {
+      for (const { tile, screen, screenSize, elev } of visible) {
         if (tile.terrain_type === 'mountain' || tile.terrain_type === 'forest') {
           const shadowAlpha = tile.terrain_type === 'mountain' ? 0.15 : 0.08;
           // SE shadow
@@ -423,7 +423,7 @@ export class HexRenderer {
           cityTiles.push(tile);
         }
       }
-      for (const { tile, screen, screenSize } of visible) {
+      for (const { tile, screen, screenSize, elev } of visible) {
         const range = tile.infrastructure_road ? 15 : 10;
         let inRange = false;
         for (const ct of cityTiles) {
@@ -439,7 +439,7 @@ export class HexRenderer {
     }
 
     // --- Layer 7: Fog of war (textured) ---
-    for (const { tile, screen, screenSize } of visible) {
+    for (const { tile, screen, screenSize, elev } of visible) {
       if (!tile.fog_state || tile.fog_state === 'visible') continue;
 
       hexPath(ctx, screen.x, screen.y, screenSize);
@@ -466,7 +466,7 @@ export class HexRenderer {
     }
 
     // --- Layer 8: Cities, resources, armies ---
-    for (const { tile, screen, screenSize } of visible) {
+    for (const { tile, screen, screenSize, elev } of visible) {
       if (tile.fog_state === 'unexplored') continue;
 
       const tileKey = `${tile.q},${tile.r}`;
