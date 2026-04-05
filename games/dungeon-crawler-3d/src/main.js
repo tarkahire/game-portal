@@ -1249,50 +1249,42 @@ function updateThrownEnemies(dt) {
         const moveZ = t.vz * dt;
         const newX = t.enemy.data.x + moveX;
         const newZ = t.enemy.data.z + moveZ;
-        const r = t.enemy.data.radius || 0.4;
 
-        // Check wall collision — if hits wall, lose half HP
-        const hitsWall = !isWalkable(dungeon.map, newX, newZ);
-        if (hitsWall) {
-            const dmg = Math.round(t.enemy.data.maxHp * 0.5);
-            dealDamageToEnemy(t.enemy, dmg);
-            // Stop movement
-            t.vx *= -0.3; t.vz *= -0.3; // small bounce
-            t.life = Math.min(t.life, 0.3); // expire soon
-            spawnMeleeSlash('#ff4444');
+        // Check wall collision — lose half HP, STOP immediately
+        if (!isWalkable(dungeon.map, newX, newZ)) {
+            if (!t._hitSomething) { // only damage once
+                t._hitSomething = true;
+                dealDamageToEnemy(t.enemy, Math.round(t.enemy.data.maxHp * 0.5));
+            }
+            kataThrownEnemies.splice(i, 1); // remove immediately
             continue;
         }
 
-        // Check collision with other enemies — both lose half HP
+        // Check collision with other enemies — both lose half HP, STOP
         let hitEnemy = false;
         for (const e of enemies3D) {
             if (!e.data.alive || e === t.enemy) continue;
-            if (Math.hypot(e.data.x - newX, e.data.z - newZ) < r + (e.data.radius || 0.4)) {
-                // Both lose half HP
-                const dmg1 = Math.round(t.enemy.data.maxHp * 0.5);
-                const dmg2 = Math.round(e.data.maxHp * 0.5);
-                dealDamageToEnemy(t.enemy, dmg1);
-                dealDamageToEnemy(e, dmg2);
-                // Knock the hit enemy away too
-                const angle = Math.atan2(e.data.x - newX, e.data.z - newZ);
-                e.data.x += Math.sin(angle) * 1.5;
-                e.data.z += Math.cos(angle) * 1.5;
-                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+            if (Math.hypot(e.data.x - newX, e.data.z - newZ) < 1.0) {
+                if (!t._hitSomething) {
+                    t._hitSomething = true;
+                    dealDamageToEnemy(t.enemy, Math.round(t.enemy.data.maxHp * 0.5));
+                    dealDamageToEnemy(e, Math.round(e.data.maxHp * 0.5));
+                    // Knock hit enemy away
+                    const angle = Math.atan2(e.data.x - newX, e.data.z - newZ);
+                    e.data.x += Math.sin(angle) * 1.5;
+                    e.data.z += Math.cos(angle) * 1.5;
+                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                }
                 hitEnemy = true;
-                t.life = Math.min(t.life, 0.3);
-                spawnMeleeSlash('#ff4444');
                 break;
             }
         }
+        if (hitEnemy) { kataThrownEnemies.splice(i, 1); continue; }
 
         // Move the thrown enemy
         t.enemy.data.x = newX;
         t.enemy.data.z = newZ;
         t.enemy.mesh.position.set(newX * TILE, 0, newZ * TILE);
-
-        // Slow down over time (friction)
-        t.vx *= 0.98;
-        t.vz *= 0.98;
     }
 }
 
