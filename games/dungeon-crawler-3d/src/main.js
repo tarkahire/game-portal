@@ -466,7 +466,7 @@ let kataPortals = []; // 3D torus meshes orbiting player
 let kataFists = [];   // flying dough fist projectiles
 let kataPortIdx = 0;
 const KATA_PORT_COUNT = 16;
-const KATA_PORT_RADIUS = 3.5; // tiles from player
+const KATA_PORT_RADIUS = 1.8; // close to player
 
 function initKataPortals() {
     clearKataPortals();
@@ -593,21 +593,62 @@ function playerAttack() {
     if (now - player.lastAttack < player.attackSpeed) return;
     player.lastAttack = now;
 
-    // Katakuri — fire fist from one portal at a time
+    // Katakuri — Dough M1: summon donut in front, launch dough tendril punch
     if (player.classId === 'katakuri') {
         if (kataPortals.length === 0) initKataPortals();
         const px = fpsCamera.posX, pz = fpsCamera.posZ;
         const fwdX = -Math.sin(fpsCamera.yaw), fwdZ = -Math.cos(fpsCamera.yaw);
-        // Find nearest enemy or use facing direction
-        let tx = px + fwdX * 6, tz = pz + fwdZ * 6;
-        let closest = Infinity;
+        // Alternate left/right punch
+        if (!player._m1Side) player._m1Side = 0;
+        player._m1Side = (player._m1Side + 1) % 2;
+        const perpX = Math.cos(fpsCamera.yaw) * (player._m1Side === 0 ? -0.4 : 0.4);
+        const perpZ = -Math.sin(fpsCamera.yaw) * (player._m1Side === 0 ? -0.4 : 0.4);
+
+        // Spawn a donut ring at punch origin
+        const donutGeo = new THREE.TorusGeometry(0.25, 0.06, 6, 12);
+        const isHaki = player._haki;
+        const donutMat = new THREE.MeshBasicMaterial({ color: isHaki ? '#1565c0' : '#e8b0a0', transparent: true, opacity: 0.8 });
+        const donut = new THREE.Mesh(donutGeo, donutMat);
+        const startX = px * TILE + fwdX * 1.5 + perpX * TILE;
+        const startZ = pz * TILE + fwdZ * 1.5 + perpZ * TILE;
+        donut.position.set(startX, EYE_HEIGHT - 0.2, startZ);
+        donut.lookAt(px * TILE + fwdX * 8, EYE_HEIGHT - 0.2, pz * TILE + fwdZ * 8);
+        scene.add(donut);
+        meleeSlashes.push({ mesh: donut, life: 6 });
+
+        // Dough tendril/fist extending from donut
+        const fistMat = new THREE.MeshBasicMaterial({ color: isHaki ? '#42a5f5' : '#f5f0e0' });
+        const fist = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), fistMat);
+        const fistGlow = new THREE.PointLight(isHaki ? '#1565c0' : '#e8b0a0', 2, TILE * 2, 2);
+        fist.add(fistGlow);
+        fist.position.set(startX + fwdX * 0.5, EYE_HEIGHT - 0.2, startZ + fwdZ * 0.5);
+        scene.add(fist);
+
+        // Arm line from donut to fist
+        const armGeo = new THREE.CylinderGeometry(0.06, 0.06, 2.5, 4);
+        armGeo.rotateZ(Math.PI / 2);
+        const arm = new THREE.Mesh(armGeo, new THREE.MeshBasicMaterial({ color: isHaki ? '#1565c0' : '#f5e0d0', transparent: true, opacity: 0.7 }));
+        arm.position.set(startX + fwdX * 1.2, EYE_HEIGHT - 0.2, startZ + fwdZ * 1.2);
+        arm.lookAt(startX + fwdX * 3, EYE_HEIGHT - 0.2, startZ + fwdZ * 3);
+        scene.add(arm);
+        meleeSlashes.push({ mesh: arm, life: 6 });
+        meleeSlashes.push({ mesh: fist, life: 6 });
+
+        // Damage enemies in front
+        const yaw = fpsCamera.yaw;
         for (const e of enemies3D) {
             if (!e.data.alive) continue;
-            const d = Math.hypot(e.data.x - px, e.data.z - pz);
-            if (d < 10 && d < closest) { closest = d; tx = e.data.x; tz = e.data.z; }
+            const dx = e.data.x - px, dz = e.data.z - pz;
+            const dist = Math.hypot(dx, dz);
+            if (dist > 3) continue;
+            const angleToEnemy = Math.atan2(-dx, -dz);
+            let angleDiff = angleToEnemy - yaw;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            if (Math.abs(angleDiff) < Math.PI * 0.5) {
+                dealDamageToEnemy(e, player.damage);
+            }
         }
-        kataFireFist(kataPortIdx, tx * TILE, EYE_HEIGHT * 0.5, tz * TILE, player.damage);
-        kataPortIdx = (kataPortIdx + 1) % KATA_PORT_COUNT;
         return;
     }
 
