@@ -61,6 +61,7 @@ export class HexRenderer {
     this._initialLoadDone = false;
     this._cityTileKeys = new Set();
     this._armies = null;
+    this._combatFlashes = new Map(); // tileId → { startTime }
 
     // Initialize texture manager
     this._texMgr = new TextureManager();
@@ -92,6 +93,12 @@ export class HexRenderer {
       if (!this._armies.has(key)) this._armies.set(key, []);
       this._armies.get(key).push(army);
     }
+    this.requestRender();
+  }
+
+  /** Trigger a combat flash animation on a tile. */
+  triggerCombatFlash(tileId) {
+    this._combatFlashes.set(tileId, { startTime: Date.now() });
     this.requestRender();
   }
 
@@ -632,6 +639,93 @@ export class HexRenderer {
       }
     }
 
+    // --- Layer 8.5: March paths (dotted lines from army to destination) ---
+    if (this._armies && camera.zoom > 0.2) {
+      for (const [tileId, armies] of this._armies) {
+        for (const army of armies) {
+          if (army.status !== 'marching' || !army.destination_tile) continue;
+          if (army.player_id !== this.currentPlayerId) continue;
+
+          // Find source and destination tiles
+          let srcTile = null, dstTile = null;
+          for (const t of this.tiles.values()) {
+            if (t.id === army.tile_id) srcTile = t;
+            if (t.id === army.destination_tile) dstTile = t;
+            if (srcTile && dstTile) break;
+          }
+          if (!srcTile || !dstTile) continue;
+
+          const srcWorld = hexToPixel(srcTile.q, srcTile.r, size);
+          const dstWorld = hexToPixel(dstTile.q, dstTile.r, size);
+          const srcScreen = camera.worldToScreen(srcWorld.x, srcWorld.y);
+          const dstScreen = camera.worldToScreen(dstWorld.x, dstWorld.y);
+
+          // Animated dotted line
+          ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+          ctx.lineWidth = Math.max(size * camera.zoom * 0.06, 1.5);
+          ctx.setLineDash([6, 4]);
+          ctx.lineDashOffset = -(Date.now() / 60 % 20);
+          ctx.beginPath();
+          ctx.moveTo(srcScreen.x, srcScreen.y);
+          ctx.lineTo(dstScreen.x, dstScreen.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Arrow at destination
+          const angle = Math.atan2(dstScreen.y - srcScreen.y, dstScreen.x - srcScreen.x);
+          const arrowLen = Math.max(size * camera.zoom * 0.25, 6);
+          ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+          ctx.beginPath();
+          ctx.moveTo(dstScreen.x, dstScreen.y);
+          ctx.lineTo(dstScreen.x - arrowLen * Math.cos(angle - 0.4), dstScreen.y - arrowLen * Math.sin(angle - 0.4));
+          ctx.lineTo(dstScreen.x - arrowLen * Math.cos(angle + 0.4), dstScreen.y - arrowLen * Math.sin(angle + 0.4));
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
+
+    // --- Layer 8.6: Combat flash animations ---
+    if (this._combatFlashes) {
+      const now = Date.now();
+      for (const [tileId, flash] of [...this._combatFlashes]) {
+        if (now - flash.startTime > 2000) { this._combatFlashes.delete(tileId); continue; }
+
+        let flashTile = null;
+        for (const t of this.tiles.values()) {
+          if (t.id === tileId) { flashTile = t; break; }
+        }
+        if (!flashTile) continue;
+
+        const world = hexToPixel(flashTile.q, flashTile.r, size);
+        const screen = camera.worldToScreen(world.x, world.y);
+        const screenSize = size * camera.zoom;
+        const progress = (now - flash.startTime) / 2000;
+        const alpha = Math.max(0, 1 - progress);
+
+        // Red/orange burst
+        const grad = ctx.createRadialGradient(screen.x, screen.y, 0, screen.x, screen.y, screenSize * 0.8);
+        grad.addColorStop(0, `rgba(255, 100, 30, ${alpha * 0.4})`);
+        grad.addColorStop(0.5, `rgba(255, 50, 10, ${alpha * 0.2})`);
+        grad.addColorStop(1, `rgba(200, 30, 0, 0)`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(screen.x - screenSize, screen.y - screenSize, screenSize * 2, screenSize * 2);
+
+        // Crossed swords icon
+        if (screenSize > 10 && alpha > 0.3) {
+          ctx.strokeStyle = `rgba(255, 220, 50, ${alpha})`;
+          ctx.lineWidth = 2;
+          const sw = screenSize * 0.3;
+          ctx.beginPath();
+          ctx.moveTo(screen.x - sw, screen.y - sw);
+          ctx.lineTo(screen.x + sw, screen.y + sw);
+          ctx.moveTo(screen.x + sw, screen.y - sw);
+          ctx.lineTo(screen.x - sw, screen.y + sw);
+          ctx.stroke();
+        }
+      }
+    }
+
     // --- Layer 9: Selection highlight ---
     if (this.selectedTile) {
       const world = hexToPixel(this.selectedTile.q, this.selectedTile.r, size);
@@ -648,7 +742,9 @@ export class HexRenderer {
       ctx.fill();
     }
 
-    // --- Layer 10: Post-processing (vignette) ---
+    // --- Layer 10: Post-processing ---
+
+    // Vignette
     if (camera.zoom > 0.3) {
       const grad = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.7);
       grad.addColorStop(0, 'rgba(0,0,0,0)');
@@ -657,8 +753,62 @@ export class HexRenderer {
       ctx.fillRect(0, 0, w, h);
     }
 
+    // Paper fold lines (subtle)
+    ctx.strokeStyle = 'rgba(139, 125, 90, 0.04)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, 0); ctx.lineTo(w * 0.5, h); // Vertical center
+    ctx.moveTo(0, h * 0.5); ctx.lineTo(w, h * 0.5); // Horizontal center
+    ctx.stroke();
+
+    // Compass rose (bottom-left corner)
+    if (camera.zoom > 0.25) {
+      const crx = 45, cry = h - 55, crs = 18;
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+
+      // N-S line
+      ctx.strokeStyle = '#C3B091';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(crx, cry - crs);
+      ctx.lineTo(crx, cry + crs);
+      ctx.stroke();
+
+      // E-W line
+      ctx.beginPath();
+      ctx.moveTo(crx - crs, cry);
+      ctx.lineTo(crx + crs, cry);
+      ctx.stroke();
+
+      // N arrow
+      ctx.fillStyle = '#C3B091';
+      ctx.beginPath();
+      ctx.moveTo(crx, cry - crs - 4);
+      ctx.lineTo(crx - 4, cry - crs + 4);
+      ctx.lineTo(crx + 4, cry - crs + 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // N label
+      ctx.fillStyle = '#C3B091';
+      ctx.font = 'bold 10px Oswald, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('N', crx, cry - crs - 6);
+
+      // Circle
+      ctx.strokeStyle = '#C3B091';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(crx, cry, crs + 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
     // Zoom indicator
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillStyle = 'rgba(195, 176, 145, 0.3)';
     ctx.font = '10px Oswald, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
