@@ -102,6 +102,7 @@ body { background: #020208; color: #00ffcc; font-family: 'Segoe UI', sans-serif;
 .fear-icon { background: radial-gradient(circle, #7c4dff 20%, #4a148c 60%, #1a0033 100%); }
 .love-icon { background: radial-gradient(circle, #f48fb1 20%, #e91e63 60%, #880e4f 100%); }
 .chaos-icon { background: conic-gradient(#ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0088, #ff0000); }
+.kitsune-icon { background: radial-gradient(circle, #42a5f5 20%, #1a237e 60%, #0a1628 100%); }
 .dog-icon { background: radial-gradient(circle, #f5f0eb 20%, #5d4037 50%, #3e2723 100%); }
 .ink-icon { background: radial-gradient(circle, #546e7a 20%, #263238 60%, #111 100%); }
 .suisui-icon { background: radial-gradient(circle, #f48fb1 20%, #e91e63 60%, #880e4f 100%); }

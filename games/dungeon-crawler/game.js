@@ -166,7 +166,8 @@ const CLASSES = {
     chaos: { name: 'Chaos', maxHp: 90, speed: 2.8, attackRange: 35, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff00ff', specialCooldown: 1000, specialName: '???', specialDesc: 'Every press = random ability from ANY other class. Pure madness.', drawChar: makeDrawFn('#ff00ff','#111','spiky') },
     suisui: { name: 'Señor Pink', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#e91e63', specialCooldown: 4000, specialName: 'Dive', specialDesc: 'Swim into floor — pop up at cursor with devastating uppercut', drawChar: drawSenorPink },
     ink: { name: 'Ink', maxHp: 85, speed: 2.8, attackRange: 160, attackDamage: 10, attackSpeed: 450, attackType: 'ranged', color: '#263238', specialCooldown: 5000, specialName: 'Draw Soldier', specialDesc: 'Summon a warrior from ink puddles — more puddles = stronger', drawChar: drawInk },
-    dog: { name: 'Dog', maxHp: 150, speed: 3.5, attackRange: 30, attackDamage: 16, attackSpeed: 280, attackType: 'melee', color: '#5d4037', specialCooldown: 3000, specialName: 'Pack Howl', specialDesc: 'Summon 6 permanent dogs. Every kill spawns a puppy. 30% lifesteal.', drawChar: drawDog }
+    dog: { name: 'Dog', maxHp: 150, speed: 3.5, attackRange: 30, attackDamage: 16, attackSpeed: 280, attackType: 'melee', color: '#5d4037', specialCooldown: 3000, specialName: 'Pack Howl', specialDesc: 'Summon 6 permanent dogs. Every kill spawns a puppy. 30% lifesteal.', drawChar: drawDog },
+    kitsune: { name: 'Kitsune', maxHp: 95, speed: 2.8, attackRange: 28, attackDamage: 11, attackSpeed: 380, attackType: 'melee', color: '#1a237e', specialCooldown: 4000, specialName: 'Fox Fire', specialDesc: 'Blue fireballs. Fill tails meter through combat to transform.', drawChar: drawKitsune }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -822,7 +823,21 @@ function playerAttack(p, now) {
                 }
             }
         }
-        spawnParticles(p.x + Math.cos(p.facingAngle) * 20, p.y + Math.sin(p.facingAngle) * 20, '#aaa', 4);
+        // Kitsune — tails meter gain on hit + blue fire claw trails when transformed
+        if (p.classId === 'kitsune') {
+            if (!p._tailsMeter) p._tailsMeter = 0;
+            if (!p._kitsuneForm) p._tailsMeter = Math.min(9, p._tailsMeter + 0.12);
+            if (p._kitsuneForm) {
+                // Blue fire claw slash trails
+                for (let c = -1; c <= 1; c++) {
+                    activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle + c * 0.25,
+                        length: p.attackRange + 15, width: 4, life: 8, maxLife: 8, color: '#1565c0' });
+                }
+                spawnParticles(p.x + Math.cos(p.facingAngle) * 30, p.y + Math.sin(p.facingAngle) * 30, '#42a5f5', 6);
+                spawnParticles(p.x + Math.cos(p.facingAngle) * 30, p.y + Math.sin(p.facingAngle) * 30, '#111', 3);
+            }
+        }
+        spawnParticles(p.x + Math.cos(p.facingAngle) * 20, p.y + Math.sin(p.facingAngle) * 20, p.classId === 'kitsune' && p._kitsuneForm ? '#42a5f5' : '#aaa', 4);
     } else {
         // Ranged attack — spawn projectile
         const speed = 6;
@@ -1431,6 +1446,19 @@ function playerSpecial(p, now) {
                 spawnParticles(target.x,target.y,'#f48fb1',12);
                 damageNumbers.push({x:target.x,y:target.y-20,text:'CHARMED!',color:'#e91e63',life:50});}
             triggerShake(3,5);} break;
+        case 'kitsune': // Fox Fire — blue fireballs (more in kitsune form)
+            { const count = p._kitsuneForm ? 8 : 3;
+            const spread = p._kitsuneForm ? 0.4 : 0.3;
+            for (let i = 0; i < count; i++) {
+                const a = p.facingAngle + (i - (count-1)/2) * (spread / (count-1 || 1));
+                projectiles.push({ x: p.x, y: p.y, vx: Math.cos(a) * 5, vy: Math.sin(a) * 5,
+                    damage: Math.round(p.damage * (p._kitsuneForm ? 1.5 : 1)), owner: 'player', ownerRef: p,
+                    range: 180, traveled: 0, color: '#42a5f5', radius: p._kitsuneForm ? 6 : 4 });
+            }
+            if (!p._kitsuneForm) { if (!p._tailsMeter) p._tailsMeter = 0; p._tailsMeter = Math.min(9, p._tailsMeter + 0.3); }
+            spawnParticles(p.x, p.y, '#1565c0', 12); spawnParticles(p.x, p.y, '#42a5f5', 6);
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: 'FOX FIRE!', color: '#42a5f5', life: 40 });
+            triggerShake(4, 6); } break;
         case 'dog': // Pack Howl — summon 6 permanent dogs
             { for (let i = 0; i < 6; i++) {
                 const angle = (i / 6) * Math.PI * 2;
@@ -1609,6 +1637,28 @@ function animeSecondary(p, now) {
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#42a5f5', 14);
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#fff', 6);
             triggerShake(5, 8); } break;
+        case 'kitsune': // Spirit Dash — dash through enemies with fox afterimages
+            if (now - p._secondaryCd < 2500) return; p._secondaryCd = now;
+            { const isForm = p._kitsuneForm;
+            p.dodging = true; p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
+            p.dodgeTimer = isForm ? 16 : 10; p.invincible = now + (isForm ? 600 : 400);
+            const snap = enemies.slice();
+            for (const e of snap) { if (!e.alive) continue;
+                const dx = e.x - p.x, dy = e.y - p.y;
+                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
+                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
+                if (along > 0 && along < (isForm ? 140 : 90) && perp < 20) dealDamageToEnemy(e, Math.round(p.damage * (isForm ? 2 : 1.5)), p);
+            }
+            // Blue fire trail
+            for (let f = 0; f < 6; f++) {
+                const fx = p.x + Math.cos(p.facingAngle) * f * 15, fy = p.y + Math.sin(p.facingAngle) * f * 15;
+                if (isForm) lightningNets.push({ x: fx, y: fy, owner: p, radius: 15, life: now + 1500, damage: 2, damageRate: 300, lastDamage: 0, color: '#1565c0' });
+                spawnParticles(fx, fy, '#42a5f5', 2);
+            }
+            if (!isForm) { if (!p._tailsMeter) p._tailsMeter = 0; p._tailsMeter = Math.min(9, p._tailsMeter + 0.25); }
+            spawnParticles(p.x, p.y, '#1565c0', 10);
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: isForm ? 'SPIRIT DASH!' : 'DASH!', color: '#42a5f5', life: 40 });
+            triggerShake(isForm ? 6 : 4, isForm ? 10 : 6); } break;
         case 'dog': // Fetch — throw ball, all dogs teleport there and frenzy
             if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
             { // Convert mouse to world coords
@@ -1816,6 +1866,16 @@ function dealDamageToEnemy(e, dmg, p) {
         if (p && p.classId === 'jinwoo') {
             if (!p._shadowBank) p._shadowBank = [];
             p._shadowBank.push({ enemyType: e.enemyType || 'skeleton', hp: e.maxHp, damage: e.damage, speed: e.speed, radius: e.radius, color: e.color, name: e.name });
+        }
+
+        // Kitsune — tails meter gain on kill
+        if (p && p.classId === 'kitsune' && !p._kitsuneForm) {
+            if (!p._tailsMeter) p._tailsMeter = 0;
+            p._tailsMeter = Math.min(9, p._tailsMeter + (e.isBoss ? 3 : 0.6));
+            if (Math.floor(p._tailsMeter) > Math.floor(p._tailsMeter - (e.isBoss ? 3 : 0.6))) {
+                damageNumbers.push({ x: p.x, y: p.y - 25, text: `${Math.floor(p._tailsMeter)} TAILS`, color: '#42a5f5', life: 40 });
+                spawnParticles(p.x, p.y, '#1565c0', 6);
+            }
         }
 
         // XP
@@ -2506,6 +2566,23 @@ function update(now) {
             if (pulled > 0) {
                 spawnParticles(p.x, p.y, '#00bcd4', 10);
             }
+        }
+    }
+
+    // Kitsune transformation check
+    for (const p of players) {
+        if (!p.alive || p.classId !== 'kitsune' || p._kitsuneForm) continue;
+        if (!p._tailsMeter) p._tailsMeter = 0;
+        if (p._tailsMeter >= 9) {
+            p._kitsuneForm = true; p._tailsMeter = 9;
+            p.damage = Math.round(p.damage * 2);
+            p.speed = p.speed * 1.4;
+            p.attackRange = 55;
+            p.attackSpeed = Math.round(p.attackSpeed * 0.7);
+            damageNumbers.push({ x: p.x, y: p.y - 40, text: 'NINE-TAILED KITSUNE!', color: '#42a5f5', life: 80 });
+            spawnParticles(p.x, p.y, '#1565c0', 30); spawnParticles(p.x, p.y, '#111', 15);
+            spawnParticles(p.x, p.y, '#42a5f5', 20);
+            triggerShake(14, 22);
         }
     }
 
@@ -3539,6 +3616,17 @@ function drawHUD() {
         ctx.fillStyle = '#1a1a20'; ctx.fillRect(hx + 8, hy + 38, 200, 5);
         ctx.fillStyle = PAL.xpBar; ctx.fillRect(hx + 8, hy + 38, 200 * (p.xp / p.xpToNext), 5);
 
+        // Kitsune tails meter
+        if (p.classId === 'kitsune') {
+            const tails = p._tailsMeter || 0;
+            ctx.fillStyle = '#0a0a1a'; ctx.fillRect(hx + 8, hy + 45, 200, 6);
+            const tGrad = ctx.createLinearGradient(hx + 8, 0, hx + 8 + 200 * (tails / 9), 0);
+            tGrad.addColorStop(0, '#0d47a1'); tGrad.addColorStop(1, '#42a5f5');
+            ctx.fillStyle = tGrad; ctx.fillRect(hx + 8, hy + 45, 200 * (tails / 9), 6);
+            ctx.fillStyle = p._kitsuneForm ? '#42a5f5' : '#90caf9'; ctx.font = '7px monospace'; ctx.textAlign = 'center';
+            ctx.fillText(p._kitsuneForm ? 'KITSUNE' : `Tails: ${Math.floor(tails)}/9`, hx + 108, hy + 51);
+        }
+
         // Special cooldown
         const specialReady = gameTime - p.lastSpecial >= p.specialCooldown;
         const specialPct = Math.min(1, (gameTime - p.lastSpecial) / p.specialCooldown);
@@ -4084,6 +4172,123 @@ function drawPortal(ctx, p, time) {
 // ─── ANIME CHARACTER DRAWING ────────────────────────────────
 
 // ─── MORE ANIME CHARACTER DRAWING ───────────────────────────
+function drawKitsune(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    const tails = Math.floor(p._tailsMeter || 0);
+    const isForm = p._kitsuneForm;
+
+    if (isForm) {
+        // ── KITSUNE FORM — blue-black fox ──
+        // Blue fire aura
+        ctx.globalAlpha = 0.15 + Math.sin(t * 0.006) * 0.05;
+        const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 35);
+        ag.addColorStop(0, '#1565c0'); ag.addColorStop(1, 'rgba(21,101,192,0)');
+        ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 35, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // 9 flowing tails — blue-black with blue fire tips
+        for (let i = 0; i < 9; i++) {
+            const baseAngle = Math.PI * 0.5 + (i - 4) * 0.25;
+            const wave = Math.sin(t * 0.006 + i * 0.7) * 8;
+            const wave2 = Math.cos(t * 0.008 + i * 0.5) * 5;
+            ctx.strokeStyle = '#0d1b2a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(0, 8);
+            ctx.quadraticCurveTo(Math.cos(baseAngle) * 15 + wave, 18 + wave2, Math.cos(baseAngle) * 28 + wave * 1.5, 28 + wave2);
+            ctx.stroke();
+            // Blue fire tip
+            ctx.fillStyle = '#42a5f5'; ctx.shadowColor = '#42a5f5'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.arc(Math.cos(baseAngle) * 28 + wave * 1.5, 28 + wave2, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // Dark fox body
+        ctx.fillStyle = '#0d1b2a';
+        ctx.beginPath(); ctx.ellipse(0, 2, 9, 7, 0, 0, Math.PI * 2); ctx.fill();
+        // Fox head — dark blue-black
+        ctx.fillStyle = '#0a1628';
+        ctx.beginPath(); ctx.arc(0, -8, 8, 0, Math.PI * 2); ctx.fill();
+        // Pointed ears
+        ctx.fillStyle = '#0d1b2a';
+        ctx.beginPath(); ctx.moveTo(-5, -12); ctx.lineTo(-8, -22); ctx.lineTo(-2, -14); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(5, -12); ctx.lineTo(8, -22); ctx.lineTo(2, -14); ctx.fill();
+        // Inner ears — blue
+        ctx.fillStyle = '#1565c0';
+        ctx.beginPath(); ctx.moveTo(-5, -13); ctx.lineTo(-7, -20); ctx.lineTo(-3, -14); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(5, -13); ctx.lineTo(7, -20); ctx.lineTo(3, -14); ctx.fill();
+        // Glowing blue eyes
+        ctx.fillStyle = '#42a5f5'; ctx.shadowColor = '#42a5f5'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(-3, -9, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(3, -9, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Narrow fox snout
+        ctx.fillStyle = '#0a1628';
+        ctx.beginPath(); ctx.moveTo(-3, -5); ctx.lineTo(0, -2); ctx.lineTo(3, -5); ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(0, -4, 1.2, 0, Math.PI * 2); ctx.fill();
+        // Claws (aimed) — blue fire
+        ctx.save(); ctx.rotate(p.facingAngle);
+        ctx.strokeStyle = '#42a5f5'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.shadowColor = '#42a5f5'; ctx.shadowBlur = p.attackAnim > 0 ? 12 : 4;
+        const ext = p.attackAnim > 0 ? 10 : 0;
+        ctx.beginPath(); ctx.moveTo(8, -4); ctx.lineTo(16 + ext, -7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(18 + ext, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(8, 4); ctx.lineTo(16 + ext, 7); ctx.stroke();
+        ctx.shadowBlur = 0; ctx.restore();
+        // Legs
+        ctx.fillStyle = '#0d1b2a';
+        ctx.fillRect(-5, 7, 3, 6); ctx.fillRect(2, 7, 3, 6);
+        // Blue fire particles around feet
+        if (Math.random() < 0.3) {
+            ctx.fillStyle = '#42a5f5'; ctx.globalAlpha = 0.5;
+            ctx.beginPath(); ctx.arc((Math.random()-0.5)*10, 12 + Math.random()*3, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    } else {
+        // ── HUMAN FORM — person with fox tails ──
+        // Head
+        ctx.fillStyle = p.attackAnim > 0 ? '#ffe0b2' : '#e8d0b0';
+        ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill();
+        // Dark hair
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath(); ctx.arc(0, -10, 7.5, Math.PI + 0.3, -0.3); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-4, -14); ctx.lineTo(-2, -18); ctx.lineTo(0, -14); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(2, -18); ctx.lineTo(4, -14); ctx.fill();
+        // Eyes — amber/golden
+        ctx.fillStyle = '#ff8f00';
+        ctx.beginPath(); ctx.arc(-3, -8, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(3, -8, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(-3, -8, 0.8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(3, -8, 0.8, 0, Math.PI * 2); ctx.fill();
+        // Body — dark outfit
+        ctx.fillStyle = '#1a237e';
+        ctx.fillRect(-5, -1, 10, 13);
+        // Fox tails behind (number based on meter)
+        for (let i = 0; i < Math.max(1, tails); i++) {
+            const baseAngle = Math.PI * 0.5 + (i - Math.max(0, tails-1)/2) * 0.3;
+            const wave = Math.sin(t * 0.005 + i * 0.8) * 6;
+            ctx.strokeStyle = '#ff8f00'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(0, 10);
+            ctx.quadraticCurveTo(Math.cos(baseAngle) * 10 + wave, 16, Math.cos(baseAngle) * 18 + wave, 22);
+            ctx.stroke();
+            // White tip
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(Math.cos(baseAngle) * 16 + wave, 20);
+            ctx.lineTo(Math.cos(baseAngle) * 20 + wave, 24); ctx.stroke();
+        }
+        // Legs
+        ctx.fillStyle = '#0d1442';
+        ctx.fillRect(-4, 12, 3, 7); ctx.fillRect(1, 12, 3, 7);
+        // Fists aimed
+        ctx.save(); ctx.rotate(p.facingAngle);
+        ctx.fillStyle = '#e8d0b0';
+        ctx.beginPath(); ctx.arc(12 + (p.attackAnim > 0 ? 5 : 0), 0, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, isForm ? -26 : -22, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
 function drawDog(ctx, p, t) {
     ctx.save(); ctx.translate(p.x, p.y);
     const tailWag = Math.sin(t * 0.02) * 0.5;
