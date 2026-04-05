@@ -10,6 +10,7 @@ import { createTorchLights, updateTorchLights, syncTorchVisibility } from './dun
 import { FPSCamera } from './player/fpsCamera.js';
 import { createEnemyMesh, billboardEnemy, animateEnemyMesh } from './enemies/meshFactory.js';
 import { CLASSES } from './classes/definitions.js';
+import { NET, createRoom, joinRoom, hostSelectClass, clientSelectClass, hostStartGame, broadcastGameState, getLastState, cleanupNetwork } from './network/network.js';
 
 // ─── GLOBALS ────────────────────────────────────────────────
 let scene, camera, renderer;
@@ -75,8 +76,8 @@ function init() {
 
     fpsCamera = new FPSCamera(camera, renderer.domElement);
 
-    // Shared projectile geometry
-    projGeo = new THREE.SphereGeometry(0.15, 6, 6);
+    // Shared projectile geometry — big and glowing
+    projGeo = new THREE.SphereGeometry(0.3, 8, 8);
     projMatPlayer = new THREE.MeshBasicMaterial({ color: '#00ffcc' });
     projMatEnemy = new THREE.MeshBasicMaterial({ color: '#ff4400' });
 
@@ -92,9 +93,72 @@ function init() {
 
     // UI bindings
     document.getElementById('btn-solo').onclick = () => startRun(false);
-    document.getElementById('btn-coop').onclick = () => startRun(true);
+    document.getElementById('btn-coop').onclick = () => { alert('2P Local requires two mice — use Online Co-op to play together across devices!'); showScreen('online-screen'); };
     document.getElementById('btn-online').onclick = () => showScreen('online-screen');
-    document.getElementById('btn-back-online').onclick = () => showScreen('title-screen');
+    document.getElementById('btn-back-online').onclick = () => { cleanupNetwork(); showScreen('title-screen'); };
+
+    // Online co-op buttons
+    document.getElementById('btn-create-room').onclick = () => {
+        const code = createRoom(
+            (status) => { document.getElementById('lobby-status').textContent = status; },
+            (players) => { updateLobbyUI(players); },
+            null
+        );
+        document.getElementById('room-code-display').textContent = code;
+        showScreen('lobby-screen');
+        buildClassGrid('lobby-class-grid', true);
+        // Re-bind lobby class cards for host
+        document.querySelectorAll('#lobby-class-grid .class-card').forEach(card => {
+            card.onclick = () => {
+                const classId = card.dataset.class;
+                hostSelectClass(classId, (players) => updateLobbyUI(players));
+                card.classList.add('selected');
+            };
+        });
+    };
+
+    document.getElementById('btn-join-room').onclick = () => {
+        const code = document.getElementById('join-code-input').value;
+        if (!code || code.length < 4) return;
+        joinRoom(code,
+            (status) => { document.getElementById('lobby-status').textContent = status; },
+            (players) => { updateLobbyUI(players); },
+            (data) => {
+                // Host started the game — we received classes + dungeon
+                selectedClasses = data.classes;
+                coopMode = true;
+                startGame();
+            }
+        );
+        document.getElementById('room-code-display').textContent = code.toUpperCase();
+        showScreen('lobby-screen');
+        buildClassGrid('lobby-class-grid', true);
+        // Re-bind lobby class cards for client
+        document.querySelectorAll('#lobby-class-grid .class-card').forEach(card => {
+            card.onclick = () => {
+                const classId = card.dataset.class;
+                clientSelectClass(classId);
+                card.classList.add('selected');
+                document.getElementById('lobby-status').textContent = 'Ready!';
+            };
+        });
+    };
+
+    document.getElementById('btn-start-online').onclick = () => {
+        if (!NET.isHost) return;
+        const classes = NET.lobbyPlayers.map(lp => lp.classId || 'angel');
+        selectedClasses = classes;
+        coopMode = true;
+        startGame();
+        // Send dungeon + classes to clients
+        hostStartGame({
+            map: dungeon.map,
+            rooms: dungeon.rooms.map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h, type: r.type, explored: r.explored, cx: r.cx, cy: r.cy })),
+            torches: dungeon.torches, floor: dungeon.floor
+        }, selectedClasses);
+    };
+
+    document.getElementById('btn-leave-lobby').onclick = () => { cleanupNetwork(); showScreen('title-screen'); };
     document.getElementById('btn-back-title').onclick = () => showScreen('title-screen');
     document.getElementById('btn-retry').onclick = () => { showScreen('class-screen'); p2ClassSelect = false; selectedClasses = []; };
     document.getElementById('btn-menu').onclick = () => showScreen('title-screen');
@@ -140,6 +204,24 @@ function buildClassGrid(containerId, isLobby) {
         };
         grid.appendChild(card);
     }
+}
+
+// ─── LOBBY UI ───────────────────────────────────────────────
+function updateLobbyUI(players) {
+    const list = document.getElementById('lobby-players');
+    list.innerHTML = '';
+    players.forEach((lp, i) => {
+        const div = document.createElement('div');
+        div.className = 'lobby-player';
+        const label = i === 0 ? 'Host' : `Player ${i + 1}`;
+        const cls = lp.classId ? (CLASSES[lp.classId]?.name || lp.classId) : 'Choosing...';
+        const ready = lp.ready ? ' ✓' : '';
+        div.innerHTML = `<span>${label}</span><span>${cls}${ready}</span>`;
+        list.appendChild(div);
+    });
+    // Show start button for host when 2+ players
+    const startBtn = document.getElementById('btn-start-online');
+    if (startBtn) startBtn.style.display = (NET.isHost && players.length >= 2) ? '' : 'none';
 }
 
 // ─── GAME FLOW ──────────────────────────────────────────────
@@ -325,6 +407,49 @@ function resumeGame() {
     renderer.domElement.requestPointerLock();
 }
 
+// ─── VISUAL EFFECTS ─────────────────────────────────────────
+let meleeSlashes = [];
+
+function spawnMeleeSlash(color) {
+    // Create a bright arc in front of the camera
+    const slashGeo = new THREE.TorusGeometry(1.2, 0.08, 4, 16, Math.PI * 0.7);
+    const slashMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+    const slash = new THREE.Mesh(slashGeo, slashMat);
+
+    // Position in front of camera
+    const dirX = -Math.sin(fpsCamera.yaw);
+    const dirZ = -Math.cos(fpsCamera.yaw);
+    slash.position.set(
+        fpsCamera.posX * TILE + dirX * 2,
+        EYE_HEIGHT - 0.3,
+        fpsCamera.posZ * TILE + dirZ * 2
+    );
+    slash.rotation.set(0, -fpsCamera.yaw + Math.PI / 2, Math.PI / 4);
+
+    // Glow
+    const glowLight = new THREE.PointLight(color, 3, TILE * 2, 2);
+    slash.add(glowLight);
+
+    scene.add(slash);
+    meleeSlashes.push({ mesh: slash, life: 8 });
+}
+
+function updateMeleeSlashes() {
+    for (let i = meleeSlashes.length - 1; i >= 0; i--) {
+        const s = meleeSlashes[i];
+        s.life--;
+        s.mesh.material.opacity = s.life / 8 * 0.9;
+        s.mesh.scale.multiplyScalar(1.06);
+        s.mesh.rotation.z += 0.15;
+        if (s.life <= 0) {
+            scene.remove(s.mesh);
+            s.mesh.geometry.dispose();
+            s.mesh.material.dispose();
+            meleeSlashes.splice(i, 1);
+        }
+    }
+}
+
 // ─── COMBAT ─────────────────────────────────────────────────
 function playerAttack() {
     if (!player || !player.alive) return;
@@ -349,15 +474,19 @@ function playerAttack() {
                 dealDamageToEnemy(e, player.damage);
             }
         }
+        // Visible melee slash arc
+        spawnMeleeSlash(player.cls.color);
     } else {
-        // Ranged — spawn projectile
-        const spd = 12;
+        // Ranged — spawn glowing projectile
+        const spd = 14;
         const dirX = -Math.sin(fpsCamera.yaw);
         const dirZ = -Math.cos(fpsCamera.yaw);
-        const mesh = new THREE.Mesh(projGeo, projMatPlayer.clone());
-        mesh.material.color = new THREE.Color(player.cls.color);
-        mesh.position.set(fpsCamera.posX * TILE, EYE_HEIGHT - 0.2, fpsCamera.posZ * TILE);
+        const mesh = new THREE.Mesh(projGeo, new THREE.MeshBasicMaterial({ color: player.cls.color }));
+        mesh.position.set(fpsCamera.posX * TILE + dirX * 0.8, EYE_HEIGHT - 0.3, fpsCamera.posZ * TILE + dirZ * 0.8);
         scene.add(mesh);
+        // Glow light on projectile
+        const glow = new THREE.PointLight(player.cls.color, 2, TILE * 3, 2);
+        mesh.add(glow);
         projectiles3D.push({
             mesh, vx: dirX * spd, vz: dirZ * spd,
             damage: player.damage, owner: 'player',
@@ -473,6 +602,7 @@ function update() {
     }
 
     updateTorchLights(torchLights, time);
+    updateMeleeSlashes();
 
     // Update enemies
     for (const e of enemies3D) {
