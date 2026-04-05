@@ -33,6 +33,16 @@ Status: `OPEN` | `IN PROGRESS` | `FIXED` | `WONTFIX`
 
 ## Fixed Bugs
 
+### BUG-048: RLS policies on buildings/city_resources/training_queue reference non-existent column
+- **Severity**: CRITICAL
+- **Status**: FIXED
+- **Reported**: 2026-04-05
+- **Fixed**: 2026-04-05
+- **Steps to reproduce**: Open any city → buildings, resources, and training queue all return empty
+- **Expected behavior**: City shows buildings, resources, and training options
+- **Actual behavior**: All queries return empty results — no buildings visible, training section never appears
+- **Fix notes**: RLS policies on buildings, city_resources, and training_queue joined cities on `c.owner_id` which was renamed to `c.player_id` in migration 016. The policies were never updated. Fixed in 035_fix_city_child_rls_policies.sql.
+
 ### BUG-047: form_army sets garrison quantity to 0 violating CHECK constraint
 - **Severity**: HIGH
 - **Status**: FIXED

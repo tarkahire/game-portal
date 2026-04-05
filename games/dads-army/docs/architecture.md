@@ -133,6 +133,7 @@ The server materializes this every 5 minutes via the game tick.
 | `armies` | Owner + players with vision (intelligence) | Owner only |
 | `army_units` | Same as armies | Owner only |
 | `city_resources` | Owner only | Owner + game tick |
+| `tile_discoveries` | All authenticated | Game functions |
 | `battle_reports` | Participants only | Game tick / Edge Function |
 | `messages` | Sender or recipient | Sender |
 | `alliances` | All authenticated | Leader/officers |
@@ -168,13 +169,15 @@ BEGIN
   -- Reduce remaining reserves on all active resource fields based on extraction rate
   PERFORM process_depletion(p_server_id);
 
-  -- 6. Materialize resources (every 5th tick)
-  -- Update city_resources.amount, clamp to storage, deduct upkeep
-  IF (extract(minute from now())::int % 5 = 0) THEN
-    PERFORM materialize_resources(p_server_id);
-  END IF;
+  -- 6. Process discoveries (complete/fail engineer field discoveries)
+  PERFORM process_discoveries(p_server_id);
 
-  -- 7. Process supply chains
+  -- 7. Materialize resources (every tick)
+  -- Includes: resource field extraction (primary/secondary/deep layers),
+  -- building production, synthetic research production, passive terrain, passive city
+  PERFORM materialize_resources(p_server_id);
+
+  -- 8. Process supply chains
   -- Check army supply status, trigger/advance stranding if cut off
   PERFORM process_supply_chains(p_server_id);
 

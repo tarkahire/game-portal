@@ -93,15 +93,35 @@ Status key: `[ ]` planned | `[~]` in progress | `[x]` done
 
 ## Phase 2: Strategic Depth
 
-- [ ] Full resource set (Aluminum, Rubber, Copper, Tungsten, Ammunition)
+- [x] Full resource set (Aluminum, Rubber, Copper, Tungsten, Ammunition)
 - [ ] Production chains (Iron+Coal→Steel, Bauxite→Aluminum, Oil→Fuel)
 - [ ] Research/tech tree UI and mechanics
-- [ ] Geological survey (hidden resource discovery)
+- [x] Geological survey (hidden resource discovery)
 - [ ] Advanced multi-round combat (category effectiveness matrix)
 - [ ] Naval warfare (6 ship types, sea zones, convoys)
 - [ ] Air warfare (5 aircraft types, airfields, range, bombing)
 - [ ] Alliances and diplomacy (4 tiers, betrayal)
-- [ ] Fog of war + fog of resources
+- [x] Fog of war + fog of resources
+
+---
+
+## Phase 1.5: Economy Rebalance v2 (2026-04-05)
+
+- [x] Remove rare resource requirements from L1-L2 buildings (Tank Factory, Shipyard, Munitions Factory)
+- [x] Add starting stockpiles of all 13 resource types per doctrine (rubber, tungsten, bauxite, aluminum)
+- [x] Balance starting resources by doctrine strength (weaker doctrines get more rare resources)
+- [x] Add 4 early-game units requiring no rare materials (Militia, Scout Car, Infantry Gun, Armored Truck)
+- [x] Add synthetic research for all rare materials (Tungsten Carbide, Copper Reclamation, Alumina Synthesis, Fischer-Tropsch Fuel)
+- [x] Engineer field discovery system (stage 2: secondary resources, stage 3: deep/rare resources)
+- [x] Seed hidden secondary/deep resources on all non-water tiles
+- [x] Update materialize_resources for multi-layer resource fields + synthetic production
+- [x] Update get_visible_tiles to expose discovery data
+- [x] Block army marching during active discovery operations
+- [x] Fix broken RLS policies on buildings, city_resources, training_queue (c.owner_id → c.player_id)
+- [x] Add doctrine-specific tank images for all 7 alignments
+- [ ] Frontend UI for discovery system (start discovery button, progress indicators)
+- [ ] Frontend display of secondary/deep resources on tile info panel
+- [ ] Frontend display of new resource types in resource bar
 
 ---
 
