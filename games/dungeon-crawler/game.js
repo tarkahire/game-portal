@@ -118,6 +118,8 @@ const CLASSES = {
     megumi: { name: 'Megumi', maxHp: 85, speed: 2.7, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#1a237e', specialCooldown: 5000, specialName: 'Divine Dogs', specialDesc: 'Summon 2 shadow dogs to attack', drawChar: drawMegumi },
     // ── Solo Leveling ──
     jinwoo: { name: 'Jin-Woo', maxHp: 110, speed: 3.0, attackRange: 32, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#311b92', specialCooldown: 6000, specialName: 'Shadow Army', specialDesc: 'Raise 3 shadow soldiers from dead enemies', drawChar: drawJinWoo },
+    // ── One Piece ──
+    katakuri: { name: 'Katakuri', maxHp: 120, speed: 2.7, attackRange: 40, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#c62828', specialCooldown: 5000, specialName: 'Mochi Thrust', specialDesc: 'Extend mochi arm — long-range piercing punch', drawChar: drawKatakuri },
     // ── Original ──
     frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 0, specialName: 'Electric Tongue', specialDesc: 'Spinning tongue spiral — catches and devours all enemies', drawChar: drawFrog },
     beeswarm: { name: 'Bee Swarm', maxHp: 60, speed: 3.5, attackRange: 20, attackDamage: 8, attackSpeed: 250, attackType: 'melee', color: '#fdd835', specialCooldown: 3000, specialName: 'Split Swarm', specialDesc: 'Split apart to dodge — reform to mass sting', drawChar: drawBeeSwarm },
@@ -900,6 +902,25 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#fff', 10);
             triggerShake(6, 12);
             break;
+        case 'katakuri': // Mochi Thrust — long-range piercing mochi arm
+            { const beamLen = 150, beamW = 12;
+            const cos = Math.cos(p.facingAngle), sin = Math.sin(p.facingAngle);
+            for (const e of enemies) { if (!e.alive) continue;
+                const dx = e.x - p.x, dy = e.y - p.y;
+                const proj = dx * cos + dy * sin;
+                if (proj > 0 && proj < beamLen) {
+                    const perp = Math.abs(-dx * sin + dy * cos);
+                    if (perp < beamW + e.radius) {
+                        dealDamageToEnemy(e, Math.round(p.damage * 2.5), p);
+                        e.stunned = Math.max(e.stunned, now + 800);
+                        spawnParticles(e.x, e.y, '#e8b0a0', 6);
+                    }
+                }
+            }
+            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 14, maxLife: 14, color: '#c62828' });
+            spawnParticles(p.x + cos * 80, p.y + sin * 80, '#e8b0a0', 16);
+            spawnParticles(p.x + cos * 80, p.y + sin * 80, '#c62828', 8);
+            triggerShake(6, 10); } break;
         case 'naruto': // Shadow Clones — 8 clones
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
@@ -1437,6 +1458,30 @@ function jinwooRecall(p, now) {
 function animeSecondary(p, now) {
     if (!p._secondaryCd) p._secondaryCd = 0;
     switch (p.classId) {
+        case 'katakuri': // Dough Fist Barrage — rapid 6-punch fan
+            if (now - p._secondaryCd < 4000) return; p._secondaryCd = now;
+            { const fanSpread = 0.5; // radians spread
+            for (let i = 0; i < 6; i++) {
+                const a = p.facingAngle + (i - 2.5) * (fanSpread / 5);
+                const range = 60;
+                for (const e of enemies) { if (!e.alive) continue;
+                    const dx = e.x - p.x, dy = e.y - p.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < range) {
+                        const eAngle = Math.atan2(dy, dx);
+                        let diff = Math.abs(eAngle - a);
+                        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+                        if (diff < 0.3) {
+                            dealDamageToEnemy(e, Math.round(p.damage * 0.8), p);
+                            spawnParticles(e.x, e.y, '#e8b0a0', 3);
+                        }
+                    }
+                }
+                activeBeams.push({ x: p.x, y: p.y, angle: a, length: 55, width: 5, life: 6 + i * 2, maxLife: 18, color: '#e8b0a0' });
+            }
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: 'BARRAGE!', color: '#c62828', life: 40 });
+            spawnParticles(p.x, p.y, '#c62828', 20);
+            triggerShake(8, 14); } break;
         case 'naruto': // Rasengan
             if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
             { const range = 35, dmg = Math.round(p.damage * 2);
@@ -3555,6 +3600,10 @@ function drawPortal(ctx, p, time) {
 // ─── ANIME CHARACTER DRAWING ────────────────────────────────
 
 // ─── MORE ANIME CHARACTER DRAWING ───────────────────────────
+function makeDrawFn(hair, outfit, style, extraFn) {
+    return function(ctx, p, t) { drawGenericAnime(ctx, p, hair, outfit, style, extraFn); };
+}
+
 function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
     ctx.save(); ctx.translate(p.x, p.y);
     // Neon outline glow
@@ -3590,6 +3639,42 @@ function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
     ctx.shadowBlur = 0;
     ctx.restore();
 }
+
+function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
+    // Scarf
+    ctx.fillStyle = '#e8b0a0'; ctx.globalAlpha = 0.6;
+    const scarfWave = Math.sin(t * 0.005) * 4;
+    ctx.fillRect(-8, -2, 16, 3);
+    ctx.fillRect(-10 + scarfWave, 0, 4, 12);
+    ctx.globalAlpha = 1;
+    // Body — large, dark vest
+    ctx.fillStyle = '#2e1a1a'; ctx.fillRect(-7, -1, 14, 15);
+    // Head
+    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill();
+    // Dark spiky hair
+    ctx.fillStyle = '#1a0a0a';
+    for (let i = 0; i < 5; i++) { const a = -0.8 + i * 0.4;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a) * 5, -8 + Math.sin(a) * 5);
+        ctx.lineTo(Math.cos(a) * 13, -8 + Math.sin(a) * 13 - 4);
+        ctx.lineTo(Math.cos(a + 0.2) * 6, -8 + Math.sin(a + 0.2) * 6); ctx.fill();
+    }
+    // Mouth stitch scar
+    ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(-4, -4); ctx.lineTo(4, -4); ctx.stroke();
+    for (let s = -3; s <= 3; s += 2) { ctx.beginPath(); ctx.moveTo(s, -5); ctx.lineTo(s, -3); ctx.stroke(); }
+    // Trident weapon (aimed direction)
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.fillStyle = '#bbb'; ctx.fillRect(6, -1, 14 + (p.attackAnim > 0 ? 8 : 0), 2);
+    ctx.fillStyle = '#c62828';
+    const ext = p.attackAnim > 0 ? 8 : 0;
+    ctx.beginPath(); ctx.moveTo(18 + ext, -4); ctx.lineTo(22 + ext, 0); ctx.lineTo(18 + ext, 4); ctx.fill();
+    ctx.restore();
+    // Legs
+    ctx.fillStyle = '#1a0a0a'; ctx.fillRect(-4, 13, 3, 7); ctx.fillRect(2, 13, 3, 7);
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore(); }
 
 function drawNaruto(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
     ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
