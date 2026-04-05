@@ -162,7 +162,8 @@ const CLASSES = {
     rage: { name: 'Rage', maxHp: 110, speed: 2.5, attackRange: 30, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#d50000', specialCooldown: 0, specialName: 'Unleash', specialDesc: 'Damage taken charges rage — full rage = 2x everything for 5s', drawChar: makeDrawFn('#d50000','#b71c1c','spiky') },
     fear: { name: 'Fear', maxHp: 80, speed: 2.8, attackRange: 140, attackDamage: 12, attackSpeed: 480, attackType: 'ranged', color: '#4a148c', specialCooldown: 3500, specialName: 'Nightmare', specialDesc: 'Terror zone — enemies flee and take 2x damage while scared', drawChar: makeDrawFn('#4a148c','#1a0033','long') },
     love: { name: 'Love', maxHp: 75, speed: 2.6, attackRange: 150, attackDamage: 9, attackSpeed: 500, attackType: 'ranged', color: '#e91e63', specialCooldown: 5000, specialName: 'Charm', specialDesc: 'Charm enemy permanently — fights for you (max 3 charmed)', drawChar: makeDrawFn('#e91e63','#880e4f','long') },
-    chaos: { name: 'Chaos', maxHp: 90, speed: 2.8, attackRange: 35, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff00ff', specialCooldown: 1000, specialName: '???', specialDesc: 'Every press = random ability from ANY other class. Pure madness.', drawChar: makeDrawFn('#ff00ff','#111','spiky') }
+    chaos: { name: 'Chaos', maxHp: 90, speed: 2.8, attackRange: 35, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff00ff', specialCooldown: 1000, specialName: '???', specialDesc: 'Every press = random ability from ANY other class. Pure madness.', drawChar: makeDrawFn('#ff00ff','#111','spiky') },
+    suisui: { name: 'Señor Pink', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#e91e63', specialCooldown: 4000, specialName: 'Dive', specialDesc: 'Swim into floor — pop up at cursor with devastating uppercut', drawChar: drawSenorPink }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -1419,6 +1420,18 @@ function playerSpecial(p, now) {
                 spawnParticles(target.x,target.y,'#f48fb1',12);
                 damageNumbers.push({x:target.x,y:target.y-20,text:'CHARMED!',color:'#e91e63',life:50});}
             triggerShake(3,5);} break;
+        case 'suisui': // Dive — swim into floor, pop up at mouse with uppercut
+            { p.invincible = now + 800;
+            p.activeEffects.push({ effect: 'diving', value: 1, endTime: now + 500 });
+            spawnParticles(p.x, p.y, '#e91e63', 12);
+            spawnParticles(p.x, p.y, '#f48fb1', 6);
+            // Convert mouse to world coords for dive target
+            const sm = pMouse(p);
+            const snV = coopMode ? players.length : 1;
+            const svpW = snV > 1 ? Math.floor(canvas.width / snV) : canvas.width;
+            p._diveTarget = { x: sm.x - svpW/2 + p.x, y: sm.y - canvas.height/2 + p.y, time: now + 500 };
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: 'DIVE!', color: '#e91e63', life: 40 });
+            triggerShake(3, 5); } break;
         case 'chaos': // Random ability from any other class
             { const allClasses=Object.keys(CLASSES).filter(c=>c!=='chaos');
             const randomClass=allClasses[Math.floor(Math.random()*allClasses.length)];
@@ -1545,8 +1558,38 @@ function animeSecondary(p, now) {
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#42a5f5', 14);
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#fff', 6);
             triggerShake(5, 8); } break;
+        case 'suisui': // Swim Strike — dash through walls, damage in path
+            if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
+            { p.dodging = true; p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
+            p.dodgeTimer = 18; p.invincible = now + 700; p._swimStrike = true;
+            const snap = enemies.slice();
+            for (const e of snap) { if (!e.alive) continue;
+                const dx = e.x - p.x, dy = e.y - p.y;
+                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
+                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
+                if (along > 0 && along < 150 && perp < 25) dealDamageToEnemy(e, Math.round(p.damage * 2), p);
+            }
+            for (let t = 0; t < 8; t++) {
+                spawnParticles(p.x + Math.cos(p.facingAngle) * t * 18, p.y + Math.sin(p.facingAngle) * t * 18, '#e91e63', 2);
+            }
+            spawnParticles(p.x, p.y, '#f48fb1', 12);
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: 'SWIM STRIKE!', color: '#e91e63', life: 40 });
+            triggerShake(6, 10); } break;
         default: return;
     }
+}
+
+function suisuiWhirlpool(p, now) {
+    if (p.classId !== 'suisui') return;
+    if (!p._whirlpoolCd) p._whirlpoolCd = 0;
+    if (now - p._whirlpoolCd < 6000) return;
+    p._whirlpoolCd = now;
+    lightningNets.push({ x: p.x, y: p.y, owner: p, radius: 80, life: now + 4000,
+        damage: 4, damageRate: 300, lastDamage: 0, color: '#e91e63' });
+    p._whirlpool = { x: p.x, y: p.y, endTime: now + 4000 };
+    spawnParticles(p.x, p.y, '#e91e63', 16);
+    damageNumbers.push({ x: p.x, y: p.y - 25, text: 'WHIRLPOOL!', color: '#e91e63', life: 40 });
+    triggerShake(5, 8);
 }
 
 function portalTeleportToAlly(p, now) {
@@ -2291,6 +2334,43 @@ function update(now) {
         }
     }
 
+    // Sui Sui dive completion — pop up at target with uppercut
+    for (const p of players) {
+        if (!p.alive || p.classId !== 'suisui' || !p._diveTarget) continue;
+        if (now >= p._diveTarget.time) {
+            p.x = p._diveTarget.x; p.y = p._diveTarget.y;
+            // Clamp to map bounds
+            p.x = Math.max(TILE, Math.min(p.x, (MAP_COLS-1)*TILE));
+            p.y = Math.max(TILE, Math.min(p.y, (MAP_ROWS-1)*TILE));
+            p._diveTarget = null;
+            // Uppercut AoE
+            for (const e of enemies) { if (!e.alive) continue;
+                if (Math.hypot(e.x - p.x, e.y - p.y) < 60) {
+                    dealDamageToEnemy(e, Math.round(p.damage * 2.5), p);
+                    const ka = Math.atan2(e.y - p.y, e.x - p.x);
+                    e.x += Math.cos(ka) * 30; e.y += Math.sin(ka) * 30;
+                    e.stunned = Math.max(e.stunned, now + 1000);
+                }
+            }
+            spawnParticles(p.x, p.y, '#e91e63', 16);
+            spawnParticles(p.x, p.y, '#fff', 8);
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: 'UPPERCUT!', color: '#e91e63', life: 50 });
+            triggerShake(8, 14);
+        }
+    }
+
+    // Sui Sui whirlpool pull — drag enemies toward center
+    for (const p of players) {
+        if (!p.alive || !p._whirlpool || now > p._whirlpool.endTime) { if (p) p._whirlpool = null; continue; }
+        for (const e of enemies) { if (!e.alive) continue;
+            const dist = Math.hypot(e.x - p._whirlpool.x, e.y - p._whirlpool.y);
+            if (dist < 120 && dist > 5) {
+                const a = Math.atan2(p._whirlpool.y - e.y, p._whirlpool.x - e.x);
+                e.x += Math.cos(a) * 1.5; e.y += Math.sin(a) * 1.5;
+            }
+        }
+    }
+
     // Update healing circles
     for (let i = healingCircles.length - 1; i >= 0; i--) {
         const hc = healingCircles[i];
@@ -2452,14 +2532,19 @@ function updatePlayer(p, now) {
     const speedMult = p.activeEffects.some(e => e.effect === 'speed') ? 1.5 : 1;
     const spd = p.speed * speedMult;
 
+    const canPhase = p.classId === 'suisui'; // Sui Sui passive — swim through walls
+
     // Dodge movement
     if (p.dodging) {
         const dodgeSpd = spd * 2.5;
         const nx = p.x + p.dodgeDir.x * dodgeSpd;
         const ny = p.y + p.dodgeDir.y * dodgeSpd;
-        if (isWalkableRadius(nx, ny, 8)) { p.x = nx; p.y = ny; }
+        const phaseDodge = canPhase || p._swimStrike;
+        if (phaseDodge || isWalkableRadius(nx, ny, 8)) { p.x = nx; p.y = ny; }
+        // Clamp to map bounds
+        if (phaseDodge) { p.x = Math.max(TILE, Math.min(p.x, (MAP_COLS-1)*TILE)); p.y = Math.max(TILE, Math.min(p.y, (MAP_ROWS-1)*TILE)); }
         p.dodgeTimer--;
-        if (p.dodgeTimer <= 0) p.dodging = false;
+        if (p.dodgeTimer <= 0) { p.dodging = false; p._swimStrike = false; }
         return;
     }
 
@@ -2477,8 +2562,10 @@ function updatePlayer(p, now) {
         const len = Math.sqrt(dx*dx + dy*dy);
         const nx = p.x + (dx/len) * spd;
         const ny = p.y + (dy/len) * spd;
-        if (isWalkableRadius(nx, p.y, 8)) p.x = nx;
-        if (isWalkableRadius(p.x, ny, 8)) p.y = ny;
+        if (canPhase || isWalkableRadius(nx, p.y, 8)) p.x = nx;
+        if (canPhase || isWalkableRadius(p.x, ny, 8)) p.y = ny;
+        // Clamp to map bounds
+        if (canPhase) { p.x = Math.max(TILE, Math.min(p.x, (MAP_COLS-1)*TILE)); p.y = Math.max(TILE, Math.min(p.y, (MAP_ROWS-1)*TILE)); }
     }
 
     // Facing direction
@@ -2516,7 +2603,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
         if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
-        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); katakuriHaki(p, now); }
+        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); }
         if (pKey(p, 'KeyF')) jinwooAriseBoss(p, now);
     } else {
         // Local P2: Numpad
@@ -2525,7 +2612,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
         if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
         if (pKey(p, 'Numpad6') && !pKey(p, 'Numpad5')) frogInsects(p, now);
-        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); katakuriHaki(p, now); }
+        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); }
         if (pKey(p, 'Numpad6')) jinwooAriseBoss(p, now);
     }
 
@@ -3812,6 +3899,58 @@ function drawPortal(ctx, p, time) {
 // ─── ANIME CHARACTER DRAWING ────────────────────────────────
 
 // ─── MORE ANIME CHARACTER DRAWING ───────────────────────────
+function drawSenorPink(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    const diving = p.activeEffects.some(e => e.effect === 'diving');
+    const inWall = !isWalkable(p.x, p.y);
+    // Swimming effect — half submerged
+    if (diving || inWall) {
+        ctx.globalAlpha = 0.5;
+        // Ripple rings
+        ctx.strokeStyle = '#e91e63'; ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#e91e63'; ctx.shadowBlur = 8;
+        const ripple = Math.sin(t * 0.015) * 3;
+        ctx.beginPath(); ctx.ellipse(0, 2, 12 + ripple, 4, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(0, 2, 18 + ripple, 6, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+    if (!diving) {
+        // Stocky body
+        ctx.fillStyle = p.attackAnim > 0 ? '#f06292' : '#e91e63';
+        ctx.fillRect(-7, -1, 14, 14);
+        // Head
+        ctx.fillStyle = '#e8d0b0';
+        ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI * 2); ctx.fill();
+        // Baby bonnet — pink
+        ctx.fillStyle = '#f48fb1';
+        ctx.beginPath(); ctx.arc(0, -10, 8, Math.PI + 0.2, -0.2); ctx.fill();
+        ctx.fillStyle = '#f8bbd0';
+        ctx.beginPath(); ctx.arc(0, -10, 9, Math.PI + 0.5, Math.PI + 1.2); ctx.fill(); // bonnet ruffle
+        // Stubble/tough face
+        ctx.fillStyle = '#888'; ctx.fillRect(-4, -4, 8, 2);
+        // Pacifier
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(0, -3, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f48fb1';
+        ctx.beginPath(); ctx.arc(0, -3, 1.5, 0, Math.PI * 2); ctx.fill();
+        // Fists (aimed direction)
+        ctx.save(); ctx.rotate(p.facingAngle);
+        ctx.fillStyle = '#e8d0b0';
+        const ext = p.attackAnim > 0 ? 8 : 0;
+        ctx.beginPath(); ctx.arc(12 + ext, -2, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(12 + ext, 2, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        // Legs
+        ctx.fillStyle = '#880e4f';
+        ctx.fillRect(-4, 13, 3, 7); ctx.fillRect(2, 13, 3, 7);
+    }
+    // Player indicator
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -22, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
 function makeDrawFn(hair, outfit, style, extraFn) {
     return function(ctx, p, t) { drawGenericAnime(ctx, p, hair, outfit, style, extraFn); };
 }
