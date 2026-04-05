@@ -903,16 +903,18 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#fff', 10);
             triggerShake(6, 12);
             break;
-        case 'katakuri': // Dough Fist Fusillade — giant dough fists slam down repeatedly
+        case 'katakuri': // Dough Fist Fusillade — fists launch from side rings
             { const range = 120;
-            // Spawn 8 delayed dough fist slams around the area
             if (!p._fusillade) p._fusillade = [];
             const snap = enemies.filter(e => e.alive && Math.hypot(e.x - p.x, e.y - p.y) < range);
+            const ringL = p._ringLeft || { x: p.x - 12, y: p.y };
+            const ringR = p._ringRight || { x: p.x + 12, y: p.y };
             for (let i = 0; i < 8; i++) {
+                const ring = i % 2 === 0 ? ringL : ringR; // alternate from left and right ring
                 const target = snap[i % Math.max(snap.length, 1)];
                 const tx = target ? target.x + (Math.random() - 0.5) * 30 : p.x + Math.cos(p.facingAngle + (Math.random() - 0.5) * 2) * (40 + Math.random() * 80);
                 const ty = target ? target.y + (Math.random() - 0.5) * 30 : p.y + Math.sin(p.facingAngle + (Math.random() - 0.5) * 2) * (40 + Math.random() * 80);
-                p._fusillade.push({ x: tx, y: ty, delay: i * 150, startTime: now, damage: Math.round(p.damage * 2), owner: p, hit: false });
+                p._fusillade.push({ x: tx, y: ty, srcX: ring.x, srcY: ring.y, delay: i * 150, startTime: now, damage: Math.round(p.damage * 2), owner: p, hit: false });
             }
             damageNumbers.push({ x: p.x, y: p.y - 30, text: 'FUSILLADE!', color: '#c62828', life: 50 });
             spawnParticles(p.x, p.y, '#e8b0a0', 12);
@@ -2917,35 +2919,47 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
     }
 
 
-    // Katakuri Fusillade fist rendering
+    // Katakuri Fusillade fist rendering — fists fly from rings to targets
     for (const p of players) {
         if (!p._fusillade) continue;
         for (const f of p._fusillade) {
             const elapsed = gameTime - f.startTime;
+            const srcX = f.srcX || p.x;
+            const srcY = f.srcY || p.y;
             if (elapsed < f.delay) {
-                // Show shadow/warning circle before slam
+                // Fist flying from ring to target
                 const progress = elapsed / f.delay;
+                const curX = srcX + (f.x - srcX) * progress;
+                const curY = srcY + (f.y - srcY) * progress;
+                // White dough arm line from ring to current fist pos
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+                ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath(); ctx.moveTo(srcX, srcY); ctx.lineTo(curX, curY); ctx.stroke();
+                ctx.shadowBlur = 0;
+                // Flying fist
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(curX, curY, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#e0e0e0';
+                ctx.beginPath(); ctx.arc(curX, curY, 3.5, 0, Math.PI * 2); ctx.fill();
+                // Target warning
                 ctx.globalAlpha = 0.15 + progress * 0.2;
                 ctx.fillStyle = '#c62828';
-                ctx.beginPath(); ctx.arc(f.x, f.y, 15 + progress * 10, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(f.x, f.y, 12, 0, Math.PI * 2); ctx.fill();
             } else if (!f.hit || elapsed < f.delay + 300) {
-                // Slam impact — draw big dough fist
+                // Slam impact
                 const impactT = (elapsed - f.delay) / 300;
-                const fistSize = 18 * (1 - impactT * 0.3);
+                const fistSize = 16 * (1 - impactT * 0.3);
                 ctx.globalAlpha = 1 - impactT * 0.7;
-                // Fist shape
-                ctx.fillStyle = '#e8b0a0';
+                ctx.fillStyle = '#fff';
                 ctx.beginPath(); ctx.arc(f.x, f.y, fistSize, 0, Math.PI * 2); ctx.fill();
-                // Knuckle details
-                ctx.fillStyle = '#c9887a';
-                for (let k = 0; k < 4; k++) {
-                    const ka = (k / 4) * Math.PI - 0.4;
-                    ctx.beginPath(); ctx.arc(f.x + Math.cos(ka) * fistSize * 0.6, f.y - fistSize * 0.5 + Math.sin(ka) * 3, 3, 0, Math.PI * 2); ctx.fill();
-                }
+                ctx.fillStyle = '#e0e0e0';
+                ctx.beginPath(); ctx.arc(f.x, f.y, fistSize * 0.4, 0, Math.PI * 2); ctx.fill();
                 // Impact ring
-                ctx.strokeStyle = '#c62828'; ctx.lineWidth = 2;
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
                 ctx.globalAlpha *= 0.5;
-                ctx.beginPath(); ctx.arc(f.x, f.y, fistSize + impactT * 20, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(f.x, f.y, fistSize + impactT * 25, 0, Math.PI * 2); ctx.stroke();
             }
             ctx.globalAlpha = 1;
         }
@@ -3699,44 +3713,55 @@ function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
 
 function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
     const attacking = p.attackAnim > 0;
-    // Dough M1 — donut rings on each side of player, fists burst forward
-    if (attacking) {
-        const fa = p.facingAngle;
-        const perpX = Math.cos(fa + Math.PI / 2);
-        const perpY = Math.sin(fa + Math.PI / 2);
-        const fwdX = Math.cos(fa);
-        const fwdY = Math.sin(fa);
-        const sideOffset = 12; // how far apart the rings sit from center
-        const punchDist = 20 + p.attackAnim * 6; // fist extends forward
-        ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
-        for (let side = -1; side <= 1; side += 2) {
-            const ringX = perpX * sideOffset * side;
-            const ringY = perpY * sideOffset * side;
-            // Donut ring at player's side
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-            ctx.fillStyle = 'rgba(255,255,255,0.15)';
-            ctx.beginPath(); ctx.arc(ringX, ringY, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.arc(ringX, ringY, 4, 0, Math.PI * 2); ctx.stroke();
-            // Dough arm line from ring forward
+    const fa = p.facingAngle;
+    const perpX = Math.cos(fa + Math.PI / 2);
+    const perpY = Math.sin(fa + Math.PI / 2);
+    const fwdX = Math.cos(fa);
+    const fwdY = Math.sin(fa);
+    const sideOffset = 12;
+    // Donut rings — ALWAYS visible on each side of player
+    ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
+    for (let side = -1; side <= 1; side += 2) {
+        const ringX = perpX * sideOffset * side;
+        const ringY = perpY * sideOffset * side;
+        // Outer ring
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.beginPath(); ctx.arc(ringX, ringY, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        // Inner hole
+        ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(ringX, ringY, 4, 0, Math.PI * 2); ctx.stroke();
+        // Gentle idle rotation particles
+        if (!attacking) {
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            const ra = t * 0.004 + side * 1.5;
+            ctx.beginPath(); ctx.arc(ringX + Math.cos(ra) * 9, ringY + Math.sin(ra) * 9, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+        // Fists burst forward ONLY when attacking
+        if (attacking) {
+            const punchDist = 20 + p.attackAnim * 6;
             const fistX = ringX + fwdX * punchDist;
             const fistY = ringY + fwdY * punchDist;
+            // Dough arm line from ring to fist
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
             ctx.beginPath(); ctx.moveTo(ringX, ringY); ctx.lineTo(fistX, fistY); ctx.stroke();
-            // Fist at the end
+            // Fist
             ctx.fillStyle = '#fff';
             ctx.beginPath(); ctx.arc(fistX, fistY, 6, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#e0e0e0';
             ctx.beginPath(); ctx.arc(fistX, fistY, 2.5, 0, Math.PI * 2); ctx.fill();
-            // Impact burst particles
+            // Impact sparks
             ctx.fillStyle = 'rgba(255,255,255,0.5)';
             for (let sp = 0; sp < 3; sp++) {
                 const sa = t * 0.025 + sp * 2.1 + side;
                 ctx.beginPath(); ctx.arc(fistX + Math.cos(sa) * 8, fistY + Math.sin(sa) * 8, 1.5, 0, Math.PI * 2); ctx.fill();
             }
         }
-        ctx.shadowBlur = 0;
     }
+    ctx.shadowBlur = 0;
+    // Store ring positions for fusillade to use
+    p._ringLeft = { x: p.x + perpX * sideOffset * -1, y: p.y + perpY * sideOffset * -1 };
+    p._ringRight = { x: p.x + perpX * sideOffset * 1, y: p.y + perpY * sideOffset * 1 };
     // Scarf
     ctx.fillStyle = '#e8b0a0'; ctx.globalAlpha = 0.6;
     const scarfWave = Math.sin(t * 0.005) * 4;
