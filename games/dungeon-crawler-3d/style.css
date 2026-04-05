@@ -1,0 +1,49 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #020208; color: #00ffcc; font-family: 'Segoe UI', sans-serif; overflow: hidden; width: 100vw; height: 100vh; }
+#game-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+/* Screens */
+.screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
+    background: radial-gradient(ellipse at center, #0a0a1e 0%, #020208 70%);
+    justify-content: center; align-items: center; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* Title */
+.title-content { text-align: center; }
+.title-content h1 { font-size: 5rem; font-weight: 900; letter-spacing: 0.15em; color: #00ffcc;
+    text-shadow: 0 0 40px rgba(0,255,200,0.5), 0 0 80px rgba(255,0,128,0.3), 0 4px 8px rgba(0,0,0,0.8); line-height: 1; margin-bottom: 0.1em; }
+.title-content .subtitle { font-size: 3.5rem; color: #ff0080; letter-spacing: 0.3em;
+    text-shadow: 0 0 20px rgba(255,0,128,0.5); }
+.dim-tag { font-size: 1.5rem; color: #aa00ff; letter-spacing: 0.4em; margin-top: 0.2em;
+    text-shadow: 0 0 15px rgba(170,0,255,0.5); }
+.tagline { color: #4a6a6a; font-style: italic; margin: 1rem 0 2rem; font-size: 1.1rem; }
+
+/* Buttons */
+.menu-buttons { display: flex; flex-direction: column; gap: 0.7rem; align-items: center; }
+.menu-btn { background: linear-gradient(180deg, #0a1a2a 0%, #040c14 100%); color: #00ffcc;
+    border: 1px solid #00ffcc33; padding: 0.8rem 2.5rem; font-size: 1.1rem; cursor: pointer;
+    letter-spacing: 0.1em; transition: all 0.2s; min-width: 200px; font-family: inherit; }
+.menu-btn:hover { background: linear-gradient(180deg, #0a2a3a 0%, #061420 100%);
+    border-color: #00ffcc; color: #fff; box-shadow: 0 0 15px rgba(0,255,200,0.3), 0 0 30px rgba(255,0,128,0.15); }
+
+.controls-hint { margin-top: 2rem; color: #444; font-size: 0.8rem; }
+.back-link { display: inline-block; margin-top: 1.5rem; color: #555; text-decoration: none; font-size: 0.85rem; }
+.back-link:hover { color: #8b0000; }
+
+/* HUD */
+#hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
+#hud > * { pointer-events: auto; }
+
+#hud-top-center { position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+    font-size: 1.1rem; font-weight: bold; letter-spacing: 0.15em; color: #00ffcc;
+    text-shadow: 0 0 10px rgba(0,255,200,0.4); }
+
+#crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 1.8rem; color: rgba(0,255,200,0.5); text-shadow: 0 0 6px rgba(0,255,200,0.3);
+    pointer-events: none; font-family: monospace; line-height: 1; }
+
+#minimap-canvas { position: absolute; bottom: 15px; right: 15px; border: 1px solid #2a2535;
+    background: rgba(10,10,15,0.85); }
+
+#hud-hint { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+    font-size: 0.75rem; color: #333; pointer-events: none; }

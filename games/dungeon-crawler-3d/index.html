@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Crawler 3D</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.168.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.168.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen active">
+        <div class="title-content">
+            <h1>DUNGEON<br><span class="subtitle">CRAWLER</span></h1>
+            <div class="dim-tag">3D EDITION</div>
+            <p class="tagline">Descend into darkness. First person.</p>
+            <div class="menu-buttons">
+                <button id="btn-start" class="menu-btn">Enter the Dungeon</button>
+            </div>
+            <p class="controls-hint">WASD to move | Mouse to look | Click to lock cursor</p>
+            <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+        </div>
+    </div>
+
+    <!-- HUD Overlay -->
+    <div id="hud" style="display:none">
+        <div id="hud-top-center">
+            <span id="hud-floor">Floor 1</span>
+        </div>
+        <div id="crosshair">+</div>
+        <canvas id="minimap-canvas" width="120" height="120"></canvas>
+        <div id="hud-hint">Click to lock mouse | ESC to unlock</div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
