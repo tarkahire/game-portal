@@ -771,7 +771,7 @@ function playerAttack(p, now) {
     // Katakuri — fire fist from one rotating portal at a time
     if (p.classId === 'katakuri') {
         if (p._kataPortIdx === undefined) p._kataPortIdx = 0;
-        const portCount = 8;
+        const portCount = 16;
         const portRadius = 90;
         const portAngle = (p._kataPortIdx / portCount) * Math.PI * 2;
         const portX = p.x + Math.cos(portAngle) * portRadius;
@@ -934,7 +934,7 @@ function playerSpecial(p, now) {
             triggerShake(6, 12);
             break;
         case 'katakuri': // Dough Fist Fusillade — all portals fire at mouse position
-            { const portCount = 8;
+            { const portCount = 16;
             const portRadius = 90;
             if (!p._fusillade) p._fusillade = [];
             // Convert mouse to world coords
@@ -2740,7 +2740,7 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
     // Katakuri dough portal rings
     for (const p of players) {
         if (!p.alive || p.classId !== 'katakuri') continue;
-        const portCount = 8;
+        const portCount = 16;
         const portRadius = 90;
         const hk = !!p._haki;
         const ringCol = hk ? '#1565c0' : '#e8b0a0';
