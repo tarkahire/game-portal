@@ -188,9 +188,10 @@ function update() {
     for (const e of enemies3D) {
         if (!e.data.alive) continue;
 
-        // Visibility — only show in explored rooms
+        // Visibility — show if room is explored or enemy is near player
         const eRoom = getRoomAt(dungeon.rooms, e.data.x, e.data.z);
-        e.mesh.visible = eRoom ? eRoom.explored : false;
+        const distToPlayer = Math.sqrt((playerTileX - e.data.x) ** 2 + (playerTileZ - e.data.z) ** 2);
+        e.mesh.visible = distToPlayer < 15 || (eRoom ? eRoom.explored : false);
 
         if (!e.mesh.visible) continue;
 
