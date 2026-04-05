@@ -50,6 +50,17 @@ function shadeColor(hex, percent) {
   return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
+// Alignment keys → tank image filenames
+const ALIGNMENT_TANK_FILES = {
+  germany: 'tank_germany.png',
+  usa:     'tank_usa.png',
+  ussr:    'tank_ussr.png',
+  uk:      'tank_uk.png',
+  japan:   'tank_japan.png',
+  italy:   'tank_italy.png',
+  france:  'tank_france.png',
+};
+
 export class HexRenderer {
   constructor(canvas, minimapCanvas) {
     this.canvas = canvas;
@@ -72,6 +83,11 @@ export class HexRenderer {
     this._cityTileKeys = new Set();
     this._armies = null;
     this._combatFlashes = new Map(); // tileId → { startTime }
+    this._playerAlignments = new Map(); // playerId → alignment key
+
+    // Tank images keyed by alignment
+    this._tankImages = new Map();
+    this._loadTankImages();
 
     // Initialize texture manager
     this._texMgr = new TextureManager();
@@ -95,6 +111,33 @@ export class HexRenderer {
   }
 
   onClick(fn) { this._onClick = fn; }
+
+  /** Load all 7 doctrine tank images from assets. */
+  _loadTankImages() {
+    const basePath = 'assets/units/tanks/';
+    for (const [alignment, filename] of Object.entries(ALIGNMENT_TANK_FILES)) {
+      const img = new Image();
+      img.src = basePath + filename;
+      img.onload = () => this.requestRender();
+      this._tankImages.set(alignment, img);
+    }
+  }
+
+  /** Set player alignment mapping (playerId → alignment key). */
+  setPlayerAlignments(alignmentArray) {
+    this._playerAlignments.clear();
+    for (const { id, alignment } of alignmentArray) {
+      this._playerAlignments.set(id, alignment);
+    }
+  }
+
+  /** Get the tank image for a player based on their alignment. */
+  _getTankImage(playerId) {
+    const alignment = this._playerAlignments.get(playerId);
+    if (!alignment) return null;
+    const img = this._tankImages.get(alignment);
+    return (img && img.complete && img.naturalWidth > 0) ? img : null;
+  }
 
   loadArmies(armyArray, currentPlayerId) {
     this._armies = new Map();
@@ -572,7 +615,7 @@ export class HexRenderer {
       }
     }
 
-    // --- Army counters (NATO-style with category icons + health) ---
+    // --- Army counters (doctrine tank images + NATO fallback) ---
     if (this._armies) {
       for (const [tileId, armies] of this._armies) {
         let armyTile = null;
@@ -591,88 +634,108 @@ export class HexRenderer {
 
         const primary = armies[0];
         const isMine = primary.player_id === this.currentPlayerId;
-        const cw = Math.max(screenSize * 0.55, 16);
-        const ch = Math.max(screenSize * 0.38, 12);
-        const cx = screen.x - cw / 2;
+        const tankImg = this._getTankImage(primary.player_id);
+
+        // Tank image dimensions — aspect ratio ~1.83:1 (1407x768)
+        const tankW = Math.max(screenSize * 0.9, 24);
+        const tankH = tankW / 1.83;
+        const cx = screen.x - tankW / 2;
         const cy = screen.y - screenSize * 0.5;
 
-        // Counter shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(cx + 2, cy + 2, cw, ch);
+        if (tankImg && screenSize > 10) {
+          // --- TANK IMAGE RENDERING ---
 
-        // Counter background
-        ctx.fillStyle = isMine ? '#3A6EA5' : '#A53A3A';
-        ctx.fillRect(cx, cy, cw, ch);
+          // Drop shadow
+          ctx.save();
+          ctx.globalAlpha = 0.3;
+          ctx.drawImage(tankImg, cx + 2, cy + 2, tankW, tankH);
+          ctx.restore();
 
-        // Counter border (double line for NATO style)
-        ctx.strokeStyle = isMine ? '#5A9ED6' : '#D65A5A';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cx, cy, cw, ch);
-        ctx.strokeStyle = isMine ? '#2A5080' : '#802A2A';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(cx + 2, cy + 2, cw - 4, ch - 4);
+          // Tank image
+          ctx.drawImage(tankImg, cx, cy, tankW, tankH);
 
-        // Unit type icon (NATO symbol)
-        if (screenSize > 10) {
-          ctx.strokeStyle = '#fff';
-          ctx.fillStyle = '#fff';
-          ctx.lineWidth = 1.5;
-          const icx = cx + cw / 2, icy = cy + ch / 2;
-          const ir = Math.min(cw, ch) * 0.3;
+          // Tint overlay for friend/foe
+          ctx.save();
+          ctx.globalAlpha = 0.15;
+          ctx.fillStyle = isMine ? '#3A6EA5' : '#A53A3A';
+          ctx.fillRect(cx, cy, tankW, tankH);
+          ctx.restore();
 
-          // Default: infantry X
-          ctx.beginPath();
-          ctx.moveTo(icx - ir, icy - ir * 0.8);
-          ctx.lineTo(icx + ir, icy + ir * 0.8);
-          ctx.moveTo(icx + ir, icy - ir * 0.8);
-          ctx.lineTo(icx - ir, icy + ir * 0.8);
-          ctx.stroke();
+          // Ownership border
+          ctx.strokeStyle = isMine ? '#5A9ED6' : '#D65A5A';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(cx, cy, tankW, tankH);
+        } else {
+          // --- FALLBACK: NATO-style counter (far zoom or no image) ---
+          const cw = Math.max(screenSize * 0.55, 16);
+          const ch = Math.max(screenSize * 0.38, 12);
+          const fcx = screen.x - cw / 2;
+          const fcy = cy;
+
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(fcx + 2, fcy + 2, cw, ch);
+          ctx.fillStyle = isMine ? '#3A6EA5' : '#A53A3A';
+          ctx.fillRect(fcx, fcy, cw, ch);
+          ctx.strokeStyle = isMine ? '#5A9ED6' : '#D65A5A';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(fcx, fcy, cw, ch);
+
+          if (screenSize > 10) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            const icx = fcx + cw / 2, icy = fcy + ch / 2;
+            const ir = Math.min(cw, ch) * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(icx - ir, icy - ir * 0.8);
+            ctx.lineTo(icx + ir, icy + ir * 0.8);
+            ctx.moveTo(icx + ir, icy - ir * 0.8);
+            ctx.lineTo(icx - ir, icy + ir * 0.8);
+            ctx.stroke();
+          }
         }
 
         // Army name (at high zoom)
         if (screenSize > 22 && primary.name) {
           ctx.fillStyle = '#fff';
-          ctx.font = `bold ${Math.max(ch * 0.35, 6)}px Oswald, sans-serif`;
+          ctx.font = `bold ${Math.max(tankH * 0.35, 6)}px Oswald, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          ctx.fillText(primary.name, cx + cw / 2, cy - 2);
+          ctx.fillText(primary.name, screen.x, cy - 2);
         }
 
         // Status indicator
-        const statusX = cx + cw + 3;
+        const statusX = cx + tankW + 3;
         if (primary.status === 'marching') {
           ctx.fillStyle = '#FFD700';
-          ctx.font = `bold ${Math.max(ch * 0.7, 9)}px sans-serif`;
+          ctx.font = `bold ${Math.max(tankH * 0.7, 9)}px sans-serif`;
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText('▶', statusX, cy + ch / 2);
+          ctx.fillText('▶', statusX, cy + tankH / 2);
         } else if (primary.status === 'fortified') {
           ctx.fillStyle = '#4CAF50';
-          ctx.font = `bold ${Math.max(ch * 0.6, 8)}px sans-serif`;
+          ctx.font = `bold ${Math.max(tankH * 0.6, 8)}px sans-serif`;
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText('◆', statusX, cy + ch / 2);
+          ctx.fillText('◆', statusX, cy + tankH / 2);
         }
 
         // Health bar below counter
         if (screenSize > 12) {
-          const hbW = cw;
+          const hbW = tankW;
           const hbH = Math.max(screenSize * 0.05, 3);
-          const hbY = cy + ch + 2;
-          // Background
+          const hbY = cy + tankH + 2;
           ctx.fillStyle = 'rgba(0,0,0,0.5)';
           ctx.fillRect(cx, hbY, hbW, hbH);
-          // Fill (green/yellow/red based on health — use 100% for now)
           ctx.fillStyle = '#4CAF50';
           ctx.fillRect(cx, hbY, hbW, hbH);
         }
 
         // Stack count badge
         if (armies.length > 1) {
-          const badgeR = Math.max(cw * 0.18, 7);
+          const badgeR = Math.max(tankW * 0.12, 7);
           ctx.fillStyle = '#FFD700';
           ctx.beginPath();
-          ctx.arc(cx + cw + 1, cy - 1, badgeR, 0, Math.PI * 2);
+          ctx.arc(cx + tankW + 1, cy - 1, badgeR, 0, Math.PI * 2);
           ctx.fill();
           ctx.strokeStyle = '#000';
           ctx.lineWidth = 1;
@@ -681,7 +744,7 @@ export class HexRenderer {
           ctx.font = `bold ${Math.max(badgeR * 1.2, 8)}px Oswald, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(String(armies.length), cx + cw + 1, cy - 1);
+          ctx.fillText(String(armies.length), cx + tankW + 1, cy - 1);
         }
       }
     }

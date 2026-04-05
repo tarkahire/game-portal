@@ -11,7 +11,7 @@ export class CityScene {
   constructor({ getCityBuildings, getCityResources, getTrainingQueue, getPlayerArmies,
                 getBuildingDefs, getUnitDefs, buildBuilding, upgradeBuilding, upgradeCity,
                 trainUnits, formArmy, supabase, serverId, playerId,
-                buildingDefsCache, unitDefsCache, onClose }) {
+                buildingDefsCache, unitDefsCache, playerAlignment, onClose }) {
     this._q = { getCityBuildings, getCityResources, getTrainingQueue, getPlayerArmies,
                 getBuildingDefs, getUnitDefs, buildBuilding, upgradeBuilding, upgradeCity,
                 trainUnits, formArmy };
@@ -20,6 +20,7 @@ export class CityScene {
     this._playerId = playerId;
     this._buildingDefs = buildingDefsCache;
     this._unitDefs = unitDefsCache;
+    this._playerAlignment = playerAlignment;
     this._onClose = onClose;
     this._cityId = null;
     this._timerInterval = null;
@@ -324,10 +325,18 @@ export class CityScene {
       <button class="btn-action" id="btn-cs-cancel-train" style="margin-bottom:12px">Back to City</button>
       <div class="city-scene-picker-grid">`;
 
+    const tankImgSrc = this._playerAlignment
+      ? `assets/units/tanks/tank_${this._playerAlignment}.png` : null;
+
     for (const u of available) {
       const costStr = u.train_cost ? Object.entries(u.train_cost).map(([r, a]) => `${a} ${r}`).join(', ') : '?';
       const timeMins = Math.ceil((u.train_time || 0) / 60);
+      const isArmor = u.category === 'armor';
+      const tankThumb = isArmor && tankImgSrc
+        ? `<img src="${tankImgSrc}" class="train-unit-img" alt="${esc(u.name)}">`
+        : '';
       html += `<div class="build-option" data-unit-id="${u.id}">
+        ${tankThumb}
         <div class="build-option-name">${esc(u.name)}</div>
         <div class="build-option-desc">${esc(u.description || '')} (${capitalize(u.category)})</div>
         <div class="build-option-cost">Cost: ${costStr} per unit</div>

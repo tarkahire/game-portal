@@ -104,6 +104,30 @@ export async function joinServer(serverId, displayName, alignment) {
 }
 
 // ==========================================================================
+// Player Alignments (for rendering doctrine-specific visuals)
+// ==========================================================================
+
+/**
+ * Fetch all players on a server with their alignment.
+ * Returns a Map-friendly array of { id, alignment } objects.
+ * @param {string} serverId
+ * @returns {Promise<object[]>}
+ */
+export async function getAllPlayerAlignments(serverId) {
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, alignment')
+    .eq('server_id', serverId);
+
+  if (error) {
+    console.error('[queries] getAllPlayerAlignments:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+// ==========================================================================
 // Alignment Definitions
 // ==========================================================================
 

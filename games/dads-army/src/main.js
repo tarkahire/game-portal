@@ -12,6 +12,7 @@ import {
   getActiveServers,
   getPlayerOnServer,
   getAlignmentDefs,
+  getAllPlayerAlignments,
   getServerTiles,
   getCityResources,
   getPlayerCities,
@@ -84,6 +85,9 @@ let citiesByTile = new Map();
 
 /** All non-garrison armies on the current server. */
 let armiesOnMap = [];
+
+/** Current player's alignment key (e.g. 'germany', 'uk'). */
+let currentPlayerAlignment = null;
 
 /** Road building mode: tile ID of the first selected tile, or null. */
 let roadBuildFrom = null;
@@ -513,17 +517,23 @@ scenes.register('game', {
 
     // Load tiles, cities, and building defs from Supabase
     try {
-      const [tiles, allCities, myCities, bDefs, uDefs, armies] = await Promise.all([
+      const [tiles, allCities, myCities, bDefs, uDefs, armies, playerAlignments] = await Promise.all([
         getServerTiles(serverId),
         getAllCities(serverId),
         getPlayerCities(serverId),
         buildingDefsCache ? Promise.resolve(buildingDefsCache) : getBuildingDefs(),
         unitDefsCache ? Promise.resolve(unitDefsCache) : getUnitDefs(),
         getAllArmies(serverId),
+        getAllPlayerAlignments(serverId),
       ]);
       buildingDefsCache = bDefs;
       unitDefsCache = uDefs;
       armiesOnMap = armies;
+
+      // Cache current player's alignment
+      const myAlign = playerAlignments.find(p => p.id === playerId);
+      currentPlayerAlignment = myAlign?.alignment || null;
+
       console.log(`[Main] Loaded ${tiles.length} tiles, ${allCities.length} cities, ${uDefs.length} unit defs, ${armies.length} armies`);
 
       // Build cities-by-tile lookup
@@ -538,6 +548,7 @@ scenes.register('game', {
         tile._hasCity = cityTileIds.has(Number(tile.id));
       }
 
+      hexRenderer.setPlayerAlignments(playerAlignments);
       hexRenderer.loadTiles(tiles, playerId);
       hexRenderer.setCityData(citiesByTile);
       hexRenderer.loadArmies(armies, playerId);
@@ -1004,7 +1015,7 @@ async function showTileInfo(tile) {
         getBuildingDefs, getUnitDefs: () => Promise.resolve(unitDefsCache),
         buildBuilding, upgradeBuilding, upgradeCity, trainUnits, formArmy,
         supabase, serverId: selectedServerId, playerId: currentPlayerRecord,
-        buildingDefsCache, unitDefsCache,
+        buildingDefsCache, unitDefsCache, playerAlignment: currentPlayerAlignment,
         onClose: () => { refreshMap(); refreshResources(); },
       });
       cs.open(cityId, city);
