@@ -933,19 +933,23 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#fff', 10);
             triggerShake(6, 12);
             break;
-        case 'katakuri': // Dough Fist Fusillade — all portal rings fire fists from every direction
+        case 'katakuri': // Dough Fist Fusillade — all portals fire at mouse position
             { const portCount = 8;
             const portRadius = 50;
             if (!p._fusillade) p._fusillade = [];
-            const snap = enemies.filter(e => e.alive && Math.hypot(e.x - p.x, e.y - p.y) < 200);
+            // Convert mouse to world coords
+            const m = pMouse(p);
+            const numV = coopMode ? players.length : 1;
+            const vpW = numV > 1 ? Math.floor(canvas.width / numV) : canvas.width;
+            const mouseWX = m.x - vpW/2 + p.x;
+            const mouseWY = m.y - canvas.height/2 + p.y;
             for (let port = 0; port < portCount; port++) {
                 const portAngle = (port / portCount) * Math.PI * 2 + gameTime * 0.002;
                 const portX = p.x + Math.cos(portAngle) * portRadius;
                 const portY = p.y + Math.sin(portAngle) * portRadius;
                 for (let f = 0; f < 3; f++) {
-                    const target = snap.length > 0 ? snap[(port + f) % snap.length] : null;
-                    const tx = target ? target.x + (Math.random()-0.5)*25 : p.x + Math.cos(portAngle + Math.PI) * (40 + Math.random() * 60);
-                    const ty = target ? target.y + (Math.random()-0.5)*25 : p.y + Math.sin(portAngle + Math.PI) * (40 + Math.random() * 60);
+                    const tx = mouseWX + (Math.random()-0.5)*40;
+                    const ty = mouseWY + (Math.random()-0.5)*40;
                     p._fusillade.push({ x: tx, y: ty, srcX: portX, srcY: portY,
                         delay: port * 60 + f * 120, startTime: now,
                         damage: Math.round(p.damage * 2), owner: p, hit: false });
