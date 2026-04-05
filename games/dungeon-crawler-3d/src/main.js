@@ -1093,6 +1093,7 @@ let kataGrabHands = []; // 2 pre-built grab hand meshes (reusable)
 let kataGrabArms = [];  // 2 arm cylinders connecting hand to portal
 let kataGrabbedEnemies = []; // currently held enemies
 let kataGrabInited = false;
+let kataThrownEnemies = []; // enemies currently flying after being thrown
 
 function initKataGrabHands() {
     if (kataGrabInited) return;
@@ -1133,10 +1134,21 @@ function playerFAbility() {
     if (player.classId === 'katakuri') {
         initKataGrabHands();
 
-        // If already holding — RELEASE (just drop, no damage)
+        // If already holding — THROW in the direction player is facing
         if (kataGrabbedEnemies.length > 0) {
+            const yaw = fpsCamera.yaw;
+            const throwDirX = -Math.sin(yaw), throwDirZ = -Math.cos(yaw);
+            const throwSpeed = 50; // tiles per second (200px/s equivalent — very fast)
+
             for (const grabbed of kataGrabbedEnemies) {
                 grabbed.enemy.data.lastAttack = performance.now(); // unstun
+                // Launch enemy as a projectile
+                kataThrownEnemies.push({
+                    enemy: grabbed.enemy,
+                    vx: throwDirX * throwSpeed,
+                    vz: throwDirZ * throwSpeed,
+                    life: 2.0, // seconds of flight
+                });
             }
             for (const h of kataGrabHands) h.visible = false;
             for (const a of kataGrabArms) a.visible = false;
@@ -1221,6 +1233,66 @@ function updateKataGrab() {
             armMesh.lookAt(hPos);
             armMesh.rotateX(Math.PI / 2);
         }
+    }
+}
+
+// ─── THROWN ENEMIES (Katakuri F throw) ──────────────────────
+function updateThrownEnemies(dt) {
+    for (let i = kataThrownEnemies.length - 1; i >= 0; i--) {
+        const t = kataThrownEnemies[i];
+        if (!t.enemy.data.alive) { kataThrownEnemies.splice(i, 1); continue; }
+
+        t.life -= dt;
+        if (t.life <= 0) { kataThrownEnemies.splice(i, 1); continue; }
+
+        const moveX = t.vx * dt;
+        const moveZ = t.vz * dt;
+        const newX = t.enemy.data.x + moveX;
+        const newZ = t.enemy.data.z + moveZ;
+        const r = t.enemy.data.radius || 0.4;
+
+        // Check wall collision — if hits wall, lose half HP
+        const hitsWall = !isWalkable(dungeon.map, newX, newZ);
+        if (hitsWall) {
+            const dmg = Math.round(t.enemy.data.maxHp * 0.5);
+            dealDamageToEnemy(t.enemy, dmg);
+            // Stop movement
+            t.vx *= -0.3; t.vz *= -0.3; // small bounce
+            t.life = Math.min(t.life, 0.3); // expire soon
+            spawnMeleeSlash('#ff4444');
+            continue;
+        }
+
+        // Check collision with other enemies — both lose half HP
+        let hitEnemy = false;
+        for (const e of enemies3D) {
+            if (!e.data.alive || e === t.enemy) continue;
+            if (Math.hypot(e.data.x - newX, e.data.z - newZ) < r + (e.data.radius || 0.4)) {
+                // Both lose half HP
+                const dmg1 = Math.round(t.enemy.data.maxHp * 0.5);
+                const dmg2 = Math.round(e.data.maxHp * 0.5);
+                dealDamageToEnemy(t.enemy, dmg1);
+                dealDamageToEnemy(e, dmg2);
+                // Knock the hit enemy away too
+                const angle = Math.atan2(e.data.x - newX, e.data.z - newZ);
+                e.data.x += Math.sin(angle) * 1.5;
+                e.data.z += Math.cos(angle) * 1.5;
+                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                hitEnemy = true;
+                t.life = Math.min(t.life, 0.3);
+                spawnMeleeSlash('#ff4444');
+                break;
+            }
+        }
+
+        // Move the thrown enemy
+        t.enemy.data.x = newX;
+        t.enemy.data.z = newZ;
+        t.enemy.mesh.position.set(newX * TILE, 0, newZ * TILE);
+
+        // Slow down over time (friction)
+        t.vx *= 0.98;
+        t.vz *= 0.98;
     }
 }
 
@@ -1452,6 +1524,7 @@ function update() {
     updateMinions(dt, now);
     updateKataPortals(time);
     updateKataGrab();
+    updateThrownEnemies(dt);
 
     // Dash speed restore
     if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }
