@@ -38,6 +38,7 @@ import { HexRenderer } from './map/HexRenderer.js';
 import { collapsibleSection, wireCollapsibles } from './ui/CollapsibleSection.js';
 import { ResourceTooltip } from './ui/ResourceTooltip.js';
 import { CommanderScreen } from './ui/CommanderScreen.js';
+import { CityScene } from './scenes/CityScene.js';
 
 // ---------- Globals ----------
 
@@ -992,12 +993,21 @@ async function showTileInfo(tile) {
     });
   }
 
-  // Wire up "View City" button
+  // Wire up "View City" button — opens full-screen city scene
   const btnViewCity = document.getElementById('btn-view-city');
   if (btnViewCity) {
     btnViewCity.addEventListener('click', () => {
       const cityId = btnViewCity.dataset.cityId;
-      showCityPanel(cityId);
+      const city = citiesByTile.get(Number(tile.id));
+      const cs = new CityScene({
+        getCityBuildings, getCityResources, getTrainingQueue, getPlayerArmies,
+        getBuildingDefs, getUnitDefs: () => Promise.resolve(unitDefsCache),
+        buildBuilding, upgradeBuilding, upgradeCity, trainUnits, formArmy,
+        supabase, serverId: selectedServerId, playerId: currentPlayerRecord,
+        buildingDefsCache, unitDefsCache,
+        onClose: () => { refreshMap(); refreshResources(); },
+      });
+      cs.open(cityId, city);
     });
   }
 

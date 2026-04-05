@@ -378,4 +378,36 @@ Continued cleanup of owner_id→player_id mismatches and type errors across reso
 
 ---
 
+## 2026-04-05 — Visual Overhaul Phases 2-3: Cities, Counters, Dossier UI, CityScene
+
+### Phase 2
+- Zoom-dependent city rendering (dot→silhouette→detailed buildings with walls/tower/flag)
+- City name+level banner with dark background
+- NATO army counters with shadow depth, double borders, army name labels
+- Health bars below counters
+- Status indicators: ▶ marching, ◆ fortified
+- Terrain labels only on empty tiles at very high zoom
+- Resource labels at higher zoom threshold
+- Minimap click-to-pan
+
+### Phase 3A — CSS Dossier Reskin
+- Side panels: gradient backgrounds, khaki borders, deeper shadows
+- Tile info rows: Special Elite typewriter font, Oswald uppercase labels
+- Action buttons: olive gradients, sharp 2px corners, letter spacing
+- Commander overlay: inner shadow, olive-accented stat cards, khaki table headers
+- Login/server/alignment screens: matching dossier aesthetic
+- Panel rows: Oswald labels, Special Elite values
+
+### Phase 3B — CityScene Full-Screen Overlay
+- New src/scenes/CityScene.js (~350 lines)
+- Full-screen overlay replacing 340px side panel for city management
+- Two-column layout: resources+garrison (left), buildings+training (right)
+- City upgrade card with cost display
+- Collapsible sections (Resources, Garrison, Buildings, Training)
+- Build picker and train picker sub-views
+- Live construction countdown timers
+- ESC key and click-outside to close
+
+---
+
 *More entries will be added as development progresses.*
