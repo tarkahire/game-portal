@@ -475,31 +475,17 @@ function initKataPortals() {
     const emissive = isHaki ? '#0d47a1' : '#d4c4a0';
 
     for (let i = 0; i < 2; i++) {
+        // Big white/cream donut portal
         const torus = new THREE.Mesh(
-            new THREE.TorusGeometry(0.55, 0.12, 10, 20),
-            new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 0.5, roughness: 0.3, side: THREE.DoubleSide })
+            new THREE.TorusGeometry(0.7, 0.15, 10, 20),
+            new THREE.MeshBasicMaterial({ color: '#f5f0e8' })
         );
         // Dark hole center
         const hole = new THREE.Mesh(
-            new THREE.CircleGeometry(0.35, 14),
+            new THREE.CircleGeometry(0.45, 14),
             new THREE.MeshBasicMaterial({ color: '#0a0008', side: THREE.DoubleSide })
         );
         torus.add(hole);
-        // Outer glow ring
-        const glow = new THREE.Mesh(
-            new THREE.TorusGeometry(0.6, 0.03, 4, 20),
-            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35 })
-        );
-        torus.add(glow);
-        // 2 drip blobs hanging from donut
-        for (let d = 0; d < 2; d++) {
-            const drip = new THREE.Mesh(
-                new THREE.SphereGeometry(0.04, 3, 3),
-                new THREE.MeshBasicMaterial({ color: '#fffff0', transparent: true, opacity: 0.5 })
-            );
-            drip.position.set((d - 0.5) * 0.4, -0.35 - d * 0.15, 0);
-            torus.add(drip);
-        }
         scene.add(torus);
         kataPortals.push(torus);
     }
@@ -562,8 +548,8 @@ let kataFistPoolInit = false;
 function ensureFistPool() {
     if (kataFistPoolInit) return;
     kataFistPoolInit = true;
-    const col = '#f5f0e0';
-    const geo = new THREE.SphereGeometry(0.25, 4, 4);
+    const col = '#1a1a3a'; // dark navy like the big fists
+    const geo = new THREE.BoxGeometry(0.6, 0.5, 0.45);
     const mat = new THREE.MeshBasicMaterial({ color: col });
     for (let i = 0; i < KATA_FIST_POOL_SIZE; i++) {
         const m = new THREE.Mesh(geo, mat.clone());
@@ -606,20 +592,29 @@ function playerAttack() {
         // Create reusable punches once
         if (!player._punchMeshes) {
             player._punchMeshes = [];
-            const col = player._haki ? '#1565c0' : '#f5f0e0';
-            const armCol = player._haki ? '#90caf9' : '#fff8f0';
+            const isHaki = player._haki;
+            const fistCol = isHaki ? '#0d47a1' : '#1a1a3a'; // dark navy/indigo
+            const armCol = isHaki ? '#1565c0' : '#f5f0e8';   // white/cream arm
             for (let s = 0; s < 2; s++) {
                 const g = new THREE.Group();
-                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 4, 4), new THREE.MeshBasicMaterial({ color: armCol }));
-                arm.rotation.x = Math.PI / 2; arm.position.z = 2;
+                // Dough arm — white/cream cylinder
+                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 3.5, 5), new THREE.MeshBasicMaterial({ color: armCol }));
+                arm.rotation.x = Math.PI / 2; arm.position.z = 1.75;
                 g.add(arm);
-                const fist = new THREE.Mesh(new THREE.SphereGeometry(0.3, 5, 5), new THREE.MeshBasicMaterial({ color: col }));
-                fist.position.z = 4;
-                g.add(fist);
+                // Big blocky dark fist — box shape like a giant boxing glove
+                const fistBox = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 0.7), new THREE.MeshStandardMaterial({ color: fistCol, roughness: 0.4, metalness: 0.2 }));
+                fistBox.position.z = 3.8;
+                g.add(fistBox);
+                // Knuckle ridges on the front face
                 for (let k = 0; k < 4; k++) {
-                    const knuck = new THREE.Mesh(new THREE.SphereGeometry(0.07, 3, 3), new THREE.MeshBasicMaterial({ color: col }));
-                    knuck.position.set((k-1.5)*0.1, 0.2, 4.1); g.add(knuck);
+                    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.12, 0.15), new THREE.MeshBasicMaterial({ color: fistCol }));
+                    ridge.position.set((k - 1.5) * 0.2, 0.25, 4.15);
+                    g.add(ridge);
                 }
+                // Slight bevel/wrist connection
+                const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.3, 5), new THREE.MeshBasicMaterial({ color: armCol }));
+                wrist.rotation.x = Math.PI / 2; wrist.position.z = 3.35;
+                g.add(wrist);
                 g.visible = false;
                 scene.add(g);
                 player._punchMeshes.push(g);
