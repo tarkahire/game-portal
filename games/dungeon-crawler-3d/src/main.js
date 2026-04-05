@@ -455,46 +455,43 @@ function resumeGame() {
 }
 
 // ─── VISUAL EFFECTS ─────────────────────────────────────────
-let meleeSlashes = [];
+// Single reusable slash mesh — no allocation per attack
+let slashMesh = null;
+let slashTimer = 0;
+
+function initSlashMesh() {
+    if (slashMesh) return;
+    const geo = new THREE.TorusGeometry(1.2, 0.08, 4, 12, Math.PI * 0.7);
+    const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+    slashMesh = new THREE.Mesh(geo, mat);
+    slashMesh.visible = false;
+    scene.add(slashMesh);
+}
 
 function spawnMeleeSlash(color) {
-    // Create a bright arc in front of the camera
-    const slashGeo = new THREE.TorusGeometry(1.2, 0.08, 4, 16, Math.PI * 0.7);
-    const slashMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
-    const slash = new THREE.Mesh(slashGeo, slashMat);
-
-    // Position in front of camera
+    initSlashMesh();
     const dirX = -Math.sin(fpsCamera.yaw);
     const dirZ = -Math.cos(fpsCamera.yaw);
-    slash.position.set(
+    slashMesh.position.set(
         fpsCamera.posX * TILE + dirX * 2,
         EYE_HEIGHT - 0.3,
         fpsCamera.posZ * TILE + dirZ * 2
     );
-    slash.rotation.set(0, -fpsCamera.yaw + Math.PI / 2, Math.PI / 4);
-
-    // Glow
-    const glowLight = new THREE.PointLight(color, 3, TILE * 2, 2);
-    slash.add(glowLight);
-
-    scene.add(slash);
-    meleeSlashes.push({ mesh: slash, life: 8 });
+    slashMesh.rotation.set(0, -fpsCamera.yaw + Math.PI / 2, Math.PI / 4);
+    slashMesh.material.color.set(color);
+    slashMesh.material.opacity = 0.9;
+    slashMesh.scale.set(1, 1, 1);
+    slashMesh.visible = true;
+    slashTimer = 8;
 }
 
 function updateMeleeSlashes() {
-    for (let i = meleeSlashes.length - 1; i >= 0; i--) {
-        const s = meleeSlashes[i];
-        s.life--;
-        s.mesh.material.opacity = s.life / 8 * 0.9;
-        s.mesh.scale.multiplyScalar(1.06);
-        s.mesh.rotation.z += 0.15;
-        if (s.life <= 0) {
-            scene.remove(s.mesh);
-            s.mesh.geometry.dispose();
-            s.mesh.material.dispose();
-            meleeSlashes.splice(i, 1);
-        }
-    }
+    if (!slashMesh || !slashMesh.visible) return;
+    slashTimer--;
+    slashMesh.material.opacity = slashTimer / 8 * 0.9;
+    slashMesh.scale.multiplyScalar(1.06);
+    slashMesh.rotation.z += 0.15;
+    if (slashTimer <= 0) slashMesh.visible = false;
 }
 
 // ─── KATAKURI 3D PORTAL SYSTEM ──────────────────────────────
