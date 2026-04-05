@@ -7,8 +7,8 @@
 | Mouse | Aim |
 | Left Click | Attack |
 | E | Special ability |
-| R | Secondary ability (Gojo, Naruto, Sasuke, etc.) |
-| Q | Class-specific (Gojo dash) |
+| R | Secondary ability (Naruto, Frog, etc.) |
+| Q | Class-specific |
 | Space | Dodge roll |
 | Tab | Open/close inventory |
 | Escape | Pause |

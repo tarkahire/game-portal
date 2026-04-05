@@ -1,4 +1,4 @@
-# Character Classes (95 Total)
+# Character Classes (57 Total)
 
 ## Controls
 - **P1**: WASD move, Mouse aim + Click attack, E special, R secondary, Q class-specific, F arise boss (Jin-Woo), Space dodge, Tab inventory

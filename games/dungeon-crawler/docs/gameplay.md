@@ -12,7 +12,7 @@
 - Real-time action combat (not turn-based)
 - **Basic attack**: Click/Numpad0 — melee arc or ranged projectile depending on class
 - **Special (E/Num1)**: Class-specific powerful ability with cooldown
-- **Secondary (R/Num5)**: Second ability for some classes (Gojo, Sasuke, Naruto, etc.)
+- **Secondary (R/Num5)**: Second ability for some classes (Naruto, Frog, etc.)
 - **Dodge (Space/Num2)**: Quick invincible dash, 800ms cooldown
 - All projectiles **bounce off walls** up to 5 times
 - Damage numbers, screen shake, blood particles on hit

@@ -107,31 +107,6 @@ const CLASSES = {
         specialName: 'Rift Pull', specialDesc: 'Teleport all nearby enemies to you',
         drawChar: drawPortal, passive: 'autoPortal'
     },
-    gojo: {
-        name: 'Gojo', maxHp: 95, speed: 3.2, attackRange: 180, attackDamage: 14, attackSpeed: 400,
-        attackType: 'ranged', color: '#4fc3f7', specialCooldown: 15000,
-        specialName: 'Domain Expansion', specialDesc: 'Unlimited Void — all enemies take massive damage',
-        drawChar: drawGojo
-    },
-    sukuna: {
-        name: 'Sukuna', maxHp: 130, speed: 2.8, attackRange: 35, attackDamage: 16, attackSpeed: 350,
-        attackType: 'melee', color: '#8b0000', specialCooldown: 15000,
-        specialName: 'Malevolent Shrine', specialDesc: 'Domain Expansion — slashing void shreds all enemies',
-        drawChar: drawSukuna
-    },
-    // ── Jujutsu Kaisen ──
-    toji: {
-        name: 'Toji', maxHp: 110, speed: 3.6, attackRange: 32, attackDamage: 15, attackSpeed: 300,
-        attackType: 'melee', color: '#2e7d32', specialCooldown: 3000,
-        specialName: 'Inverted Spear', specialDesc: 'Lunging spear thrust that pierces defense',
-        drawChar: drawToji
-    },
-    yuji: {
-        name: 'Yuji', maxHp: 105, speed: 3.0, attackRange: 28, attackDamage: 13, attackSpeed: 320,
-        attackType: 'melee', color: '#e65100', specialCooldown: 4000,
-        specialName: 'Divergent Fist', specialDesc: 'Double-impact punch with delayed cursed energy',
-        drawChar: drawYuji
-    },
     // ── Naruto ──
     naruto: {
         name: 'Naruto', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 11, attackSpeed: 380,
@@ -139,125 +114,10 @@ const CLASSES = {
         specialName: 'Shadow Clones', specialDesc: 'Summon 2 clones that copy your attacks for 4s',
         drawChar: drawNaruto
     },
-    sasuke: {
-        name: 'Sasuke', maxHp: 90, speed: 3.3, attackRange: 30, attackDamage: 14, attackSpeed: 350,
-        attackType: 'melee', color: '#311b92', specialCooldown: 5000,
-        specialName: 'Chidori', specialDesc: 'Lightning dash that pierces through enemies',
-        drawChar: drawSasuke
-    },
-    kakashi: {
-        name: 'Kakashi', maxHp: 90, speed: 3.0, attackRange: 28, attackDamage: 12, attackSpeed: 380,
-        attackType: 'melee', color: '#546e7a', specialCooldown: 6000,
-        specialName: 'Lightning Blade', specialDesc: 'Concentrated lightning strike + brief copy buff',
-        drawChar: drawKakashi
-    },
-    itachi: {
-        name: 'Itachi', maxHp: 75, speed: 2.8, attackRange: 160, attackDamage: 13, attackSpeed: 500,
-        attackType: 'ranged', color: '#b71c1c', specialCooldown: 7000,
-        specialName: 'Tsukuyomi', specialDesc: 'Stun all enemies for 3s + Amaterasu burn',
-        drawChar: drawItachi
-    },
-    minato: {
-        name: 'Minato', maxHp: 85, speed: 4.0, attackRange: 140, attackDamage: 11, attackSpeed: 450,
-        attackType: 'ranged', color: '#fdd835', specialCooldown: 3000,
-        specialName: 'Flying Raijin', specialDesc: 'Teleport to a thrown kunai marker',
-        drawChar: drawMinato
-    },
-    // ── Dragon Ball ──
-    goku: {
-        name: 'Goku', maxHp: 120, speed: 3.0, attackRange: 30, attackDamage: 13, attackSpeed: 350,
-        attackType: 'melee', color: '#ff6f00', specialCooldown: 6000,
-        specialName: 'Kamehameha', specialDesc: 'Devastating energy beam attack',
-        drawChar: drawGoku
-    },
-    vegeta: {
-        name: 'Vegeta', maxHp: 115, speed: 2.8, attackRange: 170, attackDamage: 14, attackSpeed: 450,
-        attackType: 'ranged', color: '#1a237e', specialCooldown: 6000,
-        specialName: 'Final Flash', specialDesc: 'Massive energy blast in a wide cone',
-        drawChar: drawVegeta
-    },
-    // ── One Piece ──
-    luffy: {
-        name: 'Luffy', maxHp: 130, speed: 2.8, attackRange: 45, attackDamage: 12, attackSpeed: 300,
-        attackType: 'melee', color: '#d32f2f', specialCooldown: 8000,
-        specialName: 'Gear 5', specialDesc: 'Transform — +50% speed & damage for 6s',
-        drawChar: drawLuffy
-    },
-    zoro: {
-        name: 'Zoro', maxHp: 115, speed: 2.6, attackRange: 35, attackDamage: 15, attackSpeed: 350,
-        attackType: 'melee', color: '#2e7d32', specialCooldown: 7000,
-        specialName: 'Asura', specialDesc: 'Nine-sword form — triple damage slash AoE',
-        drawChar: drawZoro
-    },
-    // ── Demon Slayer ──
-    tanjiro: {
-        name: 'Tanjiro', maxHp: 100, speed: 2.9, attackRange: 32, attackDamage: 13, attackSpeed: 370,
-        attackType: 'melee', color: '#00897b', specialCooldown: 5000,
-        specialName: 'Water Breathing', specialDesc: 'Flowing water slash arc hitting all nearby enemies',
-        drawChar: drawTanjiro
-    },
-    zenitsu: {
-        name: 'Zenitsu', maxHp: 65, speed: 2.0, attackRange: 25, attackDamage: 9, attackSpeed: 600,
-        attackType: 'melee', color: '#f9a825', specialCooldown: 4000,
-        specialName: 'Thunderclap Flash', specialDesc: 'Instant dash-strike — huge damage to first enemy hit',
-        drawChar: drawZenitsu
-    },
-    // ── Attack on Titan ──
-    levi: {
-        name: 'Levi', maxHp: 80, speed: 3.8, attackRange: 28, attackDamage: 14, attackSpeed: 250,
-        attackType: 'melee', color: '#37474f', specialCooldown: 4000,
-        specialName: 'Spinning Slash', specialDesc: 'Rapid spin hitting all enemies nearby',
-        drawChar: drawLevi
-    },
-    // ── My Hero Academia ──
-    deku: {
-        name: 'Deku', maxHp: 95, speed: 2.6, attackRange: 30, attackDamage: 12, attackSpeed: 400,
-        attackType: 'melee', color: '#4caf50', specialCooldown: 5000,
-        specialName: 'Detroit Smash', specialDesc: 'Massive punch shockwave + Full Cowling speed boost',
-        drawChar: drawDeku
-    },
-    // ── Naruto (more) ──
-    rocklee: { name: 'Rock Lee', maxHp: 90, speed: 3.0, attackRange: 28, attackDamage: 11, attackSpeed: 280, attackType: 'melee', color: '#2e7d32', specialCooldown: 8000, specialName: '8 Gates', specialDesc: 'Massive speed+damage boost, costs HP', drawChar: drawRockLee },
-    gaara: { name: 'Gaara', maxHp: 100, speed: 2.2, attackRange: 150, attackDamage: 11, attackSpeed: 550, attackType: 'ranged', color: '#c8a05a', specialCooldown: 5000, specialName: 'Sand Coffin', specialDesc: 'Crush nearest enemy + sand shield', drawChar: drawGaara, passive: 'sandShield' },
-    pain: { name: 'Pain', maxHp: 95, speed: 2.6, attackRange: 160, attackDamage: 12, attackSpeed: 500, attackType: 'ranged', color: '#e65100', specialCooldown: 6000, specialName: 'Almighty Push', specialDesc: 'Knockback all enemies + damage', drawChar: drawPain },
-    madara: { name: 'Madara', maxHp: 130, speed: 2.5, attackRange: 35, attackDamage: 15, attackSpeed: 400, attackType: 'melee', color: '#d32f2f', specialCooldown: 10000, specialName: 'Susanoo', specialDesc: 'Damage shield + meteor drop AoE', drawChar: drawMadara },
-    // ── JJK (more) ──
-    todo: { name: 'Todo', maxHp: 115, speed: 2.8, attackRange: 30, attackDamage: 14, attackSpeed: 380, attackType: 'melee', color: '#6d4c41', specialCooldown: 3000, specialName: 'Boogie Woogie', specialDesc: 'Swap positions with nearest enemy', drawChar: drawTodo },
+    // ── Jujutsu Kaisen ──
     megumi: { name: 'Megumi', maxHp: 85, speed: 2.7, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#1a237e', specialCooldown: 5000, specialName: 'Divine Dogs', specialDesc: 'Summon 2 shadow dogs to attack', drawChar: drawMegumi },
-    maki: { name: 'Maki', maxHp: 105, speed: 3.4, attackRange: 32, attackDamage: 14, attackSpeed: 300, attackType: 'melee', color: '#558b2f', specialCooldown: 3000, specialName: 'Weapon Switch', specialDesc: 'Polearm sweep hitting all nearby enemies', drawChar: drawMaki },
-    kenjaku: { name: 'Kenjaku', maxHp: 90, speed: 2.5, attackRange: 170, attackDamage: 13, attackSpeed: 500, attackType: 'ranged', color: '#4e342e', specialCooldown: 7000, specialName: 'Curse Manip', specialDesc: 'Confuse enemies — they attack each other 3s', drawChar: drawKenjaku },
-    // ── Dragon Ball (more) ──
-    gohan: { name: 'Gohan', maxHp: 110, speed: 2.8, attackRange: 160, attackDamage: 13, attackSpeed: 450, attackType: 'ranged', color: '#e91e63', specialCooldown: 7000, specialName: 'Beast Mode', specialDesc: 'Transform — +40% damage for 5s + Masenko beam', drawChar: drawGohan },
-    frieza: { name: 'Frieza', maxHp: 95, speed: 3.0, attackRange: 200, attackDamage: 14, attackSpeed: 400, attackType: 'ranged', color: '#7b1fa2', specialCooldown: 5000, specialName: 'Death Beam', specialDesc: 'Precise long-range piercing beam', drawChar: drawFrieza },
-    broly: { name: 'Broly', maxHp: 150, speed: 2.0, attackRange: 35, attackDamage: 10, attackSpeed: 450, attackType: 'melee', color: '#33691e', specialCooldown: 6000, specialName: 'Berserker', specialDesc: 'Damage grows as HP drops + Eraser Cannon', drawChar: drawBroly, passive: 'berserker' },
-    trunks: { name: 'Trunks', maxHp: 100, speed: 3.0, attackRange: 32, attackDamage: 13, attackSpeed: 350, attackType: 'melee', color: '#7c4dff', specialCooldown: 5000, specialName: 'Burning Attack', specialDesc: 'Sword combo + energy blast', drawChar: drawTrunks },
-    // ── One Piece (more) ──
-    sanji: { name: 'Sanji', maxHp: 100, speed: 3.5, attackRange: 28, attackDamage: 13, attackSpeed: 320, attackType: 'melee', color: '#ff8f00', specialCooldown: 5000, specialName: 'Diable Jambe', specialDesc: 'Fire kicks + Sky Walk speed boost', drawChar: drawSanji },
-    law: { name: 'Law', maxHp: 85, speed: 2.6, attackRange: 140, attackDamage: 12, attackSpeed: 500, attackType: 'ranged', color: '#fdd835', specialCooldown: 5000, specialName: 'Room', specialDesc: 'Create ROOM — swap enemy positions + Gamma Knife', drawChar: drawLaw },
-    shanks: { name: 'Shanks', maxHp: 120, speed: 2.6, attackRange: 32, attackDamage: 16, attackSpeed: 400, attackType: 'melee', color: '#b71c1c', specialCooldown: 7000, specialName: 'Conqueror Haki', specialDesc: 'Stun all enemies in range for 2.5s', drawChar: drawShanks },
-    // ── Demon Slayer (more) ──
-    rengoku: { name: 'Rengoku', maxHp: 110, speed: 2.8, attackRange: 32, attackDamage: 14, attackSpeed: 370, attackType: 'melee', color: '#ff6f00', specialCooldown: 5000, specialName: 'Flame Tiger', specialDesc: 'Flame Breathing slash + fire trail', drawChar: drawRengoku },
-    muichiro: { name: 'Muichiro', maxHp: 75, speed: 3.2, attackRange: 30, attackDamage: 12, attackSpeed: 330, attackType: 'melee', color: '#b3e5fc', specialCooldown: 5000, specialName: 'Obscuring Clouds', specialDesc: 'Mist — enemies miss attacks for 4s', drawChar: drawMuichiro },
-    akaza: { name: 'Akaza', maxHp: 120, speed: 3.0, attackRange: 30, attackDamage: 15, attackSpeed: 320, attackType: 'melee', color: '#e040fb', specialCooldown: 5000, specialName: 'Destructive Death', specialDesc: 'Compass auto-aim + crushing punch barrage', drawChar: drawAkaza },
-    // ── Bleach ──
-    ichigo: { name: 'Ichigo', maxHp: 105, speed: 3.0, attackRange: 35, attackDamage: 14, attackSpeed: 370, attackType: 'melee', color: '#ff6f00', specialCooldown: 6000, specialName: 'Getsuga Tensho', specialDesc: 'Slash beam + Bankai speed form', drawChar: drawIchigo },
-    byakuya: { name: 'Byakuya', maxHp: 85, speed: 2.5, attackRange: 120, attackDamage: 12, attackSpeed: 450, attackType: 'ranged', color: '#f48fb1', specialCooldown: 6000, specialName: 'Senbonzakura', specialDesc: '1000 blade petals AoE shred', drawChar: drawByakuya },
-    aizen: { name: 'Aizen', maxHp: 90, speed: 2.6, attackRange: 160, attackDamage: 13, attackSpeed: 480, attackType: 'ranged', color: '#6a1b9a', specialCooldown: 8000, specialName: 'Kyoka Suigetsu', specialDesc: 'Confuse enemies — they attack each other 4s', drawChar: drawAizen },
-    // ── Hunter x Hunter ──
-    gon: { name: 'Gon', maxHp: 100, speed: 2.8, attackRange: 28, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#2e7d32', specialCooldown: 4000, specialName: 'Jajanken Rock', specialDesc: 'Charged punch — massive close-range damage', drawChar: drawGon },
-    killua: { name: 'Killua', maxHp: 80, speed: 3.2, attackRange: 25, attackDamage: 11, attackSpeed: 280, attackType: 'melee', color: '#42a5f5', specialCooldown: 5000, specialName: 'Godspeed', specialDesc: 'Insane speed mode + Lightning Palm stun', drawChar: drawKillua },
-    hisoka: { name: 'Hisoka', maxHp: 85, speed: 2.8, attackRange: 160, attackDamage: 11, attackSpeed: 450, attackType: 'ranged', color: '#e91e63', specialCooldown: 4000, specialName: 'Bungee Gum', specialDesc: 'Pull all nearby enemies to you', drawChar: drawHisoka },
     // ── Solo Leveling ──
     jinwoo: { name: 'Jin-Woo', maxHp: 110, speed: 3.0, attackRange: 32, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#311b92', specialCooldown: 6000, specialName: 'Shadow Army', specialDesc: 'Raise 3 shadow soldiers from dead enemies', drawChar: drawJinWoo },
-    // ── One Punch Man ──
-    saitama: { name: 'Saitama', maxHp: 80, speed: 2.2, attackRange: 30, attackDamage: 8, attackSpeed: 500, attackType: 'melee', color: '#fdd835', specialCooldown: 20000, specialName: 'Serious Punch', specialDesc: 'One-shots everything in range. Long cooldown.', drawChar: drawSaitama },
-    genos: { name: 'Genos', maxHp: 90, speed: 3.0, attackRange: 180, attackDamage: 13, attackSpeed: 400, attackType: 'ranged', color: '#ff8f00', specialCooldown: 5000, specialName: 'Incinerate', specialDesc: 'Wide fire beam + Machine Gun Blows', drawChar: drawGenos },
-    // ── Tokyo Ghoul ──
-    kaneki: { name: 'Kaneki', maxHp: 95, speed: 3.0, attackRange: 35, attackDamage: 13, attackSpeed: 340, attackType: 'melee', color: '#9e9e9e', specialCooldown: 6000, specialName: 'Centipede', specialDesc: 'Kagune form — +40% speed & damage for 5s', drawChar: drawKaneki },
-    // ── Chainsaw Man ──
-    denji: { name: 'Denji', maxHp: 110, speed: 2.8, attackRange: 35, attackDamage: 13, attackSpeed: 300, attackType: 'melee', color: '#ff5722', specialCooldown: 6000, specialName: 'Devil Form', specialDesc: 'Chainsaw transform — regen + wide slashes', drawChar: drawDenji },
-    // ── Black Clover ──
-    asta: { name: 'Asta', maxHp: 115, speed: 2.8, attackRange: 35, attackDamage: 14, attackSpeed: 370, attackType: 'melee', color: '#222', specialCooldown: 5000, specialName: 'Black Divider', specialDesc: 'Anti-magic slash — reflects projectiles 4s', drawChar: drawAsta },
     // ── Original ──
     frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 0, specialName: 'Electric Tongue', specialDesc: 'Spinning tongue spiral — catches and devours all enemies', drawChar: drawFrog },
     beeswarm: { name: 'Bee Swarm', maxHp: 60, speed: 3.5, attackRange: 20, attackDamage: 8, attackSpeed: 250, attackType: 'melee', color: '#fdd835', specialCooldown: 3000, specialName: 'Split Swarm', specialDesc: 'Split apart to dodge — reform to mass sting', drawChar: drawBeeSwarm },
@@ -363,12 +223,6 @@ const WEAPON_BASES = [
     { name: 'Rift Shard', type: 'weapon', subtype: 'orb', damage: 11, speed: 500, range: 150, forClass: 'portal' },
     { name: 'Void Orb', type: 'weapon', subtype: 'orb', damage: 15, speed: 460, range: 170, forClass: 'portal' },
     { name: 'Warp Core', type: 'weapon', subtype: 'orb', damage: 18, speed: 420, range: 180, forClass: 'portal' },
-    { name: 'Cursed Orb', type: 'weapon', subtype: 'cursed', damage: 13, speed: 400, range: 180, forClass: 'gojo' },
-    { name: 'Six Eyes Focus', type: 'weapon', subtype: 'cursed', damage: 17, speed: 370, range: 200, forClass: 'gojo' },
-    { name: 'Infinite Void', type: 'weapon', subtype: 'cursed', damage: 20, speed: 350, range: 210, forClass: 'gojo' },
-    { name: 'Cursed Claw', type: 'weapon', subtype: 'claw', damage: 14, speed: 350, range: 35, forClass: 'sukuna' },
-    { name: 'Dismantle Blade', type: 'weapon', subtype: 'claw', damage: 19, speed: 320, range: 38, forClass: 'sukuna' },
-    { name: 'Cleave', type: 'weapon', subtype: 'claw', damage: 23, speed: 300, range: 42, forClass: 'sukuna' },
 ];
 const ARMOR_BASES = [
     { name: 'Cloth Robe', type: 'armor', defense: 2 },
@@ -390,8 +244,6 @@ const SHOP_ITEMS = [
     { id: 'startCane', name: 'Life Staff', desc: 'Start with a better healing staff', cost: 50 },
     { id: 'startRod', name: 'Storm Rod', desc: 'Start with a better lightning rod', cost: 50 },
     { id: 'startOrb', name: 'Void Orb', desc: 'Start with a better rift orb', cost: 50 },
-    { id: 'startCursed', name: 'Six Eyes Focus', desc: 'Start with a better cursed orb', cost: 50 },
-    { id: 'startSukunaClaw', name: 'Dismantle Blade', desc: 'Start with a better cursed claw', cost: 50 },
     { id: 'extraHP', name: 'Vitality Charm', desc: '+20 starting HP', cost: 80 },
     { id: 'potionStart', name: 'Potion Belt', desc: 'Start with 2 health potions', cost: 40 },
 ];
@@ -535,7 +387,6 @@ function createPlayer(classId, playerIndex) {
 }
 
 function applyShopUnlocks(p) {
-    const classWeaponMap = { angel: 'startScepter', demon: 'startClaw', draco: 'startDragonClaw', healer: 'startCane', lightning: 'startRod', portal: 'startOrb', gojo: 'startCursed', sukuna: 'startSukunaClaw' };
     const wUnlock = classWeaponMap[p.classId];
     if (meta.unlocks.includes(wUnlock)) {
         const bases = WEAPON_BASES.filter(w => w.forClass === p.classId);
@@ -1049,59 +900,6 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#fff', 10);
             triggerShake(6, 12);
             break;
-        case 'gojo': // Domain Expansion — Unlimited Void
-            domainExpansion = {
-                x: p.x, y: p.y, owner: p,
-                radius: 0, maxRadius: 200,
-                life: now + 4000, startTime: now,
-                damage: 30, hasDamaged: false,
-                phase: 'expand' // expand -> hold -> collapse
-            };
-            // Stun all enemies immediately
-            for (const e of enemies) {
-                if (e.alive) e.stunned = Math.max(e.stunned, now + 4000);
-            }
-            spawnParticles(p.x, p.y, '#4fc3f7', 30);
-            spawnParticles(p.x, p.y, '#fff', 15);
-            triggerShake(10, 20);
-            break;
-        case 'sukuna': // Domain Expansion — Malevolent Shrine
-            domainExpansion = {
-                x: p.x, y: p.y, owner: p,
-                radius: 0, maxRadius: 220,
-                life: now + 4500, startTime: now,
-                damage: 35, hasDamaged: false,
-                phase: 'expand', isSukuna: true
-            };
-            // Stun all enemies
-            for (const e of enemies) {
-                if (e.alive) e.stunned = Math.max(e.stunned, now + 4500);
-            }
-            spawnParticles(p.x, p.y, '#8b0000', 30);
-            spawnParticles(p.x, p.y, '#ff4444', 15);
-            triggerShake(12, 24);
-            break;
-        case 'toji': // Inverted Spear — lunging pierce
-            { const spearLen = 60, dmg = Math.round(p.damage * 2);
-            for (const e of enemies) { if (!e.alive) continue;
-                const dx = e.x - p.x, dy = e.y - p.y, dist = Math.hypot(dx, dy);
-                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
-                if (along > 0 && along < spearLen && perp < 15) dealDamageToEnemy(e, dmg, p);
-            }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: spearLen, width: 6, life: 10, maxLife: 10, color: '#2e7d32' });
-            spawnParticles(p.x + Math.cos(p.facingAngle) * 30, p.y + Math.sin(p.facingAngle) * 30, '#4caf50', 10);
-            triggerShake(4, 8); } break;
-        case 'yuji': // Divergent Fist — double impact
-            { const range = 40, dmg1 = Math.round(p.damage * 1.2);
-            for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x - p.x, e.y - p.y) < range) {
-                    dealDamageToEnemy(e, dmg1, p);
-                    setTimeout(() => { if (e.alive) { dealDamageToEnemy(e, Math.round(dmg1 * 0.8), p); spawnParticles(e.x, e.y, '#ff6f00', 6); } }, 200);
-                }
-            }
-            spawnParticles(p.x + Math.cos(p.facingAngle) * 20, p.y + Math.sin(p.facingAngle) * 20, '#e65100', 10);
-            triggerShake(5, 10); } break;
         case 'naruto': // Shadow Clones — 8 clones
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
@@ -1110,155 +908,6 @@ function playerSpecial(p, now) {
                     lastAttack: 0, attackSpeed: 400, life: now + 6000, color: '#ff8f00', type: 'clone' });
             }
             spawnParticles(p.x, p.y, '#ff8f00', 12); triggerShake(3, 5); break;
-        case 'sasuke': // Chidori — lightning dash
-            { p.dodging = true; p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
-            p.dodgeTimer = 14; p.invincible = now + 500;
-            const dmg = Math.round(p.damage * 2);
-            for (const e of enemies) { if (!e.alive) continue;
-                const dx = e.x - p.x, dy = e.y - p.y;
-                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
-                if (along > 0 && along < 80 && perp < 20) dealDamageToEnemy(e, dmg, p);
-            }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 80, width: 10, life: 12, maxLife: 12, color: '#311b92' });
-            spawnParticles(p.x, p.y, '#7c4dff', 16); triggerShake(6, 10); } break;
-        case 'kakashi': // Lightning Blade + copy buff
-            { const range = 45, dmg = Math.round(p.damage * 2.2);
-            for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x - p.x, e.y - p.y) < range) { dealDamageToEnemy(e, dmg, p); }
-            }
-            p.activeEffects.push({ effect: 'damage', value: 1.3, endTime: now + 4000 });
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 45, width: 8, life: 8, maxLife: 8, color: '#546e7a' });
-            spawnParticles(p.x + Math.cos(p.facingAngle) * 20, p.y + Math.sin(p.facingAngle) * 20, '#b0bec5', 12);
-            triggerShake(5, 8); } break;
-        case 'itachi': // Tsukuyomi + Amaterasu
-            for (const e of enemies) { if (!e.alive) continue;
-                const dist = Math.hypot(e.x - p.x, e.y - p.y);
-                if (dist < 150) { e.stunned = Math.max(e.stunned, now + 3000); dealDamageToEnemy(e, 8, p);
-                    spawnParticles(e.x, e.y, '#b71c1c', 6); }
-            }
-            spawnParticles(p.x, p.y, '#d50000', 16); spawnParticles(p.x, p.y, '#000', 10);
-            triggerShake(4, 10); break;
-        case 'minato': // Flying Raijin — throw kunai marker then teleport
-            { const kx = p.x + Math.cos(p.facingAngle) * 120, ky = p.y + Math.sin(p.facingAngle) * 120;
-            spawnParticles(p.x, p.y, '#fdd835', 10);
-            if (isWalkable(kx, ky)) { p.x = kx; p.y = ky; }
-            spawnParticles(p.x, p.y, '#fff176', 12);
-            // Damage enemies at arrival
-            for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x - p.x, e.y - p.y) < 40) dealDamageToEnemy(e, Math.round(p.damage * 1.5), p);
-            }
-            triggerShake(4, 6); } break;
-        case 'goku': // Kamehameha
-            { const beamLen = 280, beamW = 20;
-            for (const e of enemies) { if (!e.alive) continue;
-                const dx = e.x - p.x, dy = e.y - p.y;
-                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
-                if (along > 0 && along < beamLen && perp < beamW) dealDamageToEnemy(e, Math.round(p.damage * 2), p);
-            }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 22, maxLife: 22, color: '#4fc3f7' });
-            spawnParticles(p.x, p.y, '#4fc3f7', 20); triggerShake(8, 16); } break;
-        case 'vegeta': // Final Flash — wide cone
-            { for (const e of enemies) { if (!e.alive) continue;
-                const dx = e.x - p.x, dy = e.y - p.y, dist = Math.hypot(dx, dy);
-                if (dist < 180) { const angle = Math.atan2(dy, dx);
-                    let diff = angle - p.facingAngle; while (diff > Math.PI) diff -= Math.PI*2; while (diff < -Math.PI) diff += Math.PI*2;
-                    if (Math.abs(diff) < 0.6) dealDamageToEnemy(e, Math.round(p.damage * 1.8), p);
-                }
-            }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 180, width: 25, life: 18, maxLife: 18, color: '#fdd835' });
-            spawnParticles(p.x, p.y, '#fdd835', 18); triggerShake(7, 14); } break;
-        case 'luffy': // Gear 5 — transformation
-            p.activeEffects.push({ effect: 'speed', value: 1.5, endTime: now + 6000 });
-            p.activeEffects.push({ effect: 'damage', value: 1.5, endTime: now + 6000 });
-            p.activeEffects.push({ effect: 'gear5', value: 1, endTime: now + 6000 });
-            p.hp = Math.min(p.hp + 20, p.maxHp);
-            spawnParticles(p.x, p.y, '#fff', 20); spawnParticles(p.x, p.y, '#d32f2f', 12);
-            triggerShake(6, 12); break;
-        case 'zoro': // Asura — nine-sword AoE
-            { const range = 55, dmg = Math.round(p.damage * 2.5);
-            for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x - p.x, e.y - p.y) < range) dealDamageToEnemy(e, dmg, p);
-            }
-            for (let s = 0; s < 9; s++) { const a = (s / 9) * Math.PI * 2;
-                activeBeams.push({ x: p.x, y: p.y, angle: a, length: 55, width: 4, life: 10, maxLife: 10, color: '#2e7d32' });
-            }
-            spawnParticles(p.x, p.y, '#4caf50', 20); triggerShake(8, 14); } break;
-        case 'tanjiro': // Water Breathing — flowing slash arc
-            { const range = 50;
-            for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x - p.x, e.y - p.y) < range) { dealDamageToEnemy(e, Math.round(p.damage * 1.8), p);
-                    spawnParticles(e.x, e.y, '#4dd0e1', 5); }
-            }
-            spawnParticles(p.x, p.y, '#00bcd4', 16); spawnParticles(p.x, p.y, '#80deea', 10);
-            triggerShake(5, 8); } break;
-        case 'zenitsu': // Thunderclap Flash — instant dash-strike
-            { let target = null, closest = Infinity;
-            for (const e of enemies) { if (!e.alive) continue;
-                const d = Math.hypot(e.x - p.x, e.y - p.y);
-                if (d < 200 && d < closest) { closest = d; target = e; }
-            }
-            if (target) { spawnParticles(p.x, p.y, '#f9a825', 12);
-                p.x = target.x - Math.cos(p.facingAngle) * 20; p.y = target.y - Math.sin(p.facingAngle) * 20;
-                dealDamageToEnemy(target, Math.round(p.damage * 3), p);
-                spawnParticles(p.x, p.y, '#fff176', 16); spawnParticles(target.x, target.y, '#ffeb3b', 10);
-                p.invincible = now + 300;
-            }
-            triggerShake(6, 10); } break;
-        case 'levi': // Spinning Slash — AoE around self
-            { const range = 45, dmg = Math.round(p.damage * 1.8);
-            for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x - p.x, e.y - p.y) < range) dealDamageToEnemy(e, dmg, p);
-            }
-            for (let s = 0; s < 6; s++) { const a = (s / 6) * Math.PI * 2;
-                activeBeams.push({ x: p.x, y: p.y, angle: a, length: 45, width: 3, life: 8, maxLife: 8, color: '#78909c' });
-            }
-            spawnParticles(p.x, p.y, '#b0bec5', 16); triggerShake(5, 8); } break;
-        case 'deku': // Detroit Smash + Full Cowling
-            { const range = 60, dmg = Math.round(p.damage * 2);
-            for (const e of enemies) { if (!e.alive) continue;
-                const dx = e.x - p.x, dy = e.y - p.y;
-                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
-                if (along > 0 && along < range && perp < 25) dealDamageToEnemy(e, dmg, p);
-            }
-            p.activeEffects.push({ effect: 'speed', value: 1.4, endTime: now + 4000 });
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 60, width: 20, life: 10, maxLife: 10, color: '#4caf50' });
-            spawnParticles(p.x, p.y, '#69f0ae', 18); triggerShake(7, 12); } break;
-        case 'rocklee': // 8 Gates
-            p.activeEffects.push({ effect: 'speed', value: 2.0, endTime: now + 5000 });
-            p.activeEffects.push({ effect: 'damage', value: 2.0, endTime: now + 5000 });
-            p.hp = Math.max(1, p.hp - 15); // costs HP
-            spawnParticles(p.x, p.y, '#4caf50', 20); spawnParticles(p.x, p.y, '#ff5722', 12);
-            triggerShake(6, 12); break;
-        case 'gaara': // Sand Coffin
-            { let target = null, closest = Infinity;
-            for (const e of enemies) { if (!e.alive) continue; const d = Math.hypot(e.x-p.x, e.y-p.y); if (d < 150 && d < closest) { closest = d; target = e; } }
-            if (target) { dealDamageToEnemy(target, Math.round(p.damage * 2.5), p); target.stunned = Math.max(target.stunned, now + 2000);
-                spawnParticles(target.x, target.y, '#c8a05a', 14); }
-            p.invincible = now + 1500; // sand shield
-            spawnParticles(p.x, p.y, '#d4a04a', 12); triggerShake(5, 8); } break;
-        case 'pain': // Almighty Push
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 120) { dealDamageToEnemy(e, Math.round(p.damage * 1.5), p);
-                    const a = Math.atan2(e.y-p.y, e.x-p.x); e.x += Math.cos(a) * 60; e.y += Math.sin(a) * 60;
-                    spawnParticles(e.x, e.y, '#e65100', 5); } }
-            spawnParticles(p.x, p.y, '#e65100', 20); triggerShake(8, 14); } break;
-        case 'madara': // Susanoo + Meteor
-            p.invincible = now + 3000; // Susanoo shield
-            p.activeEffects.push({ effect: 'damage', value: 1.5, endTime: now + 5000 });
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 140) dealDamageToEnemy(e, Math.round(p.damage * 2), p); }
-            spawnParticles(p.x, p.y, '#d32f2f', 24); spawnParticles(p.x, p.y, '#ff8a65', 12);
-            triggerShake(10, 18); } break;
-        case 'todo': // Boogie Woogie — swap with nearest enemy
-            { let target = null, closest = Infinity;
-            for (const e of enemies) { if (!e.alive) continue; const d = Math.hypot(e.x-p.x, e.y-p.y); if (d < 200 && d < closest) { closest = d; target = e; } }
-            if (target) { spawnParticles(p.x, p.y, '#8d6e63', 10); spawnParticles(target.x, target.y, '#8d6e63', 10);
-                const tx = target.x, ty = target.y; target.x = p.x; target.y = p.y; p.x = tx; p.y = ty;
-                dealDamageToEnemy(target, Math.round(p.damage * 1.5), p); }
-            triggerShake(4, 6); } break;
         case 'megumi': // Divine Dogs — summon 8 fiends orbiting player
             for (let i = 0; i < 8; i++) { const angle = (i / 8) * Math.PI * 2;
                 summonedMinions.push({ x: p.x+Math.cos(angle)*35, y: p.y+Math.sin(angle)*35, owner: p,
@@ -1266,181 +915,12 @@ function playerSpecial(p, now) {
                     lastAttack: 0, attackSpeed: 400, life: now + 10000, color: '#1a237e', type: 'dog',
                     _guardIndex: i, _guardTotal: 8, _orbit: true }); }
             spawnParticles(p.x, p.y, '#283593', 16); triggerShake(4, 8); break;
-        case 'maki': // Weapon sweep
-            { const range = 50; for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, Math.round(p.damage * 1.8), p); }
-            for (let s = 0; s < 4; s++) activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle + (s-1.5)*0.4, length: 50, width: 4, life: 8, maxLife: 8, color: '#558b2f' });
-            spawnParticles(p.x, p.y, '#7cb342', 14); triggerShake(5, 8); } break;
-        case 'kenjaku': // Curse Manipulation — confuse enemies
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 130) { e.stunned = Math.max(e.stunned, now + 3000); dealDamageToEnemy(e, 5, p);
-                    spawnParticles(e.x, e.y, '#5d4037', 4); } }
-            spawnParticles(p.x, p.y, '#4e342e', 16); triggerShake(4, 8); } break;
-        case 'gohan': // Beast Mode — damage buff + scatter Masenko (5 projectiles in fan)
-            p.activeEffects.push({ effect: 'damage', value: 1.4, endTime: now + 5000 });
-            for (let i = -2; i <= 2; i++) { const a = p.facingAngle + i * 0.2;
-                projectiles.push({ x: p.x, y: p.y, vx: Math.cos(a)*6, vy: Math.sin(a)*6,
-                    damage: Math.round(p.damage * 1.2), owner: 'player', ownerRef: p, range: 200, traveled: 0, color: '#e91e63', radius: 4 }); }
-            spawnParticles(p.x, p.y, '#f48fb1', 16); triggerShake(7, 12); break;
-        case 'frieza': // Death Beam — piercing snipe
-            { const speed = 10;
-            projectiles.push({ x: p.x, y: p.y, vx: Math.cos(p.facingAngle)*speed, vy: Math.sin(p.facingAngle)*speed,
-                damage: Math.round(p.damage * 2.5), owner: 'player', ownerRef: p, range: 400, traveled: 0,
-                color: '#e040fb', radius: 3, piercing: true });
-            spawnParticles(p.x, p.y, '#ce93d8', 10); triggerShake(4, 6); } break;
-        case 'broly': // Eraser Cannon
-            { const range = 100; const hpPct = 1 - (p.hp / p.maxHp); const dmg = Math.round(p.damage * (1.5 + hpPct * 2));
-            for (const e of enemies) { if (!e.alive) continue; if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, dmg, p); }
-            spawnParticles(p.x, p.y, '#76ff03', 20); spawnParticles(p.x, p.y, '#33691e', 10);
-            triggerShake(8, 14); } break;
-        case 'trunks': // Burning Attack — sword combo + blast
-            { const range = 45; for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, Math.round(p.damage * 1.5), p); }
-            projectiles.push({ x: p.x, y: p.y, vx: Math.cos(p.facingAngle)*7, vy: Math.sin(p.facingAngle)*7,
-                damage: Math.round(p.damage * 1.5), owner: 'player', ownerRef: p, range: 200, traveled: 0, color: '#7c4dff', radius: 6 });
-            spawnParticles(p.x, p.y, '#b388ff', 14); triggerShake(5, 8); } break;
-        case 'sanji': // Diable Jambe — speed boost + fire kick chain (3 rapid dashes)
-            p.activeEffects.push({ effect: 'speed', value: 1.5, endTime: now + 4000 });
-            { const dmg = Math.round(p.damage * 1.3);
-            for (let kick = 0; kick < 3; kick++) { const a = p.facingAngle + (kick - 1) * 0.5;
-                for (const e of enemies) { if (!e.alive) continue;
-                    const dx = e.x-p.x, dy = e.y-p.y;
-                    const along = dx*Math.cos(a)+dy*Math.sin(a);
-                    const perp = Math.abs(-dx*Math.sin(a)+dy*Math.cos(a));
-                    if (along > 0 && along < 50 && perp < 15) dealDamageToEnemy(e, dmg, p); }
-                activeBeams.push({ x: p.x, y: p.y, angle: a, length: 50, width: 6, life: 6+kick*3, maxLife: 15, color: '#ff6f00' }); }
-            spawnParticles(p.x, p.y, '#ff9800', 16); triggerShake(5, 8); } break;
-        case 'law': // Room + Gamma Knife
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 100) { dealDamageToEnemy(e, Math.round(p.damage * 2), p); e.stunned = Math.max(e.stunned, now + 1500);
-                    spawnParticles(e.x, e.y, '#fdd835', 5); } }
-            spawnParticles(p.x, p.y, '#fff176', 16); spawnParticles(p.x, p.y, '#42a5f5', 8);
-            triggerShake(6, 10); } break;
-        case 'shanks': // Conqueror's Haki — expanding shockwave that stuns + pushes
-            { const waves = 3; for (let w = 0; w < waves; w++) { const wRange = 50 + w * 40;
-                for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                    if (dist < wRange && dist > wRange - 40) {
-                        e.stunned = Math.max(e.stunned, now + 2000);
-                        const a = Math.atan2(e.y-p.y, e.x-p.x); e.x += Math.cos(a) * 20; e.y += Math.sin(a) * 20;
-                        dealDamageToEnemy(e, Math.round(p.damage * 0.5), p); } } }
-            spawnParticles(p.x, p.y, '#f44336', 20); spawnParticles(p.x, p.y, '#000', 10);
-            triggerShake(10, 16); } break;
-        case 'rengoku': // Flame Tiger — dash forward + fire trail that burns enemies who touch it
-            { p.dodging = true; p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
-            p.dodgeTimer = 12; p.invincible = now + 500;
-            // Leave fire trail healing circles that damage enemies
-            for (let f = 0; f < 4; f++) {
-                const fx = p.x + Math.cos(p.facingAngle) * f * 20, fy = p.y + Math.sin(p.facingAngle) * f * 20;
-                lightningNets.push({ x: fx, y: fy, owner: p, radius: 25, life: now + 3000, damage: 4, damageRate: 300, lastDamage: 0, color: '#ff6f00' });
-                spawnParticles(fx, fy, '#ff9800', 4); }
-            // Hit enemies in dash path
-            for (const e of enemies) { if (!e.alive) continue; const dx = e.x-p.x, dy = e.y-p.y;
-                const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
-                if (along > 0 && along < 80 && perp < 20) dealDamageToEnemy(e, Math.round(p.damage * 2), p); }
-            spawnParticles(p.x, p.y, '#d84315', 14); triggerShake(7, 12); } break;
-        case 'muichiro': // Obscuring Clouds — create mist zone, enemies inside are slowed+miss
-            healingCircles.push({ x: p.x, y: p.y, owner: p, radius: 80, life: now + 5000, healRate: 800, lastHeal: 0, color: '#b3e5fc' });
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 80) { e.stunned = Math.max(e.stunned, now + 2000); spawnParticles(e.x, e.y, '#e1f5fe', 3); } }
-            spawnParticles(p.x, p.y, '#e1f5fe', 20);
-            triggerShake(3, 6); } break;
-        case 'akaza': // Destructive Death — auto-aim punch barrage
-            { const range = 60; let hitCount = 0;
-            for (const e of enemies) { if (!e.alive || hitCount >= 5) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < range) { dealDamageToEnemy(e, Math.round(p.damage * 1.5), p); hitCount++;
-                    spawnParticles(e.x, e.y, '#e040fb', 5); } }
-            spawnParticles(p.x, p.y, '#ce93d8', 16); triggerShake(6, 10); } break;
-        case 'ichigo': // Getsuga Tensho — crescent slash projectile + Bankai speed
-            p.activeEffects.push({ effect: 'speed', value: 1.4, endTime: now + 5000 });
-            // Fire a massive slow crescent projectile that pierces
-            projectiles.push({ x: p.x, y: p.y, vx: Math.cos(p.facingAngle)*4, vy: Math.sin(p.facingAngle)*4,
-                damage: Math.round(p.damage * 2.5), owner: 'player', ownerRef: p, range: 250, traveled: 0,
-                color: '#ff6f00', radius: 12, piercing: true, isHollowPurple: false });
-            spawnParticles(p.x, p.y, '#ffab40', 16); triggerShake(7, 12); break;
-        case 'byakuya': // Senbonzakura — 8 homing petal projectiles
-            for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2;
-                projectiles.push({ x: p.x, y: p.y, vx: Math.cos(a)*5, vy: Math.sin(a)*5,
-                    damage: Math.round(p.damage * 0.8), owner: 'player', ownerRef: p, range: 150, traveled: 0,
-                    color: '#f48fb1', radius: 3 }); }
-            spawnParticles(p.x, p.y, '#f8bbd0', 24);
-            triggerShake(4, 8); break;
-        case 'aizen': // Kyoka Suigetsu — become invisible + all enemies walk toward a decoy
-            p.invincible = now + 4000; p.activeEffects.push({ effect: 'stealth', value: 1, endTime: now + 4000 });
-            // Spawn a decoy that attracts enemies
-            { const dx = p.x + Math.cos(p.facingAngle) * 60, dy = p.y + Math.sin(p.facingAngle) * 60;
-            lootDrops.push({ x: dx, y: dy, type: 'trap', owner: p, active: true }); // decoy acts as bait
-            for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 140) { dealDamageToEnemy(e, 8, p); spawnParticles(e.x, e.y, '#9c27b0', 5); } }
-            spawnParticles(p.x, p.y, '#7b1fa2', 18);
-            triggerShake(5, 10); } break;
-        case 'gon': // Jajanken Rock — charged punch
-            { const range = 35, dmg = Math.round(p.damage * 3);
-            for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, dmg, p); }
-            spawnParticles(p.x+Math.cos(p.facingAngle)*15, p.y+Math.sin(p.facingAngle)*15, '#ffab40', 16);
-            spawnParticles(p.x, p.y, '#2e7d32', 8); triggerShake(7, 12); } break;
-        case 'killua': // Godspeed
-            p.activeEffects.push({ effect: 'speed', value: 2.0, endTime: now + 4000 });
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 60) { e.stunned = Math.max(e.stunned, now + 2000); dealDamageToEnemy(e, Math.round(p.damage * 1.3), p);
-                    spawnParticles(e.x, e.y, '#42a5f5', 5); } }
-            spawnParticles(p.x, p.y, '#90caf9', 18); spawnParticles(p.x, p.y, '#fff', 8);
-            triggerShake(5, 8); } break;
-        case 'hisoka': // Bungee Gum — pull enemies
-            { for (const e of enemies) { if (!e.alive) continue; const dist = Math.hypot(e.x-p.x, e.y-p.y);
-                if (dist < 120 && dist > 20) { const a = Math.atan2(p.y-e.y, p.x-e.x);
-                    e.x += Math.cos(a) * 40; e.y += Math.sin(a) * 40;
-                    spawnParticles(e.x, e.y, '#e91e63', 4); } }
-            spawnParticles(p.x, p.y, '#f48fb1', 14); triggerShake(4, 6); } break;
         case 'jinwoo': // Shadow Army — start spawning shadows 1 at a time
             { p._shadowSpawning = true; p._lastShadowSpawn = now;
             const existing = summonedMinions.filter(m => m.type === 'shadow' && m.owner === p).length;
             damageNumbers.push({ x: p.x, y: p.y - 30, text: 'ARISE!', color: '#7c4dff', life: 50 });
             spawnParticles(p.x, p.y, '#311b92', 12); spawnParticles(p.x, p.y, '#7c4dff', 6);
             triggerShake(4, 8); } break;
-        case 'saitama': // Serious Punch — one-shots everything
-            { const range = 80;
-            const snap = enemies.slice(); // snapshot to prevent iteration over newly spawned splits
-            for (const e of snap) { if (!e.alive) continue;
-                const dx = e.x-p.x, dy = e.y-p.y;
-                const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
-                if (along > 0 && along < range && perp < 30) dealDamageToEnemy(e, 9999, p); }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: range, width: 30, life: 15, maxLife: 15, color: '#fdd835' });
-            spawnParticles(p.x, p.y, '#fdd835', 16); spawnParticles(p.x, p.y, '#fff', 8);
-            triggerShake(12, 20); } break;
-        case 'genos': // Incinerate — wide fire beam
-            { const beamLen = 220, beamW = 22;
-            for (const e of enemies) { if (!e.alive) continue; const dx = e.x-p.x, dy = e.y-p.y;
-                const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
-                if (along > 0 && along < beamLen && perp < beamW) dealDamageToEnemy(e, Math.round(p.damage * 1.8), p); }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 18, maxLife: 18, color: '#ff6f00' });
-            spawnParticles(p.x, p.y, '#ff9800', 18); triggerShake(7, 14); } break;
-        case 'kaneki': // Centipede — kagune form
-            p.activeEffects.push({ effect: 'speed', value: 1.4, endTime: now + 5000 });
-            p.activeEffects.push({ effect: 'damage', value: 1.4, endTime: now + 5000 });
-            { const range = 45; for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, Math.round(p.damage * 1.5), p); }
-            spawnParticles(p.x, p.y, '#f44336', 14); spawnParticles(p.x, p.y, '#9e9e9e', 8);
-            triggerShake(6, 10); } break;
-        case 'denji': // Devil Form — regen + wide slashes
-            p.activeEffects.push({ effect: 'damage', value: 1.5, endTime: now + 5000 });
-            p.activeEffects.push({ effect: 'speed', value: 1.2, endTime: now + 5000 });
-            p.hp = Math.min(p.hp + 20, p.maxHp);
-            { const range = 50; for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, Math.round(p.damage * 1.5), p); }
-            spawnParticles(p.x, p.y, '#ff5722', 18); spawnParticles(p.x, p.y, '#d84315', 10);
-            triggerShake(6, 12); } break;
-        case 'asta': // Black Divider — anti-magic reflect
-            p.activeEffects.push({ effect: 'reflect', value: 1, endTime: now + 4000 });
-            { const range = 55, dmg = Math.round(p.damage * 2);
-            for (const e of enemies) { if (!e.alive) continue;
-                if (Math.hypot(e.x-p.x, e.y-p.y) < range) dealDamageToEnemy(e, dmg, p); }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 55, width: 12, life: 10, maxLife: 10, color: '#222' });
-            spawnParticles(p.x, p.y, '#111', 16); spawnParticles(p.x, p.y, '#69f0ae', 8);
-            triggerShake(6, 10); } break;
         case 'frog': // Electric Tongue — spinning wide arc traps everything
             { // Start or continue tongue spin
             if (!p._tongueActive) {
@@ -1890,47 +1370,6 @@ function playerSpecial(p, now) {
     }
 }
 
-function sukunaBlackFlash(p, now) {
-    if (p.classId !== 'sukuna') return;
-    if (!p._blackFlashCd) p._blackFlashCd = 0;
-    if (now - p._blackFlashCd < 3000) return; // 3s cooldown
-    p._blackFlashCd = now;
-
-    // Black Flash — devastating melee strike in facing direction
-    const flashRange = 50;
-    const flashDmg = Math.round(p.damage * 2.5);
-    let hitAny = false;
-    for (const e of enemies) {
-        if (!e.alive) continue;
-        const dx = e.x - p.x, dy = e.y - p.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < flashRange) {
-            const angleToEnemy = Math.atan2(dy, dx);
-            let angleDiff = angleToEnemy - p.facingAngle;
-            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-            if (Math.abs(angleDiff) < Math.PI * 0.7) {
-                dealDamageToEnemy(e, flashDmg, p);
-                hitAny = true;
-            }
-        }
-    }
-    // Black flash visual — dark lightning burst
-    const fx = p.x + Math.cos(p.facingAngle) * 25;
-    const fy = p.y + Math.sin(p.facingAngle) * 25;
-    spawnParticles(fx, fy, '#111', 12);
-    spawnParticles(fx, fy, '#ff1744', 8);
-    spawnParticles(fx, fy, '#000', 6);
-    activeBeams.push({
-        x: p.x, y: p.y, angle: p.facingAngle,
-        length: 55, width: 12,
-        life: 8, maxLife: 8, color: '#111',
-        isBlackFlash: true
-    });
-    triggerShake(8, 12);
-    p.attackAnim = 10;
-}
-
 function frogInsects(p, now) {
     if (p.classId !== 'frog') return;
     if (p._insectsSpawned) return; // only summon once
@@ -1994,21 +1433,6 @@ function jinwooRecall(p, now) {
     if (count > 0) spawnParticles(p.x, p.y, '#7c4dff', 8);
 }
 
-function gojoDash(p, now) {
-    if (p.classId !== 'gojo') return;
-    if (!p._gojoDashCd) p._gojoDashCd = 0;
-    if (now - p._gojoDashCd < 1500) return; // 1.5s cooldown
-    if (p.dodging) return;
-    p._gojoDashCd = now;
-    p.dodging = true;
-    p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
-    p.dodgeTimer = 10;
-    p.invincible = now + 350;
-    // Blue teleport trail
-    spawnParticles(p.x, p.y, '#4fc3f7', 12);
-    spawnParticles(p.x, p.y, '#e1f5fe', 6);
-}
-
 // ─── R-KEY SECONDARY ABILITIES ──────────────────────────────
 function animeSecondary(p, now) {
     if (!p._secondaryCd) p._secondaryCd = 0;
@@ -2022,102 +1446,8 @@ function animeSecondary(p, now) {
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#42a5f5', 14);
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#fff', 6);
             triggerShake(5, 8); } break;
-        case 'sasuke': // Amaterasu — black flame DoT
-            if (now - p._secondaryCd < 5000) return; p._secondaryCd = now;
-            { let target = null, closest = Infinity;
-            for (const e of enemies) { if (!e.alive) continue;
-                const d = Math.hypot(e.x - p.x, e.y - p.y);
-                if (d < 200 && d < closest) { closest = d; target = e; } }
-            if (target) { dealDamageToEnemy(target, Math.round(p.damage * 1.5), p);
-                target.stunned = Math.max(target.stunned, now + 2000);
-                spawnParticles(target.x, target.y, '#000', 12); spawnParticles(target.x, target.y, '#4a148c', 6); }
-            triggerShake(4, 6); } break;
-        case 'goku': // Instant Transmission
-            if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
-            { let target = null, closest = Infinity;
-            for (const e of enemies) { if (!e.alive) continue;
-                const d = Math.hypot(e.x - p.x, e.y - p.y);
-                if (d < 250 && d < closest) { closest = d; target = e; } }
-            if (target) { spawnParticles(p.x, p.y, '#4fc3f7', 10);
-                p.x = target.x - Math.cos(p.facingAngle) * 25; p.y = target.y - Math.sin(p.facingAngle) * 25;
-                dealDamageToEnemy(target, Math.round(p.damage * 1.5), p);
-                spawnParticles(p.x, p.y, '#fff', 10); p.invincible = now + 300; }
-            triggerShake(3, 5); } break;
-        case 'vegeta': // Galick Gun
-            if (now - p._secondaryCd < 4000) return; p._secondaryCd = now;
-            { const beamLen = 200, beamW = 14;
-            for (const e of enemies) { if (!e.alive) continue;
-                const dx = e.x - p.x, dy = e.y - p.y;
-                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
-                if (along > 0 && along < beamLen && perp < beamW) dealDamageToEnemy(e, Math.round(p.damage * 1.5), p);
-            }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 16, maxLife: 16, color: '#7b1fa2' });
-            spawnParticles(p.x, p.y, '#ce93d8', 14); triggerShake(6, 10); } break;
-        case 'luffy': // Gum Gum Gatling — rapid punches
-            if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
-            { const range = 55, hits = 5;
-            for (let h = 0; h < hits; h++) {
-                for (const e of enemies) { if (!e.alive) continue;
-                    if (Math.hypot(e.x - p.x, e.y - p.y) < range) dealDamageToEnemy(e, Math.round(p.damage * 0.5), p);
-                }
-            }
-            spawnParticles(p.x + Math.cos(p.facingAngle) * 20, p.y + Math.sin(p.facingAngle) * 20, '#d32f2f', 16);
-            triggerShake(6, 10); } break;
-        case 'tanjiro': // Hinokami Kagura — flame slash
-            if (now - p._secondaryCd < 5000) return; p._secondaryCd = now;
-            { const beamLen = 70, beamW = 15, dmg = Math.round(p.damage * 2.2);
-            for (const e of enemies) { if (!e.alive) continue;
-                const dx = e.x - p.x, dy = e.y - p.y;
-                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
-                if (along > 0 && along < beamLen && perp < beamW) dealDamageToEnemy(e, dmg, p);
-            }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 12, maxLife: 12, color: '#ff6f00' });
-            spawnParticles(p.x, p.y, '#ff9800', 14); spawnParticles(p.x, p.y, '#ff5722', 8);
-            triggerShake(6, 10); } break;
-        case 'saitama': // Normal Punch — quick burst (since Serious Punch has 20s CD)
-            if (now - p._secondaryCd < 2000) return; p._secondaryCd = now;
-            { const range = 45, dmg = Math.round(p.damage * 4);
-            const snap2 = enemies.slice();
-            for (const e of snap2) { if (!e.alive) continue;
-                const dx = e.x-p.x, dy = e.y-p.y;
-                const along = dx*Math.cos(p.facingAngle)+dy*Math.sin(p.facingAngle);
-                const perp = Math.abs(-dx*Math.sin(p.facingAngle)+dy*Math.cos(p.facingAngle));
-                if (along > 0 && along < range && perp < 20) dealDamageToEnemy(e, dmg, p); }
-            spawnParticles(p.x+Math.cos(p.facingAngle)*20, p.y+Math.sin(p.facingAngle)*20, '#fdd835', 12);
-            triggerShake(5, 8); } break;
-        case 'genos': // Machine Gun Blows — rapid 8 projectiles
-            if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
-            for (let i = 0; i < 8; i++) { const a = p.facingAngle + (Math.random()-0.5)*0.4;
-                projectiles.push({ x: p.x, y: p.y, vx: Math.cos(a)*8, vy: Math.sin(a)*8,
-                    damage: Math.round(p.damage * 0.6), owner: 'player', ownerRef: p, range: 180, traveled: 0,
-                    color: '#ff8f00', radius: 3 }); }
-            spawnParticles(p.x, p.y, '#ff8f00', 10); triggerShake(4, 6); break;
         default: return;
     }
-}
-
-function gojoHollowPurple(p, now) {
-    if (p.classId !== 'gojo') return;
-    if (!p._hollowPurpleCd) p._hollowPurpleCd = 0;
-    if (now - p._hollowPurpleCd < 4000) return; // 4s cooldown
-    p._hollowPurpleCd = now;
-
-    // Fire a massive slow-moving Hollow Purple orb
-    const speed = 3;
-    projectiles.push({
-        x: p.x, y: p.y,
-        vx: Math.cos(p.facingAngle) * speed,
-        vy: Math.sin(p.facingAngle) * speed,
-        damage: Math.round(p.damage * 3), owner: 'player', ownerRef: p,
-        range: 400, traveled: 0,
-        color: '#9c27b0', radius: 14,
-        isHollowPurple: true, piercing: true
-    });
-    spawnParticles(p.x, p.y, '#ce93d8', 12);
-    spawnParticles(p.x, p.y, '#e040fb', 8);
-    triggerShake(5, 10);
 }
 
 function portalTeleportToAlly(p, now) {
@@ -2658,39 +1988,6 @@ function update(now) {
         }
     }
 
-    // Update domain expansion (Gojo)
-    if (domainExpansion) {
-        const de = domainExpansion;
-        const elapsed = now - de.startTime;
-        const totalDuration = de.life - de.startTime;
-        // Expand phase (first 20%)
-        if (elapsed < totalDuration * 0.2) {
-            de.radius = de.maxRadius * (elapsed / (totalDuration * 0.2));
-            de.phase = 'expand';
-        }
-        // Hold phase (20%-80%) — deal damage once
-        else if (elapsed < totalDuration * 0.8) {
-            de.radius = de.maxRadius;
-            de.phase = 'hold';
-            if (!de.hasDamaged) {
-                de.hasDamaged = true;
-                for (const e of enemies) {
-                    if (!e.alive) continue;
-                    dealDamageToEnemy(e, de.damage, de.owner);
-                    spawnParticles(e.x, e.y, '#4fc3f7', 6);
-                    spawnParticles(e.x, e.y, '#111', 8);
-                }
-                triggerShake(12, 20);
-            }
-        }
-        // Collapse phase (80%-100%)
-        else {
-            const collapseProgress = (elapsed - totalDuration * 0.8) / (totalDuration * 0.2);
-            de.radius = de.maxRadius * (1 - collapseProgress);
-            de.phase = 'collapse';
-        }
-        if (now > de.life) domainExpansion = null;
-    }
 
     // Update beam effects
     for (let i = activeBeams.length - 1; i >= 0; i--) {
@@ -3072,17 +2369,17 @@ function updatePlayer(p, now) {
         if (m.down) playerAttack(p, now);
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
-        if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); frogInsects(p, now); }
-        if (pKey(p, 'KeyQ')) { gojoDash(p, now); jinwooRecall(p, now); }
+        if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
+        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); }
         if (pKey(p, 'KeyF')) jinwooAriseBoss(p, now);
     } else {
         // Local P2: Numpad
         if (pKey(p, 'Numpad0')) playerAttack(p, now);
         if (pKey(p, 'Numpad1')) playerSpecial(p, now);
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
-        if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); gojoHollowPurple(p, now); sukunaBlackFlash(p, now); animeSecondary(p, now); frogInsects(p, now); }
+        if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
         if (pKey(p, 'Numpad6') && !pKey(p, 'Numpad5')) frogInsects(p, now);
-        if (pKey(p, 'Numpad4')) { gojoDash(p, now); jinwooRecall(p, now); }
+        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); }
         if (pKey(p, 'Numpad6')) jinwooAriseBoss(p, now);
     }
 
@@ -3551,106 +2848,6 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         ctx.globalAlpha = 1;
     }
 
-    // Domain Expansion
-    if (domainExpansion) {
-        const de = domainExpansion;
-        const alpha = de.phase === 'collapse' ? de.radius / de.maxRadius : 1;
-        const t = gameTime * 0.002;
-
-        if (de.isSukuna) {
-            // ── Malevolent Shrine (Sukuna) ──
-            // Blood-red void
-            ctx.globalAlpha = alpha * 0.75;
-            ctx.fillStyle = '#1a0000';
-            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.fill();
-            // Slash marks filling the domain
-            ctx.strokeStyle = 'rgba(255,20,20,0.5)'; ctx.lineWidth = 1.5;
-            ctx.globalAlpha = alpha * 0.6;
-            for (let s = 0; s < 20; s++) {
-                const sx = de.x + Math.sin(t * 1.5 + s * 1.3) * de.radius * 0.7;
-                const sy = de.y + Math.cos(t * 1.1 + s * 1.7) * de.radius * 0.7;
-                if (Math.hypot(sx - de.x, sy - de.y) < de.radius) {
-                    const angle = t * 2 + s;
-                    ctx.beginPath();
-                    ctx.moveTo(sx - Math.cos(angle) * 12, sy - Math.sin(angle) * 12);
-                    ctx.lineTo(sx + Math.cos(angle) * 12, sy + Math.sin(angle) * 12);
-                    ctx.stroke();
-                }
-            }
-            // Shrine pillars at edges
-            ctx.fillStyle = '#4a0000'; ctx.globalAlpha = alpha * 0.7;
-            for (let p = 0; p < 8; p++) {
-                const a = (p / 8) * Math.PI * 2 + t * 0.5;
-                const px = de.x + Math.cos(a) * de.radius * 0.85;
-                const py = de.y + Math.sin(a) * de.radius * 0.85;
-                ctx.fillRect(px - 3, py - 10, 6, 20);
-                // Skull on top
-                ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.arc(px, py - 12, 3, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#4a0000';
-            }
-            // Edge ring — dark red
-            ctx.globalAlpha = alpha * 0.9;
-            ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 4;
-            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 30;
-            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.stroke();
-            ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius * (0.6 + Math.sin(t * 4) * 0.1), 0, Math.PI * 2); ctx.stroke();
-            ctx.shadowBlur = 0;
-        } else {
-            // ── Unlimited Void (Gojo) ──
-            ctx.globalAlpha = alpha * 0.7;
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = alpha * 0.5;
-            for (let s = 0; s < 30; s++) {
-                const sx = de.x + Math.sin(t + s * 1.7) * de.radius * 0.8;
-                const sy = de.y + Math.cos(t * 0.7 + s * 2.3) * de.radius * 0.8;
-                if (Math.hypot(sx - de.x, sy - de.y) < de.radius) {
-                    ctx.fillStyle = s % 3 === 0 ? '#4fc3f7' : '#e0e0e0';
-                    ctx.fillRect(sx, sy, 1 + Math.sin(t * 3 + s) * 0.5, 1 + Math.sin(t * 3 + s) * 0.5);
-                }
-            }
-            ctx.strokeStyle = 'rgba(79,195,247,0.3)'; ctx.lineWidth = 0.5;
-            ctx.globalAlpha = alpha * 0.4;
-            for (let g = -de.radius; g < de.radius; g += 20) {
-                ctx.beginPath(); ctx.moveTo(de.x + g, de.y - de.radius); ctx.lineTo(de.x + g, de.y + de.radius); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(de.x - de.radius, de.y + g); ctx.lineTo(de.x + de.radius, de.y + g); ctx.stroke();
-            }
-            ctx.globalAlpha = alpha * 0.8;
-            ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 3;
-            ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = 25;
-            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius, 0, Math.PI * 2); ctx.stroke();
-            ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.arc(de.x, de.y, de.radius * (0.5 + Math.sin(t * 5) * 0.1), 0, Math.PI * 2); ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
-        ctx.globalAlpha = 1;
-    }
-
-    // Hollow Purple projectile glow (special rendering for Gojo's orb)
-    for (const proj of projectiles) {
-        if (!proj.isHollowPurple) continue;
-        // Outer void aura
-        ctx.globalAlpha = 0.3;
-        const hpg = ctx.createRadialGradient(proj.x, proj.y, 0, proj.x, proj.y, proj.radius * 3);
-        hpg.addColorStop(0, '#9c27b0'); hpg.addColorStop(0.4, '#7b1fa2'); hpg.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = hpg; ctx.beginPath(); ctx.arc(proj.x, proj.y, proj.radius * 3, 0, Math.PI * 2); ctx.fill();
-        // Blue/red swirl inside
-        ctx.globalAlpha = 0.6;
-        const swirl = gameTime * 0.01;
-        ctx.fillStyle = '#e53935';
-        ctx.beginPath(); ctx.arc(proj.x + Math.cos(swirl) * 4, proj.y + Math.sin(swirl) * 4, proj.radius * 0.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#42a5f5';
-        ctx.beginPath(); ctx.arc(proj.x + Math.cos(swirl + Math.PI) * 4, proj.y + Math.sin(swirl + Math.PI) * 4, proj.radius * 0.5, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-        // Distortion particles
-        if (Math.random() < 0.5) {
-            const a = Math.random() * Math.PI * 2;
-            particles.push({ x: proj.x + Math.cos(a) * proj.radius * 2, y: proj.y + Math.sin(a) * proj.radius * 2,
-                vx: -Math.cos(a) * 2, vy: -Math.sin(a) * 2,
-                life: 8 + Math.random() * 6, maxLife: 14, color: '#ce93d8', size: 2 });
-        }
-    }
 
     // Beam effects (Draco / Black Flash)
     for (const b of activeBeams) {
@@ -4355,308 +3552,7 @@ function drawPortal(ctx, p, time) {
     ctx.restore();
 }
 
-function drawGojo(ctx, p, time) {
-    ctx.save(); ctx.translate(p.x, p.y);
-    // Infinity barrier aura
-    ctx.globalAlpha = 0.1 + Math.sin(time * 0.006) * 0.05;
-    const ig = ctx.createRadialGradient(0, -2, 5, 0, -2, 30);
-    ig.addColorStop(0, 'rgba(79,195,247,0.3)'); ig.addColorStop(0.5, 'rgba(79,195,247,0.1)'); ig.addColorStop(1, 'rgba(79,195,247,0)');
-    ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(0, -2, 30, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-    // Hair — white spiky
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.moveTo(-7, -10); ctx.lineTo(-5, -20); ctx.lineTo(-2, -12); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-2, -12); ctx.lineTo(0, -22); ctx.lineTo(2, -12); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(2, -12); ctx.lineTo(5, -20); ctx.lineTo(7, -10); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(5, -10); ctx.lineTo(8, -17); ctx.lineTo(9, -9); ctx.fill();
-    // Head
-    ctx.fillStyle = '#e8d5b7';
-    ctx.beginPath(); ctx.arc(0, -7, 7, 0, Math.PI * 2); ctx.fill();
-    // Blindfold
-    ctx.fillStyle = '#111';
-    ctx.fillRect(-8, -10, 16, 4);
-    // Six Eyes glow (through blindfold)
-    ctx.fillStyle = '#4fc3f7';
-    ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = p.attackAnim > 0 ? 14 : 8;
-    ctx.fillRect(-4, -9, 2.5, 2); ctx.fillRect(1.5, -9, 2.5, 2);
-    ctx.shadowBlur = 0;
-    // Body — dark uniform
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fillRect(-6, -1, 12, 14);
-    // High collar
-    ctx.fillStyle = '#111';
-    ctx.beginPath(); ctx.moveTo(-6, -1); ctx.lineTo(-5, -4); ctx.lineTo(-3, -1); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(6, -1); ctx.lineTo(5, -4); ctx.lineTo(3, -1); ctx.fill();
-    // Blue highlights on uniform
-    ctx.fillStyle = '#4fc3f7'; ctx.globalAlpha = 0.3;
-    ctx.fillRect(-1, 1, 2, 10);
-    ctx.globalAlpha = 1;
-    // Hands — cursed energy aim
-    ctx.save(); ctx.rotate(p.facingAngle);
-    // Red and Blue orbs merging
-    if (p.attackAnim > 0) {
-        ctx.fillStyle = '#e53935';
-        ctx.shadowColor = '#e53935'; ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.arc(12, -3, 3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#42a5f5';
-        ctx.shadowColor = '#42a5f5';
-        ctx.beginPath(); ctx.arc(12, 3, 3, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-    } else {
-        ctx.fillStyle = '#4fc3f7';
-        ctx.shadowColor = '#4fc3f7'; ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.arc(12, 0, 3, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-    }
-    ctx.restore();
-    // Legs
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fillRect(-4, 13, 3, 7); ctx.fillRect(2, 13, 3, 7);
-    // Shoes
-    ctx.fillStyle = '#111';
-    ctx.fillRect(-5, 19, 4, 2); ctx.fillRect(1, 19, 4, 2);
-    // Player indicator
-    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
-    ctx.beginPath(); ctx.arc(0, -24, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-}
-
-function drawSukuna(ctx, p, time) {
-    ctx.save(); ctx.translate(p.x, p.y);
-    // Malevolent aura
-    ctx.globalAlpha = 0.12 + Math.sin(time * 0.005) * 0.06;
-    const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 30);
-    ag.addColorStop(0, '#8b0000'); ag.addColorStop(1, 'rgba(139,0,0,0)');
-    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 30, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-    // Head
-    ctx.fillStyle = '#e8d0b0';
-    ctx.beginPath(); ctx.arc(0, -8, 8, 0, Math.PI * 2); ctx.fill();
-    // Pink/salmon hair — spiky
-    ctx.fillStyle = '#d4736a';
-    ctx.beginPath(); ctx.moveTo(-6, -12); ctx.lineTo(-4, -21); ctx.lineTo(-1, -14); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-1, -14); ctx.lineTo(1, -23); ctx.lineTo(3, -14); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(3, -14); ctx.lineTo(6, -20); ctx.lineTo(8, -11); ctx.fill();
-    // Four eyes (two pairs)
-    ctx.fillStyle = '#8b0000';
-    ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 4;
-    ctx.fillRect(-5, -11, 2, 2); ctx.fillRect(3, -11, 2, 2); // Top eyes
-    ctx.fillRect(-4, -8, 1.5, 1.5); ctx.fillRect(2.5, -8, 1.5, 1.5); // Bottom eyes
-    ctx.shadowBlur = 0;
-    // Curse marks on face
-    ctx.strokeStyle = '#444'; ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.moveTo(-6, -5); ctx.lineTo(-3, -3); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(6, -5); ctx.lineTo(3, -3); ctx.stroke();
-    // Body — dark kimono
-    ctx.fillStyle = '#1a1a1a';
-    ctx.beginPath(); ctx.moveTo(-7, -1); ctx.lineTo(7, -1); ctx.lineTo(8, 16); ctx.lineTo(-8, 16); ctx.fill();
-    // Kimono collar V
-    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-4, -1); ctx.lineTo(0, 5); ctx.lineTo(4, -1); ctx.stroke();
-    // Curse marks on body
-    ctx.strokeStyle = 'rgba(139,0,0,0.4)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-5, 3); ctx.lineTo(-2, 8); ctx.lineTo(-5, 12); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(5, 3); ctx.lineTo(2, 8); ctx.lineTo(5, 12); ctx.stroke();
-    // Claw weapon (aimed direction)
-    ctx.save(); ctx.rotate(p.facingAngle);
-    ctx.fillStyle = p.attackAnim > 0 ? '#ff1744' : '#8b0000';
-    ctx.shadowColor = '#ff0000'; ctx.shadowBlur = p.attackAnim > 0 ? 12 : 0;
-    const ext = p.attackAnim > 0 ? 8 : 0;
-    ctx.beginPath(); ctx.moveTo(8, -4); ctx.lineTo(18 + ext, -6); ctx.lineTo(15 + ext, -2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(20 + ext, 0); ctx.lineTo(16 + ext, 2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(8, 4); ctx.lineTo(18 + ext, 6); ctx.lineTo(15 + ext, 2); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.restore();
-    // Legs
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(-4, 16, 3, 6); ctx.fillRect(2, 16, 3, 6);
-    // Player indicator
-    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
-    ctx.beginPath(); ctx.arc(0, -25, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-}
-
 // ─── ANIME CHARACTER DRAWING ────────────────────────────────
-function drawToji(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI*2); ctx.fill(); // head
-    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.moveTo(-6,-12); ctx.lineTo(0,-15); ctx.lineTo(6,-12); ctx.lineTo(5,-8); ctx.lineTo(-5,-8); ctx.fill(); // hair
-    ctx.fillStyle = '#2e7d32'; ctx.fillRect(-6,-1,12,14); // body
-    ctx.fillStyle = '#1b5e20'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7); // legs
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = '#bbb'; ctx.fillRect(8,-1,20+(p.attackAnim>0?8:0),2); // spear
-    ctx.fillStyle = '#888'; ctx.beginPath(); ctx.moveTo(28+(p.attackAnim>0?8:0),-3); ctx.lineTo(32+(p.attackAnim>0?8:0),0); ctx.lineTo(28+(p.attackAnim>0?8:0),3); ctx.fill(); ctx.restore();
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-18,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawYuji(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#e65100'; ctx.beginPath(); ctx.moveTo(-5,-12); ctx.lineTo(0,-17); ctx.lineTo(5,-12); ctx.fill(); // spiky orange-pink hair
-    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-6,-1,12,14); // school uniform
-    ctx.fillStyle = '#e65100'; ctx.fillRect(-6,2,12,2); // belt
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = p.attackAnim>0?'#ff6f00':'#e8d0b0';
-    if(p.attackAnim>0){ctx.shadowColor='#ff6f00';ctx.shadowBlur=10;} ctx.beginPath(); ctx.arc(14,0,5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; ctx.restore();
-    ctx.fillStyle = '#111'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawNaruto(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#fdd835'; for(let i=0;i<5;i++){const a=-0.8+i*0.4; ctx.beginPath(); ctx.moveTo(Math.cos(a)*5,-8+Math.sin(a)*5); ctx.lineTo(Math.cos(a)*12,-8+Math.sin(a)*12-3); ctx.lineTo(Math.cos(a+0.2)*6,-8+Math.sin(a+0.2)*6); ctx.fill();}
-    ctx.fillStyle = '#ff8f00'; ctx.fillRect(-6,-1,12,14); // orange jacket
-    ctx.fillStyle = '#1565c0'; ctx.fillRect(-6,0,12,3); // blue band
-    ctx.strokeStyle = '#222'; ctx.lineWidth=0.8; ctx.beginPath(); ctx.moveTo(-3,-6); ctx.lineTo(-5,-6); ctx.stroke(); ctx.beginPath(); ctx.moveTo(3,-6); ctx.lineTo(5,-6); ctx.stroke(); // whiskers
-    ctx.fillStyle = '#333'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = '#546e7a'; ctx.fillRect(-2,-1,4,2); // headband
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawSasuke(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.moveTo(-7,-10); ctx.lineTo(-4,-18); ctx.lineTo(0,-12); ctx.lineTo(4,-18); ctx.lineTo(7,-10); ctx.fill(); // dark spiky hair
-    ctx.fillStyle = '#1a237e'; ctx.fillRect(-6,-1,12,14); // dark blue outfit
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = '#bbb'; ctx.fillRect(6,-1,14+(p.attackAnim>0?6:0),2);
-    if(p.attackAnim>0){ctx.fillStyle='#7c4dff';ctx.shadowColor='#7c4dff';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(12,0,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;} ctx.restore();
-    ctx.fillStyle = '#0d1b3e'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = '#d50000'; ctx.beginPath(); ctx.arc(3,-8,1.5,0,Math.PI*2); ctx.fill(); // sharingan eye
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawKakashi(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#ccc'; ctx.beginPath(); ctx.moveTo(-5,-12); ctx.lineTo(-2,-20); ctx.lineTo(2,-16); ctx.lineTo(5,-19); ctx.lineTo(6,-10); ctx.fill(); // silver hair
-    ctx.fillStyle = '#37474f'; ctx.fillRect(-7,-5,14,3); // mask
-    ctx.fillStyle = '#455a64'; ctx.fillRect(-6,-1,12,14);
-    ctx.fillStyle = '#546e7a'; ctx.fillRect(-2,-12,4,2); // headband
-    ctx.fillStyle = '#d50000'; ctx.beginPath(); ctx.arc(-3,-8,1.5,0,Math.PI*2); ctx.fill(); // sharingan
-    ctx.save(); ctx.rotate(p.facingAngle); if(p.attackAnim>0){ctx.fillStyle='#b0bec5';ctx.shadowColor='#90caf9';ctx.shadowBlur=10;ctx.beginPath();ctx.arc(14,0,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}else{ctx.fillStyle='#bbb';ctx.fillRect(8,-1,10,2);} ctx.restore();
-    ctx.fillStyle = '#37474f'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-22,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawItachi(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.moveTo(-7,-8); ctx.lineTo(-6,-16); ctx.lineTo(0,-12); ctx.lineTo(6,-16); ctx.lineTo(7,-8); ctx.fill(); // long dark hair
-    ctx.fillStyle = '#111'; ctx.fillRect(-7,-8,2,12); ctx.fillRect(5,-8,2,12); // hair sides
-    ctx.fillStyle = '#b71c1c'; ctx.fillRect(-6,-1,12,14); // akatsuki cloak
-    ctx.fillStyle = '#111'; for(let i=0;i<3;i++) ctx.fillRect(-5+i*4,2,2,8); // cloud pattern
-    ctx.strokeStyle = '#b71c1c'; ctx.lineWidth=0.8; ctx.beginPath(); ctx.moveTo(-3,-6); ctx.lineTo(-5,-4); ctx.stroke(); ctx.beginPath(); ctx.moveTo(3,-6); ctx.lineTo(5,-4); ctx.stroke(); // tear marks
-    ctx.fillStyle = '#d50000'; ctx.shadowColor = '#d50000'; ctx.shadowBlur = 5;
-    ctx.beginPath(); ctx.arc(-3,-8,1.5,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(3,-8,1.5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; // sharingan
-    ctx.fillStyle = '#111'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-18,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawMinato(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#fdd835'; for(let i=0;i<6;i++){const a=-1+i*0.4; ctx.beginPath(); ctx.moveTo(Math.cos(a)*5,-8+Math.sin(a)*5); ctx.lineTo(Math.cos(a)*11,-8+Math.sin(a)*11-2); ctx.lineTo(Math.cos(a+0.15)*6,-8+Math.sin(a+0.15)*6); ctx.fill();}
-    ctx.fillStyle = '#1565c0'; ctx.fillRect(-6,-1,12,14); // blue outfit
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(8,0); ctx.lineTo(9,16); ctx.lineTo(-9,16); ctx.fill(); // white cloak
-    ctx.fillStyle = '#ff6f00'; ctx.fillRect(-9,12,18,4); // flame hem
-    ctx.fillStyle = '#333'; ctx.fillRect(-2,-12,4,2); // headband
-    ctx.fillStyle = '#111'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = '#fdd835'; ctx.shadowColor='#fdd835'; ctx.shadowBlur=p.attackAnim>0?10:4;
-    ctx.beginPath(); ctx.moveTo(10,-2); ctx.lineTo(18,0); ctx.lineTo(10,2); ctx.fill(); ctx.shadowBlur=0; ctx.restore(); // kunai
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawGoku(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#111'; for(let i=0;i<7;i++){const a=-1.2+i*0.35; ctx.beginPath(); ctx.moveTo(Math.cos(a)*5,-8+Math.sin(a)*5); ctx.lineTo(Math.cos(a)*14,-8+Math.sin(a)*14-4); ctx.lineTo(Math.cos(a+0.15)*6,-8+Math.sin(a+0.15)*6); ctx.fill();}
-    ctx.fillStyle = '#ff6f00'; ctx.fillRect(-6,-1,12,14); // orange gi
-    ctx.fillStyle = '#1565c0'; ctx.fillRect(-6,0,12,3); // blue undershirt
-    ctx.fillStyle = '#1565c0'; ctx.fillRect(-2,3,4,2); // belt
-    ctx.save(); ctx.rotate(p.facingAngle); if(p.attackAnim>0){ctx.fillStyle='#4fc3f7';ctx.shadowColor='#4fc3f7';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(14,0,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}else{ctx.fillStyle='#e8d0b0';ctx.beginPath();ctx.arc(12,0,3,0,Math.PI*2);ctx.fill();} ctx.restore();
-    ctx.fillStyle = '#222'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-24,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawVegeta(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.moveTo(-7,-10); ctx.lineTo(-5,-22); ctx.lineTo(-2,-14); ctx.lineTo(0,-20); ctx.lineTo(2,-14); ctx.lineTo(5,-22); ctx.lineTo(7,-10); ctx.fill(); // flame hair
-    ctx.fillStyle = '#1a237e'; ctx.fillRect(-6,-1,12,14); // saiyan armor
-    ctx.fillStyle = '#fff'; ctx.fillRect(-5,0,10,6); // chest plate
-    ctx.fillStyle = '#fdd835'; ctx.fillRect(-5,0,10,1); // gold trim
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = p.attackAnim>0?'#fdd835':'#e8d0b0';
-    if(p.attackAnim>0){ctx.shadowColor='#fdd835';ctx.shadowBlur=12;} ctx.beginPath(); ctx.arc(14,0,4,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; ctx.restore();
-    ctx.fillStyle = '#0d1b3e'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-24,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawLuffy(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    const g5 = p.activeEffects && p.activeEffects.some(e => e.effect === 'gear5');
-    ctx.fillStyle = g5?'#fff':'#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = g5?'#fff':'#111'; ctx.beginPath(); ctx.arc(0,-12,8,Math.PI+0.3,-0.3); ctx.fill(); // hair
-    if(g5){ctx.globalAlpha=0.3+Math.sin(t*0.01)*0.15; const gg=ctx.createRadialGradient(0,-2,0,0,-2,30); gg.addColorStop(0,'#fff');gg.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=gg;ctx.beginPath();ctx.arc(0,-2,30,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
-    ctx.fillStyle = '#d32f2f'; ctx.fillRect(-6,-1,12,14); // red vest
-    ctx.fillStyle = '#1565c0'; ctx.fillRect(-5,8,10,6); // blue shorts
-    ctx.fillStyle = '#fdd835'; ctx.fillRect(-2,3,4,2); // sash
-    // Straw hat
-    ctx.fillStyle = '#f9a825'; ctx.beginPath(); ctx.ellipse(0,-14,9,3,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#f57f17'; ctx.fillRect(-5,-17,10,4);
-    ctx.fillStyle = '#d32f2f'; ctx.fillRect(-4,-16,8,1); // hat band
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = g5?'#fff':p.attackAnim>0?'#ff8a80':'#e8d0b0';
-    if(p.attackAnim>0||g5){ctx.shadowColor=g5?'#fff':'#d32f2f';ctx.shadowBlur=8;} ctx.beginPath(); ctx.arc(12+(p.attackAnim>0?6:0),0,4,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; ctx.restore();
-    ctx.fillStyle = '#333'; ctx.fillRect(-4,14,3,6); ctx.fillRect(2,14,3,6);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawZoro(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#2e7d32'; ctx.beginPath(); ctx.arc(0,-12,8,Math.PI+0.3,-0.3); ctx.fill(); // green hair
-    ctx.fillStyle = '#1b5e20'; ctx.fillRect(-6,-1,12,14); // green robe
-    ctx.fillStyle = '#d32f2f'; ctx.fillRect(-2,3,4,2); // red sash
-    ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth=0.8; ctx.beginPath(); ctx.moveTo(-3,-5); ctx.lineTo(-3,-2); ctx.stroke(); // scar
-    // Three swords
-    ctx.save(); ctx.rotate(p.facingAngle);
-    ctx.fillStyle = '#bbb'; ctx.fillRect(6,-3,14+(p.attackAnim>0?5:0),1.5); ctx.fillRect(6,0,14+(p.attackAnim>0?5:0),1.5); ctx.fillRect(6,3,14+(p.attackAnim>0?5:0),1.5);
-    ctx.fillStyle = '#795548'; ctx.fillRect(4,-4,3,10); ctx.restore(); // hilt
-    ctx.fillStyle = '#1b5e20'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawTanjiro(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#5d4037'; ctx.beginPath(); ctx.arc(0,-12,8,Math.PI+0.2,-0.2); ctx.fill(); // dark red-brown hair
-    ctx.fillStyle = '#8b0000'; ctx.beginPath(); ctx.arc(-4,-14,2,0,Math.PI*2); ctx.fill(); // scar/mark
-    ctx.fillStyle = '#00695c'; ctx.fillRect(-6,-1,12,14); // green-black checkered haori
-    ctx.fillStyle = '#004d40'; for(let i=0;i<3;i++) ctx.fillRect(-5+i*4,0,2,12); // pattern
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = '#555'; ctx.fillRect(6,-1.5,16+(p.attackAnim>0?6:0),3); // sword blade
-    ctx.fillStyle = '#222'; ctx.fillRect(5,-2.5,2,5); // guard
-    if(p.attackAnim>0){ctx.strokeStyle='#4dd0e1';ctx.shadowColor='#4dd0e1';ctx.shadowBlur=8;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(14,0,8,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;} ctx.restore();
-    ctx.fillStyle = '#222'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawZenitsu(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#f9a825'; for(let i=0;i<6;i++){const a=-1+i*0.35; ctx.beginPath(); ctx.moveTo(Math.cos(a)*5,-8+Math.sin(a)*5); ctx.lineTo(Math.cos(a)*12,-8+Math.sin(a)*12-3); ctx.lineTo(Math.cos(a+0.15)*6,-8+Math.sin(a+0.15)*6); ctx.fill();}
-    ctx.fillStyle = '#f9a825'; ctx.fillRect(-6,-1,12,14); // yellow haori
-    ctx.fillStyle = '#ff8f00'; for(let i=0;i<3;i++) ctx.fillRect(-5+i*4,1,2,10); // triangle pattern
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = '#bbb'; ctx.fillRect(6,-1,14,2);
-    ctx.fillStyle = '#f9a825'; ctx.shadowColor='#f9a825'; ctx.shadowBlur=p.attackAnim>0?14:0;
-    if(p.attackAnim>0) ctx.fillRect(6,-3,18,6); ctx.shadowBlur=0; ctx.restore();
-    ctx.fillStyle = '#222'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawLevi(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,6,0,Math.PI*2); ctx.fill(); // smaller head (short)
-    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0,-11,7,Math.PI+0.3,-0.3); ctx.fill(); // dark undercut hair
-    ctx.fillStyle = '#37474f'; ctx.fillRect(-5,-1,10,12); // military jacket
-    ctx.fillStyle = '#795548'; for(let i=0;i<2;i++){ctx.fillRect(-6+i*10,0,2,10);} // ODM harness straps
-    ctx.fillStyle = '#fff'; ctx.fillRect(-2,-1,4,2); // cravat
-    // Dual blades
-    ctx.save(); ctx.rotate(p.facingAngle);
-    ctx.fillStyle = '#e0e0e0'; ctx.fillRect(5,-2,16+(p.attackAnim>0?6:0),1.5); ctx.fillRect(5,1,16+(p.attackAnim>0?6:0),1.5);
-    ctx.fillStyle = '#795548'; ctx.fillRect(3,-3,3,7); ctx.restore();
-    ctx.fillStyle = '#263238'; ctx.fillRect(-3,11,2,7); ctx.fillRect(1,11,2,7);
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-18,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-function drawDeku(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
-    const fc = p.activeEffects && p.activeEffects.some(e => e.effect === 'speed');
-    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#2e7d32'; ctx.beginPath(); ctx.arc(0,-12,9,Math.PI+0.2,-0.2); ctx.fill(); // messy green hair
-    if(fc){ctx.strokeStyle='#69f0ae';ctx.shadowColor='#69f0ae';ctx.shadowBlur=8;ctx.lineWidth=1;
-        for(let i=0;i<4;i++){const a=t*0.008+i*Math.PI/2;ctx.beginPath();ctx.moveTo(Math.cos(a)*12,Math.sin(a)*12-2);ctx.lineTo(Math.cos(a)*18,Math.sin(a)*18-2);ctx.stroke();}ctx.shadowBlur=0;}
-    ctx.fillStyle = '#4caf50'; ctx.fillRect(-6,-1,12,14); // green costume
-    ctx.fillStyle = '#fff'; ctx.fillRect(-6,0,12,3); // white details
-    ctx.fillStyle = '#d32f2f'; ctx.fillRect(-2,0,4,2); // red belt
-    ctx.save(); ctx.rotate(p.facingAngle); ctx.fillStyle = fc?'#69f0ae':p.attackAnim>0?'#4caf50':'#e8d0b0';
-    if(p.attackAnim>0||fc){ctx.shadowColor='#69f0ae';ctx.shadowBlur=10;} ctx.beginPath(); ctx.arc(14,0,5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; ctx.restore();
-    ctx.fillStyle = '#2e7d32'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
-    ctx.fillStyle = '#d32f2f'; ctx.fillRect(-5,18,4,2); ctx.fillRect(1,18,4,2); // red shoes
-    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-22,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-
-// Helper to create class drawChar from colors
-function makeDrawFn(hair, outfit, style, extraFn) {
-    return function(ctx, p, t) { drawGenericAnime(ctx, p, hair, outfit, style, extraFn); };
-}
 
 // ─── MORE ANIME CHARACTER DRAWING ───────────────────────────
 function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
@@ -4695,36 +3591,18 @@ function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
     ctx.restore();
 }
 
-function drawRockLee(c,p,t){drawGenericAnime(c,p,'#111','#2e7d32','round',function(c,p){c.fillStyle='#ff8f00';c.fillRect(-2,3,4,2);c.fillStyle='#e8d0b0';c.beginPath();c.arc(-3,-8,1.5,0,Math.PI*2);c.fill();c.beginPath();c.arc(3,-8,1.5,0,Math.PI*2);c.fill();});}
-function drawGaara(c,p,t){drawGenericAnime(c,p,'#b71c1c','#c8a05a','spiky',function(c,p){c.fillStyle='#00695c';c.beginPath();c.arc(-4,-10,2,0,Math.PI*2);c.fill();c.fillStyle='#222';c.strokeStyle='#000';c.lineWidth=0.8;c.beginPath();c.arc(3,-8,1.5,0,Math.PI*2);c.stroke();});}
-function drawPain(c,p,t){drawGenericAnime(c,p,'#ff6f00','#111','spiky',function(c,p){c.fillStyle='#7b1fa2';c.beginPath();c.arc(-3,-8,1.8,0,Math.PI*2);c.fill();c.beginPath();c.arc(3,-8,1.8,0,Math.PI*2);c.fill();c.fillStyle='#e65100';for(let i=0;i<4;i++){c.fillRect(-6+i*3,-4,1,1);}});}
-function drawMadara(c,p,t){drawGenericAnime(c,p,'#111','#d32f2f','long',function(c,p){c.fillStyle='#d50000';c.shadowColor='#d50000';c.shadowBlur=4;c.beginPath();c.arc(3,-8,1.5,0,Math.PI*2);c.fill();c.shadowBlur=0;c.fillStyle='#555';c.fillRect(-8,0,2,10);c.fillRect(6,0,2,10);});}
-function drawTodo(c,p,t){drawGenericAnime(c,p,'#6d4c41','#4e342e','round',function(c,p){c.fillStyle='#e8d0b0';c.fillRect(-7,0,14,3);});}
+function drawNaruto(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
+    ctx.fillStyle = '#e8d0b0'; ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fdd835'; for(let i=0;i<5;i++){const a=-0.8+i*0.4; ctx.beginPath(); ctx.moveTo(Math.cos(a)*5,-8+Math.sin(a)*5); ctx.lineTo(Math.cos(a)*12,-8+Math.sin(a)*12-3); ctx.lineTo(Math.cos(a+0.2)*6,-8+Math.sin(a+0.2)*6); ctx.fill();}
+    ctx.fillStyle = '#ff8f00'; ctx.fillRect(-6,-1,12,14); // orange jacket
+    ctx.fillStyle = '#1565c0'; ctx.fillRect(-6,0,12,3); // blue band
+    ctx.strokeStyle = '#222'; ctx.lineWidth=0.8; ctx.beginPath(); ctx.moveTo(-3,-6); ctx.lineTo(-5,-6); ctx.stroke(); ctx.beginPath(); ctx.moveTo(3,-6); ctx.lineTo(5,-6); ctx.stroke(); // whiskers
+    ctx.fillStyle = '#333'; ctx.fillRect(-4,13,3,7); ctx.fillRect(2,13,3,7);
+    ctx.fillStyle = '#546e7a'; ctx.fillRect(-2,-1,4,2); // headband
+    ctx.fillStyle = p.playerIndex===0?'#fff':'#4a9eff'; ctx.beginPath(); ctx.arc(0,-20,2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+
 function drawMegumi(c,p,t){drawGenericAnime(c,p,'#111','#1a237e','spiky',function(c,p){c.fillStyle='#283593';c.fillRect(-6,3,12,2);});}
-function drawMaki(c,p,t){drawGenericAnime(c,p,'#33691e','#558b2f','long',function(c,p){c.fillStyle='#fff';c.fillRect(-5,-10,10,2);});}
-function drawKenjaku(c,p,t){drawGenericAnime(c,p,'#111','#4e342e','long',function(c,p){c.strokeStyle='#795548';c.lineWidth=1;c.beginPath();c.moveTo(-6,-4);c.lineTo(6,-4);c.stroke();});}
-function drawGohan(c,p,t){drawGenericAnime(c,p,'#e0e0e0','#7b1fa2','spiky',function(c,p){c.fillStyle='#e91e63';c.shadowColor='#e91e63';c.shadowBlur=4;c.beginPath();c.arc(0,-8,2,0,Math.PI*2);c.fill();c.shadowBlur=0;});}
-function drawFrieza(c,p,t){ctx=c;ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle='#e1bee7';ctx.beginPath();ctx.arc(0,-8,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7b1fa2';ctx.beginPath();ctx.arc(0,-14,5,Math.PI+0.3,-0.3);ctx.fill();ctx.fillStyle='#e1bee7';ctx.fillRect(-5,-1,10,12);ctx.fillStyle='#7b1fa2';ctx.fillRect(-6,0,12,2);ctx.fillRect(-6,5,12,2);ctx.fillStyle='#e1bee7';ctx.fillRect(-3,11,2,7);ctx.fillRect(1,11,2,7);ctx.save();ctx.rotate(p.facingAngle);ctx.fillStyle=p.attackAnim>0?'#e040fb':'#ce93d8';if(p.attackAnim>0){ctx.shadowColor='#e040fb';ctx.shadowBlur=10;}ctx.beginPath();ctx.arc(14,0,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();ctx.fillStyle=p.playerIndex===0?'#fff':'#4a9eff';ctx.beginPath();ctx.arc(0,-20,2,0,Math.PI*2);ctx.fill();ctx.restore();}
-function drawBroly(c,p,t){const hpPct=p.hp/p.maxHp;drawGenericAnime(c,p,hpPct<0.5?'#76ff03':'#111','#33691e','spiky',function(c,p){if(hpPct<0.5){c.globalAlpha=0.2;const g=c.createRadialGradient(0,-2,0,0,-2,25);g.addColorStop(0,'#76ff03');g.addColorStop(1,'rgba(118,255,3,0)');c.fillStyle=g;c.beginPath();c.arc(0,-2,25,0,Math.PI*2);c.fill();c.globalAlpha=1;}});}
-function drawTrunks(c,p,t){drawGenericAnime(c,p,'#7c4dff','#1a237e','spiky',function(c,p){c.fillStyle='#455a64';c.fillRect(-7,0,14,3);});}
-function drawSanji(c,p,t){drawGenericAnime(c,p,'#fdd835','#111','round',function(c,p){c.fillStyle='#fdd835';c.fillRect(-6,-8,5,4);c.fillStyle='#e65100';if(p.activeEffects&&p.activeEffects.some(e=>e.effect==='speed')){c.shadowColor='#ff6f00';c.shadowBlur=6;c.fillRect(-5,10,3,4);c.fillRect(2,10,3,4);c.shadowBlur=0;}});}
-function drawLaw(c,p,t){drawGenericAnime(c,p,'#111','#fdd835','round',function(c,p){c.fillStyle='#fff';c.fillRect(-5,-12,10,3);c.fillStyle='#111';c.font='5px monospace';c.textAlign='center';c.fillText('DEATH',0,8);});}
-function drawShanks(c,p,t){drawGenericAnime(c,p,'#d32f2f','#111','spiky',function(c,p){c.strokeStyle='#e8d0b0';c.lineWidth=0.8;c.beginPath();c.moveTo(-4,-6);c.lineTo(-6,-4);c.stroke();});}
-function drawRengoku(c,p,t){drawGenericAnime(c,p,'#ff6f00','#111','spiky',function(c,p){c.fillStyle='#d84315';c.fillRect(-5,-12,10,3);c.fillStyle='#ff6f00';c.fillRect(-6,0,12,2);});}
-function drawMuichiro(c,p,t){drawGenericAnime(c,p,'#b3e5fc','#4fc3f7','long',function(c,p){c.globalAlpha=0.15;const g=c.createRadialGradient(0,-2,0,0,-2,22);g.addColorStop(0,'#e1f5fe');g.addColorStop(1,'rgba(179,229,252,0)');c.fillStyle=g;c.beginPath();c.arc(0,-2,22,0,Math.PI*2);c.fill();c.globalAlpha=1;});}
-function drawAkaza(c,p,t){drawGenericAnime(c,p,'#e040fb','#111','spiky',function(c,p){c.strokeStyle='#e040fb';c.lineWidth=0.8;for(let i=0;i<3;i++){c.beginPath();c.arc(0,4,3+i*3,0,Math.PI*2);c.stroke();}});}
-function drawIchigo(c,p,t){drawGenericAnime(c,p,'#ff6f00','#111','spiky',function(c,p){c.fillStyle='#111';c.beginPath();c.moveTo(-8,0);c.lineTo(8,0);c.lineTo(9,16);c.lineTo(-9,16);c.fill();});}
-function drawByakuya(c,p,t){drawGenericAnime(c,p,'#111','#fff','long',function(c,p){c.fillStyle='#f48fb1';c.globalAlpha=0.15;for(let i=0;i<6;i++){const a=t*0.003+i;c.beginPath();c.arc(Math.cos(a)*15,Math.sin(a)*15-2,2,0,Math.PI*2);c.fill();}c.globalAlpha=1;});}
-function drawAizen(c,p,t){drawGenericAnime(c,p,'#4a148c','#fff','round',function(c,p){c.fillStyle='#9c27b0';c.shadowColor='#9c27b0';c.shadowBlur=4;c.beginPath();c.arc(0,-8,2,0,Math.PI*2);c.fill();c.shadowBlur=0;});}
-function drawGon(c,p,t){drawGenericAnime(c,p,'#111','#2e7d32','spiky',function(c,p){c.fillStyle='#ff6f00';c.fillRect(-6,0,12,3);});}
-function drawKillua(c,p,t){drawGenericAnime(c,p,'#e0e0e0','#42a5f5','spiky',function(c,p){if(p.activeEffects&&p.activeEffects.some(e=>e.effect==='speed')){c.strokeStyle='#42a5f5';c.shadowColor='#42a5f5';c.shadowBlur=6;c.lineWidth=1;for(let i=0;i<3;i++){const a=t*0.01+i*2;c.beginPath();c.moveTo(Math.cos(a)*10,Math.sin(a)*10-2);c.lineTo(Math.cos(a)*16,Math.sin(a)*16-2);c.stroke();}c.shadowBlur=0;}});}
-function drawHisoka(c,p,t){drawGenericAnime(c,p,'#d32f2f','#e91e63','spiky',function(c,p){c.fillStyle='#fdd835';c.beginPath();c.moveTo(-2,-6);c.lineTo(0,-4);c.lineTo(2,-6);c.fill();c.fillStyle='#42a5f5';c.beginPath();c.moveTo(-2,-4);c.lineTo(0,-6);c.lineTo(2,-4);c.fill();});}
 function drawJinWoo(c,p,t){drawGenericAnime(c,p,'#111','#311b92','round',function(c,p){c.fillStyle='#7c4dff';c.shadowColor='#7c4dff';c.shadowBlur=5;c.beginPath();c.arc(-3,-8,1.5,0,Math.PI*2);c.fill();c.beginPath();c.arc(3,-8,1.5,0,Math.PI*2);c.fill();c.shadowBlur=0;c.globalAlpha=0.1;const g=c.createRadialGradient(0,-2,0,0,-2,25);g.addColorStop(0,'#311b92');g.addColorStop(1,'rgba(49,27,146,0)');c.fillStyle=g;c.beginPath();c.arc(0,-2,25,0,Math.PI*2);c.fill();c.globalAlpha=1;});}
-function drawSaitama(c,p,t){ctx=c;ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle='#e8d0b0';ctx.beginPath();ctx.arc(0,-8,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fdd835';ctx.fillRect(-6,-1,12,14);ctx.fillStyle='#d32f2f';ctx.fillRect(-6,0,12,3);ctx.fillStyle='#fff';ctx.fillRect(-4,3,8,2);ctx.save();ctx.rotate(p.facingAngle);ctx.fillStyle=p.attackAnim>0?'#fdd835':'#e8d0b0';if(p.attackAnim>0){ctx.shadowColor='#fdd835';ctx.shadowBlur=20;}ctx.beginPath();ctx.arc(14,0,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();ctx.fillStyle='#d32f2f';ctx.fillRect(-4,13,3,7);ctx.fillRect(2,13,3,7);ctx.fillStyle='#fff';ctx.fillRect(-5,18,4,2);ctx.fillRect(1,18,4,2);ctx.fillStyle=p.playerIndex===0?'#fff':'#4a9eff';ctx.beginPath();ctx.arc(0,-18,2,0,Math.PI*2);ctx.fill();ctx.restore();}
-function drawGenos(c,p,t){ctx=c;ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle='#fdd835';ctx.beginPath();ctx.arc(0,-8,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fdd835';ctx.beginPath();ctx.arc(0,-12,8,Math.PI+0.3,-0.3);ctx.fill();ctx.fillStyle='#222';ctx.fillRect(-6,-1,12,14);ctx.fillStyle='#ff8f00';ctx.fillRect(-6,0,2,12);ctx.fillRect(4,0,2,12);ctx.fillStyle='#ff8f00';ctx.shadowColor='#ff8f00';ctx.shadowBlur=4;ctx.beginPath();ctx.arc(-3,-8,1.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(3,-8,1.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.save();ctx.rotate(p.facingAngle);ctx.fillStyle=p.attackAnim>0?'#ff6f00':'#bbb';if(p.attackAnim>0){ctx.shadowColor='#ff6f00';ctx.shadowBlur=12;}ctx.beginPath();ctx.arc(14,0,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();ctx.fillStyle='#333';ctx.fillRect(-4,13,3,7);ctx.fillRect(2,13,3,7);ctx.fillStyle=p.playerIndex===0?'#fff':'#4a9eff';ctx.beginPath();ctx.arc(0,-20,2,0,Math.PI*2);ctx.fill();ctx.restore();}
-function drawKaneki(c,p,t){drawGenericAnime(c,p,'#fff','#111','round',function(c,p){c.fillStyle='#f44336';c.beginPath();c.arc(-3,-8,1.5,0,Math.PI*2);c.fill();c.fillStyle='#9e9e9e';c.beginPath();c.arc(3,-8,1.5,0,Math.PI*2);c.fill();if(p.activeEffects&&p.activeEffects.some(e=>e.effect==='damage')){c.fillStyle='#f44336';c.globalAlpha=0.4;for(let i=0;i<3;i++){const a=t*0.005+i*2;c.beginPath();c.moveTo(0,5);c.lineTo(Math.cos(a)*20,5+Math.sin(a)*20);c.lineTo(Math.cos(a+0.3)*18,5+Math.sin(a+0.3)*18);c.fill();}c.globalAlpha=1;}});}
-function drawDenji(c,p,t){ctx=c;ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle='#e8d0b0';ctx.beginPath();ctx.arc(0,-8,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff5722';ctx.beginPath();ctx.moveTo(-5,-12);ctx.lineTo(-3,-18);ctx.lineTo(0,-13);ctx.lineTo(3,-18);ctx.lineTo(5,-12);ctx.fill();const hasBuff=p.activeEffects&&p.activeEffects.some(e=>e.effect==='damage');if(hasBuff){ctx.fillStyle='#ff5722';ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(-2,-25);ctx.lineTo(2,-25);ctx.fill();}ctx.fillStyle='#fff';ctx.fillRect(-6,-1,12,14);ctx.fillStyle='#d32f2f';ctx.fillRect(-2,3,4,2);ctx.save();ctx.rotate(p.facingAngle);ctx.fillStyle='#9e9e9e';ctx.fillRect(6,-2,16+(p.attackAnim>0?6:0),4);ctx.strokeStyle='#bbb';ctx.lineWidth=0.5;for(let i=0;i<5;i++)ctx.beginPath(),ctx.moveTo(8+i*3,-2),ctx.lineTo(8+i*3,2),ctx.stroke();ctx.restore();ctx.fillStyle='#333';ctx.fillRect(-4,13,3,7);ctx.fillRect(2,13,3,7);ctx.fillStyle=p.playerIndex===0?'#fff':'#4a9eff';ctx.beginPath();ctx.arc(0,-20,2,0,Math.PI*2);ctx.fill();ctx.restore();}
-function drawAsta(c,p,t){drawGenericAnime(c,p,'#bbb','#111','spiky',function(c,p){c.fillStyle='#222';c.strokeStyle='#69f0ae';c.lineWidth=0.8;c.strokeRect(-3,-1,6,10);if(p.activeEffects&&p.activeEffects.some(e=>e.effect==='reflect')){c.globalAlpha=0.2;const g=c.createRadialGradient(0,-2,0,0,-2,22);g.addColorStop(0,'#111');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.beginPath();c.arc(0,-2,22,0,Math.PI*2);c.fill();c.globalAlpha=1;}});}
 
 function drawFrog(ctx, p, t) {
     ctx.save(); ctx.translate(p.x, p.y);
