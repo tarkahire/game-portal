@@ -10,11 +10,11 @@ export const HEX_SIZE = 28;
 
 const SQRT3 = Math.sqrt(3);
 
-// Isometric Y compression (0.5 = 30° tilt, strategy game standard)
-export const ISO_Y_SCALE = 0.55;
+// Y scale (1.0 = flat top-down, <1.0 = isometric tilt)
+export const ISO_Y_SCALE = 1.0;
 
-// Elevation step in pixels (how much each elevation level raises a hex)
-export const ELEVATION_STEP = 6;
+// Elevation step in pixels (0 = disabled)
+export const ELEVATION_STEP = 0;
 
 // Terrain elevation map
 export const TERRAIN_ELEVATION = {
