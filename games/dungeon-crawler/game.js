@@ -1434,6 +1434,28 @@ function jinwooAriseBoss(p, now) {
     triggerShake(8, 14);
 }
 
+function katakuriHaki(p, now) {
+    if (p.classId !== 'katakuri') return;
+    if (!p._hakiCd) p._hakiCd = 0;
+    if (now - p._hakiCd < 500) return; // prevent spam toggle
+    p._hakiCd = now;
+    p._haki = !p._haki;
+    if (p._haki) {
+        // Haki ON — damage boost
+        p.activeEffects.push({ effect: 'damage', value: 1.4, endTime: now + 10000, _hakiBuff: true });
+        damageNumbers.push({ x: p.x, y: p.y - 30, text: 'HAKI!', color: '#b71c1c', life: 40 });
+        spawnParticles(p.x, p.y, '#b71c1c', 16);
+        spawnParticles(p.x, p.y, '#111', 8);
+        triggerShake(4, 6);
+        // Auto-expire after 10s
+        setTimeout(() => { if (p._haki) { p._haki = false; } }, 10000);
+    } else {
+        // Haki OFF — remove buff
+        p.activeEffects = p.activeEffects.filter(e => !e._hakiBuff);
+        damageNumbers.push({ x: p.x, y: p.y - 30, text: 'HAKI OFF', color: '#888', life: 30 });
+    }
+}
+
 function jinwooRecall(p, now) {
     if (p.classId !== 'jinwoo') return;
     // Teleport all shadows + shadow boss back to Jin-Woo
@@ -1458,7 +1480,11 @@ function animeSecondary(p, now) {
     switch (p.classId) {
         case 'katakuri': // Restless Dough Fists — directional rapid punch burst
             if (now - p._secondaryCd < 4000) return; p._secondaryCd = now;
-            { const fanSpread = 0.5; // radians spread
+            { const fanSpread = 0.5;
+            const hk = !!p._haki;
+            const beamCol = hk ? '#b71c1c' : '#e8b0a0';
+            const sparkCol = hk ? '#7f0000' : '#e8b0a0';
+            const dmgMult = hk ? 1.2 : 0.8;
             for (let i = 0; i < 6; i++) {
                 const a = p.facingAngle + (i - 2.5) * (fanSpread / 5);
                 const range = 60;
@@ -1470,15 +1496,15 @@ function animeSecondary(p, now) {
                         let diff = Math.abs(eAngle - a);
                         if (diff > Math.PI) diff = Math.PI * 2 - diff;
                         if (diff < 0.3) {
-                            dealDamageToEnemy(e, Math.round(p.damage * 0.8), p);
-                            spawnParticles(e.x, e.y, '#e8b0a0', 3);
+                            dealDamageToEnemy(e, Math.round(p.damage * dmgMult), p);
+                            spawnParticles(e.x, e.y, sparkCol, 3);
                         }
                     }
                 }
-                activeBeams.push({ x: p.x, y: p.y, angle: a, length: 55, width: 5, life: 6 + i * 2, maxLife: 18, color: '#e8b0a0' });
+                activeBeams.push({ x: p.x, y: p.y, angle: a, length: 55, width: 5, life: 6 + i * 2, maxLife: 18, color: beamCol });
             }
-            damageNumbers.push({ x: p.x, y: p.y - 30, text: 'BARRAGE!', color: '#c62828', life: 40 });
-            spawnParticles(p.x, p.y, '#c62828', 20);
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: 'BARRAGE!', color: hk ? '#b71c1c' : '#c62828', life: 40 });
+            spawnParticles(p.x, p.y, hk ? '#b71c1c' : '#c62828', 20);
             triggerShake(8, 14); } break;
         case 'naruto': // Rasengan
             if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
@@ -2440,7 +2466,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
         if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
-        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); }
+        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); katakuriHaki(p, now); }
         if (pKey(p, 'KeyF')) jinwooAriseBoss(p, now);
     } else {
         // Local P2: Numpad
@@ -2449,7 +2475,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
         if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
         if (pKey(p, 'Numpad6') && !pKey(p, 'Numpad5')) frogInsects(p, now);
-        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); }
+        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); katakuriHaki(p, now); }
         if (pKey(p, 'Numpad6')) jinwooAriseBoss(p, now);
     }
 
@@ -2922,6 +2948,10 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
     // Katakuri Fusillade fist rendering — fists fly from rings to targets
     for (const p of players) {
         if (!p._fusillade) continue;
+        const hk = !!p._haki;
+        const fCol = hk ? '#b71c1c' : '#fff';
+        const fColInner = hk ? '#7f0000' : '#e0e0e0';
+        const fGlow = hk ? '#ff1744' : '#fff';
         for (const f of p._fusillade) {
             const elapsed = gameTime - f.startTime;
             const srcX = f.srcX || p.x;
@@ -2931,33 +2961,33 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
                 const progress = elapsed / f.delay;
                 const curX = srcX + (f.x - srcX) * progress;
                 const curY = srcY + (f.y - srcY) * progress;
-                // White dough arm line from ring to current fist pos
-                ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-                ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
+                // Dough arm line from ring to fist
+                ctx.strokeStyle = fCol; ctx.lineWidth = 4; ctx.lineCap = 'round';
+                ctx.shadowColor = fGlow; ctx.shadowBlur = hk ? 10 : 6;
                 ctx.globalAlpha = 0.7;
                 ctx.beginPath(); ctx.moveTo(srcX, srcY); ctx.lineTo(curX, curY); ctx.stroke();
                 ctx.shadowBlur = 0;
                 // Flying fist
                 ctx.globalAlpha = 1;
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = fCol;
                 ctx.beginPath(); ctx.arc(curX, curY, 8, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#e0e0e0';
+                ctx.fillStyle = fColInner;
                 ctx.beginPath(); ctx.arc(curX, curY, 3.5, 0, Math.PI * 2); ctx.fill();
                 // Target warning
                 ctx.globalAlpha = 0.15 + progress * 0.2;
-                ctx.fillStyle = '#c62828';
+                ctx.fillStyle = hk ? '#b71c1c' : '#c62828';
                 ctx.beginPath(); ctx.arc(f.x, f.y, 12, 0, Math.PI * 2); ctx.fill();
             } else if (!f.hit || elapsed < f.delay + 300) {
                 // Slam impact
                 const impactT = (elapsed - f.delay) / 300;
                 const fistSize = 16 * (1 - impactT * 0.3);
                 ctx.globalAlpha = 1 - impactT * 0.7;
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = fCol;
                 ctx.beginPath(); ctx.arc(f.x, f.y, fistSize, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#e0e0e0';
+                ctx.fillStyle = fColInner;
                 ctx.beginPath(); ctx.arc(f.x, f.y, fistSize * 0.4, 0, Math.PI * 2); ctx.fill();
                 // Impact ring
-                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                ctx.strokeStyle = fCol; ctx.lineWidth = 2;
                 ctx.globalAlpha *= 0.5;
                 ctx.beginPath(); ctx.arc(f.x, f.y, fistSize + impactT * 25, 0, Math.PI * 2); ctx.stroke();
             }
@@ -3713,45 +3743,59 @@ function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
 
 function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
     const attacking = p.attackAnim > 0;
+    const haki = !!p._haki;
+    const doughCol = haki ? '#b71c1c' : '#fff';        // fists/arms color
+    const doughColInner = haki ? '#7f0000' : '#e0e0e0'; // inner fist
+    const doughGlow = haki ? '#ff1744' : '#fff';         // glow
+    const doughSpark = haki ? 'rgba(183,28,28,0.5)' : 'rgba(255,255,255,0.5)';
     const fa = p.facingAngle;
     const perpX = Math.cos(fa + Math.PI / 2);
     const perpY = Math.sin(fa + Math.PI / 2);
     const fwdX = Math.cos(fa);
     const fwdY = Math.sin(fa);
     const sideOffset = 12;
-    // Donut rings — ALWAYS visible on each side of player
+    // Haki aura around player
+    if (haki) {
+        ctx.globalAlpha = 0.12;
+        const ag = ctx.createRadialGradient(0, 0, 0, 0, 0, 28);
+        ag.addColorStop(0, '#b71c1c'); ag.addColorStop(1, 'rgba(183,28,28,0)');
+        ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+    // Donut rings — ALWAYS white, always visible
     ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
     for (let side = -1; side <= 1; side += 2) {
         const ringX = perpX * sideOffset * side;
         const ringY = perpY * sideOffset * side;
-        // Outer ring
+        // Outer ring — always white
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
         ctx.beginPath(); ctx.arc(ringX, ringY, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        // Inner hole
+        // Inner hole — always white
         ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(ringX, ringY, 4, 0, Math.PI * 2); ctx.stroke();
-        // Gentle idle rotation particles
+        // Idle particles
         if (!attacking) {
-            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.fillStyle = haki ? 'rgba(183,28,28,0.3)' : 'rgba(255,255,255,0.25)';
             const ra = t * 0.004 + side * 1.5;
             ctx.beginPath(); ctx.arc(ringX + Math.cos(ra) * 9, ringY + Math.sin(ra) * 9, 1.5, 0, Math.PI * 2); ctx.fill();
         }
-        // Fists burst forward ONLY when attacking
+        // Fists burst forward — color changes with haki
         if (attacking) {
             const punchDist = 20 + p.attackAnim * 6;
             const fistX = ringX + fwdX * punchDist;
             const fistY = ringY + fwdY * punchDist;
-            // Dough arm line from ring to fist
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            ctx.shadowColor = doughGlow; ctx.shadowBlur = haki ? 12 : 6;
+            // Arm line
+            ctx.strokeStyle = doughCol; ctx.lineWidth = 4; ctx.lineCap = 'round';
             ctx.beginPath(); ctx.moveTo(ringX, ringY); ctx.lineTo(fistX, fistY); ctx.stroke();
             // Fist
-            ctx.fillStyle = '#fff';
+            ctx.fillStyle = doughCol;
             ctx.beginPath(); ctx.arc(fistX, fistY, 6, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#e0e0e0';
+            ctx.fillStyle = doughColInner;
             ctx.beginPath(); ctx.arc(fistX, fistY, 2.5, 0, Math.PI * 2); ctx.fill();
-            // Impact sparks
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            // Sparks
+            ctx.fillStyle = doughSpark;
             for (let sp = 0; sp < 3; sp++) {
                 const sa = t * 0.025 + sp * 2.1 + side;
                 ctx.beginPath(); ctx.arc(fistX + Math.cos(sa) * 8, fistY + Math.sin(sa) * 8, 1.5, 0, Math.PI * 2); ctx.fill();
@@ -3759,7 +3803,7 @@ function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
         }
     }
     ctx.shadowBlur = 0;
-    // Store ring positions for fusillade to use
+    // Store ring positions + haki state for fusillade rendering
     p._ringLeft = { x: p.x + perpX * sideOffset * -1, y: p.y + perpY * sideOffset * -1 };
     p._ringRight = { x: p.x + perpX * sideOffset * 1, y: p.y + perpY * sideOffset * 1 };
     // Scarf
