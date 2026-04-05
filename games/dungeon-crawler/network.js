@@ -42,7 +42,13 @@ function createRoom(localCount) {
     updateLobbyUI();
 
     const peerId = 'dc-' + NET.roomCode.toLowerCase();
-    NET.peer = new Peer(peerId, { debug: 0 });
+    const iceServers = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' }
+    ];
+    NET.peer = new Peer(peerId, { debug: 0, config: { iceServers } });
 
     NET.peer.on('open', () => {
         document.getElementById('lobby-status').textContent = 'Room open! Share the code.';
@@ -89,27 +95,54 @@ function joinRoom(code, localCount) {
     NET.isOnline = true;
     NET.localPlayerCount = localCount || 1;
     NET.roomCode = code.toUpperCase();
+    NET._joinRetries = 0;
+    NET._maxRetries = 3;
 
     document.getElementById('lobby-status').textContent = 'Connecting...';
     showScreen('lobby-screen');
     document.getElementById('room-code-display').textContent = NET.roomCode;
 
-    NET.peer = new Peer(undefined, { debug: 0 });
+    attemptJoin();
+}
+
+function attemptJoin() {
+    // Clean up previous peer if retrying
+    if (NET.peer) { try { NET.peer.destroy(); } catch(e) {} }
+
+    const iceServers = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' }
+    ];
+
+    NET.peer = new Peer(undefined, { debug: 0, config: { iceServers } });
 
     NET.peer.on('open', () => {
         const peerId = 'dc-' + NET.roomCode.toLowerCase();
         const conn = NET.peer.connect(peerId, { reliable: true });
         NET.connections = [conn];
 
+        // Timeout if connection doesn't open in 8 seconds
+        const timeout = setTimeout(() => {
+            if (!conn.open) {
+                console.warn('Connection timed out, retrying...');
+                conn.close();
+                retryJoin();
+            }
+        }, 8000);
+
         conn.on('open', () => {
+            clearTimeout(timeout);
+            NET._joinRetries = 0;
             document.getElementById('lobby-status').textContent = 'Connected!';
-            // Tell host how many local players we have
             conn.send({ type: 'localCount', count: NET.localPlayerCount });
         });
 
         conn.on('data', (data) => handleClientReceive(data, conn));
 
         conn.on('close', () => {
+            clearTimeout(timeout);
             document.getElementById('lobby-status').textContent = 'Disconnected from host.';
             NET.isOnline = false;
         });
@@ -117,8 +150,22 @@ function joinRoom(code, localCount) {
 
     NET.peer.on('error', (err) => {
         console.error('Peer error:', err);
-        document.getElementById('lobby-status').textContent = 'Failed to connect: ' + err.type;
+        if (err.type === 'peer-unavailable' || err.type === 'network') {
+            retryJoin();
+        } else {
+            document.getElementById('lobby-status').textContent = 'Failed to connect: ' + err.type;
+        }
     });
+}
+
+function retryJoin() {
+    NET._joinRetries++;
+    if (NET._joinRetries <= NET._maxRetries) {
+        document.getElementById('lobby-status').textContent = `Retrying... (${NET._joinRetries}/${NET._maxRetries})`;
+        setTimeout(attemptJoin, 1500);
+    } else {
+        document.getElementById('lobby-status').textContent = 'Could not connect. Check the room code and try again.';
+    }
 }
 
 // ─── HOST: receive from clients ──────────────────────────────
