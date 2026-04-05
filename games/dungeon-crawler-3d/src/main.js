@@ -491,13 +491,13 @@ function initKataPortals() {
             new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35 })
         );
         torus.add(glow);
-        // Dripping dough particles hanging from the donut
-        for (let d = 0; d < 4; d++) {
+        // 2 drip blobs hanging from donut
+        for (let d = 0; d < 2; d++) {
             const drip = new THREE.Mesh(
-                new THREE.SphereGeometry(0.03 + Math.random() * 0.03, 4, 4),
-                new THREE.MeshBasicMaterial({ color: '#fffff0', transparent: true, opacity: 0.6 })
+                new THREE.SphereGeometry(0.04, 3, 3),
+                new THREE.MeshBasicMaterial({ color: '#fffff0', transparent: true, opacity: 0.5 })
             );
-            drip.position.set((Math.random() - 0.5) * 0.6, -0.4 - d * 0.15, 0);
+            drip.position.set((d - 0.5) * 0.4, -0.35 - d * 0.15, 0);
             torus.add(drip);
         }
         scene.add(torus);
@@ -569,21 +569,11 @@ function kataFireFist(fromPortalIdx, targetX, targetY, targetZ, damage) {
     const fistColor = isHaki ? '#1565c0' : '#f5f0e0';
     const innerColor = isHaki ? '#0d47a1' : '#e0d0c0';
 
-    // Fist mesh — sphere with inner sphere
-    const fist = new THREE.Group();
-    const outer = new THREE.Mesh(
-        new THREE.SphereGeometry(0.3, 8, 8),
+    // Fist mesh — simple sphere (no PointLight to avoid lag)
+    const fist = new THREE.Mesh(
+        new THREE.SphereGeometry(0.25, 5, 5),
         new THREE.MeshBasicMaterial({ color: fistColor })
     );
-    fist.add(outer);
-    const inner = new THREE.Mesh(
-        new THREE.SphereGeometry(0.15, 6, 6),
-        new THREE.MeshBasicMaterial({ color: innerColor })
-    );
-    fist.add(inner);
-    // Glow
-    const glow = new THREE.PointLight(fistColor, 2, TILE * 2, 2);
-    fist.add(glow);
 
     fist.position.copy(portal.position);
     scene.add(fist);
@@ -641,67 +631,34 @@ function playerAttack() {
         const doughArmColor = isHaki ? '#90caf9' : '#fff8f0';
         const dripColor = isHaki ? '#42a5f5' : '#fffff0';
 
-        // === DONUT RING (portal) ===
-        const donutRing = new THREE.Mesh(
-            new THREE.TorusGeometry(0.5, 0.1, 8, 16),
-            new THREE.MeshStandardMaterial({ color: doughColor, emissive: doughColor, emissiveIntensity: 0.3, roughness: 0.4 })
-        );
-        donutRing.position.set(donutX, donutY, donutZ);
-        donutRing.lookAt(fistEndX, donutY, fistEndZ);
-        scene.add(donutRing);
-        meleeSlashes.push({ mesh: donutRing, life: 10 });
-
-        // === DOUGH ARM — thick cylinder from donut to fist ===
-        const armLen = reachDist;
-        const armMidX = donutX + fwdX * armLen * 0.5;
-        const armMidZ = donutZ + fwdZ * armLen * 0.5;
-        const armGeo = new THREE.CylinderGeometry(0.12, 0.15, armLen, 6);
-        const arm = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({
-            color: doughArmColor, roughness: 0.3, metalness: 0.0
-        }));
-        arm.position.set(armMidX, donutY, armMidZ);
-        arm.lookAt(fistEndX, donutY, fistEndZ);
-        arm.rotateX(Math.PI / 2);
-        scene.add(arm);
-        meleeSlashes.push({ mesh: arm, life: 10 });
-
-        // === FIST — big knuckled sphere at the end ===
-        const fistGroup = new THREE.Group();
-        // Main fist
-        const fistMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(0.3, 8, 8),
-            new THREE.MeshStandardMaterial({ color: doughColor, roughness: 0.3 })
-        );
-        fistGroup.add(fistMesh);
-        // Knuckles
+        // === DOUGH ARM + FIST — single group, lightweight ===
+        const punchGroup = new THREE.Group();
+        // Arm cylinder
+        const armGeo = new THREE.CylinderGeometry(0.12, 0.15, reachDist, 4);
+        const arm = new THREE.Mesh(armGeo, new THREE.MeshBasicMaterial({ color: doughArmColor }));
+        arm.rotation.x = Math.PI / 2;
+        arm.position.z = reachDist * 0.5;
+        punchGroup.add(arm);
+        // Fist sphere + knuckles
+        const fistMesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 6), new THREE.MeshBasicMaterial({ color: doughColor }));
+        fistMesh.position.z = reachDist;
+        punchGroup.add(fistMesh);
         for (let k = 0; k < 4; k++) {
-            const knuckle = new THREE.Mesh(
-                new THREE.SphereGeometry(0.08, 4, 4),
-                new THREE.MeshStandardMaterial({ color: doughColor, roughness: 0.3 })
-            );
-            knuckle.position.set((k - 1.5) * 0.1, 0.22, 0.1);
-            fistGroup.add(knuckle);
+            const knuckle = new THREE.Mesh(new THREE.SphereGeometry(0.07, 3, 3), new THREE.MeshBasicMaterial({ color: doughColor }));
+            knuckle.position.set((k - 1.5) * 0.1, 0.2, reachDist + 0.1);
+            punchGroup.add(knuckle);
         }
-        // Glow
-        const fistGlow = new THREE.PointLight(doughColor, 3, TILE * 2, 2);
-        fistGroup.add(fistGlow);
-        fistGroup.position.set(fistEndX, donutY, fistEndZ);
-        scene.add(fistGroup);
-        meleeSlashes.push({ mesh: fistGroup, life: 10 });
-
-        // === DRIPPING DOUGH — small spheres trailing down from arm ===
-        for (let d = 0; d < 5; d++) {
-            const dripT = 0.2 + d * 0.15;
-            const dripX = donutX + fwdX * armLen * dripT + (Math.random() - 0.5) * 0.15;
-            const dripZ = donutZ + fwdZ * armLen * dripT + (Math.random() - 0.5) * 0.15;
-            const drip = new THREE.Mesh(
-                new THREE.SphereGeometry(0.04 + Math.random() * 0.04, 4, 4),
-                new THREE.MeshBasicMaterial({ color: dripColor, transparent: true, opacity: 0.7 })
-            );
-            drip.position.set(dripX, donutY - 0.2 - d * 0.12, dripZ);
-            scene.add(drip);
-            meleeSlashes.push({ mesh: drip, life: 12 + d * 2 });
+        // 2 drip blobs on the arm
+        for (let d = 0; d < 2; d++) {
+            const drip = new THREE.Mesh(new THREE.SphereGeometry(0.04, 3, 3), new THREE.MeshBasicMaterial({ color: dripColor, transparent: true, opacity: 0.6 }));
+            drip.position.set(0, -0.2 - d * 0.15, reachDist * (0.3 + d * 0.3));
+            punchGroup.add(drip);
         }
+        // Position + orient the whole group
+        punchGroup.position.set(donutX, donutY, donutZ);
+        punchGroup.lookAt(donutX + fwdX * 5, donutY, donutZ + fwdZ * 5);
+        scene.add(punchGroup);
+        meleeSlashes.push({ mesh: punchGroup, life: 8 });
 
         // === DAMAGE — cone in front of player ===
         for (const e of enemies3D) {
