@@ -1480,9 +1480,9 @@ function katakuriHaki(p, now) {
     p._haki = true;
     // Permanent damage boost
     p.activeEffects.push({ effect: 'damage', value: 1.4, endTime: Infinity, _hakiBuff: true });
-    damageNumbers.push({ x: p.x, y: p.y - 30, text: 'HAKI!', color: '#b71c1c', life: 40 });
-    spawnParticles(p.x, p.y, '#b71c1c', 16);
-    spawnParticles(p.x, p.y, '#111', 8);
+    damageNumbers.push({ x: p.x, y: p.y - 30, text: 'HAKI!', color: '#1565c0', life: 40 });
+    spawnParticles(p.x, p.y, '#1565c0', 16);
+    spawnParticles(p.x, p.y, '#0d47a1', 8);
     triggerShake(4, 6);
 }
 
@@ -1512,8 +1512,8 @@ function animeSecondary(p, now) {
             if (now - p._secondaryCd < 4000) return; p._secondaryCd = now;
             { const fanSpread = 0.5;
             const hk = !!p._haki;
-            const beamCol = hk ? '#b71c1c' : '#e8b0a0';
-            const sparkCol = hk ? '#7f0000' : '#e8b0a0';
+            const beamCol = hk ? '#1565c0' : '#e8b0a0';
+            const sparkCol = hk ? '#0d47a1' : '#e8b0a0';
             const dmgMult = hk ? 1.2 : 0.8;
             for (let i = 0; i < 6; i++) {
                 const a = p.facingAngle + (i - 2.5) * (fanSpread / 5);
@@ -1533,8 +1533,8 @@ function animeSecondary(p, now) {
                 }
                 activeBeams.push({ x: p.x, y: p.y, angle: a, length: 55, width: 5, life: 6 + i * 2, maxLife: 18, color: beamCol });
             }
-            damageNumbers.push({ x: p.x, y: p.y - 30, text: 'BARRAGE!', color: hk ? '#b71c1c' : '#c62828', life: 40 });
-            spawnParticles(p.x, p.y, hk ? '#b71c1c' : '#c62828', 20);
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: 'BARRAGE!', color: hk ? '#1565c0' : '#c62828', life: 40 });
+            spawnParticles(p.x, p.y, hk ? '#1565c0' : '#c62828', 20);
             triggerShake(8, 14); } break;
         case 'naruto': // Rasengan
             if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
@@ -2730,11 +2730,9 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         const portCount = 8;
         const portRadius = 50;
         const hk = !!p._haki;
-        // Flash between red and black when haki is active
-        const hakiFlash = hk ? Math.sin(gameTime * 0.015) > 0 : false;
-        const ringCol = hk ? (hakiFlash ? '#b71c1c' : '#111') : '#e8b0a0';
-        const glowCol = hk ? (hakiFlash ? '#ff1744' : '#330000') : '#e8b0a0';
-        const fillCol = hk ? (hakiFlash ? '#c62828' : '#0a0a0a') : '#ffccbc';
+        const ringCol = hk ? '#1565c0' : '#e8b0a0';
+        const glowCol = hk ? '#42a5f5' : '#e8b0a0';
+        const fillCol = hk ? '#0d47a1' : '#ffccbc';
         for (let i = 0; i < portCount; i++) {
             const angle = (i / portCount) * Math.PI * 2 + gameTime * 0.002;
             const px = p.x + Math.cos(angle) * portRadius;
@@ -3048,10 +3046,9 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
     for (const p of players) {
         if (!p._fusillade) continue;
         const hk = !!p._haki;
-        const hakiFlash = hk ? Math.sin(gameTime * 0.015) > 0 : false;
-        const fCol = hk ? (hakiFlash ? '#b71c1c' : '#111') : '#fff';
-        const fColInner = hk ? (hakiFlash ? '#ff1744' : '#0a0a0a') : '#e0e0e0';
-        const fGlow = hk ? (hakiFlash ? '#ff1744' : '#330000') : '#fff';
+        const fCol = hk ? '#1565c0' : '#fff';
+        const fColInner = hk ? '#42a5f5' : '#e0e0e0';
+        const fGlow = hk ? '#42a5f5' : '#fff';
         for (const f of p._fusillade) {
             const elapsed = gameTime - f.startTime;
             const srcX = f.srcX || p.x;
@@ -3075,7 +3072,7 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
                 ctx.beginPath(); ctx.arc(curX, curY, 3.5, 0, Math.PI * 2); ctx.fill();
                 // Target warning
                 ctx.globalAlpha = 0.15 + progress * 0.2;
-                ctx.fillStyle = hk ? '#b71c1c' : '#c62828';
+                ctx.fillStyle = hk ? '#1565c0' : '#c62828';
                 ctx.beginPath(); ctx.arc(f.x, f.y, 12, 0, Math.PI * 2); ctx.fill();
             } else if (!f.hit || elapsed < f.delay + 300) {
                 // Slam impact
@@ -3845,10 +3842,10 @@ function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
 function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
     const attacking = p.attackAnim > 0;
     const haki = !!p._haki;
-    const doughCol = haki ? '#b71c1c' : '#fff';        // fists/arms color
-    const doughColInner = haki ? '#7f0000' : '#e0e0e0'; // inner fist
-    const doughGlow = haki ? '#ff1744' : '#fff';         // glow
-    const doughSpark = haki ? 'rgba(183,28,28,0.5)' : 'rgba(255,255,255,0.5)';
+    const doughCol = haki ? '#1565c0' : '#fff';        // fists/arms color
+    const doughColInner = haki ? '#0d47a1' : '#e0e0e0'; // inner fist
+    const doughGlow = haki ? '#42a5f5' : '#fff';         // glow
+    const doughSpark = haki ? 'rgba(21,101,192,0.5)' : 'rgba(255,255,255,0.5)';
     const fa = p.facingAngle;
     const perpX = Math.cos(fa + Math.PI / 2);
     const perpY = Math.sin(fa + Math.PI / 2);
@@ -3859,7 +3856,7 @@ function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
     if (haki) {
         ctx.globalAlpha = 0.12;
         const ag = ctx.createRadialGradient(0, 0, 0, 0, 0, 28);
-        ag.addColorStop(0, '#b71c1c'); ag.addColorStop(1, 'rgba(183,28,28,0)');
+        ag.addColorStop(0, '#1565c0'); ag.addColorStop(1, 'rgba(21,101,192,0)');
         ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
     }
@@ -3877,7 +3874,7 @@ function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
         ctx.beginPath(); ctx.arc(ringX, ringY, 4, 0, Math.PI * 2); ctx.stroke();
         // Idle particles
         if (!attacking) {
-            ctx.fillStyle = haki ? 'rgba(183,28,28,0.3)' : 'rgba(255,255,255,0.25)';
+            ctx.fillStyle = haki ? 'rgba(21,101,192,0.3)' : 'rgba(255,255,255,0.25)';
             const ra = t * 0.004 + side * 1.5;
             ctx.beginPath(); ctx.arc(ringX + Math.cos(ra) * 9, ringY + Math.sin(ra) * 9, 1.5, 0, Math.PI * 2); ctx.fill();
         }
