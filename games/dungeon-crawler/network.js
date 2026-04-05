@@ -366,6 +366,8 @@ function broadcastGameState() {
             invincible: p.invincible, inventoryOpen: p.inventoryOpen,
             damage: p.damage, defense: p.defense, speed: p.speed,
             activeEffects: p.activeEffects,
+            lastSpecial: p.lastSpecial, specialCooldown: p.specialCooldown,
+            dodgeCd: p.dodgeCd, _haki: p._haki,
         })),
         enemies: enemies.filter(e => e.alive).map(e => ({
             x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, color: e.color,
@@ -422,6 +424,10 @@ function applyRemoteGameState(state) {
         players[i].defense = rp.defense;
         players[i].speed = rp.speed;
         players[i].activeEffects = rp.activeEffects;
+        players[i].lastSpecial = rp.lastSpecial;
+        players[i].specialCooldown = rp.specialCooldown;
+        players[i].dodgeCd = rp.dodgeCd;
+        players[i]._haki = rp._haki;
     });
 
     // Update enemies (sync count and state)
@@ -468,7 +474,14 @@ function sendClientInput() {
         'KeyE','KeyR','KeyQ','KeyF','Space','Tab','Numpad0','Numpad1','Numpad2','Numpad3','Numpad4','Numpad5','Numpad6'];
 
     // Local player 1 input (WASD + mouse)
-    const input = { keys: {}, mouseX: mouse.x, mouseY: mouse.y, mouseDown: mouse.down, clicked: mouse.clicked };
+    // Compute facingAngle on client side so host doesn't need screen conversion
+    const myIdx = NET.playerIndex;
+    const numV = players.length || 1;
+    const vpW = numV > 1 ? Math.floor(canvas.width / numV) : canvas.width;
+    const vpX = myIdx * vpW;
+    const myP = players[myIdx];
+    const aimAngle = myP ? Math.atan2(mouse.y - canvas.height / 2, mouse.x - vpX - vpW / 2) : 0;
+    const input = { keys: {}, mouseX: mouse.x, mouseY: mouse.y, mouseDown: mouse.down, clicked: mouse.clicked, facingAngle: aimAngle };
     for (const k of relevantKeys) { if (keys[k]) input.keys[k] = true; }
     NET.connections[0].send({ type: 'input', input });
 

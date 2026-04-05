@@ -122,7 +122,7 @@ const CLASSES = {
     katakuri: { name: 'Katakuri', maxHp: 120, speed: 2.7, attackRange: 35, attackDamage: 8, attackSpeed: 180, attackType: 'melee', color: '#c62828', specialCooldown: 6000, specialName: 'Dough Fist Fusillade', specialDesc: 'Giant dough fists slam down repeatedly on all nearby enemies', drawChar: drawKatakuri },
     // ── Original ──
     frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 0, specialName: 'Electric Tongue', specialDesc: 'Spinning tongue spiral — catches and devours all enemies', drawChar: drawFrog },
-    beeswarm: { name: 'Bee Swarm', maxHp: 60, speed: 3.5, attackRange: 20, attackDamage: 8, attackSpeed: 250, attackType: 'melee', color: '#fdd835', specialCooldown: 3000, specialName: 'Split Swarm', specialDesc: 'Split apart to dodge — reform to mass sting', drawChar: drawBeeSwarm },
+    beeswarm: { name: 'Bee Swarm', maxHp: 60, speed: 3.5, attackRange: 160, attackDamage: 14, attackSpeed: 600, attackType: 'ranged', color: '#fdd835', specialCooldown: 3000, specialName: 'Split Swarm', specialDesc: 'Split apart to dodge — reform to mass sting', drawChar: drawBeeSwarm },
     trex: { name: 'T-Rex', maxHp: 180, speed: 1.8, attackRange: 40, attackDamage: 20, attackSpeed: 600, attackType: 'melee', color: '#4e342e', specialCooldown: 4000, specialName: 'Dino Stomp', specialDesc: 'Massive stomp + screen-shaking roar stuns all', drawChar: drawTRex },
     wendigo: { name: 'Wendigo', maxHp: 90, speed: 2.8, attackRange: 30, attackDamage: 12, attackSpeed: 380, attackType: 'melee', color: '#b0bec5', specialCooldown: 3000, specialName: 'Devour', specialDesc: 'Eat enemy — grow bigger and stronger each kill', drawChar: drawWendigo },
     alienqueen: { name: 'Alien Queen', maxHp: 110, speed: 2.3, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#1b5e20', specialCooldown: 4000, specialName: 'Lay Eggs', specialDesc: 'Spawn face-hugger eggs that hatch and chase enemies', drawChar: drawAlienQueen },
@@ -788,13 +788,16 @@ function playerAttack(p, now) {
     } else {
         // Ranged attack — spawn projectile
         const speed = 6;
+        const isBee = p.classId === 'beeswarm';
         projectiles.push({
             x: p.x, y: p.y,
-            vx: Math.cos(p.facingAngle) * speed,
-            vy: Math.sin(p.facingAngle) * speed,
+            vx: Math.cos(p.facingAngle) * (isBee ? 4 : speed),
+            vy: Math.sin(p.facingAngle) * (isBee ? 4 : speed),
             damage: dmg, owner: 'player', ownerRef: p,
             range: p.attackRange, traveled: 0,
-            color: p.cls.color, radius: 4
+            color: isBee ? '#ffb300' : p.cls.color,
+            radius: isBee ? 16 : 4,
+            isHoneyBall: isBee
         });
     }
 }
@@ -2440,13 +2443,19 @@ function updatePlayer(p, now) {
 
     // Facing direction
     if (!isLocalP2) {
-        // Mouse aim (adjust for split screen viewport)
-        const m = pMouse(p);
-        const numV = coopMode ? players.length : 1;
-        const vpW = numV > 1 ? Math.floor(canvas.width / numV) : canvas.width;
-        const wx = m.x - vpW/2 + p.x;
-        const wy = m.y - canvas.height/2 + p.y;
-        p.facingAngle = Math.atan2(wy - p.y, wx - p.x);
+        // Check if remote player sent a pre-computed facingAngle
+        const ri = NET.isOnline && NET.isHost && p.playerIndex >= NET.localPlayerCount ? NET.remoteInputs[p.playerIndex] : null;
+        if (ri && ri.facingAngle !== undefined) {
+            p.facingAngle = ri.facingAngle;
+        } else {
+            // Local mouse aim (adjust for split screen viewport)
+            const m = pMouse(p);
+            const numV = coopMode ? players.length : 1;
+            const vpW = numV > 1 ? Math.floor(canvas.width / numV) : canvas.width;
+            const wx = m.x - vpW/2 + p.x;
+            const wy = m.y - canvas.height/2 + p.y;
+            p.facingAngle = Math.atan2(wy - p.y, wx - p.x);
+        }
     } else {
         // Local P2 aims at nearest enemy
         let closest = null, closestDist = Infinity;
@@ -2690,14 +2699,40 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
 
     // Projectiles
     for (const proj of projectiles) {
-        ctx.fillStyle = proj.color;
-        ctx.shadowColor = proj.color; ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-        // Trail
-        ctx.globalAlpha = 0.3;
-        ctx.beginPath(); ctx.arc(proj.x - proj.vx * 2, proj.y - proj.vy * 2, proj.radius * 0.7, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
+        if (proj.isHoneyBall) {
+            // Huge honey ball — golden glob with dripping effect
+            const r = proj.radius;
+            // Outer glow
+            ctx.globalAlpha = 0.3;
+            const hg = ctx.createRadialGradient(proj.x, proj.y, 0, proj.x, proj.y, r * 1.5);
+            hg.addColorStop(0, '#ffb300'); hg.addColorStop(1, 'rgba(255,179,0,0)');
+            ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 1.5, 0, Math.PI * 2); ctx.fill();
+            // Main honey body
+            ctx.globalAlpha = 0.9;
+            ctx.fillStyle = '#ffb300';
+            ctx.shadowColor = '#fdd835'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(proj.x, proj.y, r, 0, Math.PI * 2); ctx.fill();
+            // Inner highlight
+            ctx.fillStyle = '#ffe082';
+            ctx.beginPath(); ctx.arc(proj.x - r * 0.25, proj.y - r * 0.25, r * 0.45, 0, Math.PI * 2); ctx.fill();
+            // Drip blobs trailing behind
+            ctx.fillStyle = '#ffb300'; ctx.globalAlpha = 0.5;
+            for (let d = 1; d <= 3; d++) {
+                const dx = proj.x - proj.vx * d * 2.5;
+                const dy = proj.y - proj.vy * d * 2.5;
+                ctx.beginPath(); ctx.arc(dx, dy, r * (0.5 - d * 0.1), 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        } else {
+            ctx.fillStyle = proj.color;
+            ctx.shadowColor = proj.color; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Trail
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath(); ctx.arc(proj.x - proj.vx * 2, proj.y - proj.vy * 2, proj.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+        }
     }
 
     // Summoned minions (imps, shadows, clones, dogs)
