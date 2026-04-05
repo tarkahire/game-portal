@@ -465,31 +465,41 @@ function updateMeleeSlashes() {
 let kataPortals = []; // 3D torus meshes orbiting player
 let kataFists = [];   // flying dough fist projectiles
 let kataPortIdx = 0;
-const KATA_PORT_COUNT = 16;
-const KATA_PORT_RADIUS = 1.8; // close to player
+const KATA_PORT_COUNT = 2; // just left and right like Blox Fruits
+const KATA_PORT_RADIUS = 1.5;
 
 function initKataPortals() {
     clearKataPortals();
     const isHaki = player && player._haki;
-    const color = isHaki ? '#1565c0' : '#e8b0a0';
-    const emissive = isHaki ? '#0d47a1' : '#8d6e63';
-    for (let i = 0; i < KATA_PORT_COUNT; i++) {
+    const color = isHaki ? '#1565c0' : '#f5f0e0';
+    const emissive = isHaki ? '#0d47a1' : '#d4c4a0';
+
+    for (let i = 0; i < 2; i++) {
         const torus = new THREE.Mesh(
-            new THREE.TorusGeometry(0.4, 0.08, 8, 16),
-            new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 0.6, roughness: 0.4, side: THREE.DoubleSide })
+            new THREE.TorusGeometry(0.55, 0.12, 10, 20),
+            new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 0.5, roughness: 0.3, side: THREE.DoubleSide })
         );
         // Dark hole center
         const hole = new THREE.Mesh(
-            new THREE.CircleGeometry(0.25, 12),
+            new THREE.CircleGeometry(0.35, 14),
             new THREE.MeshBasicMaterial({ color: '#0a0008', side: THREE.DoubleSide })
         );
         torus.add(hole);
-        // Glow ring
+        // Outer glow ring
         const glow = new THREE.Mesh(
-            new THREE.TorusGeometry(0.45, 0.03, 4, 16),
-            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4 })
+            new THREE.TorusGeometry(0.6, 0.03, 4, 20),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35 })
         );
         torus.add(glow);
+        // Dripping dough particles hanging from the donut
+        for (let d = 0; d < 4; d++) {
+            const drip = new THREE.Mesh(
+                new THREE.SphereGeometry(0.03 + Math.random() * 0.03, 4, 4),
+                new THREE.MeshBasicMaterial({ color: '#fffff0', transparent: true, opacity: 0.6 })
+            );
+            drip.position.set((Math.random() - 0.5) * 0.6, -0.4 - d * 0.15, 0);
+            torus.add(drip);
+        }
         scene.add(torus);
         kataPortals.push(torus);
     }
@@ -505,18 +515,23 @@ function clearKataPortals() {
 function updateKataPortals(time) {
     if (!player || player.classId !== 'katakuri' || kataPortals.length === 0) return;
     const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
 
+    // Two donuts: left and right of player, slightly forward, facing forward
     for (let i = 0; i < kataPortals.length; i++) {
-        const angle = (i / KATA_PORT_COUNT) * Math.PI * 2;
-        const portalX = px + Math.cos(angle) * KATA_PORT_RADIUS * TILE;
-        const portalZ = pz + Math.sin(angle) * KATA_PORT_RADIUS * TILE;
-        const bob = Math.sin(time * 0.003 + i * 0.5) * 0.2;
-        kataPortals[i].position.set(portalX, EYE_HEIGHT + bob, portalZ);
-        // Face the player
-        kataPortals[i].lookAt(px, EYE_HEIGHT, pz);
-        // Pulse the active portal
-        const isActive = i === kataPortIdx;
-        kataPortals[i].scale.setScalar(isActive ? 1.3 : 1.0);
+        const side = i === 0 ? -1 : 1; // left then right
+        const perpX = -Math.cos(yaw) * side;
+        const perpZ = Math.sin(yaw) * side;
+        const portalX = px + perpX * KATA_PORT_RADIUS * TILE + fwdX * 0.8;
+        const portalZ = pz + perpZ * KATA_PORT_RADIUS * TILE + fwdZ * 0.8;
+        const bob = Math.sin(time * 0.003 + i * 1.5) * 0.15;
+        kataPortals[i].position.set(portalX, EYE_HEIGHT + 0.3 + bob, portalZ);
+        // Face forward (where player is looking)
+        kataPortals[i].lookAt(portalX + fwdX * 5, EYE_HEIGHT + 0.3, portalZ + fwdZ * 5);
+        // Pulse the next-to-fire donut
+        const isActive = i === (player._m1Side || 0);
+        kataPortals[i].scale.setScalar(isActive ? 1.15 : 1.0);
     }
 
     // Update flying fists
@@ -593,54 +608,107 @@ function playerAttack() {
     if (now - player.lastAttack < player.attackSpeed) return;
     player.lastAttack = now;
 
-    // Katakuri — Dough M1: summon donut in front, launch dough tendril punch
+    // Katakuri — Awakened Dough M1: two fixed donuts to left+right of player,
+    // each click a big white dough fist on an arm extends from one donut,
+    // alternating sides. Fists are white, dripping dough.
     if (player.classId === 'katakuri') {
         if (kataPortals.length === 0) initKataPortals();
         const px = fpsCamera.posX, pz = fpsCamera.posZ;
-        const fwdX = -Math.sin(fpsCamera.yaw), fwdZ = -Math.cos(fpsCamera.yaw);
-        // Alternate left/right punch
-        if (!player._m1Side) player._m1Side = 0;
-        player._m1Side = (player._m1Side + 1) % 2;
-        const perpX = Math.cos(fpsCamera.yaw) * (player._m1Side === 0 ? -0.4 : 0.4);
-        const perpZ = -Math.sin(fpsCamera.yaw) * (player._m1Side === 0 ? -0.4 : 0.4);
-
-        // Spawn a donut ring at punch origin
-        const donutGeo = new THREE.TorusGeometry(0.25, 0.06, 6, 12);
-        const isHaki = player._haki;
-        const donutMat = new THREE.MeshBasicMaterial({ color: isHaki ? '#1565c0' : '#e8b0a0', transparent: true, opacity: 0.8 });
-        const donut = new THREE.Mesh(donutGeo, donutMat);
-        const startX = px * TILE + fwdX * 1.5 + perpX * TILE;
-        const startZ = pz * TILE + fwdZ * 1.5 + perpZ * TILE;
-        donut.position.set(startX, EYE_HEIGHT - 0.2, startZ);
-        donut.lookAt(px * TILE + fwdX * 8, EYE_HEIGHT - 0.2, pz * TILE + fwdZ * 8);
-        scene.add(donut);
-        meleeSlashes.push({ mesh: donut, life: 6 });
-
-        // Dough tendril/fist extending from donut
-        const fistMat = new THREE.MeshBasicMaterial({ color: isHaki ? '#42a5f5' : '#f5f0e0' });
-        const fist = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), fistMat);
-        const fistGlow = new THREE.PointLight(isHaki ? '#1565c0' : '#e8b0a0', 2, TILE * 2, 2);
-        fist.add(fistGlow);
-        fist.position.set(startX + fwdX * 0.5, EYE_HEIGHT - 0.2, startZ + fwdZ * 0.5);
-        scene.add(fist);
-
-        // Arm line from donut to fist
-        const armGeo = new THREE.CylinderGeometry(0.06, 0.06, 2.5, 4);
-        armGeo.rotateZ(Math.PI / 2);
-        const arm = new THREE.Mesh(armGeo, new THREE.MeshBasicMaterial({ color: isHaki ? '#1565c0' : '#f5e0d0', transparent: true, opacity: 0.7 }));
-        arm.position.set(startX + fwdX * 1.2, EYE_HEIGHT - 0.2, startZ + fwdZ * 1.2);
-        arm.lookAt(startX + fwdX * 3, EYE_HEIGHT - 0.2, startZ + fwdZ * 3);
-        scene.add(arm);
-        meleeSlashes.push({ mesh: arm, life: 6 });
-        meleeSlashes.push({ mesh: fist, life: 6 });
-
-        // Damage enemies in front
         const yaw = fpsCamera.yaw;
+        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+        const isHaki = player._haki;
+
+        // Alternate left/right donut
+        if (player._m1Side === undefined) player._m1Side = 0;
+        player._m1Side = (player._m1Side + 1) % 2;
+        const side = player._m1Side === 0 ? -1 : 1;
+
+        // Perpendicular vector (left/right relative to facing)
+        const perpX = -Math.cos(yaw) * side;
+        const perpZ = Math.sin(yaw) * side;
+
+        // Donut position — to the side of the player, slightly forward
+        const donutX = px * TILE + perpX * 2.0 + fwdX * 1.0;
+        const donutZ = pz * TILE + perpZ * 2.0 + fwdZ * 1.0;
+        const donutY = EYE_HEIGHT + 0.3;
+
+        // Fist target — well ahead of player in faced direction
+        const reachDist = 4.0; // how far the arm extends in world units
+        const fistEndX = donutX + fwdX * reachDist;
+        const fistEndZ = donutZ + fwdZ * reachDist;
+
+        const doughColor = isHaki ? '#1565c0' : '#f5f0e0';
+        const doughArmColor = isHaki ? '#90caf9' : '#fff8f0';
+        const dripColor = isHaki ? '#42a5f5' : '#fffff0';
+
+        // === DONUT RING (portal) ===
+        const donutRing = new THREE.Mesh(
+            new THREE.TorusGeometry(0.5, 0.1, 8, 16),
+            new THREE.MeshStandardMaterial({ color: doughColor, emissive: doughColor, emissiveIntensity: 0.3, roughness: 0.4 })
+        );
+        donutRing.position.set(donutX, donutY, donutZ);
+        donutRing.lookAt(fistEndX, donutY, fistEndZ);
+        scene.add(donutRing);
+        meleeSlashes.push({ mesh: donutRing, life: 10 });
+
+        // === DOUGH ARM — thick cylinder from donut to fist ===
+        const armLen = reachDist;
+        const armMidX = donutX + fwdX * armLen * 0.5;
+        const armMidZ = donutZ + fwdZ * armLen * 0.5;
+        const armGeo = new THREE.CylinderGeometry(0.12, 0.15, armLen, 6);
+        const arm = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({
+            color: doughArmColor, roughness: 0.3, metalness: 0.0
+        }));
+        arm.position.set(armMidX, donutY, armMidZ);
+        arm.lookAt(fistEndX, donutY, fistEndZ);
+        arm.rotateX(Math.PI / 2);
+        scene.add(arm);
+        meleeSlashes.push({ mesh: arm, life: 10 });
+
+        // === FIST — big knuckled sphere at the end ===
+        const fistGroup = new THREE.Group();
+        // Main fist
+        const fistMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 8, 8),
+            new THREE.MeshStandardMaterial({ color: doughColor, roughness: 0.3 })
+        );
+        fistGroup.add(fistMesh);
+        // Knuckles
+        for (let k = 0; k < 4; k++) {
+            const knuckle = new THREE.Mesh(
+                new THREE.SphereGeometry(0.08, 4, 4),
+                new THREE.MeshStandardMaterial({ color: doughColor, roughness: 0.3 })
+            );
+            knuckle.position.set((k - 1.5) * 0.1, 0.22, 0.1);
+            fistGroup.add(knuckle);
+        }
+        // Glow
+        const fistGlow = new THREE.PointLight(doughColor, 3, TILE * 2, 2);
+        fistGroup.add(fistGlow);
+        fistGroup.position.set(fistEndX, donutY, fistEndZ);
+        scene.add(fistGroup);
+        meleeSlashes.push({ mesh: fistGroup, life: 10 });
+
+        // === DRIPPING DOUGH — small spheres trailing down from arm ===
+        for (let d = 0; d < 5; d++) {
+            const dripT = 0.2 + d * 0.15;
+            const dripX = donutX + fwdX * armLen * dripT + (Math.random() - 0.5) * 0.15;
+            const dripZ = donutZ + fwdZ * armLen * dripT + (Math.random() - 0.5) * 0.15;
+            const drip = new THREE.Mesh(
+                new THREE.SphereGeometry(0.04 + Math.random() * 0.04, 4, 4),
+                new THREE.MeshBasicMaterial({ color: dripColor, transparent: true, opacity: 0.7 })
+            );
+            drip.position.set(dripX, donutY - 0.2 - d * 0.12, dripZ);
+            scene.add(drip);
+            meleeSlashes.push({ mesh: drip, life: 12 + d * 2 });
+        }
+
+        // === DAMAGE — cone in front of player ===
         for (const e of enemies3D) {
             if (!e.data.alive) continue;
             const dx = e.data.x - px, dz = e.data.z - pz;
             const dist = Math.hypot(dx, dz);
-            if (dist > 3) continue;
+            if (dist > 3.5) continue;
             const angleToEnemy = Math.atan2(-dx, -dz);
             let angleDiff = angleToEnemy - yaw;
             while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
@@ -726,16 +794,16 @@ function playerSpecial() {
         case 'portal': // Rift Pull — teleport enemies to you
             for (const e of enemies3D) { if(!e.data.alive)continue; const d=Math.hypot(e.data.x-px,e.data.z-pz); if(d<10&&d>1){const a=Math.random()*Math.PI*2; e.data.x=px+Math.cos(a)*1.5; e.data.z=pz+Math.sin(a)*1.5; e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE); stunNear(2,1000);}}
             spawnMeleeSlash('#00bcd4'); break;
-        case 'katakuri': { // Dough Fist Fusillade — ALL portals fire at faced direction
+        case 'katakuri': { // Dough Fist Fusillade — rapid fists from both donuts
             if (kataPortals.length === 0) initKataPortals();
             const fX = -Math.sin(yaw), fZ = -Math.cos(yaw);
             const targetX = (px + fX * 6) * TILE, targetZ = (pz + fZ * 6) * TILE;
-            for (let p = 0; p < KATA_PORT_COUNT; p++) {
-                for (let f = 0; f < 3; f++) {
-                    setTimeout(() => {
-                        kataFireFist(p, targetX + (Math.random()-0.5)*3, EYE_HEIGHT*0.5, targetZ + (Math.random()-0.5)*3, Math.round(player.damage * 2));
-                    }, p * 40 + f * 80);
-                }
+            // 16 fists alternating from left and right donut
+            for (let f = 0; f < 16; f++) {
+                const portalIdx = f % 2; // alternate left/right
+                setTimeout(() => {
+                    kataFireFist(portalIdx, targetX + (Math.random()-0.5)*3, EYE_HEIGHT*0.5, targetZ + (Math.random()-0.5)*3, Math.round(player.damage * 2));
+                }, f * 60);
             }
             spawnMeleeSlash(player._haki ? '#1565c0' : '#c62828'); break; }
         case 'naruto': // Shadow Clones — 8 permanent
@@ -946,19 +1014,18 @@ function playerSecondary() {
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
 
     switch (player.classId) {
-        case 'katakuri': { // Restless Dough Barrage — rapid fists from nearest portals
+        case 'katakuri': { // Restless Dough Barrage — rapid fists from both donuts
             if (now - player._secondaryCd < 4000) return; player._secondaryCd = now;
             if (kataPortals.length === 0) initKataPortals();
             const fX = -Math.sin(yaw), fZ = -Math.cos(yaw);
-            // Fire 12 rapid fists from the 4 portals closest to the faced direction
+            // 12 rapid fists alternating left/right donut
             for (let f = 0; f < 12; f++) {
-                const pIdx = (kataPortIdx + f) % KATA_PORT_COUNT;
-                const dist = 3 + Math.random() * 4;
+                const dist = 2.5 + Math.random() * 3;
                 setTimeout(() => {
-                    kataFireFist(pIdx, (px+fX*dist)*TILE+(Math.random()-0.5)*2, EYE_HEIGHT*0.5, (pz+fZ*dist)*TILE+(Math.random()-0.5)*2, Math.round(player.damage * (player._haki ? 1.2 : 0.8)));
-                }, f * 60);
+                    kataFireFist(f % 2, (px+fX*dist)*TILE+(Math.random()-0.5)*1.5, EYE_HEIGHT*0.5, (pz+fZ*dist)*TILE+(Math.random()-0.5)*1.5, Math.round(player.damage * (player._haki ? 1.2 : 0.8)));
+                }, f * 50);
             }
-            for (let s = 0; s < 3; s++) setTimeout(() => spawnMeleeSlash(player._haki ? '#1565c0' : '#c62828'), s * 150);
+            for (let s = 0; s < 3; s++) setTimeout(() => spawnMeleeSlash(player._haki ? '#1565c0' : '#c62828'), s * 120);
             break; }
         case 'naruto':
             if (now - player._secondaryCd < 3000) return; player._secondaryCd = now;
