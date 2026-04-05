@@ -113,11 +113,22 @@ export function buildDungeonMesh(dungeon) {
         opacity: 0.15,
     });
 
+    // Bright grey wall panel material — emissive so it glows
+    const panelMat = new THREE.MeshStandardMaterial({
+        color: '#aaaaaa',
+        emissive: '#888888',
+        emissiveIntensity: 0.8,
+        roughness: 0.5,
+        metalness: 0.2,
+    });
+
     // Collect geometry for merging
     const floorGeos = [];
     const ceilGeos = [];
     const wallGeos = [];
     const neonEdgeGeos = [];
+    const panelGeos = [];
+    let wallCount = 0;
 
     const floorGeo = new THREE.PlaneGeometry(TILE, TILE);
     floorGeo.rotateX(-Math.PI / 2);
@@ -202,6 +213,39 @@ export function buildDungeonMesh(dungeon) {
                     }
                 }
                 neonEdgeGeos.push(eg);
+
+                // Bright grey wall panel — centered on wall, slightly inset
+                const pw = TILE * 0.5, ph = WALL_HEIGHT * 0.3;
+                const pg = new THREE.PlaneGeometry(pw, ph);
+                const panelY = WALL_HEIGHT * 0.55;
+                const inset = 0.02; // slightly in front of wall
+                if (n.axis === 'z') {
+                    if (n.dir === -1) {
+                        pg.translate(x, panelY, z - TILE / 2 + inset);
+                    } else {
+                        pg.rotateY(Math.PI);
+                        pg.translate(x, panelY, z + TILE / 2 - inset);
+                    }
+                } else {
+                    if (n.dir === -1) {
+                        pg.rotateY(Math.PI / 2);
+                        pg.translate(x - TILE / 2 + inset, panelY, z);
+                    } else {
+                        pg.rotateY(-Math.PI / 2);
+                        pg.translate(x + TILE / 2 - inset, panelY, z);
+                    }
+                }
+                panelGeos.push(pg);
+
+                // Every 3rd wall panel gets a PointLight for real illumination
+                wallCount++;
+                if (wallCount % 3 === 0) {
+                    const lx = n.axis === 'z' ? x : (n.dir === -1 ? x - TILE/2 + 0.3 : x + TILE/2 - 0.3);
+                    const lz = n.axis === 'x' ? z : (n.dir === -1 ? z - TILE/2 + 0.3 : z + TILE/2 - 0.3);
+                    const panelLight = new THREE.PointLight('#cccccc', 0.6, TILE * 3, 2);
+                    panelLight.position.set(lx, panelY, lz);
+                    group.add(panelLight);
+                }
             }
         }
     }
@@ -222,6 +266,10 @@ export function buildDungeonMesh(dungeon) {
     if (neonEdgeGeos.length > 0) {
         const merged = mergeGeometries(neonEdgeGeos);
         group.add(new THREE.Mesh(merged, neonEdgeMat));
+    }
+    if (panelGeos.length > 0) {
+        const merged = mergeGeometries(panelGeos);
+        group.add(new THREE.Mesh(merged, panelMat));
     }
 
     return group;
