@@ -3698,6 +3698,46 @@ function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
 }
 
 function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
+    const attacking = p.attackAnim > 0;
+    // Dough arms — two white lines with round fists when attacking
+    if (attacking) {
+        ctx.save(); ctx.rotate(p.facingAngle);
+        const armLen = 30 + p.attackAnim * 4;
+        const spread = 0.25; // angle spread between the two arms
+        // Arm 1 (upper)
+        ctx.save(); ctx.rotate(-spread);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(armLen, 0); ctx.stroke();
+        // Fist at end — donut/ring shape
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(armLen + 6, 0, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e0e0e0';
+        ctx.beginPath(); ctx.arc(armLen + 6, 0, 3, 0, Math.PI * 2); ctx.fill();
+        // Impact particles
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        for (let sp = 0; sp < 3; sp++) {
+            const sa = (t * 0.02 + sp * 2.1);
+            ctx.beginPath(); ctx.arc(armLen + 6 + Math.cos(sa) * 10, Math.sin(sa) * 10, 2, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        // Arm 2 (lower)
+        ctx.save(); ctx.rotate(spread);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(armLen, 0); ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(armLen + 6, 0, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e0e0e0';
+        ctx.beginPath(); ctx.arc(armLen + 6, 0, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        for (let sp = 0; sp < 3; sp++) {
+            const sa = (t * 0.02 + sp * 2.1 + 1);
+            ctx.beginPath(); ctx.arc(armLen + 6 + Math.cos(sa) * 10, Math.sin(sa) * 10, 2, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
     // Scarf
     ctx.fillStyle = '#e8b0a0'; ctx.globalAlpha = 0.6;
     const scarfWave = Math.sin(t * 0.005) * 4;
@@ -3719,13 +3759,6 @@ function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
     ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 0.8;
     ctx.beginPath(); ctx.moveTo(-4, -4); ctx.lineTo(4, -4); ctx.stroke();
     for (let s = -3; s <= 3; s += 2) { ctx.beginPath(); ctx.moveTo(s, -5); ctx.lineTo(s, -3); ctx.stroke(); }
-    // Trident weapon (aimed direction)
-    ctx.save(); ctx.rotate(p.facingAngle);
-    ctx.fillStyle = '#bbb'; ctx.fillRect(6, -1, 14 + (p.attackAnim > 0 ? 8 : 0), 2);
-    ctx.fillStyle = '#c62828';
-    const ext = p.attackAnim > 0 ? 8 : 0;
-    ctx.beginPath(); ctx.moveTo(18 + ext, -4); ctx.lineTo(22 + ext, 0); ctx.lineTo(18 + ext, 4); ctx.fill();
-    ctx.restore();
     // Legs
     ctx.fillStyle = '#1a0a0a'; ctx.fillRect(-4, 13, 3, 7); ctx.fillRect(2, 13, 3, 7);
     // Player indicator
