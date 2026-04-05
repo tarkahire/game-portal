@@ -174,6 +174,8 @@ function init() {
         }
         if (gameState === 'playing' && fpsCamera.locked) {
             if (e.code === 'KeyE') playerSpecial();
+            if (e.code === 'KeyR') playerSecondary();
+            if (e.code === 'KeyQ') playerQAbility();
             if (e.code === 'Space') playerDodge();
         }
     });
@@ -507,106 +509,304 @@ function playerSpecial() {
     if (now - player.lastSpecial < player.specialCooldown) return;
     player.lastSpecial = now;
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+
+    // Helpers
+    const aoeHit = (range, dmgMult) => { for (const e of enemies3D) { if (!e.data.alive) continue; if (Math.hypot(e.data.x-px,e.data.z-pz)<range) dealDamageToEnemy(e, Math.round(player.damage*dmgMult)); }};
+    const coneHit = (range, halfAngle, dmgMult) => { for (const e of enemies3D) { if (!e.data.alive) continue; const dx=e.data.x-px,dz=e.data.z-pz; const dist=Math.hypot(dx,dz); if(dist>range)continue; const a=Math.atan2(-dx,-dz); let d=a-yaw; while(d>Math.PI)d-=Math.PI*2; while(d<-Math.PI)d+=Math.PI*2; if(Math.abs(d)<halfAngle) dealDamageToEnemy(e, Math.round(player.damage*dmgMult)); }};
+    const stunNear = (range, dur) => { for (const e of enemies3D) { if (!e.data.alive) continue; if (Math.hypot(e.data.x-px,e.data.z-pz)<range) e.data.lastAttack = now + dur; }};
+    const shootProj = (color, spd, dmg, count, spread) => { for (let i=0;i<count;i++){const a=yaw+(i-(count-1)/2)*(spread||0.12);const dx=-Math.sin(a),dz=-Math.cos(a);const m=new THREE.Mesh(projGeo,new THREE.MeshBasicMaterial({color}));m.position.set(px*TILE+dx*0.8,EYE_HEIGHT-0.3,pz*TILE+dz*0.8);m.add(new THREE.PointLight(color,2,TILE*3,2));scene.add(m);projectiles3D.push({mesh:m,vx:dx*(spd||14),vz:dz*(spd||14),damage:Math.round(dmg),owner:'player',traveled:0,range:45});}};
+    const dash = (speed, dur, dmgMult, range) => { fpsCamera.speed=speed; player.invincible=now+dur; player._dashEnd=now+dur; player._dashRestore=player.speed; coneHit(range||6, 0.5, dmgMult||1.5); };
+    const summon = (type, count, data) => { for(let i=0;i<count;i++){const a=(i/count)*Math.PI*2; spawnMinion(type,px+Math.cos(a)*1.5,pz+Math.sin(a)*1.5,data);} };
 
     switch (player.classId) {
-        case 'jinwoo': { // Shadow Army — spawn 3 shadow soldiers
-            player._shadowSpawning = true;
-            player._lastShadowSpawn = now;
-            const existing = minions3D.filter(m => m.data.type === 'shadow').length;
-            for (let i = 0; i < 3; i++) {
-                if (existing + i >= 8) break;
-                const angle = ((existing + i) / 8) * Math.PI * 2;
-                spawnMinion('shadow', px + Math.cos(angle) * 1.5, pz + Math.sin(angle) * 1.5,
-                    { hp: 20, damage: 6, speed: 3.2, radius: 0.4, attackRange: 2, attackSpeed: 800, life: Infinity, color: '#6a3aaa' });
-            }
-            spawnMeleeSlash('#7c4dff');
-            break;
-        }
-        case 'naruto': { // Shadow Clones — 8 permanent clones
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2;
-                spawnMinion('clone', px + Math.cos(angle) * 1.2, pz + Math.sin(angle) * 1.2,
-                    { hp: 9999, damage: Math.round(player.damage * 0.6), speed: player.speed, radius: 0.35, attackRange: 1.5, attackSpeed: 400, life: Infinity, color: '#ff8f00' });
-            }
-            spawnMeleeSlash('#ff8f00');
-            break;
-        }
-        case 'demon': { // Summon 3 Imps
-            for (let i = 0; i < 3; i++) {
-                const angle = fpsCamera.yaw + (i - 1) * 0.8;
-                spawnMinion('imp', px - Math.sin(angle) * 1.5, pz - Math.cos(angle) * 1.5,
-                    { hp: 20, damage: 6, speed: 2.5, radius: 0.3, attackRange: 1.5, attackSpeed: 600, life: now + 8000, color: '#ff4444' });
-            }
-            spawnMeleeSlash('#cc2222');
-            break;
-        }
-        case 'megumi': { // Divine Dogs — 8 orbiting fiends
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2;
-                spawnMinion('dog_divine', px + Math.cos(angle) * 1.8, pz + Math.sin(angle) * 1.8,
-                    { hp: 30, damage: 8, speed: 3.5, radius: 0.4, attackRange: 1.8, attackSpeed: 400, life: now + 10000, color: '#1a237e' });
-            }
-            spawnMeleeSlash('#283593');
-            break;
-        }
-        case 'dog': { // Pack Howl — 6 permanent dogs
-            for (let i = 0; i < 6; i++) {
-                const angle = (i / 6) * Math.PI * 2;
-                spawnMinion('dog_pack', px + Math.cos(angle) * 1.5, pz + Math.sin(angle) * 1.5,
-                    { hp: 40, damage: Math.round(player.damage * 0.7), speed: 3.8, radius: 0.35, attackRange: 1.5, attackSpeed: 350, life: Infinity, color: '#8d6e63' });
-            }
-            // Stun nearby enemies
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                if (Math.hypot(e.data.x - px, e.data.z - pz) < 8) e.data.lastAttack = now + 1500;
-            }
-            spawnMeleeSlash('#a1887f');
-            break;
-        }
-        case 'angel': { // Divine Wings — speed + heal
+        case 'angel': // Divine Wings — speed + heal allies
             player.hp = Math.min(player.hp + 25, player.maxHp);
-            fpsCamera.speed = player.speed * 1.5;
-            player._wingsEnd = now + 5000;
-            spawnMeleeSlash('#f0e68c');
+            fpsCamera.speed = player.speed * 1.5; player._wingsEnd = now + 5000;
+            spawnMeleeSlash('#f0e68c'); break;
+        case 'demon': // Summon 3 Imps
+            summon('imp', 3, { hp:20, damage:6, speed:2.5, radius:0.3, attackRange:1.5, attackSpeed:600, life:now+8000, color:'#ff4444' });
+            spawnMeleeSlash('#cc2222'); break;
+        case 'draco': // Dragon Beam — long directional damage
+            coneHit(8, 0.3, 2); spawnMeleeSlash('#9c27b0');
+            shootProj('#9c27b0', 18, player.damage*2, 1, 0); break;
+        case 'healer': // Healing Circle
+            player._healCircle = { x:px, z:pz, end:now+4000, lastHeal:0 };
+            spawnMeleeSlash('#43a047'); break;
+        case 'lightning': // Lightning Net — trap+shock
+            stunNear(4, 3000); aoeHit(4, 1.5); spawnMeleeSlash('#ffeb3b'); break;
+        case 'portal': // Rift Pull — teleport enemies to you
+            for (const e of enemies3D) { if(!e.data.alive)continue; const d=Math.hypot(e.data.x-px,e.data.z-pz); if(d<10&&d>1){const a=Math.random()*Math.PI*2; e.data.x=px+Math.cos(a)*1.5; e.data.z=pz+Math.sin(a)*1.5; e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE); stunNear(2,1000);}}
+            spawnMeleeSlash('#00bcd4'); break;
+        case 'katakuri': // Fusillade — rapid fists at cursor direction
+            shootProj('#c62828', 16, player.damage*2, 8, 0.08); spawnMeleeSlash('#e8b0a0'); break;
+        case 'naruto': // Shadow Clones — 8 permanent
+            summon('clone', 8, { hp:9999, damage:Math.round(player.damage*0.6), speed:player.speed, radius:0.35, attackRange:1.5, attackSpeed:400, life:Infinity, color:'#ff8f00' });
+            spawnMeleeSlash('#ff8f00'); break;
+        case 'megumi': // Divine Dogs — 8 fiends
+            summon('dog_divine', 8, { hp:30, damage:8, speed:3.5, radius:0.4, attackRange:1.8, attackSpeed:400, life:now+10000, color:'#1a237e' });
+            spawnMeleeSlash('#283593'); break;
+        case 'jinwoo': // Shadow Army
+            player._shadowSpawning = true; player._lastShadowSpawn = now;
+            { const ex = minions3D.filter(m=>m.data.type==='shadow').length;
+            for(let i=0;i<3&&ex+i<8;i++){const a=((ex+i)/8)*Math.PI*2; spawnMinion('shadow',px+Math.cos(a)*1.5,pz+Math.sin(a)*1.5,{hp:20,damage:6,speed:3.2,radius:0.4,attackRange:2,attackSpeed:800,life:Infinity,color:'#6a3aaa'});}}
+            spawnMeleeSlash('#7c4dff'); break;
+        case 'frog': // Electric Tongue — AoE grab+damage
+            aoeHit(5, 2); stunNear(5, 1500); player.hp = Math.min(player.hp+10, player.maxHp);
+            spawnMeleeSlash('#76ff03'); break;
+        case 'beeswarm': // Split Swarm — invincible scatter+sting
+            player.invincible = now + 1500; aoeHit(3, 2);
+            spawnMeleeSlash('#fdd835'); break;
+        case 'trex': // Dino Stomp — huge AoE + stun
+            aoeHit(5, 2); stunNear(8, 2500); spawnMeleeSlash('#4e342e'); break;
+        case 'wendigo': { // Devour — eat nearest non-boss enemy
+            let target=null, closest=Infinity;
+            for(const e of enemies3D){if(!e.data.alive||e.data.isBoss)continue;const d=Math.hypot(e.data.x-px,e.data.z-pz);if(d<3&&d<closest){closest=d;target=e;}}
+            if(target){dealDamageToEnemy(target,9999);player.damage+=1;player.maxHp+=5;player.hp=Math.min(player.hp+15,player.maxHp);}
+            spawnMeleeSlash('#b0bec5'); break; }
+        case 'alienqueen': // Lay Eggs — 12 face-huggers
+            summon('facehugger', 12, { hp:12, damage:5, speed:4.0, radius:0.2, attackRange:1, attackSpeed:500, life:now+8000, color:'#1b5e20' });
+            spawnMeleeSlash('#76ff03'); break;
+        case 'comet': // Comet Dash — fire trail dash
+            dash(player.speed*4, 600, 2.5, 6); spawnMeleeSlash('#ff6f00'); break;
+        case 'telekinesis': { // TK Throw — grab+hurl enemy
+            let target=null,closest=Infinity;
+            for(const e of enemies3D){if(!e.data.alive)continue;const d=Math.hypot(e.data.x-px,e.data.z-pz);if(d<6&&d<closest){closest=d;target=e;}}
+            if(target){dealDamageToEnemy(target,Math.round(player.damage*1.5));target.data.x+=fwdX*5;target.data.z+=fwdZ*5;target.mesh.position.set(target.data.x*TILE,0,target.data.z*TILE);
+            for(const e2 of enemies3D){if(!e2.data.alive||e2===target)continue;if(Math.hypot(e2.data.x-target.data.x,e2.data.z-target.data.z)<2)dealDamageToEnemy(e2,Math.round(player.damage*2));}}
+            spawnMeleeSlash('#7c4dff'); break; }
+        case 'mindcontrol': { // Possess — convert enemy to ally
+            let target=null,closest=Infinity;
+            for(const e of enemies3D){if(!e.data.alive||e.data.isBoss)continue;const d=Math.hypot(e.data.x-px,e.data.z-pz);if(d<5&&d<closest){closest=d;target=e;}}
+            if(target){target.data.alive=false;target.mesh.visible=false;
+            spawnMinion('possessed',target.data.x,target.data.z,{hp:target.data.maxHp,damage:target.data.damage,speed:target.data.speed||2,radius:0.4,attackRange:2,attackSpeed:500,life:now+6000,color:'#e040fb'});}
+            spawnMeleeSlash('#e040fb'); break; }
+        case 'chimera': { // Switch Head — fire/lightning/poison cycle
+            if(!player._chimeraHead) player._chimeraHead=0;
+            player._chimeraHead=(player._chimeraHead+1)%3;
+            const colors=['#ff6f00','#ffeb3b','#76ff03'];
+            const mults=[1.5,1.2,1.6];
+            aoeHit(4, mults[player._chimeraHead]);
+            if(player._chimeraHead===1) stunNear(4,2000);
+            spawnMeleeSlash(colors[player._chimeraHead]); break; }
+        case 'mimic': { // Copy — kill+copy nearest enemy
+            let target=null,closest=Infinity;
+            for(const e of enemies3D){if(!e.data.alive||e.data.isBoss)continue;const d=Math.hypot(e.data.x-px,e.data.z-pz);if(d<3&&d<closest){closest=d;target=e;}}
+            if(target){dealDamageToEnemy(target,9999);player.damage=Math.round(player.damage*1.5);player._mimicEnd=now+6000;}
+            spawnMeleeSlash('#8d6e63'); break; }
+        case 'supernova': { // Charge & Release
+            if(!player._novaCharge)player._novaCharge=now;
+            const chg=Math.min(now-player._novaCharge,10000)/10000;
+            aoeHit(3+chg*8, 1+chg*4);
+            player._novaCharge=now;
+            spawnMeleeSlash('#fff176'); break; }
+        case 'puppet': // Strings — slam enemies together
+            { const caught=[];
+            for(const e of enemies3D){if(!e.data.alive||caught.length>=4)continue;if(Math.hypot(e.data.x-px,e.data.z-pz)<5){caught.push(e);stunNear(5,1500);}}
+            if(caught.length>=2){const cx=caught.reduce((s,e)=>s+e.data.x,0)/caught.length,cz=caught.reduce((s,e)=>s+e.data.z,0)/caught.length;
+            for(const e of caught){e.data.x=cx;e.data.z=cz;e.mesh.position.set(cx*TILE,0,cz*TILE);dealDamageToEnemy(e,Math.round(player.damage*2));}}
+            else if(caught.length===1) dealDamageToEnemy(caught[0],Math.round(player.damage*1.5));
+            spawnMeleeSlash('#9c27b0'); break; }
+        case 'medusa': // Stone Gaze — cone petrify + 3x damage
+            coneHit(5, 0.5, 3); stunNear(5, 3000); spawnMeleeSlash('#4caf50'); break;
+        case 'cerberus': // Triple Breath — 3 directional cones
+            for(let h=-1;h<=1;h++) { const a=yaw+h*0.4;
+            for(const e of enemies3D){if(!e.data.alive)continue;const dx=e.data.x-px,dz=e.data.z-pz;const along=-dx*Math.sin(a)-dz*Math.cos(a);const perp=Math.abs(dx*Math.cos(a)-dz*Math.sin(a));if(along>0&&along<5&&perp<1.5)dealDamageToEnemy(e,Math.round(player.damage*(h===0?1.3:1)));}}
+            spawnMeleeSlash('#ff6f00'); break;
+        case 'minotaur': // Bull Charge
+            dash(player.speed*3, 800, 2.5, 6); spawnMeleeSlash('#5d4037'); break;
+        case 'anubis': // Death Mark — mark+explode on death
+            for(const e of enemies3D){if(!e.data.alive)continue;if(Math.hypot(e.data.x-px,e.data.z-pz)<6){e.data._deathMark=true; dealDamageToEnemy(e,Math.round(player.damage*0.5));}}
+            spawnMeleeSlash('#fdd835'); break;
+        case 'thor': // Mjolnir — 3 piercing hammer projectiles
+            shootProj('#42a5f5', 16, player.damage*1.8, 3, 0.1); spawnMeleeSlash('#42a5f5'); break;
+        case 'venom': // Tentacle Burst — 8 directional hits
+            for(let t=0;t<8;t++){const a=yaw+(t/8)*Math.PI*2;
+            for(const e of enemies3D){if(!e.data.alive)continue;const dx=e.data.x-px,dz=e.data.z-pz;const along=-dx*Math.sin(a)-dz*Math.cos(a);const perp=Math.abs(dx*Math.cos(a)-dz*Math.sin(a));if(along>0&&along<3.5&&perp<0.8)dealDamageToEnemy(e,Math.round(player.damage*1.3));}}
+            spawnMeleeSlash('#222222'); break;
+        case 'cordyceps': // Infect — enemies rise as zombies on death
+            for(const e of enemies3D){if(!e.data.alive)continue;if(Math.hypot(e.data.x-px,e.data.z-pz)<5){e.data._infected=true;dealDamageToEnemy(e,Math.round(player.damage*1.5));}}
+            spawnMeleeSlash('#ff8f00'); break;
+        case 'leech': { // Latch On — drain continuously
+            let target=null,closest=Infinity;
+            for(const e of enemies3D){if(!e.data.alive)continue;const d=Math.hypot(e.data.x-px,e.data.z-pz);if(d<3&&d<closest){closest=d;target=e;}}
+            if(target){player._leechTarget=target;player._leechEnd=now+4000;stunNear(3,4000);}
+            spawnMeleeSlash('#880e4f'); break; }
+        case 'chrono': // Rewind — restore HP
+            { const restore = player._hpHistory ? Math.max(...player._hpHistory) : player.hp;
+            player.hp = Math.min(restore, player.maxHp); player._hpHistory = [];
+            spawnMeleeSlash('#00bcd4'); break; }
+        case 'dimcutter': // Portal Slash — teleport enemies away
+            for(const e of enemies3D){if(!e.data.alive)continue;if(Math.hypot(e.data.x-px,e.data.z-pz)<4){const rm=dungeon.rooms[Math.floor(Math.random()*dungeon.rooms.length)];e.data.x=rm.cx+0.5;e.data.z=rm.cy+0.5;e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE);dealDamageToEnemy(e,Math.round(player.damage*1.5));}}
+            spawnMeleeSlash('#00e5ff'); break;
+        case 'paradox': // Time Echo — summon clone
+            spawnMinion('clone',px+fwdX*1.5,pz+fwdZ*1.5,{hp:40,damage:Math.round(player.damage*0.8),speed:player.speed,radius:0.35,attackRange:1.8,attackSpeed:400,life:now+8000,color:'#ff80ab'});
+            spawnMeleeSlash('#ff80ab'); break;
+        case 'drummer': { // Beat Drop — combo counter
+            if(!player._drumCombo)player._drumCombo=0; player._drumCombo++;
+            const c=player._drumCombo; aoeHit(2+c*0.5, 0.5+c*0.3);
+            if(c>=7) player._drumCombo=0;
+            spawnMeleeSlash('#ff5722'); break; }
+        case 'siren': // Lure Song — pull enemies in+damage
+            for(const e of enemies3D){if(!e.data.alive)continue;const d=Math.hypot(e.data.x-px,e.data.z-pz);if(d<7){const a=Math.atan2(px-e.data.x,pz-e.data.z);e.data.x+=Math.sin(a)*2;e.data.z+=Math.cos(a)*2;e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE);stunNear(2,2000);if(d<2)dealDamageToEnemy(e,Math.round(player.damage*2.5));}}
+            spawnMeleeSlash('#80deea'); break;
+        case 'mercury': // Reshape — blade wave dash
+            dash(player.speed*3, 500, 2, 5); spawnMeleeSlash('#b0bec5'); break;
+        case 'acid': // Dissolve — acid AoE, strip defense
+            aoeHit(4, 1.5); spawnMeleeSlash('#76ff03'); break;
+        case 'smoke': // Smoke Bomb — invincible+poison AoE
+            player.invincible = now + 2500; aoeHit(3, 1.5); spawnMeleeSlash('#546e7a'); break;
+        case 'antcolony': // Swarm Rush — wave of projectiles
+            shootProj('#5d4037', 10, player.damage*0.8, 8, 0.08); spawnMeleeSlash('#795548'); break;
+        case 'ratking': { // Rat Horde — summon or sacrifice
+            const rats = minions3D.filter(m=>m.data.type==='rat').length;
+            if(rats>=6){let healed=0;for(let i=minions3D.length-1;i>=0;i--){if(minions3D[i].data.type==='rat'){healed+=5;scene.remove(minions3D[i].mesh);minions3D.splice(i,1);}}player.hp=Math.min(player.hp+healed,player.maxHp);}
+            else summon('rat',3,{hp:8,damage:4,speed:3.5,radius:0.2,attackRange:1,attackSpeed:400,life:now+12000,color:'#757575'});
+            spawnMeleeSlash('#616161'); break; }
+        case 'locust': // Plague Cloud — expanding damage
+            if(!player._locustSize)player._locustSize=2; player._locustSize=Math.min(player._locustSize+1,8);
+            aoeHit(player._locustSize, 0.6); spawnMeleeSlash('#827717'); break;
+        case 'mechashark': // Torpedo+Sonar — piercing shot+reveal map
+            shootProj('#37474f', 18, player.damage*2.5, 1, 0);
+            for(const rm of dungeon.rooms)rm.explored=true; syncTorchVisibility(torchLights,dungeon);
+            spawnMeleeSlash('#4fc3f7'); break;
+        case 'ghostrider': // Hellfire Chain — 6 directional whips
+            for(let c=0;c<6;c++){const a=yaw+c*Math.PI/3;
+            for(const e of enemies3D){if(!e.data.alive)continue;const dx=e.data.x-px,dz=e.data.z-pz;const along=-dx*Math.sin(a)-dz*Math.cos(a);if(along>0&&along<4&&Math.abs(dx*Math.cos(a)-dz*Math.sin(a))<1)dealDamageToEnemy(e,Math.round(player.damage*1.8));}}
+            spawnMeleeSlash('#ff6f00'); break;
+        case 'icephoenix': // Frost Dive — freeze+shatter
+            dash(player.speed*3, 400, 3, 5); stunNear(5, 3000); spawnMeleeSlash('#e1f5fe'); break;
+        case 'plaguerat': // Sneeze — cone poison, stacks
+            if(!player._poisonCount)player._poisonCount=0;
+            coneHit(5, 0.5, 1+player._poisonCount*0.2); player._poisonCount++;
+            spawnMeleeSlash('#33691e'); break;
+        case 'carddealer': { // Draw Card — random effect
+            const card=Math.floor(Math.random()*4);
+            if(card===0) player.hp=Math.min(player.hp+30,player.maxHp);
+            else if(card===1) aoeHit(5,2);
+            else if(card===2){fpsCamera.speed=player.speed*1.5;player._wingsEnd=now+5000;}
+            else aoeHit(8,3);
+            spawnMeleeSlash('#d32f2f'); break; }
+        case 'diceroller': { // Roll Dice
+            const roll=1+Math.floor(Math.random()*6);
+            if(roll===6) aoeHit(5,5);
+            else { player._dmgBuff=1+roll*0.3; player._dmgBuffEnd=now+3000; }
+            spawnMeleeSlash('#ffffff'); break; }
+        case 'chessking': { // Summon Pawns or Castle swap
+            const pawns=minions3D.filter(m=>m.data.type==='pawn').length;
+            if(pawns>0){let furthest=null,maxD=0;for(const m of minions3D){if(m.data.type!=='pawn')continue;const d=Math.hypot(m.data.x-px,m.data.z-pz);if(d>maxD){maxD=d;furthest=m;}}
+            if(furthest){const tx=furthest.data.x,tz=furthest.data.z;furthest.data.x=px;furthest.data.z=pz;furthest.mesh.position.set(px*TILE,0,pz*TILE);fpsCamera.setPosition(tx,tz);}}
+            else summon('pawn',4,{hp:15,damage:5,speed:2.5,radius:0.25,attackRange:1.2,attackSpeed:600,life:now+15000,color:'#fdd835'});
+            spawnMeleeSlash('#fdd835'); break; }
+        case 'rage': // Unleash — spend rage meter
+            if(!player._rageMeter)player._rageMeter=0;
+            if(player._rageMeter>=50){player._rageMeter=0;player._dmgBuff=2;player._dmgBuffEnd=now+5000;fpsCamera.speed=player.speed*2;player._wingsEnd=now+5000;player.invincible=now+1000;}
+            spawnMeleeSlash('#d50000'); break;
+        case 'fear': // Nightmare — push+2x damage
+            for(const e of enemies3D){if(!e.data.alive)continue;const d=Math.hypot(e.data.x-px,e.data.z-pz);if(d<6){const a=Math.atan2(e.data.x-px,e.data.z-pz);e.data.x+=Math.sin(a)*2;e.data.z+=Math.cos(a)*2;e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE);dealDamageToEnemy(e,Math.round(player.damage*2));}}
+            spawnMeleeSlash('#4a148c'); break;
+        case 'love': { // Charm — permanently convert enemy
+            const charmed=minions3D.filter(m=>m.data.type==='charmed').length;
+            if(charmed>=3)break;
+            let target=null,closest=Infinity;
+            for(const e of enemies3D){if(!e.data.alive||e.data.isBoss)continue;const d=Math.hypot(e.data.x-px,e.data.z-pz);if(d<5&&d<closest){closest=d;target=e;}}
+            if(target){target.data.alive=false;target.mesh.visible=false;
+            spawnMinion('charmed',target.data.x,target.data.z,{hp:target.data.maxHp,damage:target.data.damage,speed:target.data.speed||2,radius:0.4,attackRange:1.5,attackSpeed:500,life:Infinity,color:'#e91e63'});}
+            spawnMeleeSlash('#e91e63'); break; }
+        case 'chaos': { // Random ability from any class
+            const allClasses=Object.keys(CLASSES).filter(c=>c!=='chaos');
+            const rc=allClasses[Math.floor(Math.random()*allClasses.length)];
+            const old=player.classId; player.classId=rc; player.lastSpecial=0;
+            playerSpecial(); player.classId=old; break; }
+        case 'suisui': // Dive — teleport to cursor direction + uppercut
+            { const tx=px+fwdX*6, tz=pz+fwdZ*6; fpsCamera.setPosition(tx,tz);
+            player.invincible=now+800; aoeHit(3,2.5); stunNear(3,1000);
+            spawnMeleeSlash('#e91e63'); break; }
+        case 'ink': { // Draw Soldier — consume ink (simplified: just summon)
+            spawnMinion('inkSoldier',px+fwdX*1.5,pz+fwdZ*1.5,{hp:40,damage:8,speed:2.8,radius:0.35,attackRange:1.5,attackSpeed:450,life:now+12000,color:'#263238'});
+            spawnMeleeSlash('#263238'); break; }
+        case 'dog': // Pack Howl — 6 permanent dogs + stun
+            summon('dog_pack',6,{hp:40,damage:Math.round(player.damage*0.7),speed:3.8,radius:0.35,attackRange:1.5,attackSpeed:350,life:Infinity,color:'#8d6e63'});
+            stunNear(8,1500); spawnMeleeSlash('#a1887f'); break;
+        case 'kitsune': { // Fox Fire
+            const count=player._kitsuneForm?8:3;
+            shootProj('#00e5ff',14,player.damage*(player._kitsuneForm?1.5:1),count,0.12);
+            if(!player._kitsuneForm){if(!player._tailsMeter)player._tailsMeter=0;player._tailsMeter=Math.min(9,player._tailsMeter+0.3);}
+            break; }
+        default: // Fallback AoE
+            aoeHit(4, 2); spawnMeleeSlash(player.cls.color);
+    }
+}
+
+// ─── SECONDARY ABILITIES (R KEY) ────────────────────────────
+function playerSecondary() {
+    if (!player || !player.alive) return;
+    const now = performance.now();
+    if (!player._secondaryCd) player._secondaryCd = 0;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+
+    switch (player.classId) {
+        case 'katakuri':
+            if (now - player._secondaryCd < 4000) return; player._secondaryCd = now;
+            for (let i=0;i<6;i++){const a=yaw+(i-2.5)*0.1;
+            for(const e of enemies3D){if(!e.data.alive)continue;const dx=e.data.x-px,dz=e.data.z-pz;const d=Math.hypot(dx,dz);if(d<4){const ea=Math.atan2(-dx,-dz);let diff=Math.abs(ea-a);if(diff>Math.PI)diff=Math.PI*2-diff;if(diff<0.3)dealDamageToEnemy(e,Math.round(player.damage*1.2));}}}
+            spawnMeleeSlash('#c62828'); break;
+        case 'naruto':
+            if (now - player._secondaryCd < 3000) return; player._secondaryCd = now;
+            for(const e of enemies3D){if(!e.data.alive)continue;if(Math.hypot(e.data.x-px,e.data.z-pz)<2.5)dealDamageToEnemy(e,Math.round(player.damage*2));}
+            spawnMeleeSlash('#42a5f5'); break;
+        case 'kitsune':
+            if (now - player._secondaryCd < 2500) return; player._secondaryCd = now;
+            fpsCamera.speed = player.speed * 3; player.invincible = now + 500; player._dashEnd = now + 500; player._dashRestore = player.speed;
+            for(const e of enemies3D){if(!e.data.alive)continue;const dx=e.data.x-px,dz=e.data.z-pz;const along=-dx*fwdX-dz*fwdZ;const perp=Math.abs(dx*fwdZ-dz*fwdX);if(along>0&&along<6&&perp<1.5)dealDamageToEnemy(e,Math.round(player.damage*2));}
+            spawnMeleeSlash('#00e5ff'); break;
+        case 'dog':
+            if (now - player._secondaryCd < 3000) return; player._secondaryCd = now;
+            for(const m of minions3D){if((m.data.type==='dog_pack'||m.data.type==='puppy')){ m.data.damage=Math.round(m.data.damage*2); m.data._frenzyEnd=now+5000;}}
+            spawnMeleeSlash('#ff8f00'); break;
+        case 'ink':
+            if (now - player._secondaryCd < 4000) return; player._secondaryCd = now;
+            for(const e of enemies3D){if(!e.data.alive)continue;const dx=e.data.x-px,dz=e.data.z-pz;const along=-dx*fwdX-dz*fwdZ;const perp=Math.abs(dx*fwdZ-dz*fwdX);if(along>0&&along<8&&perp<2)dealDamageToEnemy(e,Math.round(player.damage*2));}
+            spawnMeleeSlash('#111111'); break;
+        case 'suisui':
+            if (now - player._secondaryCd < 3000) return; player._secondaryCd = now;
+            fpsCamera.speed = player.speed * 3; player.invincible = now + 700; player._dashEnd = now + 700; player._dashRestore = player.speed;
+            for(const e of enemies3D){if(!e.data.alive)continue;const dx=e.data.x-px,dz=e.data.z-pz;const along=-dx*fwdX-dz*fwdZ;const perp=Math.abs(dx*fwdZ-dz*fwdX);if(along>0&&along<8&&perp<1.5)dealDamageToEnemy(e,Math.round(player.damage*2));}
+            spawnMeleeSlash('#e91e63'); break;
+        default: break;
+    }
+}
+
+// ─── Q ABILITIES ────────────────────────────────────────────
+function playerQAbility() {
+    if (!player || !player.alive) return;
+    const now = performance.now();
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+
+    switch (player.classId) {
+        case 'jinwoo': // Recall shadows
+            for(const m of minions3D){if(m.data.type==='shadow'){m.data.x=px+(Math.random()-0.5)*2;m.data.z=pz+(Math.random()-0.5)*2;}}
             break;
-        }
-        case 'healer': { // Healing Circle — heal over time
-            player._healCircle = { x: px, z: pz, end: now + 4000, lastHeal: 0 };
-            spawnMeleeSlash('#43a047');
-            break;
-        }
-        case 'alienqueen': { // Lay Eggs — 12 face-huggers
-            for (let i = 0; i < 12; i++) {
-                const angle = fpsCamera.yaw + (i - 6) * 0.4;
-                spawnMinion('facehugger', px - Math.sin(angle) * 1.5, pz - Math.cos(angle) * 1.5,
-                    { hp: 12, damage: 5, speed: 4.0, radius: 0.2, attackRange: 1, attackSpeed: 500, life: now + 8000, color: '#1b5e20' });
-            }
-            spawnMeleeSlash('#76ff03');
-            break;
-        }
-        case 'kitsune': { // Fox Fire — blue fireballs
-            const count = player._kitsuneForm ? 8 : 3;
-            for (let i = 0; i < count; i++) {
-                const a = fpsCamera.yaw + (i - (count - 1) / 2) * 0.12;
-                const dirX = -Math.sin(a), dirZ = -Math.cos(a);
-                const mesh = new THREE.Mesh(projGeo, new THREE.MeshBasicMaterial({ color: '#00e5ff' }));
-                mesh.position.set(px * TILE + dirX * 0.8, EYE_HEIGHT - 0.3, pz * TILE + dirZ * 0.8);
-                const glow = new THREE.PointLight('#00e5ff', 2, TILE * 3, 2);
-                mesh.add(glow);
-                scene.add(mesh);
-                projectiles3D.push({ mesh, vx: dirX * 14, vz: dirZ * 14, damage: Math.round(player.damage * 1.5), owner: 'player', traveled: 0, range: 40 });
-            }
-            break;
-        }
-        default: { // Fallback — AoE blast for unported specials
-            const range = 4;
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                const dist = Math.hypot(e.data.x - px, e.data.z - pz);
-                if (dist < range) dealDamageToEnemy(e, Math.round(player.damage * 2));
-            }
-            spawnMeleeSlash(player.cls.color);
-        }
+        case 'katakuri': // Haki — permanent damage boost
+            if(!player._haki){player._haki=true;player.damage=Math.round(player.damage*1.4);}
+            spawnMeleeSlash('#1565c0'); break;
+        case 'dog': { // Alpha Howl — 3x buff all dogs
+            if(!player._alphaCd)player._alphaCd=0;if(now-player._alphaCd<12000)break;player._alphaCd=now;
+            for(const m of minions3D){if(m.data.type==='dog_pack'||m.data.type==='puppy'){m.data.damage*=3;m.data._alphaEnd=now+8000;}}
+            player.damage=Math.round(player.damage*2); player._dmgBuffEnd=now+8000;
+            spawnMeleeSlash('#ff3d00'); break; }
+        case 'ink': { // Masterpiece — big golem
+            spawnMinion('inkGolem',px-Math.sin(fpsCamera.yaw)*2,pz-Math.cos(fpsCamera.yaw)*2,
+                {hp:120,damage:20,speed:2,radius:0.6,attackRange:2,attackSpeed:500,life:now+15000,color:'#111111'});
+            spawnMeleeSlash('#263238'); break; }
+        case 'suisui': { // Whirlpool — pull enemies in
+            if(!player._whirlCd)player._whirlCd=0;if(now-player._whirlCd<6000)break;player._whirlCd=now;
+            player._whirlpool={x:px,z:pz,end:now+4000};
+            spawnMeleeSlash('#e91e63'); break; }
+        default: break;
     }
 }
 
@@ -759,6 +959,16 @@ function dealDamageToEnemy(e, dmg) {
             }
         }
 
+        // Cordyceps — infected enemies rise as zombies
+        if (e.data._infected && player) {
+            spawnMinion('zombie', e.data.x, e.data.z,
+                { hp: Math.round(e.data.maxHp * 0.4), damage: Math.round(e.data.damage * 0.5), speed: 1.5, radius: 0.4, attackRange: 1.5, attackSpeed: 600, life: performance.now() + 10000, color: '#ff8f00' });
+        }
+        // Anubis — death mark explosion
+        if (e.data._deathMark && player) {
+            for (const e2 of enemies3D) { if (!e2.data.alive || e2 === e) continue;
+                if (Math.hypot(e2.data.x - e.data.x, e2.data.z - e.data.z) < 3) dealDamageToEnemy(e2, Math.round(player.damage * 1.5)); }
+        }
         // Dog passive — 50% puppy on kill
         if (player && player.classId === 'dog' && Math.random() < 0.5) {
             spawnMinion('dog_pack', e.data.x, e.data.z,
@@ -783,6 +993,8 @@ function dealDamageToPlayer(dmg) {
     if (now < player.invincible) return;
     const reduced = Math.max(1, dmg - player.defense);
     player.hp -= reduced;
+    // Rage class — charge meter on damage
+    if (player.classId === 'rage') { if (!player._rageMeter) player._rageMeter = 0; player._rageMeter = Math.min(50, player._rageMeter + reduced); }
     player.invincible = now + 200;
 
     // Red flash on screen
@@ -825,6 +1037,27 @@ function update() {
     updateMeleeSlashes();
     updateMinions(dt, now);
 
+    // Dash speed restore
+    if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }
+    // Damage buff expiry
+    if (player._dmgBuffEnd && now > player._dmgBuffEnd) { player._dmgBuff = 1; player._dmgBuffEnd = 0; }
+    // Mimic form expiry
+    if (player._mimicEnd && now > player._mimicEnd) { player._mimicEnd = 0; }
+    // Whirlpool pull
+    if (player._whirlpool && now < player._whirlpool.end) {
+        for (const e of enemies3D) { if (!e.data.alive) continue;
+            const d = Math.hypot(e.data.x - player._whirlpool.x, e.data.z - player._whirlpool.z);
+            if (d < 7 && d > 0.5) { const a = Math.atan2(player._whirlpool.x-e.data.x, player._whirlpool.z-e.data.z); e.data.x += Math.sin(a)*dt*2; e.data.z += Math.cos(a)*dt*2; e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE); }
+        }
+    } else { player._whirlpool = null; }
+    // Leech drain
+    if (player._leechTarget && now < player._leechEnd) {
+        const t = player._leechTarget; if (t.data.alive) { dealDamageToEnemy(t, 1); player.hp = Math.min(player.hp+1, player.maxHp); }
+        else player._leechTarget = null;
+    } else { player._leechTarget = null; }
+    // Chrono HP history
+    if (player.classId === 'chrono') { if (!player._hpHistory) player._hpHistory = []; player._hpHistory.push(player.hp); if (player._hpHistory.length > 180) player._hpHistory.shift(); }
+    // Rage meter on damage (handled in dealDamageToPlayer)
     // Angel wings speed expiry
     if (player._wingsEnd && now > player._wingsEnd) {
         fpsCamera.speed = player.speed;
