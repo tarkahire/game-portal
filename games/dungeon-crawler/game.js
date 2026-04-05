@@ -50,6 +50,7 @@ let activeBeams = [];
 let impsEnraged = 0; // timestamp until imps attack mode
 let healingCircles = [];
 let lightningNets = [];
+let inkPuddles = [];
 let domainExpansion = null; // active domain expansion effect
 let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
 let camera = { x: 0, y: 0 };
@@ -163,7 +164,8 @@ const CLASSES = {
     fear: { name: 'Fear', maxHp: 80, speed: 2.8, attackRange: 140, attackDamage: 12, attackSpeed: 480, attackType: 'ranged', color: '#4a148c', specialCooldown: 3500, specialName: 'Nightmare', specialDesc: 'Terror zone — enemies flee and take 2x damage while scared', drawChar: makeDrawFn('#4a148c','#1a0033','long') },
     love: { name: 'Love', maxHp: 75, speed: 2.6, attackRange: 150, attackDamage: 9, attackSpeed: 500, attackType: 'ranged', color: '#e91e63', specialCooldown: 5000, specialName: 'Charm', specialDesc: 'Charm enemy permanently — fights for you (max 3 charmed)', drawChar: makeDrawFn('#e91e63','#880e4f','long') },
     chaos: { name: 'Chaos', maxHp: 90, speed: 2.8, attackRange: 35, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff00ff', specialCooldown: 1000, specialName: '???', specialDesc: 'Every press = random ability from ANY other class. Pure madness.', drawChar: makeDrawFn('#ff00ff','#111','spiky') },
-    suisui: { name: 'Señor Pink', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#e91e63', specialCooldown: 4000, specialName: 'Dive', specialDesc: 'Swim into floor — pop up at cursor with devastating uppercut', drawChar: drawSenorPink }
+    suisui: { name: 'Señor Pink', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#e91e63', specialCooldown: 4000, specialName: 'Dive', specialDesc: 'Swim into floor — pop up at cursor with devastating uppercut', drawChar: drawSenorPink },
+    ink: { name: 'Ink', maxHp: 85, speed: 2.8, attackRange: 160, attackDamage: 10, attackSpeed: 450, attackType: 'ranged', color: '#263238', specialCooldown: 5000, specialName: 'Draw Soldier', specialDesc: 'Summon a warrior from ink puddles — more puddles = stronger', drawChar: drawInk }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -569,6 +571,7 @@ function startGame() {
     activeBeams = [];
     healingCircles = [];
     lightningNets = [];
+    inkPuddles = [];
     domainExpansion = null;
     gameState = 'playing';
     showScreen(null);
@@ -610,6 +613,7 @@ function nextFloor() {
     activeBeams = [];
     healingCircles = [];
     lightningNets = [];
+    inkPuddles = [];
     domainExpansion = null;
     enemies = [];
     lootDrops = [];
@@ -817,15 +821,16 @@ function playerAttack(p, now) {
         // Ranged attack — spawn projectile
         const speed = 6;
         const isBee = p.classId === 'beeswarm';
+        const isInk = p.classId === 'ink';
         projectiles.push({
             x: p.x, y: p.y,
             vx: Math.cos(p.facingAngle) * (isBee ? 4 : speed),
             vy: Math.sin(p.facingAngle) * (isBee ? 4 : speed),
             damage: dmg, owner: 'player', ownerRef: p,
             range: p.attackRange, traveled: 0,
-            color: isBee ? '#ffb300' : p.cls.color,
-            radius: isBee ? 16 : 4,
-            isHoneyBall: isBee
+            color: isBee ? '#ffb300' : isInk ? '#111' : p.cls.color,
+            radius: isBee ? 16 : isInk ? 5 : 4,
+            isHoneyBall: isBee, isInk: isInk
         });
     }
 }
@@ -1420,6 +1425,28 @@ function playerSpecial(p, now) {
                 spawnParticles(target.x,target.y,'#f48fb1',12);
                 damageNumbers.push({x:target.x,y:target.y-20,text:'CHARMED!',color:'#e91e63',life:50});}
             triggerShake(3,5);} break;
+        case 'ink': // Draw Soldier — consume nearby ink puddles to summon a warrior
+            { const inkRange = 120;
+            let consumed = 0;
+            for (let ip = inkPuddles.length - 1; ip >= 0; ip--) {
+                if (Math.hypot(inkPuddles[ip].x - p.x, inkPuddles[ip].y - p.y) < inkRange) {
+                    spawnParticles(inkPuddles[ip].x, inkPuddles[ip].y, '#111', 2);
+                    inkPuddles.splice(ip, 1); consumed++;
+                }
+            }
+            if (consumed > 0) {
+                const bonusMult = Math.min(consumed / 3, 4); // 3 puddles = 1x, 12 = 4x
+                summonedMinions.push({ x: p.x + Math.cos(p.facingAngle) * 25, y: p.y + Math.sin(p.facingAngle) * 25, owner: p,
+                    hp: Math.round(25 * bonusMult), maxHp: Math.round(25 * bonusMult),
+                    damage: Math.round(6 * bonusMult), speed: 2.8, radius: 6 + bonusMult * 2,
+                    attackRange: 25, lastAttack: now, attackSpeed: 450,
+                    life: now + 12000, color: '#263238', type: 'inkSoldier' });
+                damageNumbers.push({ x: p.x, y: p.y - 30, text: `INK SOLDIER (${consumed} ink)`, color: '#546e7a', life: 50 });
+                spawnParticles(p.x, p.y, '#111', 14); spawnParticles(p.x, p.y, '#546e7a', 8);
+                triggerShake(4, 6);
+            } else {
+                damageNumbers.push({ x: p.x, y: p.y - 20, text: 'No ink nearby!', color: '#666', life: 30 });
+            } } break;
         case 'suisui': // Dive — swim into floor, pop up at mouse with uppercut
             { p.invincible = now + 800;
             p.activeEffects.push({ effect: 'diving', value: 1, endTime: now + 500 });
@@ -1558,6 +1585,25 @@ function animeSecondary(p, now) {
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#42a5f5', 14);
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#fff', 6);
             triggerShake(5, 8); } break;
+        case 'ink': // Ink Tsunami — wave of ink forward, leaves puddles, big damage
+            if (now - p._secondaryCd < 4000) return; p._secondaryCd = now;
+            { const snap = enemies.slice();
+            for (const e of snap) { if (!e.alive) continue;
+                const dx = e.x - p.x, dy = e.y - p.y;
+                const along = dx * Math.cos(p.facingAngle) + dy * Math.sin(p.facingAngle);
+                const perp = Math.abs(-dx * Math.sin(p.facingAngle) + dy * Math.cos(p.facingAngle));
+                if (along > 0 && along < 160 && perp < 35) dealDamageToEnemy(e, Math.round(p.damage * 2), p);
+            }
+            // Leave puddles along the path
+            for (let t = 0; t < 10; t++) {
+                const px = p.x + Math.cos(p.facingAngle) * t * 16 + (Math.random()-0.5)*15;
+                const py = p.y + Math.sin(p.facingAngle) * t * 16 + (Math.random()-0.5)*15;
+                if (inkPuddles.length < 100) inkPuddles.push({ x: px, y: py, owner: p });
+                spawnParticles(px, py, '#111', 2);
+            }
+            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: 160, width: 20, life: 12, maxLife: 12, color: '#263238' });
+            damageNumbers.push({ x: p.x, y: p.y - 25, text: 'INK TSUNAMI!', color: '#263238', life: 50 });
+            spawnParticles(p.x, p.y, '#111', 16); triggerShake(6, 10); } break;
         case 'suisui': // Swim Strike — dash through walls, damage in path
             if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
             { p.dodging = true; p.dodgeDir = { x: Math.cos(p.facingAngle), y: Math.sin(p.facingAngle) };
@@ -1577,6 +1623,31 @@ function animeSecondary(p, now) {
             triggerShake(6, 10); } break;
         default: return;
     }
+}
+
+function inkMasterpiece(p, now) {
+    if (p.classId !== 'ink') return;
+    if (!p._masterpieceCd) p._masterpieceCd = 0;
+    if (now - p._masterpieceCd < 10000) return;
+    if (inkPuddles.length < 5) {
+        damageNumbers.push({ x: p.x, y: p.y - 20, text: 'Need 5+ ink!', color: '#666', life: 30 });
+        return;
+    }
+    p._masterpieceCd = now;
+    const count = inkPuddles.length;
+    // Consume all puddles with particle effect
+    for (const ip of inkPuddles) spawnParticles(ip.x, ip.y, '#111', 2);
+    inkPuddles = [];
+    // Spawn massive golem — scales with puddle count
+    const sizeMult = Math.min(count / 5, 6); // 5 puddles = 1x, 30 = 6x
+    summonedMinions.push({ x: p.x + Math.cos(p.facingAngle) * 35, y: p.y + Math.sin(p.facingAngle) * 35, owner: p,
+        hp: Math.round(60 * sizeMult), maxHp: Math.round(60 * sizeMult),
+        damage: Math.round(10 * sizeMult), speed: 2.0, radius: Math.round(10 + sizeMult * 3),
+        attackRange: 30 + sizeMult * 3, lastAttack: now, attackSpeed: 500,
+        life: now + 15000, color: '#111', type: 'inkGolem', _inkSize: sizeMult });
+    damageNumbers.push({ x: p.x, y: p.y - 35, text: `MASTERPIECE! (${count} ink)`, color: '#263238', life: 60 });
+    spawnParticles(p.x, p.y, '#111', 20); spawnParticles(p.x, p.y, '#546e7a', 10);
+    triggerShake(8, 14);
 }
 
 function suisuiWhirlpool(p, now) {
@@ -1962,11 +2033,17 @@ function update(now) {
             if (!hitH && !hitV) { proj.vx = -proj.vx; proj.vy = -proj.vy; }
             proj.bounces++;
             spawnParticles(proj.x, proj.y, proj.color, 2);
-            // Max 5 bounces then destroy
-            if (proj.bounces > 5) { projectiles.splice(i, 1); continue; }
+            // Max 5 bounces then destroy (ink: instant puddle on wall)
+            if (proj.bounces > 5 || (proj.isInk && proj.bounces > 0)) {
+                if (proj.isInk && inkPuddles.length < 100) { inkPuddles.push({ x: proj.x, y: proj.y, owner: proj.ownerRef }); spawnParticles(proj.x, proj.y, '#263238', 3); }
+                projectiles.splice(i, 1); continue;
+            }
         }
 
-        if (proj.traveled > proj.range) { projectiles.splice(i, 1); continue; }
+        if (proj.traveled > proj.range) {
+            if (proj.isInk && inkPuddles.length < 100) { inkPuddles.push({ x: proj.x, y: proj.y, owner: proj.ownerRef }); spawnParticles(proj.x, proj.y, '#263238', 3); }
+            projectiles.splice(i, 1); continue;
+        }
 
         if (proj.owner === 'player') {
             let hitSomething = false;
@@ -1974,7 +2051,9 @@ function update(now) {
                 if (!e.alive) continue;
                 if (Math.hypot(e.x - proj.x, e.y - proj.y) < e.radius + proj.radius) {
                     dealDamageToEnemy(e, proj.damage, proj.ownerRef);
-                    if (!proj.piercing) { projectiles.splice(i, 1); hitSomething = true; break; }
+                    if (!proj.piercing) {
+                        if (proj.isInk && inkPuddles.length < 100) { inkPuddles.push({ x: e.x, y: e.y, owner: proj.ownerRef }); spawnParticles(e.x, e.y, '#263238', 3); }
+                        projectiles.splice(i, 1); hitSomething = true; break; }
                 }
             }
             if (hitSomething) continue;
@@ -2603,7 +2682,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
         if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
-        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); }
+        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); inkMasterpiece(p, now); }
         if (pKey(p, 'KeyF')) jinwooAriseBoss(p, now);
     } else {
         // Local P2: Numpad
@@ -2612,7 +2691,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
         if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
         if (pKey(p, 'Numpad6') && !pKey(p, 'Numpad5')) frogInsects(p, now);
-        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); }
+        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); inkMasterpiece(p, now); }
         if (pKey(p, 'Numpad6')) jinwooAriseBoss(p, now);
     }
 
@@ -2748,6 +2827,16 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         lg.addColorStop(0, `rgba(${neonRgba},0.06)`); lg.addColorStop(1, `rgba(${neonRgba},0)`);
         ctx.fillStyle = lg;
         ctx.beginPath(); ctx.arc(tx, ty, 65, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Ink puddles
+    for (const ip of inkPuddles) {
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.ellipse(ip.x, ip.y, 8, 5, Math.atan2(ip.y, ip.x), 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#263238'; ctx.globalAlpha = 0.3;
+        ctx.beginPath(); ctx.ellipse(ip.x + 2, ip.y - 1, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
     }
 
     // Loot drops
@@ -3899,6 +3988,58 @@ function drawPortal(ctx, p, time) {
 // ─── ANIME CHARACTER DRAWING ────────────────────────────────
 
 // ─── MORE ANIME CHARACTER DRAWING ───────────────────────────
+function drawInk(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    // Dripping ink aura
+    ctx.globalAlpha = 0.15;
+    const ag = ctx.createRadialGradient(0, -2, 0, 0, -2, 22);
+    ag.addColorStop(0, '#263238'); ag.addColorStop(1, 'rgba(38,50,56,0)');
+    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, -2, 22, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Ink body — fluid, shifting shape
+    const wobble = Math.sin(t * 0.008) * 1.5;
+    ctx.fillStyle = p.attackAnim > 0 ? '#37474f' : '#1a1a1a';
+    // Torso — blobby
+    ctx.beginPath(); ctx.ellipse(0 + wobble, 3, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
+    // Head
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(0, -9, 7, 0, Math.PI * 2); ctx.fill();
+    // White eyes — glowing
+    ctx.fillStyle = '#fff'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(-3, -10, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -10, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(-3, -10, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -10, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Ink drips
+    ctx.fillStyle = '#111';
+    for (let d = 0; d < 3; d++) {
+        const dx = (d - 1) * 4 + Math.sin(t * 0.006 + d * 2) * 2;
+        const dy = 10 + Math.sin(t * 0.008 + d) * 3 + d * 2;
+        ctx.beginPath(); ctx.ellipse(dx, dy, 1.5, 3, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // Weapon arm — ink brush (aimed)
+    ctx.save(); ctx.rotate(p.facingAngle);
+    ctx.fillStyle = '#37474f';
+    ctx.fillRect(6, -2, 12 + (p.attackAnim > 0 ? 5 : 0), 4);
+    // Brush tip
+    ctx.fillStyle = '#111';
+    const tipExt = p.attackAnim > 0 ? 5 : 0;
+    ctx.beginPath(); ctx.moveTo(18 + tipExt, -3); ctx.lineTo(22 + tipExt, 0); ctx.lineTo(18 + tipExt, 3); ctx.fill();
+    ctx.restore();
+    // Puddle count indicator
+    const pudCount = inkPuddles.filter(ip => ip.owner === p).length;
+    if (pudCount > 0) {
+        ctx.fillStyle = '#546e7a'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(`${pudCount} ink`, 0, 22);
+    }
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
 function drawSenorPink(ctx, p, t) {
     ctx.save(); ctx.translate(p.x, p.y);
     const diving = p.activeEffects.some(e => e.effect === 'diving');
