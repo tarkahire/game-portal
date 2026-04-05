@@ -19,6 +19,7 @@ let dungeon, dungeonMesh, torchLights;
 let playerLight;
 let enemies3D = [];
 let projectiles3D = [];
+let minions3D = [];
 let gameState = 'title';
 let currentFloor = 1;
 let clock;
@@ -282,6 +283,11 @@ function loadFloor(floor) {
     if (torchLights) { for (const l of torchLights) scene.remove(l); }
     for (const e of enemies3D) { scene.remove(e.mesh); if (e.label) scene.remove(e.label); }
     for (const p of projectiles3D) { scene.remove(p.mesh); }
+    // Keep permanent minions (shadows, clones, dogs) across floors
+    const keepMinions = minions3D.filter(m => m.data.life === Infinity);
+    const removeMinions = minions3D.filter(m => m.data.life !== Infinity);
+    for (const m of removeMinions) { scene.remove(m.mesh); }
+    minions3D = keepMinions;
     enemies3D = [];
     projectiles3D = [];
 
@@ -500,12 +506,220 @@ function playerSpecial() {
     const now = performance.now();
     if (now - player.lastSpecial < player.specialCooldown) return;
     player.lastSpecial = now;
-    // TODO: port all 62 specials — for now, AoE blast
-    const range = 4;
-    for (const e of enemies3D) {
-        if (!e.data.alive) continue;
-        const dist = Math.hypot(e.data.x - fpsCamera.posX, e.data.z - fpsCamera.posZ);
-        if (dist < range) dealDamageToEnemy(e, Math.round(player.damage * 2));
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+
+    switch (player.classId) {
+        case 'jinwoo': { // Shadow Army — spawn 3 shadow soldiers
+            player._shadowSpawning = true;
+            player._lastShadowSpawn = now;
+            const existing = minions3D.filter(m => m.data.type === 'shadow').length;
+            for (let i = 0; i < 3; i++) {
+                if (existing + i >= 8) break;
+                const angle = ((existing + i) / 8) * Math.PI * 2;
+                spawnMinion('shadow', px + Math.cos(angle) * 1.5, pz + Math.sin(angle) * 1.5,
+                    { hp: 20, damage: 6, speed: 3.2, radius: 0.4, attackRange: 2, attackSpeed: 800, life: Infinity, color: '#6a3aaa' });
+            }
+            spawnMeleeSlash('#7c4dff');
+            break;
+        }
+        case 'naruto': { // Shadow Clones — 8 permanent clones
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                spawnMinion('clone', px + Math.cos(angle) * 1.2, pz + Math.sin(angle) * 1.2,
+                    { hp: 9999, damage: Math.round(player.damage * 0.6), speed: player.speed, radius: 0.35, attackRange: 1.5, attackSpeed: 400, life: Infinity, color: '#ff8f00' });
+            }
+            spawnMeleeSlash('#ff8f00');
+            break;
+        }
+        case 'demon': { // Summon 3 Imps
+            for (let i = 0; i < 3; i++) {
+                const angle = fpsCamera.yaw + (i - 1) * 0.8;
+                spawnMinion('imp', px - Math.sin(angle) * 1.5, pz - Math.cos(angle) * 1.5,
+                    { hp: 20, damage: 6, speed: 2.5, radius: 0.3, attackRange: 1.5, attackSpeed: 600, life: now + 8000, color: '#ff4444' });
+            }
+            spawnMeleeSlash('#cc2222');
+            break;
+        }
+        case 'megumi': { // Divine Dogs — 8 orbiting fiends
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                spawnMinion('dog_divine', px + Math.cos(angle) * 1.8, pz + Math.sin(angle) * 1.8,
+                    { hp: 30, damage: 8, speed: 3.5, radius: 0.4, attackRange: 1.8, attackSpeed: 400, life: now + 10000, color: '#1a237e' });
+            }
+            spawnMeleeSlash('#283593');
+            break;
+        }
+        case 'dog': { // Pack Howl — 6 permanent dogs
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                spawnMinion('dog_pack', px + Math.cos(angle) * 1.5, pz + Math.sin(angle) * 1.5,
+                    { hp: 40, damage: Math.round(player.damage * 0.7), speed: 3.8, radius: 0.35, attackRange: 1.5, attackSpeed: 350, life: Infinity, color: '#8d6e63' });
+            }
+            // Stun nearby enemies
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                if (Math.hypot(e.data.x - px, e.data.z - pz) < 8) e.data.lastAttack = now + 1500;
+            }
+            spawnMeleeSlash('#a1887f');
+            break;
+        }
+        case 'angel': { // Divine Wings — speed + heal
+            player.hp = Math.min(player.hp + 25, player.maxHp);
+            fpsCamera.speed = player.speed * 1.5;
+            player._wingsEnd = now + 5000;
+            spawnMeleeSlash('#f0e68c');
+            break;
+        }
+        case 'healer': { // Healing Circle — heal over time
+            player._healCircle = { x: px, z: pz, end: now + 4000, lastHeal: 0 };
+            spawnMeleeSlash('#43a047');
+            break;
+        }
+        case 'alienqueen': { // Lay Eggs — 12 face-huggers
+            for (let i = 0; i < 12; i++) {
+                const angle = fpsCamera.yaw + (i - 6) * 0.4;
+                spawnMinion('facehugger', px - Math.sin(angle) * 1.5, pz - Math.cos(angle) * 1.5,
+                    { hp: 12, damage: 5, speed: 4.0, radius: 0.2, attackRange: 1, attackSpeed: 500, life: now + 8000, color: '#1b5e20' });
+            }
+            spawnMeleeSlash('#76ff03');
+            break;
+        }
+        case 'kitsune': { // Fox Fire — blue fireballs
+            const count = player._kitsuneForm ? 8 : 3;
+            for (let i = 0; i < count; i++) {
+                const a = fpsCamera.yaw + (i - (count - 1) / 2) * 0.12;
+                const dirX = -Math.sin(a), dirZ = -Math.cos(a);
+                const mesh = new THREE.Mesh(projGeo, new THREE.MeshBasicMaterial({ color: '#00e5ff' }));
+                mesh.position.set(px * TILE + dirX * 0.8, EYE_HEIGHT - 0.3, pz * TILE + dirZ * 0.8);
+                const glow = new THREE.PointLight('#00e5ff', 2, TILE * 3, 2);
+                mesh.add(glow);
+                scene.add(mesh);
+                projectiles3D.push({ mesh, vx: dirX * 14, vz: dirZ * 14, damage: Math.round(player.damage * 1.5), owner: 'player', traveled: 0, range: 40 });
+            }
+            break;
+        }
+        default: { // Fallback — AoE blast for unported specials
+            const range = 4;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const dist = Math.hypot(e.data.x - px, e.data.z - pz);
+                if (dist < range) dealDamageToEnemy(e, Math.round(player.damage * 2));
+            }
+            spawnMeleeSlash(player.cls.color);
+        }
+    }
+}
+
+// ─── MINION SYSTEM ──────────────────────────────────────────
+function spawnMinion(type, tileX, tileZ, data) {
+    const group = new THREE.Group();
+    const S = data.radius * 2;
+    const color = data.color;
+
+    // Body
+    const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(S * 0.4, S * 0.35, S * 1.5, 6), bodyMat);
+    body.position.y = S * 0.9;
+    group.add(body);
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(S * 0.3, 6, 6), bodyMat);
+    head.position.y = S * 1.8;
+    group.add(head);
+
+    // Glowing eyes
+    const eyeColor = type === 'shadow' ? '#448aff' : type === 'imp' ? '#ff0000' : '#ffffff';
+    const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
+    const eyeGeo = new THREE.SphereGeometry(S * 0.08, 4, 4);
+    group.add(new THREE.Mesh(eyeGeo, eyeMat).translateX(-S * 0.12).translateY(S * 1.85).translateZ(S * 0.2));
+    group.add(new THREE.Mesh(eyeGeo, eyeMat).translateX(S * 0.12).translateY(S * 1.85).translateZ(S * 0.2));
+
+    // Type-specific details
+    if (type === 'shadow') {
+        // Hood
+        const hood = new THREE.Mesh(new THREE.ConeGeometry(S * 0.35, S * 0.5, 6), new THREE.MeshStandardMaterial({ color: '#1a1040' }));
+        hood.position.y = S * 2.1;
+        group.add(hood);
+        // Blue flame aura
+        const aura = new THREE.PointLight('#448aff', 1, TILE * 2, 2);
+        aura.position.y = S * 1.5;
+        group.add(aura);
+    }
+    if (type === 'imp') {
+        // Horns
+        const hornGeo = new THREE.ConeGeometry(S * 0.08, S * 0.3, 4);
+        const hornMat = new THREE.MeshStandardMaterial({ color: '#880000' });
+        group.add(new THREE.Mesh(hornGeo, hornMat).translateX(-S * 0.15).translateY(S * 2.1));
+        group.add(new THREE.Mesh(hornGeo, hornMat).translateX(S * 0.15).translateY(S * 2.1));
+    }
+
+    group.position.set(tileX * TILE, 0, tileZ * TILE);
+    scene.add(group);
+
+    minions3D.push({
+        mesh: group,
+        data: { ...data, type, x: tileX, z: tileZ, lastAttack: performance.now(), alive: true }
+    });
+}
+
+function updateMinions(dt, now) {
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+
+    for (let i = minions3D.length - 1; i >= 0; i--) {
+        const m = minions3D[i];
+        if (now > m.data.life || m.data.hp <= 0) {
+            scene.remove(m.mesh);
+            minions3D.splice(i, 1);
+            continue;
+        }
+        // Clones are immortal
+        if (m.data.type === 'clone') m.data.hp = m.data.maxHp || 9999;
+
+        // Find nearest enemy
+        let nearestEnemy = null, nearestDist = Infinity;
+        for (const e of enemies3D) {
+            if (!e.data.alive) continue;
+            const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
+            if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
+        }
+
+        // Chase enemy if close, otherwise follow player
+        let targetX, targetZ;
+        if (nearestEnemy && nearestDist < 8) {
+            targetX = nearestEnemy.data.x;
+            targetZ = nearestEnemy.data.z;
+
+            // Attack if in range
+            if (nearestDist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
+                m.data.lastAttack = now;
+                dealDamageToEnemy(nearestEnemy, m.data.damage);
+            }
+        } else {
+            targetX = px;
+            targetZ = pz;
+        }
+
+        // Move toward target
+        const dx = targetX - m.data.x, dz = targetZ - m.data.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const followDist = nearestEnemy && nearestDist < 8 ? m.data.attackRange * 0.8 : 2;
+        if (dist > followDist) {
+            const spd = Math.min(m.data.speed * dt, dist * 0.15);
+            m.data.x += (dx / dist) * spd;
+            m.data.z += (dz / dist) * spd;
+        }
+
+        // Teleport if too far from player
+        const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
+        if (playerDist > 15) {
+            m.data.x = px + (Math.random() - 0.5) * 2;
+            m.data.z = pz + (Math.random() - 0.5) * 2;
+        }
+
+        m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
+
+        // Billboard toward camera
+        m.mesh.lookAt(camera.position.x, m.mesh.position.y, camera.position.z);
     }
 }
 
@@ -543,6 +757,12 @@ function dealDamageToEnemy(e, dmg) {
                 player.hp = Math.min(player.hp + 10, player.maxHp);
                 player.damage += 1;
             }
+        }
+
+        // Dog passive — 50% puppy on kill
+        if (player && player.classId === 'dog' && Math.random() < 0.5) {
+            spawnMinion('dog_pack', e.data.x, e.data.z,
+                { hp: 25, damage: Math.round(player.damage * 0.4), speed: 3.5, radius: 0.3, attackRange: 1.2, attackSpeed: 400, life: Infinity, color: '#d7ccc8' });
         }
 
         // Gold
@@ -603,6 +823,35 @@ function update() {
 
     updateTorchLights(torchLights, time);
     updateMeleeSlashes();
+    updateMinions(dt, now);
+
+    // Angel wings speed expiry
+    if (player._wingsEnd && now > player._wingsEnd) {
+        fpsCamera.speed = player.speed;
+        player._wingsEnd = 0;
+    }
+    // Healer circle passive
+    if (player._healCircle && now < player._healCircle.end) {
+        if (now - player._healCircle.lastHeal > 500) {
+            player._healCircle.lastHeal = now;
+            const dist = Math.hypot(px - player._healCircle.x, pz - player._healCircle.z);
+            if (dist < 4) player.hp = Math.min(player.hp + 5, player.maxHp);
+        }
+    }
+    // Jin-Woo passive — spawn shadow every 2s up to 8
+    if (player.classId === 'jinwoo' && player._shadowSpawning) {
+        if (!player._lastShadowSpawn) player._lastShadowSpawn = 0;
+        if (now - player._lastShadowSpawn >= 2000) {
+            player._lastShadowSpawn = now;
+            const existing = minions3D.filter(m => m.data.type === 'shadow').length;
+            if (existing < 8) {
+                const angle = (existing / 8) * Math.PI * 2;
+                spawnMinion('shadow', px + Math.cos(angle) * 1.5, pz + Math.sin(angle) * 1.5,
+                    { hp: 20, damage: 6, speed: 3.2, radius: 0.4, attackRange: 2, attackSpeed: 800, life: Infinity, color: '#6a3aaa' });
+            }
+        }
+    }
+    // Dog passive — 50% puppy on kill is handled in dealDamageToEnemy
 
     // Update enemies
     for (const e of enemies3D) {
