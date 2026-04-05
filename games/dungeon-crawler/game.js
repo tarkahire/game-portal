@@ -119,7 +119,7 @@ const CLASSES = {
     // ── Solo Leveling ──
     jinwoo: { name: 'Jin-Woo', maxHp: 110, speed: 3.0, attackRange: 32, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#311b92', specialCooldown: 6000, specialName: 'Shadow Army', specialDesc: 'Raise 3 shadow soldiers from dead enemies', drawChar: drawJinWoo },
     // ── One Piece ──
-    katakuri: { name: 'Katakuri', maxHp: 120, speed: 2.7, attackRange: 40, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#c62828', specialCooldown: 5000, specialName: 'Mochi Thrust', specialDesc: 'Extend mochi arm — long-range piercing punch', drawChar: drawKatakuri },
+    katakuri: { name: 'Katakuri', maxHp: 120, speed: 2.7, attackRange: 35, attackDamage: 8, attackSpeed: 180, attackType: 'melee', color: '#c62828', specialCooldown: 6000, specialName: 'Dough Fist Fusillade', specialDesc: 'Giant dough fists slam down repeatedly on all nearby enemies', drawChar: drawKatakuri },
     // ── Original ──
     frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 0, specialName: 'Electric Tongue', specialDesc: 'Spinning tongue spiral — catches and devours all enemies', drawChar: drawFrog },
     beeswarm: { name: 'Bee Swarm', maxHp: 60, speed: 3.5, attackRange: 20, attackDamage: 8, attackSpeed: 250, attackType: 'melee', color: '#fdd835', specialCooldown: 3000, specialName: 'Split Swarm', specialDesc: 'Split apart to dodge — reform to mass sting', drawChar: drawBeeSwarm },
@@ -903,25 +903,20 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#fff', 10);
             triggerShake(6, 12);
             break;
-        case 'katakuri': // Mochi Thrust — long-range piercing mochi arm
-            { const beamLen = 150, beamW = 12;
-            const cos = Math.cos(p.facingAngle), sin = Math.sin(p.facingAngle);
-            for (const e of enemies) { if (!e.alive) continue;
-                const dx = e.x - p.x, dy = e.y - p.y;
-                const proj = dx * cos + dy * sin;
-                if (proj > 0 && proj < beamLen) {
-                    const perp = Math.abs(-dx * sin + dy * cos);
-                    if (perp < beamW + e.radius) {
-                        dealDamageToEnemy(e, Math.round(p.damage * 2.5), p);
-                        e.stunned = Math.max(e.stunned, now + 800);
-                        spawnParticles(e.x, e.y, '#e8b0a0', 6);
-                    }
-                }
+        case 'katakuri': // Dough Fist Fusillade — giant dough fists slam down repeatedly
+            { const range = 120;
+            // Spawn 8 delayed dough fist slams around the area
+            if (!p._fusillade) p._fusillade = [];
+            const snap = enemies.filter(e => e.alive && Math.hypot(e.x - p.x, e.y - p.y) < range);
+            for (let i = 0; i < 8; i++) {
+                const target = snap[i % Math.max(snap.length, 1)];
+                const tx = target ? target.x + (Math.random() - 0.5) * 30 : p.x + Math.cos(p.facingAngle + (Math.random() - 0.5) * 2) * (40 + Math.random() * 80);
+                const ty = target ? target.y + (Math.random() - 0.5) * 30 : p.y + Math.sin(p.facingAngle + (Math.random() - 0.5) * 2) * (40 + Math.random() * 80);
+                p._fusillade.push({ x: tx, y: ty, delay: i * 150, startTime: now, damage: Math.round(p.damage * 2), owner: p, hit: false });
             }
-            activeBeams.push({ x: p.x, y: p.y, angle: p.facingAngle, length: beamLen, width: beamW, life: 14, maxLife: 14, color: '#c62828' });
-            spawnParticles(p.x + cos * 80, p.y + sin * 80, '#e8b0a0', 16);
-            spawnParticles(p.x + cos * 80, p.y + sin * 80, '#c62828', 8);
-            triggerShake(6, 10); } break;
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: 'FUSILLADE!', color: '#c62828', life: 50 });
+            spawnParticles(p.x, p.y, '#e8b0a0', 12);
+            triggerShake(4, 6); } break;
         case 'naruto': // Shadow Clones — 8 clones
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
@@ -1459,7 +1454,7 @@ function jinwooRecall(p, now) {
 function animeSecondary(p, now) {
     if (!p._secondaryCd) p._secondaryCd = 0;
     switch (p.classId) {
-        case 'katakuri': // Dough Fist Barrage — rapid 6-punch fan
+        case 'katakuri': // Restless Dough Fists — directional rapid punch burst
             if (now - p._secondaryCd < 4000) return; p._secondaryCd = now;
             { const fanSpread = 0.5; // radians spread
             for (let i = 0; i < 6; i++) {
@@ -2039,6 +2034,33 @@ function update(now) {
     for (let i = activeBeams.length - 1; i >= 0; i--) {
         activeBeams[i].life--;
         if (activeBeams[i].life <= 0) activeBeams.splice(i, 1);
+    }
+
+    // Katakuri Fusillade — delayed dough fist slams
+    for (const p of players) {
+        if (!p._fusillade || p._fusillade.length === 0) continue;
+        for (let i = p._fusillade.length - 1; i >= 0; i--) {
+            const f = p._fusillade[i];
+            if (now - f.startTime < f.delay) continue; // waiting for delay
+            if (!f.hit) {
+                f.hit = true;
+                // Slam damage in AoE
+                const slamRadius = 30;
+                for (const e of enemies) { if (!e.alive) continue;
+                    if (Math.hypot(e.x - f.x, e.y - f.y) < slamRadius) {
+                        dealDamageToEnemy(e, f.damage, f.owner);
+                        e.stunned = Math.max(e.stunned, now + 400);
+                    }
+                }
+                // Visual: big dough-colored impact
+                spawnParticles(f.x, f.y, '#e8b0a0', 12);
+                spawnParticles(f.x, f.y, '#c62828', 6);
+                spawnParticles(f.x, f.y, '#8d6e63', 4);
+                triggerShake(3, 5);
+            }
+            // Remove after impact + brief linger
+            if (now - f.startTime > f.delay + 300) p._fusillade.splice(i, 1);
+        }
     }
 
     // Healer passive — auto-summon healing circle every 3s
@@ -2894,6 +2916,40 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         ctx.globalAlpha = 1;
     }
 
+
+    // Katakuri Fusillade fist rendering
+    for (const p of players) {
+        if (!p._fusillade) continue;
+        for (const f of p._fusillade) {
+            const elapsed = gameTime - f.startTime;
+            if (elapsed < f.delay) {
+                // Show shadow/warning circle before slam
+                const progress = elapsed / f.delay;
+                ctx.globalAlpha = 0.15 + progress * 0.2;
+                ctx.fillStyle = '#c62828';
+                ctx.beginPath(); ctx.arc(f.x, f.y, 15 + progress * 10, 0, Math.PI * 2); ctx.fill();
+            } else if (!f.hit || elapsed < f.delay + 300) {
+                // Slam impact — draw big dough fist
+                const impactT = (elapsed - f.delay) / 300;
+                const fistSize = 18 * (1 - impactT * 0.3);
+                ctx.globalAlpha = 1 - impactT * 0.7;
+                // Fist shape
+                ctx.fillStyle = '#e8b0a0';
+                ctx.beginPath(); ctx.arc(f.x, f.y, fistSize, 0, Math.PI * 2); ctx.fill();
+                // Knuckle details
+                ctx.fillStyle = '#c9887a';
+                for (let k = 0; k < 4; k++) {
+                    const ka = (k / 4) * Math.PI - 0.4;
+                    ctx.beginPath(); ctx.arc(f.x + Math.cos(ka) * fistSize * 0.6, f.y - fistSize * 0.5 + Math.sin(ka) * 3, 3, 0, Math.PI * 2); ctx.fill();
+                }
+                // Impact ring
+                ctx.strokeStyle = '#c62828'; ctx.lineWidth = 2;
+                ctx.globalAlpha *= 0.5;
+                ctx.beginPath(); ctx.arc(f.x, f.y, fistSize + impactT * 20, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        }
+    }
 
     // Beam effects (Draco / Black Flash)
     for (const b of activeBeams) {
