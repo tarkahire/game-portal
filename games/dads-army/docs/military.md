@@ -12,6 +12,19 @@ Server cycle: 45 days. Tick duration: 10 minutes (6 ticks/hour, 144 ticks/day, 6
 
 ---
 
+## Early-Game Units (No Rare Materials — added v2 rebalance)
+
+| Unit | Category | Cost | Stats | Notes |
+|------|----------|------|-------|-------|
+| Home Guard Militia | Infantry | 30 manpower, 10 money | ATK 6, DEF 8, HP 70, SPD 1.5 | Cheapest unit. Weak but holds the line. |
+| Scout Car | Armor | 25 steel, 10 iron, 35 money | ATK 8, DEF 6, HP 60, SPD 5.0 | Fast recon. No rubber/fuel needed. +3 vision. |
+| Infantry Support Gun | Artillery | 40 steel, 15 iron, 40 money | ATK 18, DEF 5, HP 50, SPD 1.0 | Light artillery. No tungsten needed. |
+| Armored Supply Truck | Armor | 35 steel, 15 iron, 45 money | ATK 4, DEF 8, HP 90, SPD 3.5 | Transport. No rubber needed. Carries 3 infantry. |
+
+These units allow players to field armies immediately using only basic resources from starting stockpiles.
+
+---
+
 ## Unit Categories
 
 | Phase | Categories |

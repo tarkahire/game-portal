@@ -4,6 +4,26 @@ This document is the source of truth for all resource types, production chains, 
 
 ---
 
+## Economy Rebalance v2 (2026-04-05)
+
+### Starting Resources
+All 7 doctrines now start with 13 resource types including rare materials (rubber, tungsten, bauxite, aluminum). Weaker doctrines (Japan, Italy) receive more rare starting resources; stronger doctrines (USA, USSR) receive less.
+
+### Building Cost Gates Removed
+Tank Factory, Shipyard, and Munitions Factory no longer require rare resources at Level 1-2. Only Level 3 upgrades require small amounts of rare materials (40 rubber for Tank Factory L3, 25 copper for Munitions Factory L3).
+
+### Synthetic Research Paths
+All rare materials now have synthetic research paths: Synthetic Tungsten, Copper Reclamation, Alumina Synthesis, Fischer-Tropsch Fuel. These supplement the existing Synthetic Materials research (rubber + fuel).
+
+### Engineer Field Discovery System
+All non-water tiles have hidden secondary (stage 2) and deep (stage 3) resources. Engineers can be committed to discover them:
+- **Stage 2**: 20-60 engineers, 3 hours, discovers moderate resources (iron, coal, copper, oil). 70-90% success rate.
+- **Stage 3**: 60-100 engineers, 12 hours, discovers rare resources (rubber, tungsten, bauxite, uranium). 40-70% success rate.
+
+Engineers are committed during discovery and cannot march. Discovered resources are tile properties visible to any controlling player. See `036_economy_rebalance_v2.sql`.
+
+---
+
 ## Table of Contents
 
 1. [Resource Tiers](#resource-tiers)

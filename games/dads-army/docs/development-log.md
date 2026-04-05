@@ -4,6 +4,34 @@ A chronological record of what was built, decisions made (and why), problems enc
 
 ---
 
+## 2026-04-05 — Economy Rebalance v2
+
+### What happened
+- Major economy rebalance addressing the rare resource gate problem
+- Players couldn't build Tank Factories without rubber, creating a chicken-and-egg progression wall
+- Added 4 new early-game units (Militia, Scout Car, Infantry Gun, Armored Truck) requiring only basic resources
+- Removed rare resource requirements from Level 1-2 buildings (Tank Factory, Shipyard, Munitions Factory)
+- Added starting stockpiles of all 13 resource types per doctrine, balanced by doctrine strength
+- Added synthetic research paths for tungsten, copper, bauxite, and advanced fuel
+- Designed and implemented the Engineer Field Discovery system (stage 2/3 hidden resources on all tiles)
+- Fixed broken RLS policies on buildings, city_resources, and training_queue tables (c.owner_id→c.player_id)
+- Added doctrine-specific tank images for all 7 alignments (Tiger, Sherman, T-34, Churchill, Chi-Ha, M13/40, Char B1)
+
+### Key decisions
+- Weaker doctrines (Japan, Italy) get MORE starting rare resources to compensate
+- USA (strongest late-game) gets the LEAST rare starting resources
+- Stage 2 discovery (3 hours, 20+ engineers) finds moderate resources; stage 3 (12 hours, 60+ engineers) finds rare resources
+- Engineers committed to discovery are vulnerable — army can't march during discovery
+- Discovered resources are tile properties, not player-specific — any controller sees them
+- Success rates scale with engineer count (70-90% for stage 2, 40-70% for stage 3)
+
+### Lessons learned
+- RLS policy bugs are silent killers — queries return empty results instead of errors
+- The cities table column rename (owner_id→player_id) in migration 016 was only partially applied
+- Building costs need careful balancing between accessibility and strategic depth
+
+---
+
 ## 2026-04-03 — Project Kickoff
 
 ### What happened
