@@ -1092,6 +1092,67 @@ let kataGrabbedEnemies = []; // currently held enemies
 let kataGrabInited = false;
 let kataThrownEnemies = []; // enemies currently flying after being thrown
 
+// Pre-built floor portal + uppercut fist (reusable, 2 sets for 2 enemies)
+let kataFloorPortals = [];
+let kataUpperFists = [];
+let kataFloorInited = false;
+
+function initKataFloorPortals() {
+    if (kataFloorInited) return;
+    kataFloorInited = true;
+    const isHaki = player && player._haki;
+    const col = isHaki ? '#1565c0' : '#f5f0e8';
+    const fistCol = isHaki ? '#0d47a1' : '#1a1a3a';
+
+    for (let i = 0; i < 2; i++) {
+        // Floor portal — flat donut on the ground
+        const portal = new THREE.Mesh(
+            new THREE.TorusGeometry(0.7, 0.12, 8, 20),
+            new THREE.MeshBasicMaterial({ color: col })
+        );
+        portal.rotation.x = -Math.PI / 2; // lay flat
+        // Dark hole center
+        const hole = new THREE.Mesh(
+            new THREE.CircleGeometry(0.45, 14),
+            new THREE.MeshBasicMaterial({ color: '#0a0008', side: THREE.DoubleSide })
+        );
+        hole.rotation.x = Math.PI / 2;
+        portal.add(hole);
+        portal.visible = false;
+        scene.add(portal);
+        kataFloorPortals.push(portal);
+
+        // Uppercut fist — big blocky fist pointing UP with arm below
+        const fistGroup = new THREE.Group();
+        // Arm going up from portal
+        const arm = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.15, 0.18, 2.5, 4),
+            new THREE.MeshBasicMaterial({ color: fistCol })
+        );
+        arm.position.y = 1.25;
+        fistGroup.add(arm);
+        // Fist at top
+        const fist = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 0.7, 0.6),
+            new THREE.MeshBasicMaterial({ color: fistCol })
+        );
+        fist.position.y = 2.7;
+        fistGroup.add(fist);
+        // Knuckles on top
+        for (let k = 0; k < 4; k++) {
+            const knuck = new THREE.Mesh(
+                new THREE.BoxGeometry(0.14, 0.12, 0.12),
+                new THREE.MeshBasicMaterial({ color: fistCol })
+            );
+            knuck.position.set((k - 1.5) * 0.18, 3.1, 0);
+            fistGroup.add(knuck);
+        }
+        fistGroup.visible = false;
+        scene.add(fistGroup);
+        kataUpperFists.push(fistGroup);
+    }
+}
+
 function initKataGrabHands() {
     if (kataGrabInited) return;
     kataGrabInited = true;
@@ -1135,29 +1196,45 @@ function playerFAbility() {
         // Hands let go, floor portal appears, fist punches enemy upward,
         // enemy bounces off ceiling and ricochets around the room
         if (kataGrabbedEnemies.length > 0) {
-            for (const grabbed of kataGrabbedEnemies) {
+            initKataFloorPortals();
+            for (let g = 0; g < kataGrabbedEnemies.length; g++) {
+                const grabbed = kataGrabbedEnemies[g];
                 grabbed.enemy.data.lastAttack = performance.now(); // unstun
                 const ex = grabbed.enemy.data.x, ez = grabbed.enemy.data.z;
 
-                // Spawn floor portal (reuse slash system — just visual)
-                spawnMeleeSlash(player._haki ? '#1565c0' : '#f5f0e8');
+                // Show floor portal under the enemy
+                if (kataFloorPortals[g]) {
+                    kataFloorPortals[g].position.set(ex * TILE, 0.05, ez * TILE);
+                    kataFloorPortals[g].visible = true;
+                    // Hide portal after 1.5s
+                    const portalRef = kataFloorPortals[g];
+                    setTimeout(() => { portalRef.visible = false; }, 1500);
+                }
+
+                // Show uppercut fist punching upward from portal
+                if (kataUpperFists[g]) {
+                    kataUpperFists[g].position.set(ex * TILE, 0, ez * TILE);
+                    kataUpperFists[g].visible = true;
+                    kataUpperFists[g].scale.y = 0.01; // start hidden, will animate up
+                    kataUpperFists[g]._animating = true;
+                    kataUpperFists[g]._animTimer = 0;
+                }
 
                 // Launch enemy into ricochet mode
-                // Random initial direction after ceiling bounce
                 const bounceAngle = Math.random() * Math.PI * 2;
                 const bounceSpeed = 30;
                 kataThrownEnemies.push({
                     enemy: grabbed.enemy,
                     vx: Math.sin(bounceAngle) * bounceSpeed,
                     vz: Math.cos(bounceAngle) * bounceSpeed,
-                    life: 4.0, // 4 seconds of bouncing
-                    phase: 'launching', // launching -> bouncing
-                    launchTimer: 0.4, // time going up before ricocheting
+                    life: 4.0,
+                    phase: 'launching',
+                    launchTimer: 0.5,
                     bounces: 0,
                     maxBounces: 12,
+                    fistIdx: g, // track which fist to animate
                 });
 
-                // Animate enemy flying up (set Y position high temporarily)
                 grabbed.enemy.mesh.position.y = 0;
                 grabbed.enemy._launchY = 0;
             }
@@ -1268,18 +1345,28 @@ function updateThrownEnemies(dt) {
         // PHASE 1: Launching upward (fist punches them to ceiling)
         if (t.phase === 'launching') {
             t.launchTimer -= dt;
-            // Fly upward
             if (!t.enemy._launchY) t.enemy._launchY = 0;
             t.enemy._launchY = Math.min(WALL_HEIGHT - 0.5, t.enemy._launchY + dt * 12);
             t.enemy.mesh.position.y = t.enemy._launchY;
 
+            // Animate the uppercut fist punching upward from floor portal
+            const fIdx = t.fistIdx;
+            if (fIdx !== undefined && kataUpperFists[fIdx]) {
+                const progress = 1 - (t.launchTimer / 0.5); // 0 to 1
+                kataUpperFists[fIdx].scale.y = Math.min(1, progress * 2); // fist extends up
+                kataUpperFists[fIdx].visible = true;
+            }
+
             if (t.launchTimer <= 0) {
-                // Hit ceiling — switch to bouncing
                 t.phase = 'bouncing';
                 t.enemy._launchY = WALL_HEIGHT - 1;
-                // Damage on ceiling impact
                 dealDamageToEnemy(t.enemy, Math.round(t.enemy.data.maxHp * 0.3));
                 t.bounces++;
+                // Hide the fist after punch completes
+                if (fIdx !== undefined && kataUpperFists[fIdx]) {
+                    const fRef = kataUpperFists[fIdx];
+                    setTimeout(() => { fRef.visible = false; fRef.scale.y = 0.01; }, 400);
+                }
             }
             continue;
         }
