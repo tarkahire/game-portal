@@ -61,7 +61,7 @@ UPDATE building_defs SET effects_per_level = '[
 -- New synthetic research for all rare materials
 -- =========================================================================
 
-INSERT INTO research_defs (id, name, category, max_level, prerequisites, costs_per_level, research_times, effects_per_level, description)
+INSERT INTO research_defs (id, name, category, max_level, prerequisites, cost_per_level, research_time_per_level, effects_per_level, description)
 VALUES
   ('synthetic_tungsten', 'Tungsten Carbide Synthesis', 'economic', 2,
    '{"synthetic_materials":1}'::jsonb,
