@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dungeon Crawler 3D</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script type="importmap">
     {
         "imports": {
@@ -24,21 +25,106 @@
             <div class="dim-tag">3D EDITION</div>
             <p class="tagline">Descend into darkness. First person.</p>
             <div class="menu-buttons">
-                <button id="btn-start" class="menu-btn">Enter the Dungeon</button>
+                <button id="btn-solo" class="menu-btn">Solo</button>
+                <button id="btn-coop" class="menu-btn">2P Local Co-op</button>
+                <button id="btn-online" class="menu-btn">Online Co-op</button>
+                <button id="btn-shop" class="menu-btn secondary">Shop</button>
+                <button id="btn-stats" class="menu-btn secondary">Stats</button>
             </div>
-            <p class="controls-hint">WASD to move | Mouse to look | Click to lock cursor</p>
+            <div class="controls-hint">
+                <p>WASD/Arrows to move | Mouse to look | Click to attack</p>
+                <p>E: Special | R: Secondary | Q: Class Ability | Space: Dodge</p>
+            </div>
             <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+        </div>
+    </div>
+
+    <!-- Online Screen -->
+    <div id="online-screen" class="screen">
+        <h2>ONLINE CO-OP</h2>
+        <p class="tagline">Up to 4 players across devices</p>
+        <div class="menu-buttons">
+            <button id="btn-create-room" class="menu-btn">Create Room</button>
+            <div class="join-row">
+                <input id="join-code-input" type="text" maxlength="4" placeholder="CODE" class="code-input">
+                <button id="btn-join-room" class="menu-btn">Join</button>
+            </div>
+        </div>
+        <button id="btn-back-online" class="menu-btn secondary back-btn">Back</button>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen">
+        <h2>LOBBY</h2>
+        <p class="room-code-label">Room Code: <span id="room-code-display" class="room-code">----</span></p>
+        <p id="lobby-status" class="tagline">Connecting...</p>
+        <div id="lobby-players" class="lobby-list"></div>
+        <h3 class="lobby-class-title">Choose Your Class</h3>
+        <div id="lobby-class-grid" class="class-grid"></div>
+        <button id="btn-start-online" class="menu-btn" style="display:none">Start Game</button>
+        <button id="btn-leave-lobby" class="menu-btn secondary back-btn">Leave</button>
+    </div>
+
+    <!-- Class Select Screen -->
+    <div id="class-screen" class="screen">
+        <h2>CHOOSE YOUR CLASS</h2>
+        <div id="p2-class-label" class="p2-label" style="display:none">Player 2 — Choose Class</div>
+        <div id="class-grid" class="class-grid"></div>
+        <button id="btn-back-title" class="menu-btn secondary back-btn">Back</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen">
+        <h2 id="gameover-title">YOU DIED</h2>
+        <div id="gameover-stats" class="stats-list"></div>
+        <div class="menu-buttons">
+            <button id="btn-retry" class="menu-btn">Try Again</button>
+            <button id="btn-menu" class="menu-btn secondary">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="pause-overlay" class="overlay" style="display:none">
+        <div class="pause-panel">
+            <h2>PAUSED</h2>
+            <button id="btn-resume" class="menu-btn">Resume</button>
+            <button id="btn-quit" class="menu-btn secondary">Quit to Menu</button>
         </div>
     </div>
 
     <!-- HUD Overlay -->
     <div id="hud" style="display:none">
-        <div id="hud-top-center">
-            <span id="hud-floor">Floor 1</span>
+        <!-- Top left — player info -->
+        <div id="hud-player-panel">
+            <div id="hud-class-name">Angel Lv.1</div>
+            <div class="hud-bar-container">
+                <div id="hud-hp-bar" class="hud-bar hp-bar"></div>
+                <div id="hud-hp-text" class="hud-bar-text">90/90</div>
+            </div>
+            <div class="hud-bar-container xp-container">
+                <div id="hud-xp-bar" class="hud-bar xp-bar"></div>
+            </div>
+            <div id="hud-special-cd">[ Divine Wings ] READY</div>
         </div>
+
+        <!-- Top center -->
+        <div id="hud-top-center">
+            <div id="hud-floor">Floor 1</div>
+            <div id="hud-lives">Lives: 5</div>
+            <div id="hud-gold">Gold: 0</div>
+        </div>
+
+        <!-- Boss HP bar -->
+        <div id="hud-boss-bar" style="display:none">
+            <div id="hud-boss-name">Boss Name</div>
+            <div class="hud-bar-container boss-bar-container">
+                <div id="hud-boss-hp" class="hud-bar boss-hp-bar"></div>
+            </div>
+        </div>
+
         <div id="crosshair">+</div>
         <canvas id="minimap-canvas" width="120" height="120"></canvas>
-        <div id="hud-hint">Click to lock mouse | ESC to unlock</div>
+        <div id="hud-hint">Click to lock mouse | ESC to pause</div>
     </div>
 
     <script type="module" src="src/main.js"></script>
