@@ -176,6 +176,7 @@ function init() {
             if (e.code === 'KeyE') playerSpecial();
             if (e.code === 'KeyR') playerSecondary();
             if (e.code === 'KeyQ') playerQAbility();
+            if (e.code === 'KeyF') playerFAbility();
             if (e.code === 'Space') playerDodge();
         }
     });
@@ -594,7 +595,7 @@ function playerAttack() {
             player._punchMeshes = [];
             const isHaki = player._haki;
             const fistCol = isHaki ? '#0d47a1' : '#1a1a3a'; // dark navy/indigo
-            const armCol = isHaki ? '#1565c0' : '#f5f0e8';   // white/cream arm
+            const armCol = isHaki ? '#1565c0' : '#1a1a3a';   // navy arm too
             for (let s = 0; s < 2; s++) {
                 const g = new THREE.Group();
                 // Dough arm — white/cream cylinder
@@ -612,7 +613,7 @@ function playerAttack() {
                     g.add(ridge);
                 }
                 // Slight bevel/wrist connection
-                const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.3, 5), new THREE.MeshBasicMaterial({ color: armCol }));
+                const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.3, 5), new THREE.MeshBasicMaterial({ color: fistCol }));
                 wrist.rotation.x = Math.PI / 2; wrist.position.z = 3.35;
                 g.add(wrist);
                 g.visible = false;
@@ -623,32 +624,61 @@ function playerAttack() {
 
         const px = fpsCamera.posX, pz = fpsCamera.posZ;
         const yaw = fpsCamera.yaw;
-        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+        let fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+
+        // Lock-on: find nearest enemy in front and aim at them
+        let lockTarget = null, lockDist = Infinity;
+        for (const e of enemies3D) {
+            if (!e.data.alive) continue;
+            const dx = e.data.x - px, dz = e.data.z - pz;
+            const d = Math.hypot(dx, dz);
+            if (d > 6) continue;
+            let ad = Math.atan2(-dx, -dz) - yaw;
+            while (ad > Math.PI) ad -= Math.PI * 2; while (ad < -Math.PI) ad += Math.PI * 2;
+            if (Math.abs(ad) < Math.PI * 0.7 && d < lockDist) { lockDist = d; lockTarget = e; }
+        }
+        // If locked, aim fist at that enemy
+        let aimX = fwdX, aimZ = fwdZ;
+        if (lockTarget) {
+            const dx = lockTarget.data.x - px, dz = lockTarget.data.z - pz;
+            const d = Math.hypot(dx, dz);
+            aimX = dx / d; aimZ = dz / d;
+        }
 
         // Alternate side
         if (player._m1Side === undefined) player._m1Side = 0;
         player._m1Side = (player._m1Side + 1) % 2;
         const side = player._m1Side === 0 ? -1 : 1;
         const perpX = -Math.cos(yaw) * side, perpZ = Math.sin(yaw) * side;
-        const donutX = px * TILE + perpX * 2.0 + fwdX * 1.0;
-        const donutZ = pz * TILE + perpZ * 2.0 + fwdZ * 1.0;
+        const donutX = px * TILE + perpX * 2.0 + aimX * 1.0;
+        const donutZ = pz * TILE + perpZ * 2.0 + aimZ * 1.0;
 
-        // Show the pre-built punch mesh, hide after timeout
+        // Show punch mesh aimed at target, linger for 400ms
         const punch = player._punchMeshes[player._m1Side];
         punch.position.set(donutX, EYE_HEIGHT + 0.3, donutZ);
-        punch.lookAt(donutX + fwdX * 5, EYE_HEIGHT + 0.3, donutZ + fwdZ * 5);
+        const aimWorldX = donutX + aimX * 5, aimWorldZ = donutZ + aimZ * 5;
+        punch.lookAt(aimWorldX, EYE_HEIGHT + 0.3, aimWorldZ);
         punch.visible = true;
         clearTimeout(punch._hideTimer);
-        punch._hideTimer = setTimeout(() => { punch.visible = false; }, 150);
+        punch._hideTimer = setTimeout(() => { punch.visible = false; }, 400);
 
-        // Damage cone
+        // Damage + knockback enemies in aimed direction
         for (const e of enemies3D) {
             if (!e.data.alive) continue;
             const dx = e.data.x - px, dz = e.data.z - pz;
-            if (Math.hypot(dx, dz) > 3.5) continue;
-            let ad = Math.atan2(-dx, -dz) - yaw;
+            const d = Math.hypot(dx, dz);
+            if (d > 4) continue;
+            const eAim = Math.atan2(dx, dz);
+            const pAim = Math.atan2(aimX, aimZ);
+            let ad = eAim - pAim;
             while (ad > Math.PI) ad -= Math.PI * 2; while (ad < -Math.PI) ad += Math.PI * 2;
-            if (Math.abs(ad) < Math.PI * 0.5) dealDamageToEnemy(e, player.damage);
+            if (Math.abs(ad) < Math.PI * 0.5) {
+                dealDamageToEnemy(e, player.damage);
+                // Push enemy back
+                e.data.x += aimX * 0.8;
+                e.data.z += aimZ * 0.8;
+                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+            }
         }
         return;
     }
@@ -1021,6 +1051,119 @@ function playerQAbility() {
     }
 }
 
+// ─── F ABILITY ──────────────────────────────────────────────
+let kataGrabHands = []; // pre-built grab hand meshes
+let kataGrabbedEnemies = []; // currently held enemies
+
+function playerFAbility() {
+    if (!player || !player.alive) return;
+
+    if (player.classId === 'katakuri') {
+        const px = fpsCamera.posX, pz = fpsCamera.posZ;
+        const yaw = fpsCamera.yaw;
+        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+
+        // If already holding enemies — THROW them
+        if (kataGrabbedEnemies.length > 0) {
+            for (const grabbed of kataGrabbedEnemies) {
+                if (!grabbed.enemy.data.alive) continue;
+                // Hurl enemy forward
+                grabbed.enemy.data.x = px + fwdX * 8;
+                grabbed.enemy.data.z = pz + fwdZ * 8;
+                grabbed.enemy.mesh.position.set(grabbed.enemy.data.x * TILE, 0, grabbed.enemy.data.z * TILE);
+                // Damage on throw
+                dealDamageToEnemy(grabbed.enemy, Math.round(player.damage * 3));
+                // Damage anything at landing
+                for (const e2 of enemies3D) {
+                    if (!e2.data.alive || e2 === grabbed.enemy) continue;
+                    if (Math.hypot(e2.data.x - grabbed.enemy.data.x, e2.data.z - grabbed.enemy.data.z) < 2) {
+                        dealDamageToEnemy(e2, Math.round(player.damage * 2));
+                    }
+                }
+                // Hide grab hand
+                if (grabbed.handMesh) grabbed.handMesh.visible = false;
+            }
+            kataGrabbedEnemies = [];
+            return;
+        }
+
+        // GRAB — find 2 nearest enemies and grab them with big hands
+        const candidates = [];
+        for (const e of enemies3D) {
+            if (!e.data.alive || e.data.isBoss) continue;
+            const d = Math.hypot(e.data.x - px, e.data.z - pz);
+            if (d < 6) candidates.push({ e, d });
+        }
+        candidates.sort((a, b) => a.d - b.d);
+        const toGrab = candidates.slice(0, 2);
+
+        if (toGrab.length === 0) return;
+
+        // Create grab hands if needed (reusable)
+        while (kataGrabHands.length < 2) {
+            const hand = new THREE.Group();
+            const isHaki = player._haki;
+            const col = isHaki ? '#0d47a1' : '#1a1a3a';
+            // Open hand — palm + 4 fingers
+            const palm = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.3), new THREE.MeshBasicMaterial({ color: col }));
+            hand.add(palm);
+            for (let f = 0; f < 4; f++) {
+                const finger = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.12), new THREE.MeshBasicMaterial({ color: col }));
+                finger.position.set((f - 1.5) * 0.15, 0.5, 0);
+                hand.add(finger);
+            }
+            // Thumb
+            const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.12), new THREE.MeshBasicMaterial({ color: col }));
+            thumb.position.set(-0.4, 0.15, 0);
+            thumb.rotation.z = 0.5;
+            hand.add(thumb);
+            // Arm extending back
+            const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 3, 4), new THREE.MeshBasicMaterial({ color: col }));
+            arm.rotation.x = Math.PI / 2; arm.position.z = -1.8;
+            hand.add(arm);
+            hand.visible = false;
+            scene.add(hand);
+            kataGrabHands.push(hand);
+        }
+
+        for (let i = 0; i < toGrab.length; i++) {
+            const enemy = toGrab[i].e;
+            const hand = kataGrabHands[i];
+            // Position hand at enemy, arm extends back toward player
+            hand.position.set(enemy.data.x * TILE, EYE_HEIGHT * 0.6, enemy.data.z * TILE);
+            hand.lookAt(px * TILE, EYE_HEIGHT * 0.6, pz * TILE);
+            hand.rotateY(Math.PI); // face away from player (grabbing)
+            hand.visible = true;
+            // Stun enemy
+            enemy.data.lastAttack = performance.now() + 5000;
+            kataGrabbedEnemies.push({ enemy, handMesh: hand });
+        }
+        return;
+    }
+
+    // Other classes — Jin-Woo Arise Boss (existing F binding from 2D)
+    if (player.classId === 'jinwoo') {
+        // Arise boss placeholder
+    }
+}
+
+// Update grabbed enemies — keep them near their grab position
+function updateKataGrab() {
+    for (const grabbed of kataGrabbedEnemies) {
+        if (!grabbed.enemy.data.alive) {
+            if (grabbed.handMesh) grabbed.handMesh.visible = false;
+            continue;
+        }
+        // Keep enemy frozen at hand position
+        grabbed.enemy.data.x = grabbed.handMesh.position.x / TILE;
+        grabbed.enemy.data.z = grabbed.handMesh.position.z / TILE;
+        grabbed.enemy.mesh.position.copy(grabbed.handMesh.position);
+        grabbed.enemy.mesh.position.y = 0;
+    }
+    // Clean up dead grabbed enemies
+    kataGrabbedEnemies = kataGrabbedEnemies.filter(g => g.enemy.data.alive);
+}
+
 // ─── MINION SYSTEM ──────────────────────────────────────────
 function spawnMinion(type, tileX, tileZ, data) {
     const group = new THREE.Group();
@@ -1248,6 +1391,7 @@ function update() {
     updateMeleeSlashes();
     updateMinions(dt, now);
     updateKataPortals(time);
+    updateKataGrab();
 
     // Dash speed restore
     if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }
