@@ -772,7 +772,7 @@ function playerAttack(p, now) {
     if (p.classId === 'katakuri') {
         if (p._kataPortIdx === undefined) p._kataPortIdx = 0;
         const portCount = 8;
-        const portRadius = 50;
+        const portRadius = 90;
         const portAngle = (p._kataPortIdx / portCount) * Math.PI * 2;
         const portX = p.x + Math.cos(portAngle) * portRadius;
         const portY = p.y + Math.sin(portAngle) * portRadius;
@@ -935,7 +935,7 @@ function playerSpecial(p, now) {
             break;
         case 'katakuri': // Dough Fist Fusillade — all portals fire at mouse position
             { const portCount = 8;
-            const portRadius = 50;
+            const portRadius = 90;
             if (!p._fusillade) p._fusillade = [];
             // Convert mouse to world coords
             const m = pMouse(p);
@@ -2095,7 +2095,7 @@ function update(now) {
         if (activeBeams[i].life <= 0) activeBeams.splice(i, 1);
     }
 
-    // Katakuri Fusillade — delayed dough fist slams
+    // Katakuri Fusillade — delayed dough fist slams (blocked by walls)
     for (const p of players) {
         if (!p._fusillade || p._fusillade.length === 0) continue;
         for (let i = p._fusillade.length - 1; i >= 0; i--) {
@@ -2103,19 +2103,32 @@ function update(now) {
             if (now - f.startTime < f.delay) continue; // waiting for delay
             if (!f.hit) {
                 f.hit = true;
-                // Slam damage in AoE
-                const slamRadius = 30;
-                for (const e of enemies) { if (!e.alive) continue;
-                    if (Math.hypot(e.x - f.x, e.y - f.y) < slamRadius) {
-                        dealDamageToEnemy(e, f.damage, f.owner);
-                        e.stunned = Math.max(e.stunned, now + 400);
-                    }
+                // Check line-of-sight from source to target — stop at walls
+                const sx = f.srcX || p.x, sy = f.srcY || p.y;
+                const dx = f.x - sx, dy = f.y - sy;
+                const dist = Math.hypot(dx, dy);
+                const steps = Math.ceil(dist / (TILE * 0.5));
+                let blocked = false;
+                for (let s = 1; s <= steps; s++) {
+                    const cx = sx + (dx / steps) * s;
+                    const cy = sy + (dy / steps) * s;
+                    if (!isWalkable(cx, cy)) { blocked = true; break; }
                 }
-                // Visual: big dough-colored impact
-                spawnParticles(f.x, f.y, '#e8b0a0', 12);
-                spawnParticles(f.x, f.y, '#c62828', 6);
-                spawnParticles(f.x, f.y, '#8d6e63', 4);
-                triggerShake(3, 5);
+                if (!blocked) {
+                    // Slam damage in AoE
+                    const slamRadius = 30;
+                    for (const e of enemies) { if (!e.alive) continue;
+                        if (Math.hypot(e.x - f.x, e.y - f.y) < slamRadius) {
+                            dealDamageToEnemy(e, f.damage, f.owner);
+                            e.stunned = Math.max(e.stunned, now + 400);
+                        }
+                    }
+                    // Visual: big dough-colored impact
+                    spawnParticles(f.x, f.y, '#e8b0a0', 12);
+                    spawnParticles(f.x, f.y, '#c62828', 6);
+                    spawnParticles(f.x, f.y, '#8d6e63', 4);
+                    triggerShake(3, 5);
+                }
             }
             // Remove after impact + brief linger
             if (now - f.startTime > f.delay + 300) p._fusillade.splice(i, 1);
@@ -2728,7 +2741,7 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
     for (const p of players) {
         if (!p.alive || p.classId !== 'katakuri') continue;
         const portCount = 8;
-        const portRadius = 50;
+        const portRadius = 90;
         const hk = !!p._haki;
         const ringCol = hk ? '#1565c0' : '#e8b0a0';
         const glowCol = hk ? '#42a5f5' : '#e8b0a0';
