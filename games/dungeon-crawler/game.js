@@ -3699,44 +3699,43 @@ function drawGenericAnime(ctx, p, hairColor, outfitColor, hairStyle, extra) {
 
 function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
     const attacking = p.attackAnim > 0;
-    // Dough arms — two white lines with round fists when attacking
+    // Dough M1 — donut rings on each side of player, fists burst forward
     if (attacking) {
-        ctx.save(); ctx.rotate(p.facingAngle);
-        const armLen = 30 + p.attackAnim * 4;
-        const spread = 0.25; // angle spread between the two arms
-        // Arm 1 (upper)
-        ctx.save(); ctx.rotate(-spread);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-        ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(armLen, 0); ctx.stroke();
-        // Fist at end — donut/ring shape
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(armLen + 6, 0, 7, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#e0e0e0';
-        ctx.beginPath(); ctx.arc(armLen + 6, 0, 3, 0, Math.PI * 2); ctx.fill();
-        // Impact particles
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        for (let sp = 0; sp < 3; sp++) {
-            const sa = (t * 0.02 + sp * 2.1);
-            ctx.beginPath(); ctx.arc(armLen + 6 + Math.cos(sa) * 10, Math.sin(sa) * 10, 2, 0, Math.PI * 2); ctx.fill();
+        const fa = p.facingAngle;
+        const perpX = Math.cos(fa + Math.PI / 2);
+        const perpY = Math.sin(fa + Math.PI / 2);
+        const fwdX = Math.cos(fa);
+        const fwdY = Math.sin(fa);
+        const sideOffset = 12; // how far apart the rings sit from center
+        const punchDist = 20 + p.attackAnim * 6; // fist extends forward
+        ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
+        for (let side = -1; side <= 1; side += 2) {
+            const ringX = perpX * sideOffset * side;
+            const ringY = perpY * sideOffset * side;
+            // Donut ring at player's side
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.beginPath(); ctx.arc(ringX, ringY, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(ringX, ringY, 4, 0, Math.PI * 2); ctx.stroke();
+            // Dough arm line from ring forward
+            const fistX = ringX + fwdX * punchDist;
+            const fistY = ringY + fwdY * punchDist;
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(ringX, ringY); ctx.lineTo(fistX, fistY); ctx.stroke();
+            // Fist at the end
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(fistX, fistY, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#e0e0e0';
+            ctx.beginPath(); ctx.arc(fistX, fistY, 2.5, 0, Math.PI * 2); ctx.fill();
+            // Impact burst particles
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            for (let sp = 0; sp < 3; sp++) {
+                const sa = t * 0.025 + sp * 2.1 + side;
+                ctx.beginPath(); ctx.arc(fistX + Math.cos(sa) * 8, fistY + Math.sin(sa) * 8, 1.5, 0, Math.PI * 2); ctx.fill();
+            }
         }
-        ctx.restore();
-        // Arm 2 (lower)
-        ctx.save(); ctx.rotate(spread);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(armLen, 0); ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(armLen + 6, 0, 7, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#e0e0e0';
-        ctx.beginPath(); ctx.arc(armLen + 6, 0, 3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        for (let sp = 0; sp < 3; sp++) {
-            const sa = (t * 0.02 + sp * 2.1 + 1);
-            ctx.beginPath(); ctx.arc(armLen + 6 + Math.cos(sa) * 10, Math.sin(sa) * 10, 2, 0, Math.PI * 2); ctx.fill();
-        }
-        ctx.restore();
         ctx.shadowBlur = 0;
-        ctx.restore();
     }
     // Scarf
     ctx.fillStyle = '#e8b0a0'; ctx.globalAlpha = 0.6;
