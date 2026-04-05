@@ -768,6 +768,33 @@ function playerAttack(p, now) {
     const dmgMult = p.activeEffects.some(e => e.effect === 'damage') ? 1.5 : 1;
     const dmg = Math.round(p.damage * dmgMult);
 
+    // Katakuri — fire fist from one rotating portal at a time
+    if (p.classId === 'katakuri') {
+        if (p._kataPortIdx === undefined) p._kataPortIdx = 0;
+        const portCount = 8;
+        const portRadius = 50;
+        const portAngle = (p._kataPortIdx / portCount) * Math.PI * 2 + gameTime * 0.002;
+        const portX = p.x + Math.cos(portAngle) * portRadius;
+        const portY = p.y + Math.sin(portAngle) * portRadius;
+        let target = null, closest = Infinity;
+        for (const e of enemies) {
+            if (!e.alive) continue;
+            const d = Math.hypot(e.x - p.x, e.y - p.y);
+            if (d < 200 && d < closest) { closest = d; target = e; }
+        }
+        const tx = target ? target.x + (Math.random()-0.5)*10 : p.x + Math.cos(p.facingAngle) * 80;
+        const ty = target ? target.y + (Math.random()-0.5)*10 : p.y + Math.sin(p.facingAngle) * 80;
+        if (!p._fusillade) p._fusillade = [];
+        p._fusillade.push({
+            x: tx, y: ty, srcX: portX, srcY: portY,
+            delay: 80, startTime: now,
+            damage: dmg, owner: p, hit: false
+        });
+        spawnParticles(portX, portY, '#e8b0a0', 2);
+        p._kataPortIdx = (p._kataPortIdx + 1) % portCount;
+        return;
+    }
+
     if (p.attackType === 'melee') {
         // Melee attack — hit enemies in arc
         for (const e of enemies) {
@@ -906,22 +933,28 @@ function playerSpecial(p, now) {
             spawnParticles(p.x, p.y, '#fff', 10);
             triggerShake(6, 12);
             break;
-        case 'katakuri': // Dough Fist Fusillade — fists launch from side rings
-            { const range = 120;
+        case 'katakuri': // Dough Fist Fusillade — all portal rings fire fists from every direction
+            { const portCount = 8;
+            const portRadius = 50;
             if (!p._fusillade) p._fusillade = [];
-            const snap = enemies.filter(e => e.alive && Math.hypot(e.x - p.x, e.y - p.y) < range);
-            const ringL = p._ringLeft || { x: p.x - 12, y: p.y };
-            const ringR = p._ringRight || { x: p.x + 12, y: p.y };
-            for (let i = 0; i < 8; i++) {
-                const ring = i % 2 === 0 ? ringL : ringR; // alternate from left and right ring
-                const target = snap[i % Math.max(snap.length, 1)];
-                const tx = target ? target.x + (Math.random() - 0.5) * 30 : p.x + Math.cos(p.facingAngle + (Math.random() - 0.5) * 2) * (40 + Math.random() * 80);
-                const ty = target ? target.y + (Math.random() - 0.5) * 30 : p.y + Math.sin(p.facingAngle + (Math.random() - 0.5) * 2) * (40 + Math.random() * 80);
-                p._fusillade.push({ x: tx, y: ty, srcX: ring.x, srcY: ring.y, delay: i * 150, startTime: now, damage: Math.round(p.damage * 2), owner: p, hit: false });
+            const snap = enemies.filter(e => e.alive && Math.hypot(e.x - p.x, e.y - p.y) < 200);
+            for (let port = 0; port < portCount; port++) {
+                const portAngle = (port / portCount) * Math.PI * 2 + gameTime * 0.002;
+                const portX = p.x + Math.cos(portAngle) * portRadius;
+                const portY = p.y + Math.sin(portAngle) * portRadius;
+                for (let f = 0; f < 3; f++) {
+                    const target = snap.length > 0 ? snap[(port + f) % snap.length] : null;
+                    const tx = target ? target.x + (Math.random()-0.5)*25 : p.x + Math.cos(portAngle + Math.PI) * (40 + Math.random() * 60);
+                    const ty = target ? target.y + (Math.random()-0.5)*25 : p.y + Math.sin(portAngle + Math.PI) * (40 + Math.random() * 60);
+                    p._fusillade.push({ x: tx, y: ty, srcX: portX, srcY: portY,
+                        delay: port * 60 + f * 120, startTime: now,
+                        damage: Math.round(p.damage * 2), owner: p, hit: false });
+                }
+                spawnParticles(portX, portY, '#e8b0a0', 3);
             }
             damageNumbers.push({ x: p.x, y: p.y - 30, text: 'FUSILLADE!', color: '#c62828', life: 50 });
-            spawnParticles(p.x, p.y, '#e8b0a0', 12);
-            triggerShake(4, 6); } break;
+            spawnParticles(p.x, p.y, '#e8b0a0', 16);
+            triggerShake(6, 10); } break;
         case 'naruto': // Shadow Clones — 8 clones
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
@@ -2694,6 +2727,37 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         if (p.invincible > gameTime && Math.floor(gameTime / 50) % 2 === 0) ctx.globalAlpha = 0.4;
         if (p.dodging) ctx.globalAlpha = 0.3;
         p.cls.drawChar(ctx, p, gameTime);
+        ctx.globalAlpha = 1;
+    }
+
+    // Katakuri dough portal rings
+    for (const p of players) {
+        if (!p.alive || p.classId !== 'katakuri') continue;
+        const portCount = 8;
+        const portRadius = 50;
+        const hk = !!p._haki;
+        for (let i = 0; i < portCount; i++) {
+            const angle = (i / portCount) * Math.PI * 2 + gameTime * 0.002;
+            const px = p.x + Math.cos(angle) * portRadius;
+            const py = p.y + Math.sin(angle) * portRadius;
+            const isActive = (p._kataPortIdx || 0) === i;
+            // Outer ring
+            ctx.globalAlpha = isActive ? 0.6 : 0.25;
+            ctx.strokeStyle = hk ? '#b71c1c' : '#e8b0a0';
+            ctx.lineWidth = isActive ? 2.5 : 1.5;
+            ctx.shadowColor = hk ? '#ff1744' : '#e8b0a0';
+            ctx.shadowBlur = isActive ? 14 : 6;
+            ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.stroke();
+            // Inner dough fill
+            ctx.globalAlpha = isActive ? 0.35 : 0.12;
+            ctx.fillStyle = hk ? '#c62828' : '#ffccbc';
+            ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fill();
+            // Dark center hole
+            ctx.globalAlpha = isActive ? 0.7 : 0.35;
+            ctx.fillStyle = '#1a0a0a';
+            ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
         ctx.globalAlpha = 1;
     }
 
