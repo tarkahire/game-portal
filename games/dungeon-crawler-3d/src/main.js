@@ -278,6 +278,9 @@ function startGame() {
     showScreen(null);
     document.getElementById('hud').style.display = '';
     renderer.domElement.requestPointerLock();
+
+    // Init Katakuri portals if needed
+    if (player.classId === 'katakuri') initKataPortals();
 }
 
 function loadFloor(floor) {
@@ -458,12 +461,155 @@ function updateMeleeSlashes() {
     }
 }
 
+// ─── KATAKURI 3D PORTAL SYSTEM ──────────────────────────────
+let kataPortals = []; // 3D torus meshes orbiting player
+let kataFists = [];   // flying dough fist projectiles
+let kataPortIdx = 0;
+const KATA_PORT_COUNT = 16;
+const KATA_PORT_RADIUS = 3.5; // tiles from player
+
+function initKataPortals() {
+    clearKataPortals();
+    const isHaki = player && player._haki;
+    const color = isHaki ? '#1565c0' : '#e8b0a0';
+    const emissive = isHaki ? '#0d47a1' : '#8d6e63';
+    for (let i = 0; i < KATA_PORT_COUNT; i++) {
+        const torus = new THREE.Mesh(
+            new THREE.TorusGeometry(0.4, 0.08, 8, 16),
+            new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 0.6, roughness: 0.4, side: THREE.DoubleSide })
+        );
+        // Dark hole center
+        const hole = new THREE.Mesh(
+            new THREE.CircleGeometry(0.25, 12),
+            new THREE.MeshBasicMaterial({ color: '#0a0008', side: THREE.DoubleSide })
+        );
+        torus.add(hole);
+        // Glow ring
+        const glow = new THREE.Mesh(
+            new THREE.TorusGeometry(0.45, 0.03, 4, 16),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4 })
+        );
+        torus.add(glow);
+        scene.add(torus);
+        kataPortals.push(torus);
+    }
+}
+
+function clearKataPortals() {
+    for (const p of kataPortals) scene.remove(p);
+    kataPortals = [];
+    for (const f of kataFists) scene.remove(f.mesh);
+    kataFists = [];
+}
+
+function updateKataPortals(time) {
+    if (!player || player.classId !== 'katakuri' || kataPortals.length === 0) return;
+    const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
+
+    for (let i = 0; i < kataPortals.length; i++) {
+        const angle = (i / KATA_PORT_COUNT) * Math.PI * 2;
+        const portalX = px + Math.cos(angle) * KATA_PORT_RADIUS * TILE;
+        const portalZ = pz + Math.sin(angle) * KATA_PORT_RADIUS * TILE;
+        const bob = Math.sin(time * 0.003 + i * 0.5) * 0.2;
+        kataPortals[i].position.set(portalX, EYE_HEIGHT + bob, portalZ);
+        // Face the player
+        kataPortals[i].lookAt(px, EYE_HEIGHT, pz);
+        // Pulse the active portal
+        const isActive = i === kataPortIdx;
+        kataPortals[i].scale.setScalar(isActive ? 1.3 : 1.0);
+    }
+
+    // Update flying fists
+    for (let i = kataFists.length - 1; i >= 0; i--) {
+        const f = kataFists[i];
+        f.life--;
+        if (f.life <= 0) {
+            // Impact — damage AoE at target
+            const tx = f.mesh.position.x / TILE, tz = f.mesh.position.z / TILE;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                if (Math.hypot(e.data.x - tx, e.data.z - tz) < 1.5) {
+                    dealDamageToEnemy(e, f.damage);
+                }
+            }
+            // Impact flash
+            spawnMeleeSlash(player._haki ? '#1565c0' : '#c62828');
+            scene.remove(f.mesh);
+            kataFists.splice(i, 1);
+            continue;
+        }
+        // Move toward target
+        const progress = 1 - (f.life / f.maxLife);
+        f.mesh.position.lerpVectors(f.start, f.target, progress);
+        // Spin the fist
+        f.mesh.rotation.x += 0.2;
+        f.mesh.rotation.z += 0.1;
+    }
+}
+
+function kataFireFist(fromPortalIdx, targetX, targetY, targetZ, damage) {
+    if (fromPortalIdx >= kataPortals.length) return;
+    const portal = kataPortals[fromPortalIdx];
+    const isHaki = player && player._haki;
+    const fistColor = isHaki ? '#1565c0' : '#f5f0e0';
+    const innerColor = isHaki ? '#0d47a1' : '#e0d0c0';
+
+    // Fist mesh — sphere with inner sphere
+    const fist = new THREE.Group();
+    const outer = new THREE.Mesh(
+        new THREE.SphereGeometry(0.3, 8, 8),
+        new THREE.MeshBasicMaterial({ color: fistColor })
+    );
+    fist.add(outer);
+    const inner = new THREE.Mesh(
+        new THREE.SphereGeometry(0.15, 6, 6),
+        new THREE.MeshBasicMaterial({ color: innerColor })
+    );
+    fist.add(inner);
+    // Glow
+    const glow = new THREE.PointLight(fistColor, 2, TILE * 2, 2);
+    fist.add(glow);
+
+    fist.position.copy(portal.position);
+    scene.add(fist);
+
+    const start = portal.position.clone();
+    const target = new THREE.Vector3(targetX, targetY, targetZ);
+    // Add some random spread
+    target.x += (Math.random() - 0.5) * 1.5;
+    target.z += (Math.random() - 0.5) * 1.5;
+
+    kataFists.push({
+        mesh: fist, start, target,
+        life: 12, maxLife: 12,
+        damage: damage
+    });
+}
+
 // ─── COMBAT ─────────────────────────────────────────────────
 function playerAttack() {
     if (!player || !player.alive) return;
     const now = performance.now();
     if (now - player.lastAttack < player.attackSpeed) return;
     player.lastAttack = now;
+
+    // Katakuri — fire fist from one portal at a time
+    if (player.classId === 'katakuri') {
+        if (kataPortals.length === 0) initKataPortals();
+        const px = fpsCamera.posX, pz = fpsCamera.posZ;
+        const fwdX = -Math.sin(fpsCamera.yaw), fwdZ = -Math.cos(fpsCamera.yaw);
+        // Find nearest enemy or use facing direction
+        let tx = px + fwdX * 6, tz = pz + fwdZ * 6;
+        let closest = Infinity;
+        for (const e of enemies3D) {
+            if (!e.data.alive) continue;
+            const d = Math.hypot(e.data.x - px, e.data.z - pz);
+            if (d < 10 && d < closest) { closest = d; tx = e.data.x; tz = e.data.z; }
+        }
+        kataFireFist(kataPortIdx, tx * TILE, EYE_HEIGHT * 0.5, tz * TILE, player.damage);
+        kataPortIdx = (kataPortIdx + 1) % KATA_PORT_COUNT;
+        return;
+    }
 
     if (player.attackType === 'melee') {
         // Melee — hit enemies in arc in front of camera
@@ -539,8 +685,18 @@ function playerSpecial() {
         case 'portal': // Rift Pull — teleport enemies to you
             for (const e of enemies3D) { if(!e.data.alive)continue; const d=Math.hypot(e.data.x-px,e.data.z-pz); if(d<10&&d>1){const a=Math.random()*Math.PI*2; e.data.x=px+Math.cos(a)*1.5; e.data.z=pz+Math.sin(a)*1.5; e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE); stunNear(2,1000);}}
             spawnMeleeSlash('#00bcd4'); break;
-        case 'katakuri': // Fusillade — rapid fists at cursor direction
-            shootProj('#c62828', 16, player.damage*2, 8, 0.08); spawnMeleeSlash('#e8b0a0'); break;
+        case 'katakuri': { // Dough Fist Fusillade — ALL portals fire at faced direction
+            if (kataPortals.length === 0) initKataPortals();
+            const fX = -Math.sin(yaw), fZ = -Math.cos(yaw);
+            const targetX = (px + fX * 6) * TILE, targetZ = (pz + fZ * 6) * TILE;
+            for (let p = 0; p < KATA_PORT_COUNT; p++) {
+                for (let f = 0; f < 3; f++) {
+                    setTimeout(() => {
+                        kataFireFist(p, targetX + (Math.random()-0.5)*3, EYE_HEIGHT*0.5, targetZ + (Math.random()-0.5)*3, Math.round(player.damage * 2));
+                    }, p * 40 + f * 80);
+                }
+            }
+            spawnMeleeSlash(player._haki ? '#1565c0' : '#c62828'); break; }
         case 'naruto': // Shadow Clones — 8 permanent
             summon('clone', 8, { hp:9999, damage:Math.round(player.damage*0.6), speed:player.speed, radius:0.35, attackRange:1.5, attackSpeed:400, life:Infinity, color:'#ff8f00' });
             spawnMeleeSlash('#ff8f00'); break;
@@ -749,11 +905,20 @@ function playerSecondary() {
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
 
     switch (player.classId) {
-        case 'katakuri':
+        case 'katakuri': { // Restless Dough Barrage — rapid fists from nearest portals
             if (now - player._secondaryCd < 4000) return; player._secondaryCd = now;
-            for (let i=0;i<6;i++){const a=yaw+(i-2.5)*0.1;
-            for(const e of enemies3D){if(!e.data.alive)continue;const dx=e.data.x-px,dz=e.data.z-pz;const d=Math.hypot(dx,dz);if(d<4){const ea=Math.atan2(-dx,-dz);let diff=Math.abs(ea-a);if(diff>Math.PI)diff=Math.PI*2-diff;if(diff<0.3)dealDamageToEnemy(e,Math.round(player.damage*1.2));}}}
-            spawnMeleeSlash('#c62828'); break;
+            if (kataPortals.length === 0) initKataPortals();
+            const fX = -Math.sin(yaw), fZ = -Math.cos(yaw);
+            // Fire 12 rapid fists from the 4 portals closest to the faced direction
+            for (let f = 0; f < 12; f++) {
+                const pIdx = (kataPortIdx + f) % KATA_PORT_COUNT;
+                const dist = 3 + Math.random() * 4;
+                setTimeout(() => {
+                    kataFireFist(pIdx, (px+fX*dist)*TILE+(Math.random()-0.5)*2, EYE_HEIGHT*0.5, (pz+fZ*dist)*TILE+(Math.random()-0.5)*2, Math.round(player.damage * (player._haki ? 1.2 : 0.8)));
+                }, f * 60);
+            }
+            for (let s = 0; s < 3; s++) setTimeout(() => spawnMeleeSlash(player._haki ? '#1565c0' : '#c62828'), s * 150);
+            break; }
         case 'naruto':
             if (now - player._secondaryCd < 3000) return; player._secondaryCd = now;
             for(const e of enemies3D){if(!e.data.alive)continue;if(Math.hypot(e.data.x-px,e.data.z-pz)<2.5)dealDamageToEnemy(e,Math.round(player.damage*2));}
@@ -790,8 +955,13 @@ function playerQAbility() {
         case 'jinwoo': // Recall shadows
             for(const m of minions3D){if(m.data.type==='shadow'){m.data.x=px+(Math.random()-0.5)*2;m.data.z=pz+(Math.random()-0.5)*2;}}
             break;
-        case 'katakuri': // Haki — permanent damage boost
-            if(!player._haki){player._haki=true;player.damage=Math.round(player.damage*1.4);}
+        case 'katakuri': // Haki — permanent damage boost + recolor portals blue
+            if(!player._haki){player._haki=true;player.damage=Math.round(player.damage*1.4);
+            // Recolor all portals to blue
+            for (const p of kataPortals) {
+                p.material.color.set('#1565c0'); p.material.emissive.set('#0d47a1');
+                p.children.forEach(c => { if(c.material && c.material.color) { if(c.geometry.type !== 'CircleGeometry') c.material.color.set('#1565c0'); }});
+            }}
             spawnMeleeSlash('#1565c0'); break;
         case 'dog': { // Alpha Howl — 3x buff all dogs
             if(!player._alphaCd)player._alphaCd=0;if(now-player._alphaCd<12000)break;player._alphaCd=now;
@@ -1036,6 +1206,7 @@ function update() {
     updateTorchLights(torchLights, time);
     updateMeleeSlashes();
     updateMinions(dt, now);
+    updateKataPortals(time);
 
     // Dash speed restore
     if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }
