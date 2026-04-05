@@ -773,7 +773,7 @@ function playerAttack(p, now) {
         if (p._kataPortIdx === undefined) p._kataPortIdx = 0;
         const portCount = 8;
         const portRadius = 50;
-        const portAngle = (p._kataPortIdx / portCount) * Math.PI * 2 + gameTime * 0.002;
+        const portAngle = (p._kataPortIdx / portCount) * Math.PI * 2;
         const portX = p.x + Math.cos(portAngle) * portRadius;
         const portY = p.y + Math.sin(portAngle) * portRadius;
         let target = null, closest = Infinity;
@@ -944,7 +944,7 @@ function playerSpecial(p, now) {
             const mouseWX = m.x - vpW/2 + p.x;
             const mouseWY = m.y - canvas.height/2 + p.y;
             for (let port = 0; port < portCount; port++) {
-                const portAngle = (port / portCount) * Math.PI * 2 + gameTime * 0.002;
+                const portAngle = (port / portCount) * Math.PI * 2;
                 const portX = p.x + Math.cos(portAngle) * portRadius;
                 const portY = p.y + Math.sin(portAngle) * portRadius;
                 for (let f = 0; f < 3; f++) {
@@ -2734,7 +2734,7 @@ function renderWorldView(camTargetX, camTargetY, vpX, vpY, vpW, vpH) {
         const glowCol = hk ? '#42a5f5' : '#e8b0a0';
         const fillCol = hk ? '#0d47a1' : '#ffccbc';
         for (let i = 0; i < portCount; i++) {
-            const angle = (i / portCount) * Math.PI * 2 + gameTime * 0.002;
+            const angle = (i / portCount) * Math.PI * 2;
             const px = p.x + Math.cos(angle) * portRadius;
             const py = p.y + Math.sin(angle) * portRadius;
             const isActive = (p._kataPortIdx || 0) === i;
@@ -3860,50 +3860,7 @@ function drawKatakuri(ctx, p, t) { ctx.save(); ctx.translate(p.x, p.y);
         ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
     }
-    // Donut rings — ALWAYS white, always visible
-    ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
-    for (let side = -1; side <= 1; side += 2) {
-        const ringX = perpX * sideOffset * side;
-        const ringY = perpY * sideOffset * side;
-        // Outer ring — always white
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.beginPath(); ctx.arc(ringX, ringY, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        // Inner hole — always white
-        ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(ringX, ringY, 4, 0, Math.PI * 2); ctx.stroke();
-        // Idle particles
-        if (!attacking) {
-            ctx.fillStyle = haki ? 'rgba(21,101,192,0.3)' : 'rgba(255,255,255,0.25)';
-            const ra = t * 0.004 + side * 1.5;
-            ctx.beginPath(); ctx.arc(ringX + Math.cos(ra) * 9, ringY + Math.sin(ra) * 9, 1.5, 0, Math.PI * 2); ctx.fill();
-        }
-        // Fists burst forward — color changes with haki
-        if (attacking) {
-            const punchDist = 20 + p.attackAnim * 6;
-            const fistX = ringX + fwdX * punchDist;
-            const fistY = ringY + fwdY * punchDist;
-            ctx.shadowColor = doughGlow; ctx.shadowBlur = haki ? 12 : 6;
-            // Arm line
-            ctx.strokeStyle = doughCol; ctx.lineWidth = 4; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(ringX, ringY); ctx.lineTo(fistX, fistY); ctx.stroke();
-            // Fist
-            ctx.fillStyle = doughCol;
-            ctx.beginPath(); ctx.arc(fistX, fistY, 6, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = doughColInner;
-            ctx.beginPath(); ctx.arc(fistX, fistY, 2.5, 0, Math.PI * 2); ctx.fill();
-            // Sparks
-            ctx.fillStyle = doughSpark;
-            for (let sp = 0; sp < 3; sp++) {
-                const sa = t * 0.025 + sp * 2.1 + side;
-                ctx.beginPath(); ctx.arc(fistX + Math.cos(sa) * 8, fistY + Math.sin(sa) * 8, 1.5, 0, Math.PI * 2); ctx.fill();
-            }
-        }
-    }
     ctx.shadowBlur = 0;
-    // Store ring positions + haki state for fusillade rendering
-    p._ringLeft = { x: p.x + perpX * sideOffset * -1, y: p.y + perpY * sideOffset * -1 };
-    p._ringRight = { x: p.x + perpX * sideOffset * 1, y: p.y + perpY * sideOffset * 1 };
     // Scarf
     ctx.fillStyle = '#e8b0a0'; ctx.globalAlpha = 0.6;
     const scarfWave = Math.sin(t * 0.005) * 4;
