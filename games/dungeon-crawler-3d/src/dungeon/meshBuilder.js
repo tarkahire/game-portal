@@ -113,13 +113,9 @@ export function buildDungeonMesh(dungeon) {
         opacity: 0.15,
     });
 
-    // Bright grey wall panel material — emissive so it glows
-    const panelMat = new THREE.MeshStandardMaterial({
-        color: '#aaaaaa',
-        emissive: '#888888',
-        emissiveIntensity: 0.8,
-        roughness: 0.5,
-        metalness: 0.2,
+    // Bright grey wall panel material — emissive so it glows without needing lights
+    const panelMat = new THREE.MeshBasicMaterial({
+        color: '#999999',
     });
 
     // Collect geometry for merging
@@ -128,7 +124,6 @@ export function buildDungeonMesh(dungeon) {
     const wallGeos = [];
     const neonEdgeGeos = [];
     const panelGeos = [];
-    let wallCount = 0;
 
     const floorGeo = new THREE.PlaneGeometry(TILE, TILE);
     floorGeo.rotateX(-Math.PI / 2);
@@ -236,16 +231,6 @@ export function buildDungeonMesh(dungeon) {
                     }
                 }
                 panelGeos.push(pg);
-
-                // Every 3rd wall panel gets a PointLight for real illumination
-                wallCount++;
-                if (wallCount % 3 === 0) {
-                    const lx = n.axis === 'z' ? x : (n.dir === -1 ? x - TILE/2 + 0.3 : x + TILE/2 - 0.3);
-                    const lz = n.axis === 'x' ? z : (n.dir === -1 ? z - TILE/2 + 0.3 : z + TILE/2 - 0.3);
-                    const panelLight = new THREE.PointLight('#cccccc', 0.6, TILE * 3, 2);
-                    panelLight.position.set(lx, panelY, lz);
-                    group.add(panelLight);
-                }
             }
         }
     }
