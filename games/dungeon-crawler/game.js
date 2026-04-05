@@ -166,7 +166,7 @@ const CLASSES = {
     chaos: { name: 'Chaos', maxHp: 90, speed: 2.8, attackRange: 35, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff00ff', specialCooldown: 1000, specialName: '???', specialDesc: 'Every press = random ability from ANY other class. Pure madness.', drawChar: makeDrawFn('#ff00ff','#111','spiky') },
     suisui: { name: 'Señor Pink', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#e91e63', specialCooldown: 4000, specialName: 'Dive', specialDesc: 'Swim into floor — pop up at cursor with devastating uppercut', drawChar: drawSenorPink },
     ink: { name: 'Ink', maxHp: 85, speed: 2.8, attackRange: 160, attackDamage: 10, attackSpeed: 450, attackType: 'ranged', color: '#263238', specialCooldown: 5000, specialName: 'Draw Soldier', specialDesc: 'Summon a warrior from ink puddles — more puddles = stronger', drawChar: drawInk },
-    dog: { name: 'Dog', maxHp: 150, speed: 3.5, attackRange: 30, attackDamage: 16, attackSpeed: 280, attackType: 'melee', color: '#a1887f', specialCooldown: 3000, specialName: 'Pack Howl', specialDesc: 'Summon 6 permanent dogs. Every kill spawns a puppy. 30% lifesteal.', drawChar: drawDog }
+    dog: { name: 'Dog', maxHp: 150, speed: 3.5, attackRange: 30, attackDamage: 16, attackSpeed: 280, attackType: 'melee', color: '#5d4037', specialCooldown: 3000, specialName: 'Pack Howl', specialDesc: 'Summon 6 permanent dogs. Every kill spawns a puppy. 30% lifesteal.', drawChar: drawDog }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -4087,52 +4087,90 @@ function drawPortal(ctx, p, time) {
 function drawDog(ctx, p, t) {
     ctx.save(); ctx.translate(p.x, p.y);
     const tailWag = Math.sin(t * 0.02) * 0.5;
-    // Body — big golden/brown dog
-    ctx.fillStyle = p.attackAnim > 0 ? '#bcaaa4' : '#a1887f';
+    const choc = '#3e2723'; // dark chocolate brown
+    const white = '#f5f0eb'; // off-white fur
+    const spot = '#5d4037'; // liver brown spots
+    // Body — white with brown ticking/spots (springer spaniel)
+    ctx.fillStyle = p.attackAnim > 0 ? '#e8e0d8' : white;
     ctx.beginPath(); ctx.ellipse(0, 2, 10, 7, 0, 0, Math.PI * 2); ctx.fill();
-    // Head
-    ctx.fillStyle = '#8d6e63';
+    // Liver spots/ticking on body
+    ctx.fillStyle = spot;
+    ctx.beginPath(); ctx.arc(-4, 1, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, 3, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-1, 5, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, 0, 1.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-6, 4, 1.5, 0, Math.PI * 2); ctx.fill();
+    // Head — dark chocolate brown
+    ctx.fillStyle = choc;
     ctx.beginPath(); ctx.arc(0, -8, 8, 0, Math.PI * 2); ctx.fill();
-    // Snout
-    ctx.fillStyle = '#a1887f';
-    ctx.beginPath(); ctx.ellipse(0, -4, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
-    // Nose
-    ctx.fillStyle = '#111';
-    ctx.beginPath(); ctx.arc(0, -5, 2, 0, Math.PI * 2); ctx.fill();
-    // Happy eyes
-    ctx.fillStyle = '#3e2723';
-    ctx.beginPath(); ctx.arc(-3, -10, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(3, -10, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(-2.5, -10.5, 0.8, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(3.5, -10.5, 0.8, 0, Math.PI * 2); ctx.fill();
-    // Floppy ears
+    // White stripe down middle of face
+    ctx.fillStyle = white;
+    ctx.beginPath(); ctx.moveTo(-1.5, -16); ctx.lineTo(1.5, -16);
+    ctx.lineTo(2, -6); ctx.lineTo(3, -3); ctx.lineTo(-3, -3); ctx.lineTo(-2, -6); ctx.fill();
+    // White muzzle
+    ctx.fillStyle = white;
+    ctx.beginPath(); ctx.ellipse(0, -3, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+    // Nose — pink-brown
+    ctx.fillStyle = '#8d6e63';
+    ctx.beginPath(); ctx.arc(0, -4, 2, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#6d4c41';
-    ctx.save(); ctx.rotate(-0.3 + tailWag * 0.2);
-    ctx.beginPath(); ctx.ellipse(-7, -7, 4, 8, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -4.5, 1.2, 0, Math.PI * 2); ctx.fill();
+    // Big amber/golden eyes
+    ctx.fillStyle = '#ff8f00';
+    ctx.shadowColor = '#ff8f00'; ctx.shadowBlur = 3;
+    ctx.beginPath(); ctx.arc(-3, -10, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -10, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Dark pupils
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(-3, -10, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -10, 1.2, 0, Math.PI * 2); ctx.fill();
+    // Eye shine
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-2.5, -10.5, 0.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3.5, -10.5, 0.6, 0, Math.PI * 2); ctx.fill();
+    // Long floppy wavy spaniel ears — dark chocolate
+    ctx.fillStyle = choc;
+    ctx.save(); ctx.rotate(-0.2 + tailWag * 0.15);
+    ctx.beginPath(); ctx.ellipse(-8, -5, 4, 10, -0.2, 0, Math.PI * 2); ctx.fill();
+    // Wavy ear texture
+    ctx.strokeStyle = '#2c1a0e'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(-9, -8); ctx.quadraticCurveTo(-11, -3, -9, 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-7, -7); ctx.quadraticCurveTo(-9, -2, -7, 3); ctx.stroke();
     ctx.restore();
-    ctx.save(); ctx.rotate(0.3 - tailWag * 0.2);
-    ctx.beginPath(); ctx.ellipse(7, -7, 4, 8, 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = choc;
+    ctx.save(); ctx.rotate(0.2 - tailWag * 0.15);
+    ctx.beginPath(); ctx.ellipse(8, -5, 4, 10, 0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#2c1a0e'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(9, -8); ctx.quadraticCurveTo(11, -3, 9, 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(7, -7); ctx.quadraticCurveTo(9, -2, 7, 3); ctx.stroke();
     ctx.restore();
     // Tongue (happy panting)
-    ctx.fillStyle = '#e91e63';
-    ctx.beginPath(); ctx.ellipse(2, -2, 2, 3 + Math.sin(t * 0.01) * 1, 0.2, 0, Math.PI * 2); ctx.fill();
-    // Collar
-    ctx.fillStyle = '#d32f2f'; ctx.fillRect(-7, -1, 14, 3);
-    ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(0, 1, 2, 0, Math.PI * 2); ctx.fill(); // tag
-    // Legs
-    ctx.fillStyle = '#8d6e63';
+    ctx.fillStyle = '#f06292';
+    ctx.beginPath(); ctx.ellipse(2, -1, 2, 3 + Math.sin(t * 0.01) * 1, 0.2, 0, Math.PI * 2); ctx.fill();
+    // Collar — red with gold tag
+    ctx.fillStyle = '#c62828'; ctx.fillRect(-7, -1, 14, 2.5);
+    ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(0, 0.5, 1.5, 0, Math.PI * 2); ctx.fill();
+    // Legs — white with brown spots
+    ctx.fillStyle = white;
     ctx.fillRect(-7, 7, 3, 7); ctx.fillRect(-2, 7, 3, 7);
     ctx.fillRect(2, 7, 3, 7); ctx.fillRect(5, 7, 3, 7);
-    // Tail (wagging!)
-    ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.fillStyle = spot;
+    ctx.beginPath(); ctx.arc(-5.5, 10, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3.5, 11, 1, 0, Math.PI * 2); ctx.fill();
+    // Tail — white, feathered, wagging
+    ctx.strokeStyle = white; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(0, 7);
     ctx.quadraticCurveTo(8 + tailWag * 8, 0, 6 + tailWag * 10, -5);
     ctx.stroke();
+    // Feathery tail wisps
+    ctx.strokeStyle = '#e8e0d8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(5 + tailWag * 7, -2);
+    ctx.quadraticCurveTo(8 + tailWag * 9, -4, 7 + tailWag * 10, -7); ctx.stroke();
     // Pack count
     const packCount = summonedMinions.filter(m => (m.type === 'dog_pack' || m.type === 'puppy') && m.owner === p).length;
     if (packCount > 0) {
-        ctx.fillStyle = '#a1887f'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#8d6e63'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
         ctx.fillText(`pack: ${packCount}`, 0, 22);
     }
     // Player indicator
