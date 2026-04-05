@@ -165,7 +165,8 @@ const CLASSES = {
     love: { name: 'Love', maxHp: 75, speed: 2.6, attackRange: 150, attackDamage: 9, attackSpeed: 500, attackType: 'ranged', color: '#e91e63', specialCooldown: 5000, specialName: 'Charm', specialDesc: 'Charm enemy permanently — fights for you (max 3 charmed)', drawChar: makeDrawFn('#e91e63','#880e4f','long') },
     chaos: { name: 'Chaos', maxHp: 90, speed: 2.8, attackRange: 35, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff00ff', specialCooldown: 1000, specialName: '???', specialDesc: 'Every press = random ability from ANY other class. Pure madness.', drawChar: makeDrawFn('#ff00ff','#111','spiky') },
     suisui: { name: 'Señor Pink', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#e91e63', specialCooldown: 4000, specialName: 'Dive', specialDesc: 'Swim into floor — pop up at cursor with devastating uppercut', drawChar: drawSenorPink },
-    ink: { name: 'Ink', maxHp: 85, speed: 2.8, attackRange: 160, attackDamage: 10, attackSpeed: 450, attackType: 'ranged', color: '#263238', specialCooldown: 5000, specialName: 'Draw Soldier', specialDesc: 'Summon a warrior from ink puddles — more puddles = stronger', drawChar: drawInk }
+    ink: { name: 'Ink', maxHp: 85, speed: 2.8, attackRange: 160, attackDamage: 10, attackSpeed: 450, attackType: 'ranged', color: '#263238', specialCooldown: 5000, specialName: 'Draw Soldier', specialDesc: 'Summon a warrior from ink puddles — more puddles = stronger', drawChar: drawInk },
+    dog: { name: 'Dog', maxHp: 150, speed: 3.5, attackRange: 30, attackDamage: 16, attackSpeed: 280, attackType: 'melee', color: '#a1887f', specialCooldown: 3000, specialName: 'Pack Howl', specialDesc: 'Summon 6 permanent dogs. Every kill spawns a puppy. 30% lifesteal.', drawChar: drawDog }
 };
 
 // ─── ENEMY DEFINITIONS ──────────────────────────────────────
@@ -813,6 +814,11 @@ function playerAttack(p, now) {
                 while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
                 if (Math.abs(angleDiff) < Math.PI * 0.6) {
                     dealDamageToEnemy(e, dmg, p);
+                    // Dog passive — 30% lifesteal on melee
+                    if (p.classId === 'dog') {
+                        const heal = Math.round(dmg * 0.3);
+                        p.hp = Math.min(p.hp + heal, p.maxHp);
+                    }
                 }
             }
         }
@@ -1425,6 +1431,24 @@ function playerSpecial(p, now) {
                 spawnParticles(target.x,target.y,'#f48fb1',12);
                 damageNumbers.push({x:target.x,y:target.y-20,text:'CHARMED!',color:'#e91e63',life:50});}
             triggerShake(3,5);} break;
+        case 'dog': // Pack Howl — summon 6 permanent dogs
+            { for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                summonedMinions.push({ x: p.x + Math.cos(angle) * 30, y: p.y + Math.sin(angle) * 30, owner: p,
+                    hp: 40, maxHp: 40, damage: Math.round(p.damage * 0.7), speed: 3.8, radius: 7,
+                    attackRange: 24, lastAttack: now + i * 150, attackSpeed: 350,
+                    life: Infinity, color: '#8d6e63', type: 'dog_pack',
+                    _guardIndex: i, _guardTotal: 6, _orbit: true });
+                spawnParticles(p.x + Math.cos(angle) * 30, p.y + Math.sin(angle) * 30, '#a1887f', 4);
+            }
+            const totalDogs = summonedMinions.filter(m => (m.type === 'dog_pack' || m.type === 'puppy') && m.owner === p).length;
+            damageNumbers.push({ x: p.x, y: p.y - 30, text: `PACK HOWL! (${totalDogs} dogs)`, color: '#8d6e63', life: 50 });
+            spawnParticles(p.x, p.y, '#a1887f', 16); spawnParticles(p.x, p.y, '#d7ccc8', 8);
+            // Stun nearby enemies with the howl
+            for (const e of enemies) { if (!e.alive) continue;
+                if (Math.hypot(e.x - p.x, e.y - p.y) < 150) e.stunned = Math.max(e.stunned, now + 1500);
+            }
+            triggerShake(6, 10); } break;
         case 'ink': // Draw Soldier — consume nearby ink puddles to summon a warrior
             { const inkRange = 120;
             let consumed = 0;
@@ -1585,6 +1609,32 @@ function animeSecondary(p, now) {
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#42a5f5', 14);
             spawnParticles(p.x + Math.cos(p.facingAngle) * 15, p.y + Math.sin(p.facingAngle) * 15, '#fff', 6);
             triggerShake(5, 8); } break;
+        case 'dog': // Fetch — throw ball, all dogs teleport there and frenzy
+            if (now - p._secondaryCd < 3000) return; p._secondaryCd = now;
+            { // Convert mouse to world coords
+            const fm = pMouse(p); const fnV = coopMode ? players.length : 1;
+            const fvpW = fnV > 1 ? Math.floor(canvas.width / fnV) : canvas.width;
+            const fetchX = fm.x - fvpW/2 + p.x, fetchY = fm.y - canvas.height/2 + p.y;
+            // Damage at target
+            for (const e of enemies) { if (!e.alive) continue;
+                if (Math.hypot(e.x - fetchX, e.y - fetchY) < 60) dealDamageToEnemy(e, Math.round(p.damage * 1.5), p);
+            }
+            // Teleport ALL dogs to the fetch target and frenzy them
+            for (const m of summonedMinions) {
+                if ((m.type === 'dog_pack' || m.type === 'puppy') && m.owner === p) {
+                    spawnParticles(m.x, m.y, '#a1887f', 2);
+                    m.x = fetchX + (Math.random()-0.5) * 40; m.y = fetchY + (Math.random()-0.5) * 40;
+                    m._stuckSince = 0;
+                    m.attackSpeed = Math.round(m.attackSpeed * 0.5); // double attack speed
+                    m.damage = Math.round(m.damage * 2); // double damage
+                    m._frenzyEnd = now + 5000;
+                    spawnParticles(m.x, m.y, '#ffcc80', 3);
+                }
+            }
+            // Ball visual
+            spawnParticles(fetchX, fetchY, '#ffcc80', 14); spawnParticles(fetchX, fetchY, '#ff8f00', 8);
+            damageNumbers.push({ x: fetchX, y: fetchY - 20, text: 'FETCH!', color: '#ff8f00', life: 50 });
+            triggerShake(5, 8); } break;
         case 'ink': // Ink Tsunami — wave of ink forward, leaves puddles, big damage
             if (now - p._secondaryCd < 4000) return; p._secondaryCd = now;
             { const snap = enemies.slice();
@@ -1623,6 +1673,38 @@ function animeSecondary(p, now) {
             triggerShake(6, 10); } break;
         default: return;
     }
+}
+
+function dogAlphaHowl(p, now) {
+    if (p.classId !== 'dog') return;
+    if (!p._alphaCd) p._alphaCd = 0;
+    if (now - p._alphaCd < 12000) return;
+    p._alphaCd = now;
+    let buffed = 0;
+    for (const m of summonedMinions) {
+        if ((m.type === 'dog_pack' || m.type === 'puppy') && m.owner === p) {
+            m.damage = Math.round(m.damage * 3);
+            m.speed = m.speed * 2;
+            m.radius = Math.round(m.radius * 1.5);
+            m._alphaEnd = now + 8000;
+            spawnParticles(m.x, m.y, '#ff6e40', 4);
+            buffed++;
+        }
+    }
+    if (buffed === 0) {
+        damageNumbers.push({ x: p.x, y: p.y - 20, text: 'No dogs!', color: '#666', life: 30 });
+        p._alphaCd = 0; return;
+    }
+    // Player also gets buffed
+    p.activeEffects.push({ effect: 'damage', value: 2, endTime: now + 8000 });
+    p.activeEffects.push({ effect: 'speed', value: 1.5, endTime: now + 8000 });
+    // Stun everything
+    for (const e of enemies) { if (!e.alive) continue;
+        if (Math.hypot(e.x - p.x, e.y - p.y) < 250) e.stunned = Math.max(e.stunned, now + 2000);
+    }
+    damageNumbers.push({ x: p.x, y: p.y - 35, text: `ALPHA HOWL! (${buffed} dogs x3)`, color: '#ff3d00', life: 60 });
+    spawnParticles(p.x, p.y, '#ff6e40', 20); spawnParticles(p.x, p.y, '#fff', 10);
+    triggerShake(12, 18);
 }
 
 function inkMasterpiece(p, now) {
@@ -1755,6 +1837,17 @@ function dealDamageToEnemy(e, dmg, p) {
         if (Math.random() < (e.isBoss ? 1 : 0.2)) {
             lootDrops.push({ x: e.x, y: e.y, item: generateLoot(currentFloor), type: 'drop' });
             runStats.itemsFound++;
+        }
+
+        // Dog passive — 50% chance to spawn a permanent puppy on kill
+        if (p && p.classId === 'dog' && Math.random() < 0.5) {
+            summonedMinions.push({ x: e.x, y: e.y, owner: p,
+                hp: 25, maxHp: 25, damage: Math.round(p.damage * 0.4), speed: 3.5, radius: 5,
+                attackRange: 20, lastAttack: gameTime, attackSpeed: 400,
+                life: Infinity, color: '#d7ccc8', type: 'puppy', _orbit: true,
+                _guardIndex: Math.floor(Math.random() * 12), _guardTotal: 12 });
+            spawnParticles(e.x, e.y, '#d7ccc8', 6);
+            damageNumbers.push({ x: e.x, y: e.y - 15, text: 'PUPPY!', color: '#a1887f', life: 35 });
         }
 
         // Cordyceps — infected enemies rise as zombie allies
@@ -2074,6 +2167,9 @@ function update(now) {
     for (let i = summonedMinions.length - 1; i >= 0; i--) {
         const m = summonedMinions[i];
         if (m.type === 'clone') { m.hp = m.maxHp; } // Naruto clones are immortal
+        // Dog frenzy/alpha buff expiry
+        if (m._frenzyEnd && now > m._frenzyEnd) { m.attackSpeed = Math.round(m.attackSpeed * 2); m.damage = Math.round(m.damage / 2); m._frenzyEnd = 0; }
+        if (m._alphaEnd && now > m._alphaEnd) { m.damage = Math.round(m.damage / 3); m.speed = m.speed / 2; m.radius = Math.round(m.radius / 1.5); m._alphaEnd = 0; }
         if (now > m.life || m.hp <= 0) { spawnParticles(m.x, m.y, m.color || '#880000', 6); summonedMinions.splice(i, 1); continue; }
 
         // Shadows: melee when close, shoot blue flame when far
@@ -2682,7 +2778,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'KeyE')) playerSpecial(p, now);
         if (pKey(p, 'Space')) playerDodge(p, now);
         if (pKey(p, 'KeyR')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
-        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); inkMasterpiece(p, now); }
+        if (pKey(p, 'KeyQ')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); inkMasterpiece(p, now); dogAlphaHowl(p, now); }
         if (pKey(p, 'KeyF')) jinwooAriseBoss(p, now);
     } else {
         // Local P2: Numpad
@@ -2691,7 +2787,7 @@ function updatePlayer(p, now) {
         if (pKey(p, 'Numpad2')) playerDodge(p, now);
         if (pKey(p, 'Numpad5')) { portalTeleportToAlly(p, now); animeSecondary(p, now); frogInsects(p, now); }
         if (pKey(p, 'Numpad6') && !pKey(p, 'Numpad5')) frogInsects(p, now);
-        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); inkMasterpiece(p, now); }
+        if (pKey(p, 'Numpad4')) { jinwooRecall(p, now); katakuriHaki(p, now); suisuiWhirlpool(p, now); inkMasterpiece(p, now); dogAlphaHowl(p, now); }
         if (pKey(p, 'Numpad6')) jinwooAriseBoss(p, now);
     }
 
@@ -3988,6 +4084,63 @@ function drawPortal(ctx, p, time) {
 // ─── ANIME CHARACTER DRAWING ────────────────────────────────
 
 // ─── MORE ANIME CHARACTER DRAWING ───────────────────────────
+function drawDog(ctx, p, t) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    const tailWag = Math.sin(t * 0.02) * 0.5;
+    // Body — big golden/brown dog
+    ctx.fillStyle = p.attackAnim > 0 ? '#bcaaa4' : '#a1887f';
+    ctx.beginPath(); ctx.ellipse(0, 2, 10, 7, 0, 0, Math.PI * 2); ctx.fill();
+    // Head
+    ctx.fillStyle = '#8d6e63';
+    ctx.beginPath(); ctx.arc(0, -8, 8, 0, Math.PI * 2); ctx.fill();
+    // Snout
+    ctx.fillStyle = '#a1887f';
+    ctx.beginPath(); ctx.ellipse(0, -4, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+    // Nose
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(0, -5, 2, 0, Math.PI * 2); ctx.fill();
+    // Happy eyes
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath(); ctx.arc(-3, -10, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -10, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-2.5, -10.5, 0.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3.5, -10.5, 0.8, 0, Math.PI * 2); ctx.fill();
+    // Floppy ears
+    ctx.fillStyle = '#6d4c41';
+    ctx.save(); ctx.rotate(-0.3 + tailWag * 0.2);
+    ctx.beginPath(); ctx.ellipse(-7, -7, 4, 8, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.save(); ctx.rotate(0.3 - tailWag * 0.2);
+    ctx.beginPath(); ctx.ellipse(7, -7, 4, 8, 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // Tongue (happy panting)
+    ctx.fillStyle = '#e91e63';
+    ctx.beginPath(); ctx.ellipse(2, -2, 2, 3 + Math.sin(t * 0.01) * 1, 0.2, 0, Math.PI * 2); ctx.fill();
+    // Collar
+    ctx.fillStyle = '#d32f2f'; ctx.fillRect(-7, -1, 14, 3);
+    ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(0, 1, 2, 0, Math.PI * 2); ctx.fill(); // tag
+    // Legs
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(-7, 7, 3, 7); ctx.fillRect(-2, 7, 3, 7);
+    ctx.fillRect(2, 7, 3, 7); ctx.fillRect(5, 7, 3, 7);
+    // Tail (wagging!)
+    ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 7);
+    ctx.quadraticCurveTo(8 + tailWag * 8, 0, 6 + tailWag * 10, -5);
+    ctx.stroke();
+    // Pack count
+    const packCount = summonedMinions.filter(m => (m.type === 'dog_pack' || m.type === 'puppy') && m.owner === p).length;
+    if (packCount > 0) {
+        ctx.fillStyle = '#a1887f'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(`pack: ${packCount}`, 0, 22);
+    }
+    // Player indicator
+    ctx.fillStyle = p.playerIndex === 0 ? '#fff' : '#4a9eff';
+    ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
 function drawInk(ctx, p, t) {
     ctx.save(); ctx.translate(p.x, p.y);
     // Dripping ink aura
