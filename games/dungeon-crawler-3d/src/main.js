@@ -1798,7 +1798,9 @@ function playerAttack() {
     const yaw = fpsCamera.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const range = 3.0 + (player._transformed ? 1.5 : 0);
-    const dmg = Math.round(player.damage * step.dmgMult);
+    const isSukuna = player.classId === 'sukuna';
+    // Sukuna M1s do much less damage — the real kill is the 4th hit execute
+    const dmg = isSukuna ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
     const isFinisher = player._comboStep === 3;
 
     // Hit enemies in arc in front
@@ -1812,11 +1814,33 @@ function playerAttack() {
         while (ad > Math.PI) ad -= Math.PI * 2;
         while (ad < -Math.PI) ad += Math.PI * 2;
         if (Math.abs(ad) < Math.PI * 0.5) {
-            dealDamageToEnemy(e, dmg);
-            // Knockback
-            e.data.x += (dx / d) * step.kb;
-            e.data.z += (dz / d) * step.kb;
-            e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+            // Sukuna combo tracker — track consecutive M1 hits per enemy
+            if (isSukuna) {
+                if (!e.data._sukunaCombo) e.data._sukunaCombo = 0;
+                if (!e.data._sukunaLastStep) e.data._sukunaLastStep = -1;
+                // Must be consecutive steps (0->1->2->3)
+                if (player._comboStep === e.data._sukunaLastStep + 1 || player._comboStep === 0) {
+                    if (player._comboStep === 0) e.data._sukunaCombo = 1;
+                    else e.data._sukunaCombo++;
+                    e.data._sukunaLastStep = player._comboStep;
+                } else {
+                    e.data._sukunaCombo = 1;
+                    e.data._sukunaLastStep = player._comboStep;
+                }
+            }
+
+            // On Sukuna finisher (4th hit) — if enemy caught all 4, execute with bisection
+            if (isSukuna && isFinisher && e.data._sukunaCombo >= 4) {
+                sukunaBisect(e);
+                e.data._sukunaCombo = 0;
+                e.data._sukunaLastStep = -1;
+            } else {
+                dealDamageToEnemy(e, dmg);
+                // Knockback
+                e.data.x += (dx / d) * step.kb;
+                e.data.z += (dz / d) * step.kb;
+                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+            }
         }
     }
 
@@ -1828,7 +1852,7 @@ function playerAttack() {
     // Per-character M1 VFX — add character-specific hit effects here
 
     // Sukuna sword swing animation (1st person viewmodel + 3rd person arm)
-    if (player.classId === 'sukuna') {
+    if (isSukuna) {
         triggerSwordSwing(player._comboStep);
     }
 
@@ -2635,6 +2659,118 @@ function dealDamageToEnemy(e, dmg) {
             setTimeout(() => { if (gameState === 'playing') nextFloor(); }, 1500);
         }
     }
+}
+
+// ─── SUKUNA BISECT — cut enemy in half on full 4-hit combo ──
+function sukunaBisect(e) {
+    const wx = e.data.x * TILE;
+    const wz = e.data.z * TILE;
+
+    // Big screen effects
+    screenShake(0.6, 400);
+    triggerHitstop(150);
+    fovPunch(12, 0.2);
+    screenFlash('rgba(255,0,0,0.5)', 400);
+
+    // ── Split the enemy mesh in two halves ──
+    const origMesh = e.mesh;
+    origMesh.visible = false;
+
+    // Create two halves — clone the enemy group twice, clip each
+    const topHalf = origMesh.clone();
+    const bottomHalf = origMesh.clone();
+    topHalf.visible = true;
+    bottomHalf.visible = true;
+    topHalf.position.copy(origMesh.position);
+    bottomHalf.position.copy(origMesh.position);
+    scene.add(topHalf);
+    scene.add(bottomHalf);
+
+    // Clip: top half keeps upper part, bottom keeps lower
+    // Scale Y to squish each half and offset to create the split
+    topHalf.scale.set(1, 0.5, 1);
+    topHalf.position.y += 1.0;
+    bottomHalf.scale.set(1, 0.5, 1);
+    bottomHalf.position.y += 0.0;
+
+    // Red slash line between halves (vertical downward cut mark)
+    const slashGeo = new THREE.PlaneGeometry(2.5, 0.06);
+    const slashMat = new THREE.MeshBasicMaterial({
+        color: '#ff0000', transparent: true, opacity: 1,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const slashLine = new THREE.Mesh(slashGeo, slashMat);
+    slashLine.position.set(wx, 1.2, wz);
+    slashLine.lookAt(camera.position);
+    scene.add(slashLine);
+
+    // ── BLOOD SPLASH — burst of red particles ──
+    emitParticles(wx, 1.2, wz, {
+        color: ['#ff0000', '#cc0000', '#880000', '#ff2222', '#aa0000'],
+        count: 40,
+        speed: 6,
+        spread: 0.8,
+        gravity: -12,
+        life: 40,
+        size: 0.3,
+        sizeEnd: 0.05,
+        yOffset: 0,
+        additive: false,
+        opacity: 0.9,
+    });
+    // Secondary smaller splatter
+    emitParticles(wx, 0.5, wz, {
+        color: ['#ff0000', '#990000', '#660000'],
+        count: 25,
+        speed: 4,
+        spread: 1.2,
+        gravity: -8,
+        life: 30,
+        size: 0.2,
+        sizeEnd: 0.02,
+        yOffset: 0.5,
+        additive: false,
+        opacity: 0.8,
+    });
+
+    // Blood pool decal on ground
+    groundDecal(wx, wz, '#880000', 1.5, 3000);
+
+    // Red light flash at kill point
+    lightFlash(wx, 1.5, wz, '#ff0000', 5, 400);
+
+    // ── Animate halves splitting apart then fading ──
+    const startTime = performance.now();
+    const animateSplit = () => {
+        const t = (performance.now() - startTime) / 800;
+        if (t >= 1) {
+            scene.remove(topHalf); scene.remove(bottomHalf); scene.remove(slashLine);
+            return;
+        }
+        const ease = 1 - Math.pow(1 - t, 2);
+        // Top slides up and tilts
+        topHalf.position.y = 1.0 + ease * 1.5;
+        topHalf.rotation.z = ease * 0.4;
+        topHalf.rotation.x = ease * -0.2;
+        // Bottom slides down
+        bottomHalf.position.y = ease * -0.5;
+        bottomHalf.rotation.z = ease * -0.3;
+        // Both fade
+        topHalf.traverse(c => { if (c.isMesh && c.material) { c.material.transparent = true; c.material.opacity = 1 - ease; } });
+        bottomHalf.traverse(c => { if (c.isMesh && c.material) { c.material.transparent = true; c.material.opacity = 1 - ease; } });
+        // Slash line fades
+        slashMat.opacity = 1 - ease;
+        requestAnimationFrame(animateSplit);
+    };
+    requestAnimationFrame(animateSplit);
+
+    // ── "CLEAVE" text popup ──
+    spawnDmgNumber(wx, 3, wz, 'CLEAVE', '#ff2244');
+
+    // ── Kill the enemy (gives XP, gold, triggers boss stairs etc) ──
+    // Deal remaining HP as damage to trigger the death logic
+    const killDmg = e.data.hp;
+    dealDamageToEnemy(e, killDmg);
 }
 
 function dealDamageToPlayer(dmg) {
