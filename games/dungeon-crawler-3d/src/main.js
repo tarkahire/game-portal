@@ -5139,87 +5139,97 @@ function fruitAbility(slot) {
         }
 
         else if (slot === 'c') {
-            // ── DEVIL CHARGE — lunge forward headfirst with chainsaw, plowing through enemies ──
+            // ── DEVIL CHARGE — drop to all fours and charge forward like a beast ──
             const pm = fpsCamera.playerModel;
             const fly = fpsCamera.flyHeight || 0;
             const chargeDist = 7;
+            const chargeDur = 500; // ms to cover the distance
+            const chargeSpeed = chargeDist / (chargeDur / 1000); // tiles per second
 
-            // Lean forward hard
-            if (pm?._torso) pm._torso.rotation.x = 0.4;
-            if (pm?._rightArm) pm._rightArm.rotation.set(-1.5, 0, -0.3);
-            if (pm?._leftArm) pm._leftArm.rotation.set(-1.5, 0, 0.3);
+            screenShake(0.5, chargeDur + 200);
+            fovPunch(20, 0.3);
+            player.invincible = performance.now() + chargeDur + 200;
 
-            screenShake(0.5, 400);
-            fovPunch(18, 0.15);
+            // Tilt camera diagonally forward (looking down at ground)
+            const savedPitch = fpsCamera.pitch;
+            fpsCamera.pitch = 0.5; // tilt down toward ground
 
-            // Chainsaw trail along charge path
-            for (let i = 0; i < 6; i++) {
-                setTimeout(() => {
-                    const t = (i + 1) / 6;
-                    const tx = worldPx + fwdX * chargeDist * t * TILE / TILE;
-                    const tz = worldPz + fwdZ * chargeDist * t * TILE / TILE;
+            // All fours pose — torso nearly horizontal, arms and legs spread
+            if (pm?._torso) pm._torso.rotation.x = 1.2; // nearly horizontal
+            if (pm?._rightArm) pm._rightArm.rotation.set(0.8, 0, -0.5); // reaching to ground
+            if (pm?._leftArm) pm._leftArm.rotation.set(0.8, 0, 0.5);
+            if (pm?._rightLeg) pm._rightLeg.rotation.x = -0.4;
+            if (pm?._leftLeg) pm._leftLeg.rotation.x = 0.4;
 
-                    // Chainsaw teeth trail
-                    const trailGeo = new THREE.ConeGeometry(0.2, 0.4, 3);
-                    const trailMat = new THREE.MeshBasicMaterial({
-                        color: '#ff4400', transparent: true, opacity: 0.7,
-                        blending: THREE.AdditiveBlending, depthWrite: false
-                    });
-                    const trail = new THREE.Mesh(trailGeo, trailMat);
-                    trail.position.set(
-                        worldPx + fwdX * TILE * chargeDist * t,
-                        EYE_HEIGHT + fly - 0.3,
-                        worldPz + fwdZ * TILE * chargeDist * t
-                    );
-                    trail.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-                    scene.add(trail);
+            // Store charge direction
+            const chargeFwdX = fwdX;
+            const chargeFwdZ = fwdZ;
+            const chargeStartTime = performance.now();
+            const hitEnemies = new Set(); // track which enemies already got hit
 
-                    // Sparks
-                    emitParticles(trail.position.x, trail.position.y, trail.position.z, {
+            // Animate the charge over time — move forward each frame
+            const chargeInterval = setInterval(() => {
+                const elapsed = performance.now() - chargeStartTime;
+                const t = elapsed / chargeDur;
+
+                if (t >= 1) {
+                    clearInterval(chargeInterval);
+                    // Restore pose
+                    fpsCamera.pitch = savedPitch;
+                    if (pm?._torso) pm._torso.rotation.x = 0.04;
+                    if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                    if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+                    if (pm?._rightLeg) pm._rightLeg.rotation.x = 0;
+                    if (pm?._leftLeg) pm._leftLeg.rotation.x = 0;
+                    return;
+                }
+
+                // Move forward
+                const moveDt = 0.016; // ~60fps
+                fpsCamera.posX += chargeFwdX * chargeSpeed * moveDt;
+                fpsCamera.posZ += chargeFwdZ * chargeSpeed * moveDt;
+
+                // Galloping leg animation while on all fours
+                const gallop = elapsed * 0.025;
+                if (pm?._rightLeg) pm._rightLeg.rotation.x = Math.sin(gallop) * 0.8;
+                if (pm?._leftLeg) pm._leftLeg.rotation.x = Math.sin(gallop + Math.PI) * 0.8;
+                if (pm?._rightArm) pm._rightArm.rotation.x = 0.8 + Math.sin(gallop + Math.PI) * 0.4;
+                if (pm?._leftArm) pm._leftArm.rotation.x = 0.8 + Math.sin(gallop) * 0.4;
+
+                // Sparks and chainsaw teeth trail behind
+                const curWX = fpsCamera.posX * TILE;
+                const curWZ = fpsCamera.posZ * TILE;
+                if (Math.random() < 0.4) {
+                    emitParticles(curWX, 0.5 + fly, curWZ, {
                         color: ['#ff6600', '#ff8800', '#ffaa00'],
-                        count: 4, speed: 3, spread: 0.5,
-                        gravity: -6, life: 8, size: 0.08, sizeEnd: 0, drag: 0.95
+                        count: 3, speed: 3, spread: 0.4,
+                        gravity: -6, life: 6, size: 0.07, sizeEnd: 0, drag: 0.95
                     });
+                }
 
-                    setTimeout(() => { scene.remove(trail); trail.geometry.dispose(); trail.material.dispose(); }, 300);
-                }, i * 40);
-            }
-
-            // Damage everything in the charge corridor
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                const ex = e.data.x, ez = e.data.z;
-                const toX = ex - px, toZ = ez - pz;
-                const dot = toX * fwdX + toZ * fwdZ;
-                if (dot > 0 && dot < chargeDist) {
-                    const perp = Math.abs(toX * fwdZ - toZ * fwdX);
-                    if (perp < 1.5) {
+                // Hit enemies we run through
+                for (const e of enemies3D) {
+                    if (!e.data.alive || hitEnemies.has(e)) continue;
+                    const d = Math.hypot(e.data.x - fpsCamera.posX, e.data.z - fpsCamera.posZ);
+                    if (d < 1.5) {
+                        hitEnemies.add(e);
                         dealDamageToEnemy(e, Math.round(player.damage * 4));
-                        // Launch enemies to the side
-                        const side = (toX * (-fwdZ) + toZ * fwdX) > 0 ? 1 : -1;
-                        e.data.x += (-fwdZ) * side * 2;
-                        e.data.z += fwdX * side * 2;
+                        // Launch sideways
+                        const dx = e.data.x - fpsCamera.posX, dz = e.data.z - fpsCamera.posZ;
+                        const side = (dx * (-chargeFwdZ) + dz * chargeFwdX) > 0 ? 1 : -1;
+                        e.data.x += (-chargeFwdZ) * side * 2;
+                        e.data.z += chargeFwdX * side * 2;
                         e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
-                        e.mesh.position.y = 1; // launch up
+                        e.mesh.position.y = 1;
                         setTimeout(() => { if (e.mesh) e.mesh.position.y = 0; }, 400);
+                        triggerHitstop(30);
                     }
                 }
-            }
+            }, 16);
 
-            // Teleport forward
-            fpsCamera.posX += fwdX * chargeDist;
-            fpsCamera.posZ += fwdZ * chargeDist;
-            player.invincible = performance.now() + 500;
-
-            // Ground scorch along path
+            // Ground scorch
             groundDecal(worldPx + fwdX * chargeDist * 0.5 * TILE, worldPz + fwdZ * chargeDist * 0.5 * TILE, '#cc4400', 2, 2500);
-            lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#ff4400', 6, 300);
-
-            setTimeout(() => {
-                if (pm?._torso) pm._torso.rotation.x = 0.04;
-                if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
-                if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
-            }, 400);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff4400', 6, 300);
         }
 
         else if (slot === 'v') {
