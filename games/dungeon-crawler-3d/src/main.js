@@ -859,12 +859,58 @@ function kataFireFist(fromPortalIdx, targetX, targetY, targetZ, damage) {
 
 // ─── MAHORAGA 3D SYSTEM (Wheel of Dharma + Sword of Extermination) ───
 let mahoWheel = null;      // Dharma wheel mesh floating above player
-let mahoSword = null;      // Sword of Extermination mesh (1st person)
+let mahoSword = null;      // Sword of Extermination — always held, attached to camera
 let mahoTransformed = false;
 let mahoAdaptCount = 0;    // how many times adapted (wheel turns)
 let mahoWheelSpin = 0;     // current spin angle
 let mahoWheelTargetSpin = 0; // target angle for adaptation animation
 let mahoPositiveEnergy = false; // after transform, sword gets purple glow
+// Sword idle position (bottom-right of view, like holding it)
+const MAHO_SWORD_IDLE = { x: 0.6, y: -0.4, z: -0.8, rotX: -0.3, rotY: 0.2, rotZ: 0.4 };
+
+function buildSwordMesh(isTransformed) {
+    const swordGroup = new THREE.Group();
+    const bladeColor = isTransformed ? '#e040fb' : '#2a2a3a';
+    const bladeEmissive = isTransformed ? '#7c4dff' : '#000000';
+    const handleColor = '#3e2723';
+    const guardColor = '#ffd600';
+    // Handle (grip)
+    const handle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.04, 0.4, 5),
+        new THREE.MeshStandardMaterial({ color: handleColor, roughness: 0.8 })
+    );
+    handle.position.y = 0; swordGroup.add(handle);
+    // Guard (cross piece) — gold
+    const guard = new THREE.Mesh(
+        new THREE.BoxGeometry(0.28, 0.04, 0.06),
+        new THREE.MeshStandardMaterial({ color: guardColor, metalness: 0.7, roughness: 0.3 })
+    );
+    guard.position.y = 0.22; swordGroup.add(guard);
+    // Main blade — long, dark with light edge
+    const blade = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 1.5, 0.025),
+        new THREE.MeshStandardMaterial({ color: bladeColor, emissive: bladeEmissive, emissiveIntensity: isTransformed ? 0.6 : 0, metalness: 0.8, roughness: 0.2 })
+    );
+    blade.position.y = 0.97; swordGroup.add(blade);
+    // Edge highlight — thin white line
+    const edge = new THREE.Mesh(
+        new THREE.BoxGeometry(0.09, 1.4, 0.005),
+        new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.4 })
+    );
+    edge.position.set(0, 0.95, 0.016); swordGroup.add(edge);
+    // Blade tip
+    const tip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.05, 0.22, 4),
+        new THREE.MeshStandardMaterial({ color: bladeColor, emissive: bladeEmissive, emissiveIntensity: isTransformed ? 0.6 : 0, metalness: 0.8 })
+    );
+    tip.position.y = 1.83; swordGroup.add(tip);
+    // Glow when transformed
+    if (isTransformed) {
+        const glow = new THREE.PointLight('#e040fb', 1.5, TILE * 2, 2);
+        glow.position.y = 1.0; swordGroup.add(glow);
+    }
+    return swordGroup;
+}
 
 function initMahoraga() {
     clearMahoraga();
@@ -875,19 +921,16 @@ function initMahoraga() {
 
     // ─── Wheel of Dharma (8-spoke wheel) ───
     const wheelGroup = new THREE.Group();
-    // Outer ring
     const ring = new THREE.Mesh(
         new THREE.TorusGeometry(0.55, 0.06, 8, 24),
         new THREE.MeshStandardMaterial({ color: wheelColor, emissive: wheelEmissive, emissiveIntensity: 0.4, metalness: 0.6, roughness: 0.3 })
     );
     wheelGroup.add(ring);
-    // Hub
     const hub = new THREE.Mesh(
         new THREE.SphereGeometry(0.1, 8, 8),
         new THREE.MeshStandardMaterial({ color: wheelColor, emissive: wheelEmissive, emissiveIntensity: 0.5 })
     );
     wheelGroup.add(hub);
-    // 8 spokes
     for (let i = 0; i < 8; i++) {
         const angle = (i / 8) * Math.PI * 2;
         const spoke = new THREE.Mesh(
@@ -897,73 +940,33 @@ function initMahoraga() {
         spoke.position.set(Math.cos(angle) * 0.25, Math.sin(angle) * 0.25, 0);
         spoke.rotation.z = angle;
         wheelGroup.add(spoke);
-        // Pointed tip at each spoke end
-        const tip = new THREE.Mesh(
+        const tipMesh = new THREE.Mesh(
             new THREE.ConeGeometry(0.04, 0.12, 4),
             new THREE.MeshStandardMaterial({ color: spokeColor })
         );
-        tip.position.set(Math.cos(angle) * 0.55, Math.sin(angle) * 0.55, 0);
-        tip.rotation.z = angle - Math.PI / 2;
-        wheelGroup.add(tip);
+        tipMesh.position.set(Math.cos(angle) * 0.55, Math.sin(angle) * 0.55, 0);
+        tipMesh.rotation.z = angle - Math.PI / 2;
+        wheelGroup.add(tipMesh);
     }
-    // Glow light on wheel
     const wheelLight = new THREE.PointLight(isTransformed ? '#e040fb' : '#9e9e9e', isTransformed ? 3 : 1, TILE * 4, 2);
-    wheelLight.position.set(0, 0, 0);
     wheelGroup.add(wheelLight);
-    wheelGroup.name = 'mahoWheel';
     scene.add(wheelGroup);
     mahoWheel = wheelGroup;
 
-    // ─── Sword of Extermination (visible in 1st person, extends from right side) ───
-    const swordGroup = new THREE.Group();
-    const bladeColor = isTransformed ? '#e040fb' : '#b0bec5';
-    const handleColor = '#3e2723';
-    // Handle
-    const handle = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.04, 0.05, 0.6, 5),
-        new THREE.MeshStandardMaterial({ color: handleColor, roughness: 0.8 })
-    );
-    handle.position.y = 0;
-    swordGroup.add(handle);
-    // Guard (cross piece)
-    const guard = new THREE.Mesh(
-        new THREE.BoxGeometry(0.35, 0.05, 0.08),
-        new THREE.MeshStandardMaterial({ color: '#ffd600', metalness: 0.7, roughness: 0.3 })
-    );
-    guard.position.y = 0.3;
-    swordGroup.add(guard);
-    // Blade — long flat box
-    const blade = new THREE.Mesh(
-        new THREE.BoxGeometry(0.1, 1.8, 0.03),
-        new THREE.MeshStandardMaterial({ color: bladeColor, emissive: isTransformed ? '#7c4dff' : '#000000', emissiveIntensity: isTransformed ? 0.6 : 0, metalness: 0.8, roughness: 0.2 })
-    );
-    blade.position.y = 1.2;
-    swordGroup.add(blade);
-    // Blade edge — slightly wider at base
-    const edge = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 1.6, 0.01),
-        new THREE.MeshStandardMaterial({ color: '#ffffff', metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.3 })
-    );
-    edge.position.y = 1.15;
-    edge.position.z = 0.02;
-    swordGroup.add(edge);
-    // Blade tip
-    const tip = new THREE.Mesh(
-        new THREE.ConeGeometry(0.06, 0.3, 4),
-        new THREE.MeshStandardMaterial({ color: bladeColor, emissive: isTransformed ? '#7c4dff' : '#000000', emissiveIntensity: isTransformed ? 0.6 : 0, metalness: 0.8 })
-    );
-    tip.position.y = 2.15;
-    swordGroup.add(tip);
-    // Positive energy glow on blade (only when transformed)
-    if (isTransformed) {
-        const bladeGlow = new THREE.PointLight('#e040fb', 2, TILE * 3, 2);
-        bladeGlow.position.y = 1.2;
-        swordGroup.add(bladeGlow);
+    // ─── Sword of Extermination — always visible, held in hand ───
+    mahoSword = buildSwordMesh(isTransformed);
+    mahoSword.visible = true;
+    scene.add(mahoSword);
+
+    // Also attach a sword to the 3rd person model's right hand
+    if (fpsCamera.playerModel) {
+        const modelSword = buildSwordMesh(isTransformed);
+        modelSword.scale.setScalar(0.8);
+        modelSword.position.set(0.9, 0.7, 0.15); // right outer hand position
+        modelSword.rotation.z = -0.4;
+        modelSword.name = 'mahoModelSword';
+        fpsCamera.playerModel.add(modelSword);
     }
-    swordGroup.visible = false; // shown during attacks
-    swordGroup.name = 'mahoSword';
-    scene.add(swordGroup);
-    mahoSword = swordGroup;
 }
 
 function clearMahoraga() {
@@ -977,17 +980,14 @@ function updateMahoraga(time, now) {
 
     const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
     const bob = Math.sin(time * 0.002) * 0.15;
+    const yaw = fpsCamera.yaw;
 
     // Wheel floats above player's head, spinning
-    const wheelY = EYE_HEIGHT + 1.2 + bob;
-    mahoWheel.position.set(px, wheelY, pz);
-
-    // Smooth spin toward target
+    mahoWheel.position.set(px, EYE_HEIGHT + 1.2 + bob, pz);
     const spinSpeed = mahoTransformed ? 0.008 : 0.003;
-    mahoWheelSpin += (mahoWheelTargetSpin - mahoWheelSpin) * 0.05; // ease toward target
-    mahoWheelSpin += spinSpeed; // constant slow spin
+    mahoWheelSpin += (mahoWheelTargetSpin - mahoWheelSpin) * 0.05;
+    mahoWheelSpin += spinSpeed;
     mahoWheel.rotation.z = mahoWheelSpin;
-    // Tilt wheel to face slightly forward
     mahoWheel.rotation.x = 0.2;
 
     // Adaptation damage reduction timer
@@ -996,49 +996,49 @@ function updateMahoraga(time, now) {
         player._mahoDmgReduction = 0;
     }
 
-    // Transformation timeout (if applicable — currently permanent)
-    // Sword swing animation
-    if (mahoSword && mahoSword.visible && player._mahoSwingEnd) {
-        if (now > player._mahoSwingEnd) {
-            mahoSword.visible = false;
-            player._mahoSwingEnd = 0;
-        } else {
-            // Swing arc animation
-            const progress = 1 - (player._mahoSwingEnd - now) / 400;
-            const swingAngle = (progress - 0.5) * Math.PI * 0.8;
-            const yaw = fpsCamera.yaw;
-            const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-            const sideX = Math.cos(yaw), sideZ = -Math.sin(yaw);
-            // Position sword to the right and swing through
-            mahoSword.position.set(
-                px + sideX * 0.6 * TILE + fwdX * 1.2 * TILE * Math.cos(swingAngle),
-                EYE_HEIGHT * 0.6,
-                pz + sideZ * 0.6 * TILE + fwdZ * 1.2 * TILE * Math.cos(swingAngle)
-            );
-            mahoSword.rotation.y = yaw + swingAngle;
-            mahoSword.rotation.z = -0.3 + swingAngle * 0.3;
-        }
-    }
-
-    // Cleave slam animation (R ability)
-    if (mahoSword && player._mahoCleaveEnd && now < player._mahoCleaveEnd) {
-        const progress = 1 - (player._mahoCleaveEnd - now) / 600;
-        const yaw = fpsCamera.yaw;
+    // ─── Sword always follows camera (held in right hand) ───
+    if (mahoSword) {
         const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-        mahoSword.visible = true;
-        // Overhead slam — starts above, comes down in front
-        const slamY = EYE_HEIGHT + 2 - progress * 3;
-        mahoSword.position.set(
-            px + fwdX * 1.5 * TILE,
-            Math.max(0.2, slamY),
-            pz + fwdZ * 1.5 * TILE
-        );
-        mahoSword.rotation.y = yaw;
-        mahoSword.rotation.x = -Math.PI * 0.5 * progress;
-        mahoSword.rotation.z = 0;
-    } else if (player._mahoCleaveEnd && now >= player._mahoCleaveEnd) {
-        mahoSword.visible = false;
-        player._mahoCleaveEnd = 0;
+        const sideX = Math.cos(yaw), sideZ = -Math.sin(yaw);
+
+        const isSwinging = player._mahoSwingEnd && now < player._mahoSwingEnd;
+        const isCleaving = player._mahoCleaveEnd && now < player._mahoCleaveEnd;
+
+        if (isCleaving) {
+            // R Cleave — overhead slam animation
+            const progress = 1 - (player._mahoCleaveEnd - now) / 600;
+            const slamY = EYE_HEIGHT + 1.5 - progress * 2.5;
+            mahoSword.position.set(
+                px + fwdX * 1.2 * TILE,
+                Math.max(0.2, slamY),
+                pz + fwdZ * 1.2 * TILE
+            );
+            mahoSword.rotation.set(-Math.PI * 0.5 * progress, yaw, 0);
+        } else if (isSwinging) {
+            // M1 swing — arc from right to left
+            const progress = 1 - (player._mahoSwingEnd - now) / 400;
+            const swingAngle = (progress - 0.5) * Math.PI * 1.0; // wide arc
+            mahoSword.position.set(
+                px + sideX * 0.5 * TILE + fwdX * 0.8 * TILE,
+                EYE_HEIGHT - 0.3,
+                pz + sideZ * 0.5 * TILE + fwdZ * 0.8 * TILE
+            );
+            mahoSword.rotation.set(0, yaw + swingAngle, -0.3 + swingAngle * 0.4);
+        } else {
+            // Idle — sword held at bottom-right of view, angled
+            mahoSword.position.set(
+                px + sideX * MAHO_SWORD_IDLE.x * TILE + fwdX * (-MAHO_SWORD_IDLE.z) * TILE,
+                EYE_HEIGHT + MAHO_SWORD_IDLE.y,
+                pz + sideZ * MAHO_SWORD_IDLE.x * TILE + fwdZ * (-MAHO_SWORD_IDLE.z) * TILE
+            );
+            // Idle sway
+            const sway = Math.sin(time * 0.002) * 0.03;
+            mahoSword.rotation.set(MAHO_SWORD_IDLE.rotX + sway, yaw + MAHO_SWORD_IDLE.rotY, MAHO_SWORD_IDLE.rotZ);
+        }
+
+        // Clean up expired animations
+        if (player._mahoSwingEnd && now >= player._mahoSwingEnd) player._mahoSwingEnd = 0;
+        if (player._mahoCleaveEnd && now >= player._mahoCleaveEnd) player._mahoCleaveEnd = 0;
     }
 }
 
@@ -1147,7 +1147,7 @@ function playerAttack() {
         return;
     }
 
-    // Mahoraga — Sword of Extermination: wide sweeping slash with huge range
+    // Mahoraga — Sword of Extermination: swing from hand, no slash effect
     if (player.classId === 'mahoraga') {
         if (!mahoSword) initMahoraga();
         const px = fpsCamera.posX, pz = fpsCamera.posZ;
@@ -1156,11 +1156,10 @@ function playerAttack() {
         const dmgMult = mahoTransformed ? 1.5 : 1.0;
         const posEnergyDmg = mahoPositiveEnergy ? Math.round(player.damage * 0.3) : 0;
 
-        // Show sword swing
-        mahoSword.visible = true;
+        // Trigger swing animation (sword is always visible, just animate the arc)
         player._mahoSwingEnd = now + 400;
 
-        // Wide arc damage (wider than normal melee)
+        // Wide arc damage
         for (const e of enemies3D) {
             if (!e.data.alive) continue;
             const dx = e.data.x - px, dz = e.data.z - pz;
@@ -1169,16 +1168,14 @@ function playerAttack() {
             const a = Math.atan2(-dx, -dz);
             let ad = a - yaw;
             while (ad > Math.PI) ad -= Math.PI * 2; while (ad < -Math.PI) ad += Math.PI * 2;
-            if (Math.abs(ad) < Math.PI * 0.6) { // wider arc than normal
+            if (Math.abs(ad) < Math.PI * 0.6) {
                 dealDamageToEnemy(e, Math.round(player.damage * dmgMult) + posEnergyDmg);
-                // Knockback
                 const kb = mahoTransformed ? 1.2 : 0.6;
                 e.data.x += (dx / d) * kb;
                 e.data.z += (dz / d) * kb;
                 e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
             }
         }
-        spawnMeleeSlash(mahoTransformed ? '#e040fb' : '#7c4dff');
         return;
     }
 
@@ -1559,7 +1556,6 @@ function playerSecondary() {
                         e.data.lastAttack = performance.now() + 2000; // stun
                     }
                 }
-                spawnMeleeSlash(mahoTransformed ? '#e040fb' : '#7c4dff');
             }, 400);
             break; }
         default: break;
