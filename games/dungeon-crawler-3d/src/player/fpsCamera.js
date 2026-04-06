@@ -131,19 +131,11 @@ export class FPSCamera {
             );
             this.camera.lookAt(worldX, EYE_HEIGHT + fly, worldZ);
 
-            // Show player model — faces movement direction (smoothly interpolated)
+            // Show player model — faces where camera is looking
             if (this.playerModel) {
                 this.playerModel.visible = true;
                 this.playerModel.position.set(worldX, fly, worldZ);
-
-                // Smoothly rotate toward movement direction
-                const targetYaw = (this._moveYaw !== undefined) ? -this._moveYaw : -this.yaw;
-                // Shortest angle difference
-                let diff = targetYaw - this.modelYaw;
-                while (diff > Math.PI) diff -= Math.PI * 2;
-                while (diff < -Math.PI) diff += Math.PI * 2;
-                this.modelYaw += diff * 0.15; // smooth lerp
-                this.playerModel.rotation.y = this.modelYaw;
+                this.playerModel.rotation.y = -this.yaw;
             }
         } else {
             // 1st person
