@@ -38,4 +38,11 @@ export const CLASSES = {
         abilities: { z: 'AP Shot', x: 'Stun Grenade', c: 'Howitzer Impact', v: 'Cluster Bomb', f: 'Blast Rush' },
         abilityCooldowns: { z: 3000, x: 3500, c: 8000, v: 18000, f: 2000 }
     },
+    denji: {
+        name: 'Denji', type: 'devil', maxHp: 160, speed: 3.3, attackRange: 35,
+        attackDamage: 19, attackSpeed: 240, attackType: 'melee', color: '#cc4400',
+        specialCooldown: 4000, specialName: 'Chainsaw Devil', weaponType: 'chainsaw',
+        abilities: { z: 'Chain Rip', x: 'Buzzsaw', c: 'Devil Charge', v: 'Full Devil', f: 'Chain Dash' },
+        abilityCooldowns: { z: 3000, x: 4000, c: 8000, v: 18000, f: 2500 }
+    },
 };
