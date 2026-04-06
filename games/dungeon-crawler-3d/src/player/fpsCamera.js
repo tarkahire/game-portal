@@ -128,6 +128,12 @@ export class FPSCamera {
         const worldZ = this.posZ * TILE;
         const fly = this.flyHeight || 0;
 
+        // Always update player model position/rotation (needed for split-screen visibility)
+        if (this.playerModel) {
+            this.playerModel.position.set(worldX, fly, worldZ);
+            this.playerModel.rotation.y = this.yaw + Math.PI;
+        }
+
         if (this.thirdPerson) {
             const behindX = Math.sin(this.yaw) * this.tpDistance;
             const behindZ = Math.cos(this.yaw) * this.tpDistance;
@@ -138,11 +144,7 @@ export class FPSCamera {
             );
             this.camera.lookAt(worldX, EYE_HEIGHT + fly, worldZ);
 
-            if (this.playerModel) {
-                this.playerModel.visible = true;
-                this.playerModel.position.set(worldX, fly, worldZ);
-                this.playerModel.rotation.y = this.yaw + Math.PI;
-            }
+            if (this.playerModel) this.playerModel.visible = true;
         } else {
             this.camera.position.set(worldX, EYE_HEIGHT + fly, worldZ);
             const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');

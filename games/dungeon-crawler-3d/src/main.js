@@ -5357,9 +5357,13 @@ function gameLoop() {
     if (coopMode && player2) {
         // Split-screen: left half = P1, right half = P2
         renderer.setScissorTest(true);
+        const p1Model = fpsCamera.playerModel;
+        const p2Model = fpsCamera2.playerModel;
 
-        // P1 — left half
+        // P1 view — left half: hide own model, show P2's model
         const halfW = Math.floor(w / 2);
+        if (p1Model && !fpsCamera.thirdPerson) p1Model.visible = false;
+        if (p2Model) p2Model.visible = true; // P2 always visible to P1
         camera.aspect = halfW / h;
         camera.updateProjectionMatrix();
         renderer.setViewport(0, 0, halfW, h);
@@ -5367,7 +5371,9 @@ function gameLoop() {
         renderer.clear();
         renderer.render(scene, camera);
 
-        // P2 — right half
+        // P2 view — right half: hide own model, show P1's model
+        if (p2Model && !fpsCamera2.thirdPerson) p2Model.visible = false;
+        if (p1Model) p1Model.visible = true; // P1 always visible to P2
         camera2.aspect = (w - halfW) / h;
         camera2.updateProjectionMatrix();
         renderer.setViewport(halfW, 0, w - halfW, h);
