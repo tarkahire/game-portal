@@ -1481,6 +1481,320 @@ function fruitAbility(slot) {
             screenShake(0.15, 100);
             lightFlash(worldPx, EYE_HEIGHT, worldPz, '#4fc3f7', 2, 200);
         }
+
+        else if (slot === 'x') { // Cursed Technique Reversal: Red — repulsion blast
+            const spawnX = worldPx + fwdX * 1.5, spawnZ = worldPz + fwdZ * 1.5;
+
+            // Red orb charges at player's hand then fires forward
+            const orbGeo = new THREE.SphereGeometry(0.35, 10, 10);
+            const orbMat = new THREE.MeshBasicMaterial({
+                color: '#d50000', transparent: true, opacity: 0.9,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            // Inner white-hot core
+            orb.add(new THREE.Mesh(
+                new THREE.SphereGeometry(0.12, 8, 8),
+                new THREE.MeshBasicMaterial({ color: '#ff8a80', blending: THREE.AdditiveBlending, transparent: true, opacity: 1, depthWrite: false })
+            ));
+            orb.add(new THREE.PointLight('#d50000', 6, TILE * 5, 2));
+            orb.position.set(spawnX, EYE_HEIGHT - 0.2, spawnZ);
+            scene.add(orb);
+
+            // Charge particles converging to hand (200ms)
+            emitParticles(spawnX, EYE_HEIGHT - 0.2, spawnZ, {
+                color: ['#d50000', '#ff1744', '#ff5252', '#ff8a80'],
+                count: 20, speed: 3, spread: 2,
+                gravity: 0, life: 8, size: 0.1, sizeEnd: 0, drag: 0.88
+            });
+
+            // Left arm forward pose
+            if (fpsCamera.playerModel?._leftArm) {
+                fpsCamera.playerModel._leftArm.rotation.x = -1.3;
+                setTimeout(() => { if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = 0.05; }, 800);
+            }
+
+            // After 200ms charge — fire the red orb forward as projectile
+            setTimeout(() => {
+                // Launch as fast projectile
+                const projMat = new THREE.MeshBasicMaterial({
+                    color: '#d50000', transparent: true, opacity: 0.9,
+                    blending: THREE.AdditiveBlending, depthWrite: false
+                });
+                const proj = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 10), projMat);
+                proj.position.copy(orb.position);
+                proj.add(new THREE.PointLight('#ff1744', 5, TILE * 5, 2));
+                // Outer glow shell
+                const shell = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.8, 8, 8),
+                    new THREE.MeshBasicMaterial({ color: '#ff1744', transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })
+                );
+                proj.add(shell);
+                scene.add(proj);
+
+                // Remove charge orb
+                scene.remove(orb); orbGeo.dispose(); orbMat.dispose();
+
+                // Custom projectile with trail + explosion on hit
+                const redProj = {
+                    mesh: proj, vx: fwdX * 16, vz: fwdZ * 16,
+                    damage: Math.round(player.damage * 3), owner: 'player',
+                    traveled: 0, range: 50,
+                    _isRed: true // flag for custom explosion
+                };
+                projectiles3D.push(redProj);
+
+                // Trail particles as it flies
+                const trailInt = setInterval(() => {
+                    if (!proj.parent) { clearInterval(trailInt); return; }
+                    emitParticles(proj.position.x, proj.position.y, proj.position.z, {
+                        color: ['#d50000', '#ff1744', '#ff5252'],
+                        count: 4, speed: 1.5, spread: 0.3,
+                        gravity: 0, life: 8, size: 0.15, sizeEnd: 0, drag: 0.95
+                    });
+                }, 50);
+
+                screenShake(0.3, 150);
+                lightFlash(spawnX, EYE_HEIGHT, spawnZ, '#ff1744', 4, 200);
+            }, 200);
+
+            // Red pushes enemies AWAY on impact — handled in dealDamageToEnemy via knockback
+            // The projectile system already handles collision; we add explosion VFX
+            // by checking _isRed flag in the projectile update (added to updateFruitEffects)
+            player._redActive = true;
+        }
+
+        else if (slot === 'c') { // Hollow Purple — Blue + Red combined, devastating beam
+            // Both arms come together
+            if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = -1.0;
+            if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = -1.0;
+
+            // Charge phase (600ms) — blue and red particles spiral into a point
+            const chargeX = worldPx + fwdX * 1.5, chargeZ = worldPz + fwdZ * 1.5;
+            const chargeY = EYE_HEIGHT - 0.1;
+
+            // Blue particles from left
+            emitParticles(chargeX - Math.cos(yaw) * 1.5, chargeY, chargeZ + Math.sin(yaw) * 1.5, {
+                color: ['#1565c0', '#42a5f5'], count: 15, speed: 3, spread: 0.5,
+                direction: { x: Math.cos(yaw) * 2, y: 0, z: -Math.sin(yaw) * 2 },
+                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.9
+            });
+            // Red particles from right
+            emitParticles(chargeX + Math.cos(yaw) * 1.5, chargeY, chargeZ - Math.sin(yaw) * 1.5, {
+                color: ['#d50000', '#ff1744'], count: 15, speed: 3, spread: 0.5,
+                direction: { x: -Math.cos(yaw) * 2, y: 0, z: Math.sin(yaw) * 2 },
+                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.9
+            });
+
+            // Purple orb forms at charge point
+            const purpleOrb = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 10, 10),
+                new THREE.MeshBasicMaterial({ color: '#7c4dff', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            purpleOrb.position.set(chargeX, chargeY, chargeZ);
+            purpleOrb.add(new THREE.PointLight('#7c4dff', 3, TILE * 4, 2));
+            scene.add(purpleOrb);
+
+            // Grow the orb during charge
+            let chargeFrame = 0;
+            const chargeAnim = setInterval(() => {
+                chargeFrame++;
+                const s = 0.2 + chargeFrame * 0.05;
+                purpleOrb.scale.setScalar(Math.min(s, 1.5));
+                // Swirling particles
+                emitParticles(chargeX, chargeY, chargeZ, {
+                    color: ['#7c4dff', '#b388ff', '#ea80fc'],
+                    count: 3, speed: 1.5, spread: 0.8,
+                    gravity: 0, life: 6, size: 0.08, sizeEnd: 0, drag: 0.92
+                });
+                if (chargeFrame > 12) clearInterval(chargeAnim);
+            }, 50);
+
+            screenShake(0.2, 600);
+
+            // After 600ms — FIRE THE BEAM
+            setTimeout(() => {
+                scene.remove(purpleOrb);
+
+                // Arms push forward
+                if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = -1.5;
+                if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = -1.5;
+                setTimeout(() => {
+                    if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = 0.05;
+                    if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = 0.05;
+                }, 600);
+
+                // Beam from player to target (long range)
+                const beamEndX = worldPx + fwdX * 12 * TILE;
+                const beamEndZ = worldPz + fwdZ * 12 * TILE;
+                beamEffect(chargeX, chargeY, chargeZ, beamEndX, chargeY, beamEndZ, '#7c4dff', 600, 0.35);
+
+                // Second thinner inner beam
+                beamEffect(chargeX, chargeY, chargeZ, beamEndX, chargeY, beamEndZ, '#ea80fc', 500, 0.15);
+
+                // Damage everything in the beam path
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    const dx = e.data.x - px, dz = e.data.z - pz;
+                    // Check if enemy is within the beam corridor
+                    const along = dx * fwdX + dz * fwdZ; // distance along beam
+                    const perp = Math.abs(dx * fwdZ - dz * fwdX); // distance from beam center
+                    if (along > 0 && along < 12 && perp < 2) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 5));
+                        // Knockback along beam direction
+                        e.data.x += fwdX * 2;
+                        e.data.z += fwdZ * 2;
+                        e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                    }
+                }
+
+                // Massive particles along beam path
+                for (let i = 0; i < 8; i++) {
+                    const t = i / 8;
+                    const bx = chargeX + fwdX * t * 12 * TILE;
+                    const bz = chargeZ + fwdZ * t * 12 * TILE;
+                    emitParticles(bx, chargeY, bz, {
+                        color: ['#7c4dff', '#b388ff', '#ea80fc', '#ffffff'],
+                        count: 8, speed: 3, spread: 1,
+                        gravity: -1, life: 15, lifeVar: 8,
+                        size: 0.2, sizeEnd: 0, drag: 0.96, upward: 0.5
+                    });
+                }
+
+                // Ground scorch along path
+                for (let i = 1; i < 6; i++) {
+                    groundDecal(
+                        (px + fwdX * i * 2) * TILE,
+                        (pz + fwdZ * i * 2) * TILE,
+                        '#7c4dff', 1.5, 3000
+                    );
+                }
+
+                screenShake(0.7, 400);
+                triggerHitstop(100);
+                lightFlash(chargeX, chargeY, chargeZ, '#7c4dff', 10, 500);
+                screenFlash('rgba(124,77,255,0.3)', 300);
+            }, 600);
+        }
+
+        else if (slot === 'v') { // Domain Expansion: Unlimited Void
+            // Both hands form a specific pose
+            if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = -0.8;
+            if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = -0.8;
+
+            // Screen goes dark briefly
+            screenFlash('rgba(0,0,0,0.8)', 1500);
+            screenShake(0.5, 1000);
+
+            // Expanding dome of void energy
+            const domeGeo = new THREE.SphereGeometry(1, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const domeMat = new THREE.MeshBasicMaterial({
+                color: '#1a1a3e', transparent: true, opacity: 0.4,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const dome = new THREE.Mesh(domeGeo, domeMat);
+            dome.position.set(worldPx, 0.1, worldPz);
+            scene.add(dome);
+
+            // Inner void pattern — grid of faint lines
+            const innerGeo = new THREE.SphereGeometry(0.8, 8, 8);
+            const innerMat = new THREE.MeshBasicMaterial({
+                color: '#311b92', wireframe: true, transparent: true, opacity: 0.3,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const inner = new THREE.Mesh(innerGeo, innerMat);
+            dome.add(inner);
+
+            // Void light
+            const voidLight = new THREE.PointLight('#7c4dff', 4, TILE * 10, 2);
+            dome.add(voidLight);
+
+            // Expand the dome over 500ms
+            let expandFrame = 0;
+            const expandAnim = setInterval(() => {
+                expandFrame++;
+                const s = expandFrame * 0.8;
+                dome.scale.setScalar(Math.min(s, 10));
+                inner.rotation.x += 0.02;
+                inner.rotation.y += 0.03;
+                // Void particles swirling inside
+                const angle = expandFrame * 0.3;
+                emitParticles(
+                    worldPx + Math.cos(angle) * s * 0.3, 1.5, worldPz + Math.sin(angle) * s * 0.3,
+                    { color: ['#311b92', '#7c4dff', '#b388ff'], count: 3, speed: 1, spread: 1,
+                      gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.95 }
+                );
+                if (expandFrame > 15) clearInterval(expandAnim);
+            }, 33);
+
+            // At 800ms — domain activates: freeze + damage all enemies on the floor
+            setTimeout(() => {
+                // Freeze ALL enemies
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    // Stun for 5 seconds (Unlimited Void disables brain)
+                    e.data.lastAttack = performance.now() + 5000;
+                    // Damage tick
+                    dealDamageToEnemy(e, Math.round(player.damage * 2));
+                    // Visual — turn enemies slightly purple
+                    e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#311b92'); });
+                }
+
+                // Continuous damage ticks every 500ms for 5 seconds
+                let ticks = 0;
+                const dmgTick = setInterval(() => {
+                    ticks++;
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        dealDamageToEnemy(e, Math.round(player.damage * 1));
+                    }
+                    // Swirling void particles
+                    const a = ticks * 0.5;
+                    for (let i = 0; i < 6; i++) {
+                        const pa = a + (i / 6) * Math.PI * 2;
+                        emitParticles(
+                            worldPx + Math.cos(pa) * 4, 1, worldPz + Math.sin(pa) * 4,
+                            { color: ['#311b92', '#7c4dff'], count: 2, speed: 0.8, spread: 0.5,
+                              gravity: 0.5, life: 10, size: 0.08, sizeEnd: 0, drag: 0.97 }
+                        );
+                    }
+                    if (ticks >= 10) {
+                        clearInterval(dmgTick);
+                        // Domain collapses
+                        // Remove dome
+                        scene.remove(dome);
+                        domeGeo.dispose(); domeMat.dispose();
+                        // Un-purple enemies
+                        for (const e of enemies3D) {
+                            if (e.data.alive) e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#000000'); });
+                        }
+                        // Collapse VFX
+                        emitParticles(worldPx, 2, worldPz, {
+                            color: ['#311b92', '#7c4dff', '#ffffff'],
+                            count: 50, speed: 5, spread: 2,
+                            gravity: -2, life: 20, lifeVar: 10,
+                            size: 0.15, sizeEnd: 0, drag: 0.96, upward: 1
+                        });
+                        groundRing(worldPx, worldPz, '#7c4dff', 8, 800);
+                        screenShake(0.4, 200);
+                        lightFlash(worldPx, 2, worldPz, '#7c4dff', 6, 400);
+                        // Arms return
+                        if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = 0.05;
+                        if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = 0.05;
+                    }
+                }, 500);
+
+                // Player is invincible during domain
+                player.invincible = performance.now() + 5500;
+
+                lightFlash(worldPx, 2, worldPz, '#311b92', 8, 800);
+                triggerHitstop(80);
+            }, 800);
+
+            // Ground pattern
+            groundRing(worldPx, worldPz, '#311b92', 6, 1000);
+            groundDecal(worldPx, worldPz, '#1a1a3e', 5, 6000);
+        }
     }
 }
 
