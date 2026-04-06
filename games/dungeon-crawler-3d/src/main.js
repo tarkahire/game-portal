@@ -217,7 +217,7 @@ function init() {
 
             // ── P2 controls ──
             if (coopMode && player2 && player2.alive) {
-                if (e.code === 'Digit1') p2Attack();      // P2 attack (1 key)
+                if (e.code === 'Backslash') p2Attack();    // P2 attack (\ key)
                 if (e.code === 'KeyM') p2Ability('z');     // P2 ability 1 (M = Z)
                 if (e.code === 'Comma') p2Ability('x');    // P2 ability 2 (, = X)
                 if (e.code === 'Period') p2Ability('c');   // P2 ability 3 (. = C)
