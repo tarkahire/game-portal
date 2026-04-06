@@ -25,6 +25,7 @@ export class FPSCamera {
         this.posX = 0;
         this.posZ = 0;
         this.speed = 3.0; // base speed in tiles/sec
+        this.modelYaw = 0; // the direction the 3rd person model faces (smoothed)
 
         // Keys
         this.keys = {};
@@ -86,6 +87,8 @@ export class FPSCamera {
         if (len > 0) {
             moveX /= len;
             moveZ /= len;
+            // Track movement direction for model facing
+            this._moveYaw = Math.atan2(moveX, moveZ);
         }
 
         const spd = this.speed * dt;
@@ -128,11 +131,19 @@ export class FPSCamera {
             );
             this.camera.lookAt(worldX, EYE_HEIGHT + fly, worldZ);
 
-            // Show player model
+            // Show player model — faces movement direction (smoothly interpolated)
             if (this.playerModel) {
                 this.playerModel.visible = true;
                 this.playerModel.position.set(worldX, fly, worldZ);
-                this.playerModel.rotation.y = -this.yaw;
+
+                // Smoothly rotate toward movement direction
+                const targetYaw = (this._moveYaw !== undefined) ? -this._moveYaw : -this.yaw;
+                // Shortest angle difference
+                let diff = targetYaw - this.modelYaw;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                this.modelYaw += diff * 0.15; // smooth lerp
+                this.playerModel.rotation.y = this.modelYaw;
             }
         } else {
             // 1st person
