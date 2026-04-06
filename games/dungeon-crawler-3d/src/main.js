@@ -218,11 +218,11 @@ function init() {
             // ── P2 controls ──
             if (coopMode && player2 && player2.alive) {
                 if (e.code === 'Digit1') p2Attack();      // P2 attack (1 key)
-                if (e.code === 'Slash') p2Ability('z');    // P2 ability 1 (/)
-                if (e.code === 'Period') p2Ability('x');   // P2 ability 2 (.)
-                if (e.code === 'Comma') p2Ability('c');    // P2 ability 3 (,)
-                if (e.code === 'KeyM') p2Ability('v');     // P2 ability 4 (M)
-                if (e.code === 'KeyN') p2Ability('f');     // P2 ability 5 (N)
+                if (e.code === 'KeyM') p2Ability('z');     // P2 ability 1 (M = Z)
+                if (e.code === 'Comma') p2Ability('x');    // P2 ability 2 (, = X)
+                if (e.code === 'Period') p2Ability('c');   // P2 ability 3 (. = C)
+                if (e.code === 'Slash') p2Ability('v');    // P2 ability 4 (/ = V)
+                if (e.code === 'KeyN') p2Ability('f');     // P2 ability 5 (N = F)
                 if (e.code === 'Numpad0') p2Dodge();       // P2 dodge (Numpad 0)
             }
         }
