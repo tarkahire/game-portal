@@ -1341,35 +1341,44 @@ function buildBrookModel() {
         finger.position.set((f - 1.5) * 0.015, -1.01, 0.03);
         rightArmPivot.add(finger);
     }
-    // ── Soul Solid cane sword (held in right hand) ──
+    // ── Soul Solid sword (held in right hand) ──
     const caneGroup = new THREE.Group();
     caneGroup.position.set(0, -1.0, 0.04);
-    caneGroup.rotation.x = Math.PI / 2; // cane points forward
-    // Cane shaft — elegant dark purple-black
-    const caneMat = new THREE.MeshStandardMaterial({ color: '#1a0a2a', roughness: 0.4, metalness: 0.2 });
-    const caneShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.1, 5), caneMat);
-    caneGroup.add(caneShaft);
-    // Cane handle — curved hook shape (skull/music note motif)
-    const handleMat = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 0.7, roughness: 0.2 }); // gold
-    // Hook curve
-    const hookCurve = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 5, 8, Math.PI), handleMat);
-    hookCurve.position.set(0.04, -0.58, 0);
-    hookCurve.rotation.z = Math.PI / 2;
-    caneGroup.add(hookCurve);
-    // Hook grip top
-    const hookTop = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 5), handleMat);
-    hookTop.position.y = -0.56;
-    caneGroup.add(hookTop);
-    // Cane tip — small metal cap
-    const tipMat = new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.6, roughness: 0.3 });
-    const caneTip = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.008, 0.03, 5), tipMat);
-    caneTip.position.y = 0.57;
-    caneGroup.add(caneTip);
-    // Hidden blade inside — faint icy blue glow at the seam
-    const seamGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.008, 6),
+    caneGroup.rotation.x = Math.PI / 2; // blade points forward
+    // Hilt — wrapped dark grip
+    const hiltMat = new THREE.MeshStandardMaterial({ color: '#1a0a2a', roughness: 0.5 });
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.18, 5), hiltMat);
+    caneGroup.add(hilt);
+    // Hilt wrap bands
+    const wrapMat = new THREE.MeshStandardMaterial({ color: '#2a1a3a', roughness: 0.4 });
+    for (let w = 0; w < 4; w++) {
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.012, 5), wrapMat);
+        wrap.position.y = -0.06 + w * 0.04;
+        caneGroup.add(wrap);
+    }
+    // Guard (tsuba) — ornate gold oval
+    const handleMat = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 0.7, roughness: 0.2 });
+    const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.012, 8), handleMat);
+    guard.position.y = 0.1;
+    caneGroup.add(guard);
+    // Blade — long, thin, flat like a rapier/katana
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#c0c8d8', metalness: 0.9, roughness: 0.1 });
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.7, 0.005), bladeMat);
+    blade.position.y = 0.46;
+    caneGroup.add(blade);
+    // Icy blue edge glow (Soul Solid freezing power)
+    const edgeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.7, 0.009),
         new THREE.MeshBasicMaterial({ color: '#88ccff', transparent: true, opacity: 0.5 }));
-    seamGlow.position.y = -0.3;
-    caneGroup.add(seamGlow);
+    edgeGlow.position.set(0.014, 0.46, 0);
+    caneGroup.add(edgeGlow);
+    // Blade tip — pointed
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.08, 4), bladeMat);
+    tip.position.y = 0.85;
+    caneGroup.add(tip);
+    // Pommel — gold ball at bottom
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 5), handleMat);
+    pommel.position.y = -0.1;
+    caneGroup.add(pommel);
     rightArmPivot.add(caneGroup);
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
@@ -1628,31 +1637,41 @@ function buildFPSSpear() {
 function buildFPSCane() {
     const group = new THREE.Group();
 
-    const caneMat = new THREE.MeshStandardMaterial({ color: '#1a0a2a', roughness: 0.4, metalness: 0.2 });
+    const hiltMat = new THREE.MeshStandardMaterial({ color: '#1a0a2a', roughness: 0.5 });
+    const wrapMat = new THREE.MeshStandardMaterial({ color: '#2a1a3a', roughness: 0.4 });
     const handleMat = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 0.7, roughness: 0.2 });
-    const tipMat = new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.6, roughness: 0.3 });
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#c0c8d8', metalness: 0.9, roughness: 0.1 });
 
-    // Cane shaft
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.85, 5), caneMat);
-    group.add(shaft);
-    // Hook handle
-    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.008, 5, 8, Math.PI), handleMat);
-    hook.position.set(0.03, -0.44, 0);
-    hook.rotation.z = Math.PI / 2;
-    group.add(hook);
-    // Hook top ball
-    const hookBall = new THREE.Mesh(new THREE.SphereGeometry(0.014, 5, 5), handleMat);
-    hookBall.position.y = -0.43;
-    group.add(hookBall);
-    // Tip cap
-    const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.006, 0.025, 5), tipMat);
-    tip.position.y = 0.44;
-    group.add(tip);
-    // Blue seam glow (hidden blade)
-    const seam = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.006, 6),
+    // Hilt
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.14, 5), hiltMat);
+    group.add(hilt);
+    // Hilt wraps
+    for (let w = 0; w < 4; w++) {
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.01, 5), wrapMat);
+        wrap.position.y = -0.05 + w * 0.035;
+        group.add(wrap);
+    }
+    // Guard — gold
+    const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.01, 8), handleMat);
+    guard.position.y = 0.08;
+    group.add(guard);
+    // Blade — flat, thin, metallic
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.5, 0.004), bladeMat);
+    blade.position.y = 0.34;
+    group.add(blade);
+    // Icy blue edge glow
+    const edgeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.002, 0.5, 0.007),
         new THREE.MeshBasicMaterial({ color: '#88ccff', transparent: true, opacity: 0.5 }));
-    seam.position.y = -0.22;
-    group.add(seam);
+    edgeGlow.position.set(0.01, 0.34, 0);
+    group.add(edgeGlow);
+    // Blade tip
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.01, 0.06, 4), bladeMat);
+    tip.position.y = 0.62;
+    group.add(tip);
+    // Pommel — gold
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.016, 5, 5), handleMat);
+    pommel.position.y = -0.08;
+    group.add(pommel);
 
     // Position in camera space
     group.position.set(0.22, -0.32, -0.45);
