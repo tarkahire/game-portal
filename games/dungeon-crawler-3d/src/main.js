@@ -288,192 +288,190 @@ function addPlayerLabel(pm, name, color) {
 
 function buildMahoragaModel() {
     const pm = new THREE.Group();
-    const skinCol = '#2a2a2a'; // dark grey-black skin
+    const skinCol = '#2a2a2a';
     const skinMat = new THREE.MeshStandardMaterial({ color: skinCol, roughness: 0.6, metalness: 0.1 });
     const darkMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.7 });
 
-    // Massive torso — wider and taller than normal
+    // ─── Torso (pivot for body lean) ───
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.5;
     const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.4, 1.6, 8), skinMat);
-    torso.position.y = 1.2; pm.add(torso);
-    // Chest/shoulder bulk — broad upper body
+    torso.position.y = 0.7; torsoPivot.add(torso);
     const chest = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.6), skinMat);
-    chest.position.y = 1.8; pm.add(chest);
-    // Neck
+    chest.position.y = 1.3; torsoPivot.add(chest);
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.3, 6), skinMat);
-    neck.position.y = 2.1; pm.add(neck);
-    // Head — angular, no real face, just a dark featureless head
+    neck.position.y = 1.6; torsoPivot.add(neck);
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.45, 0.35), darkMat);
-    head.position.y = 2.45; pm.add(head);
-    // Jaw plate (Mahoraga's distinctive jaw guard)
+    head.position.y = 1.95; torsoPivot.add(head);
     const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.2),
         new THREE.MeshStandardMaterial({ color: '#4a4a4a', metalness: 0.4, roughness: 0.5 }));
-    jaw.position.set(0, 2.2, 0.12); pm.add(jaw);
-    // Eyes — glowing white slits
+    jaw.position.set(0, 1.7, 0.12); torsoPivot.add(jaw);
     const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
-    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.05), eyeMat);
-    eyeL.position.set(-0.1, 2.5, 0.18); pm.add(eyeL);
-    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.05), eyeMat);
-    eyeR.position.set(0.1, 2.5, 0.18); pm.add(eyeR);
+    torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.05), eyeMat).translateX(-0.1).translateY(2.0).translateZ(0.18));
+    torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.05), eyeMat).translateX(0.1).translateY(2.0).translateZ(0.18));
 
-    // 4 Arms — Mahoraga has 4 arms
-    const armMat = skinMat;
-    // Upper arms (pair 1 — outer, bigger)
+    // ─── Right arm (sword arm — articulated pivot at shoulder) ───
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.65, 1.4, 0); // shoulder joint position
+    const rShoulder = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), skinMat);
+    rightArmPivot.add(rShoulder);
+    const rUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.7, 5), skinMat);
+    rUpper.position.y = -0.4; rightArmPivot.add(rUpper);
+    const rFore = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 5), skinMat);
+    rFore.position.set(0, -0.85, 0.1); rightArmPivot.add(rFore);
+    const rFist = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.15), darkMat);
+    rFist.position.set(0, -1.2, 0.15); rightArmPivot.add(rFist);
+    // Sword attached to right hand
+    const swordInHand = buildSwordMesh(mahoTransformed);
+    swordInHand.scale.setScalar(0.7);
+    swordInHand.position.set(0, -1.25, 0.2);
+    swordInHand.rotation.x = 0.1;
+    rightArmPivot.add(swordInHand);
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ─── Left arm (articulated) ───
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.65, 1.4, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), skinMat));
+    const lUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.7, 5), skinMat);
+    lUpper.position.y = -0.4; leftArmPivot.add(lUpper);
+    const lFore = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 5), skinMat);
+    lFore.position.set(0, -0.85, 0.1); leftArmPivot.add(lFore);
+    leftArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.15), darkMat).translateY(-1.2).translateZ(0.15));
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    // ─── Inner arms (pair 2 — smaller, not articulated) ───
     for (let side = -1; side <= 1; side += 2) {
-        // Shoulder
-        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), armMat);
-        shoulder.position.set(side * 0.65, 1.9, 0); pm.add(shoulder);
-        // Upper arm
-        const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.7, 5), armMat);
-        upper.position.set(side * 0.75, 1.5, 0);
-        upper.rotation.z = side * 0.3; pm.add(upper);
-        // Forearm
-        const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 5), armMat);
-        fore.position.set(side * 0.85, 1.0, 0.1);
-        fore.rotation.z = side * 0.15; pm.add(fore);
-        // Fist
-        const fist = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.15), darkMat);
-        fist.position.set(side * 0.9, 0.65, 0.15); pm.add(fist);
-    }
-    // Inner arms (pair 2 — slightly smaller, closer to body)
-    for (let side = -1; side <= 1; side += 2) {
-        const shoulder2 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), armMat);
-        shoulder2.position.set(side * 0.45, 1.7, 0.1); pm.add(shoulder2);
-        const upper2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 5), armMat);
-        upper2.position.set(side * 0.5, 1.35, 0.15);
-        upper2.rotation.z = side * 0.2; pm.add(upper2);
-        const fore2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.5, 5), armMat);
-        fore2.position.set(side * 0.55, 0.95, 0.2);
-        fore2.rotation.z = side * 0.1; pm.add(fore2);
-        const fist2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.15, 0.12), darkMat);
-        fist2.position.set(side * 0.58, 0.65, 0.25); pm.add(fist2);
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), skinMat).translateX(side * 0.45).translateY(1.2).translateZ(0.1));
+        const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 5), skinMat);
+        inner.position.set(side * 0.5, 0.85, 0.15); torsoPivot.add(inner);
+        torsoPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.5, 5), skinMat).translateX(side * 0.55).translateY(0.45).translateZ(0.2));
+        torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.15, 0.12), darkMat).translateX(side * 0.58).translateY(0.15).translateZ(0.25));
     }
 
-    // Thick legs
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ─── Legs (articulated pivots at hips) ───
     const legMat = new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.7 });
     for (let side = -1; side <= 1; side += 2) {
+        const legPivot = new THREE.Group();
+        legPivot.position.set(side * 0.2, 0.5, 0); // hip joint
         const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.7, 6), legMat);
-        thigh.position.set(side * 0.2, 0.35, 0); pm.add(thigh);
+        thigh.position.y = -0.35; legPivot.add(thigh);
         const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.5, 5), legMat);
-        shin.position.set(side * 0.2, -0.05, 0); pm.add(shin);
-        // Big feet
-        const foot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.3), legMat);
-        foot.position.set(side * 0.2, -0.3, 0.05); pm.add(foot);
+        shin.position.y = -0.8; legPivot.add(shin);
+        legPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.3), legMat).translateY(-1.05).translateZ(0.05));
+        pm.add(legPivot);
+        if (side === -1) pm._leftLeg = legPivot; else pm._rightLeg = legPivot;
     }
 
-    // Loincloth / waist wrap (dark cloth)
-    const cloth = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.5),
-        new THREE.MeshStandardMaterial({ color: '#1a0a2e', roughness: 0.9 }));
-    cloth.position.y = 0.55; pm.add(cloth);
+    // Loincloth
+    pm.add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.5),
+        new THREE.MeshStandardMaterial({ color: '#1a0a2e', roughness: 0.9 })).translateY(0.35));
 
-    // Scale up — Mahoraga is massive
     pm.scale.setScalar(1.3);
-
     addPlayerLabel(pm, 'MAHORAGA', '#7c4dff');
     return pm;
 }
 
 function buildSukunaModel() {
     const pm = new THREE.Group();
-    const skinCol = '#d4a574'; // tan skin
+    const skinCol = '#d4a574';
     const skinMat = new THREE.MeshStandardMaterial({ color: skinCol, roughness: 0.5 });
-    const clothMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.7 }); // dark outfit
-    const tattooMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' }); // black tattoo lines
+    const clothMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.7 });
+    const tattooMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
 
-    // Torso — lean muscular build
+    // ─── Torso pivot ───
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.6;
     const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 1.3, 8), skinMat);
-    torso.position.y = 1.05; pm.add(torso);
-    // Open chest — dark robe/wrap
+    torso.position.y = 0.55; torsoPivot.add(torso);
     const robe = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.35), clothMat);
-    robe.position.y = 1.1; pm.add(robe);
-    // Exposed chest V opening
+    robe.position.y = 0.6; torsoPivot.add(robe);
     const chestSkin = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 0.01), skinMat);
-    chestSkin.position.set(0, 1.3, 0.18); pm.add(chestSkin);
+    chestSkin.position.set(0, 0.8, 0.18); torsoPivot.add(chestSkin);
+    // Body tattoos
+    for (let i = 0; i < 3; i++) {
+        torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.2, 0.01), tattooMat).translateX(-0.1 + i * 0.1).translateY(0.8).translateZ(0.19));
+    }
 
     // Head
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), skinMat);
-    head.position.y = 1.9; pm.add(head);
-    // Spiky hair (pink/salmon like Sukuna)
+    head.position.y = 1.4; torsoPivot.add(head);
     const hairMat = new THREE.MeshStandardMaterial({ color: '#e88ca5', roughness: 0.6 });
     for (let i = 0; i < 7; i++) {
         const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.25, 4), hairMat);
-        const angle = (i / 7) * Math.PI * 1.2 - Math.PI * 0.1;
-        spike.position.set(Math.sin(angle) * 0.15, 2.15 + Math.cos(i * 0.8) * 0.05, -Math.cos(angle) * 0.1);
-        spike.rotation.z = Math.sin(angle) * 0.4;
-        spike.rotation.x = -0.3;
-        pm.add(spike);
+        const a = (i / 7) * Math.PI * 1.2 - Math.PI * 0.1;
+        spike.position.set(Math.sin(a) * 0.15, 1.65 + Math.cos(i * 0.8) * 0.05, -Math.cos(a) * 0.1);
+        spike.rotation.set(-0.3, 0, Math.sin(a) * 0.4);
+        torsoPivot.add(spike);
     }
-
-    // 4 Eyes (Sukuna's defining feature)
-    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ff1744' }); // red eyes
-    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
-    // Top pair (normal position)
+    // 4 Eyes
+    const redEye = new THREE.MeshBasicMaterial({ color: '#ff1744' });
+    const whiteEye = new THREE.MeshBasicMaterial({ color: '#ffffff' });
     for (let side = -1; side <= 1; side += 2) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
-        eye.position.set(side * 0.1, 1.95, 0.22); pm.add(eye);
-        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 5), eyeMat);
-        iris.position.set(side * 0.1, 1.95, 0.245); pm.add(iris);
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), whiteEye).translateX(side * 0.1).translateY(1.45).translateZ(0.22));
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 5), redEye).translateX(side * 0.1).translateY(1.45).translateZ(0.245));
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.03, 5, 5), whiteEye).translateX(side * 0.08).translateY(1.37).translateZ(0.22));
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 5), redEye).translateX(side * 0.08).translateY(1.37).translateZ(0.24));
     }
-    // Bottom pair (smaller, below the main eyes)
+    // Face tattoos + smirk
+    torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.01), tattooMat).translateY(1.38).translateZ(0.25));
+    torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.01, 0.01), tattooMat).translateY(1.32).translateZ(0.25));
+    for (let side = -1; side <= 1; side += 2)
+        torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.12, 0.01), tattooMat).translateX(side * 0.18).translateY(1.42).translateZ(0.18));
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.01), new THREE.MeshBasicMaterial({ color: '#880000' }));
+    mouth.position.set(0.02, 1.32, 0.25); mouth.rotation.z = -0.15; torsoPivot.add(mouth);
+
+    // ─── Right arm (sword arm — articulated) ───
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.4, 1.05, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), clothMat));
+    const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.6, 5), skinMat);
+    rArm.position.y = -0.35; rightArmPivot.add(rArm);
+    rightArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.5, 5), skinMat).translateY(-0.7).translateZ(0.05));
+    rightArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.08), skinMat).translateY(-0.98).translateZ(0.08));
+    // Arm tattoos
+    for (let t = 0; t < 2; t++)
+        rightArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.01), tattooMat).translateY(-0.4 - t * 0.25).translateZ(0.07));
+    // Sword in hand
+    const sSword = buildSwordMesh(true);
+    sSword.scale.setScalar(0.6);
+    sSword.position.set(0, -1.0, 0.12);
+    rightArmPivot.add(sSword);
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ─── Left arm (articulated) ───
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.4, 1.05, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), clothMat));
+    leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.6, 5), skinMat).translateY(-0.35));
+    leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.5, 5), skinMat).translateY(-0.7).translateZ(0.05));
+    leftArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.08), skinMat).translateY(-0.98).translateZ(0.08));
+    for (let t = 0; t < 2; t++)
+        leftArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.01), tattooMat).translateY(-0.4 - t * 0.25).translateZ(0.07));
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ─── Legs (articulated) ───
     for (let side = -1; side <= 1; side += 2) {
-        const eye2 = new THREE.Mesh(new THREE.SphereGeometry(0.03, 5, 5), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
-        eye2.position.set(side * 0.08, 1.87, 0.22); pm.add(eye2);
-        const iris2 = new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 5), eyeMat);
-        iris2.position.set(side * 0.08, 1.87, 0.24); pm.add(iris2);
+        const legPivot = new THREE.Group();
+        legPivot.position.set(side * 0.12, 0.6, 0);
+        legPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.7, 5), clothMat).translateY(-0.35));
+        legPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.2), new THREE.MeshStandardMaterial({ color: '#111111' })).translateY(-0.72).translateZ(0.03));
+        pm.add(legPivot);
+        if (side === -1) pm._leftLeg = legPivot; else pm._rightLeg = legPivot;
     }
 
-    // Facial tattoo lines (black lines on face and nose bridge)
-    const tatLine1 = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.01), tattooMat);
-    tatLine1.position.set(0, 1.88, 0.25); pm.add(tatLine1); // nose bridge line
-    const tatLine2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.01, 0.01), tattooMat);
-    tatLine2.position.set(0, 1.82, 0.25); pm.add(tatLine2); // cheek line
-    // Side face markings
-    for (let side = -1; side <= 1; side += 2) {
-        const mark = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.12, 0.01), tattooMat);
-        mark.position.set(side * 0.18, 1.92, 0.18); pm.add(mark);
-    }
-    // Body tattoo marks (on chest/arms)
-    for (let i = 0; i < 3; i++) {
-        const bodyTat = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.2, 0.01), tattooMat);
-        bodyTat.position.set(-0.1 + i * 0.1, 1.3, 0.19); pm.add(bodyTat);
-    }
-
-    // Mouth — smirk
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.01),
-        new THREE.MeshBasicMaterial({ color: '#880000' }));
-    mouth.position.set(0.02, 1.82, 0.25);
-    mouth.rotation.z = -0.15; pm.add(mouth);
-
-    // Arms — 2 normal arms
-    for (let side = -1; side <= 1; side += 2) {
-        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), clothMat);
-        shoulder.position.set(side * 0.4, 1.55, 0); pm.add(shoulder);
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.6, 5), skinMat);
-        arm.position.set(side * 0.48, 1.2, 0);
-        arm.rotation.z = side * 0.15; pm.add(arm);
-        const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.5, 5), skinMat);
-        forearm.position.set(side * 0.52, 0.85, 0.05); pm.add(forearm);
-        const hand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.08), skinMat);
-        hand.position.set(side * 0.54, 0.58, 0.08); pm.add(hand);
-        // Arm tattoo marks
-        for (let t = 0; t < 2; t++) {
-            const tat = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.01), tattooMat);
-            tat.position.set(side * 0.5, 1.1 - t * 0.25, 0.07); pm.add(tat);
-        }
-    }
-
-    // Legs — dark pants
-    for (let side = -1; side <= 1; side += 2) {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.7, 5), clothMat);
-        leg.position.set(side * 0.12, 0.35, 0); pm.add(leg);
-        const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.2),
-            new THREE.MeshStandardMaterial({ color: '#111111' }));
-        shoe.position.set(side * 0.12, -0.02, 0.03); pm.add(shoe);
-    }
-
-    // Cursed energy aura glow
     const aura = new THREE.PointLight('#e040fb', 2, TILE * 4, 2);
     aura.position.y = 1.5; pm.add(aura);
-
     addPlayerLabel(pm, 'SUKUNA', '#e040fb');
     return pm;
 }
@@ -859,14 +857,12 @@ function kataFireFist(fromPortalIdx, targetX, targetY, targetZ, damage) {
 
 // ─── MAHORAGA 3D SYSTEM (Wheel of Dharma + Sword of Extermination) ───
 let mahoWheel = null;      // Dharma wheel mesh floating above player
-let mahoSword = null;      // Sword of Extermination — always held, attached to camera
+let mahoSword = null;      // 1st person viewmodel: arm + sword group
 let mahoTransformed = false;
-let mahoAdaptCount = 0;    // how many times adapted (wheel turns)
-let mahoWheelSpin = 0;     // current spin angle
-let mahoWheelTargetSpin = 0; // target angle for adaptation animation
-let mahoPositiveEnergy = false; // after transform, sword gets purple glow
-// Sword idle position (bottom-right of view, like holding it)
-const MAHO_SWORD_IDLE = { x: 0.6, y: -0.4, z: -0.8, rotX: -0.3, rotY: 0.2, rotZ: 0.4 };
+let mahoAdaptCount = 0;
+let mahoWheelSpin = 0;
+let mahoWheelTargetSpin = 0;
+let mahoPositiveEnergy = false;
 
 function buildSwordMesh(isTransformed) {
     const swordGroup = new THREE.Group();
@@ -953,20 +949,35 @@ function initMahoraga() {
     scene.add(wheelGroup);
     mahoWheel = wheelGroup;
 
-    // ─── Sword of Extermination — always visible, held in hand ───
-    mahoSword = buildSwordMesh(isTransformed);
-    mahoSword.visible = true;
-    scene.add(mahoSword);
-
-    // Also attach a sword to the 3rd person model's right hand
-    if (fpsCamera.playerModel) {
-        const modelSword = buildSwordMesh(isTransformed);
-        modelSword.scale.setScalar(0.8);
-        modelSword.position.set(0.9, 0.7, 0.15); // right outer hand position
-        modelSword.rotation.z = -0.4;
-        modelSword.name = 'mahoModelSword';
-        fpsCamera.playerModel.add(modelSword);
-    }
+    // ─── 1st person viewmodel: arm + hand + sword ───
+    const vm = new THREE.Group();
+    const armCol = isTransformed ? '#d4a574' : '#2a2a2a';
+    const armMat = new THREE.MeshStandardMaterial({ color: armCol, roughness: 0.6 });
+    // Upper arm
+    const vmUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.5, 5), armMat);
+    vmUpper.rotation.x = Math.PI * 0.4;
+    vmUpper.position.set(0, -0.1, -0.2);
+    vm.add(vmUpper);
+    // Forearm
+    const vmFore = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.45, 5), armMat);
+    vmFore.rotation.x = Math.PI * 0.15;
+    vmFore.position.set(0, 0.15, -0.5);
+    vm.add(vmFore);
+    // Hand / fist
+    const handCol = isTransformed ? '#d4a574' : '#1a1a1a';
+    const vmHand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.1),
+        new THREE.MeshStandardMaterial({ color: handCol, roughness: 0.5 }));
+    vmHand.position.set(0, 0.28, -0.65);
+    vm.add(vmHand);
+    // Sword in hand
+    const vmSword = buildSwordMesh(isTransformed);
+    vmSword.scale.setScalar(0.8);
+    vmSword.position.set(0, 0.3, -0.7);
+    vmSword.rotation.x = -0.1;
+    vm.add(vmSword);
+    vm.visible = true;
+    scene.add(vm);
+    mahoSword = vm;
 }
 
 function clearMahoraga() {
@@ -981,6 +992,8 @@ function updateMahoraga(time, now) {
     const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
     const bob = Math.sin(time * 0.002) * 0.15;
     const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const sideX = Math.cos(yaw), sideZ = -Math.sin(yaw);
 
     // Wheel floats above player's head, spinning
     mahoWheel.position.set(px, EYE_HEIGHT + 1.2 + bob, pz);
@@ -996,49 +1009,91 @@ function updateMahoraga(time, now) {
         player._mahoDmgReduction = 0;
     }
 
-    // ─── Sword always follows camera (held in right hand) ───
-    if (mahoSword) {
-        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-        const sideX = Math.cos(yaw), sideZ = -Math.sin(yaw);
+    // ─── Animation state ───
+    const isSwinging = player._mahoSwingEnd && now < player._mahoSwingEnd;
+    const isCleaving = player._mahoCleaveEnd && now < player._mahoCleaveEnd;
+    let swingProgress = 0;
+    if (isSwinging) swingProgress = 1 - (player._mahoSwingEnd - now) / 400;
+    if (isCleaving) swingProgress = 1 - (player._mahoCleaveEnd - now) / 600;
 
-        const isSwinging = player._mahoSwingEnd && now < player._mahoSwingEnd;
-        const isCleaving = player._mahoCleaveEnd && now < player._mahoCleaveEnd;
+    // Clean up expired animations
+    if (player._mahoSwingEnd && now >= player._mahoSwingEnd) player._mahoSwingEnd = 0;
+    if (player._mahoCleaveEnd && now >= player._mahoCleaveEnd) player._mahoCleaveEnd = 0;
+
+    // ─── 1st person viewmodel (arm + sword) ───
+    if (mahoSword) {
+        // Base position: bottom-right of screen, sword held up-right
+        const baseX = px + sideX * 0.8 * TILE + fwdX * 0.5 * TILE;
+        const baseY = EYE_HEIGHT - 0.6;
+        const baseZ = pz + sideZ * 0.8 * TILE + fwdZ * 0.5 * TILE;
 
         if (isCleaving) {
-            // R Cleave — overhead slam animation
-            const progress = 1 - (player._mahoCleaveEnd - now) / 600;
-            const slamY = EYE_HEIGHT + 1.5 - progress * 2.5;
+            // Overhead slam: arm raises up then crashes down
+            const raiseT = Math.min(swingProgress * 2, 1); // first half = raise
+            const slamT = Math.max((swingProgress - 0.5) * 2, 0); // second half = slam
+            const armAngle = raiseT * (-Math.PI * 0.8) + slamT * (Math.PI * 1.2);
             mahoSword.position.set(
-                px + fwdX * 1.2 * TILE,
-                Math.max(0.2, slamY),
-                pz + fwdZ * 1.2 * TILE
+                px + fwdX * 0.6 * TILE,
+                baseY + 1.5 * raiseT - 2.0 * slamT,
+                pz + fwdZ * 0.6 * TILE
             );
-            mahoSword.rotation.set(-Math.PI * 0.5 * progress, yaw, 0);
+            mahoSword.rotation.set(armAngle, yaw, 0);
         } else if (isSwinging) {
-            // M1 swing — arc from right to left
-            const progress = 1 - (player._mahoSwingEnd - now) / 400;
-            const swingAngle = (progress - 0.5) * Math.PI * 1.0; // wide arc
-            mahoSword.position.set(
-                px + sideX * 0.5 * TILE + fwdX * 0.8 * TILE,
-                EYE_HEIGHT - 0.3,
-                pz + sideZ * 0.5 * TILE + fwdZ * 0.8 * TILE
-            );
-            mahoSword.rotation.set(0, yaw + swingAngle, -0.3 + swingAngle * 0.4);
-        } else {
-            // Idle — sword held at bottom-right of view, angled
-            mahoSword.position.set(
-                px + sideX * MAHO_SWORD_IDLE.x * TILE + fwdX * (-MAHO_SWORD_IDLE.z) * TILE,
-                EYE_HEIGHT + MAHO_SWORD_IDLE.y,
-                pz + sideZ * MAHO_SWORD_IDLE.x * TILE + fwdZ * (-MAHO_SWORD_IDLE.z) * TILE
-            );
-            // Idle sway
-            const sway = Math.sin(time * 0.002) * 0.03;
-            mahoSword.rotation.set(MAHO_SWORD_IDLE.rotX + sway, yaw + MAHO_SWORD_IDLE.rotY, MAHO_SWORD_IDLE.rotZ);
-        }
+            // M1 swing: arm swings from upper-right to lower-left
+            // Like the GIF — sword starts raised behind shoulder, sweeps forward and across
+            const windUp = Math.min(swingProgress * 3, 1); // quick wind-up
+            const slash = Math.max((swingProgress - 0.2) * 1.25, 0); // main slash arc
+            const arcAngle = -0.8 + slash * 2.2; // -0.8 (raised right) to 1.4 (follow-through left)
+            const tiltZ = -0.6 + slash * 1.2; // tilt from right to left
 
-        // Clean up expired animations
-        if (player._mahoSwingEnd && now >= player._mahoSwingEnd) player._mahoSwingEnd = 0;
-        if (player._mahoCleaveEnd && now >= player._mahoCleaveEnd) player._mahoCleaveEnd = 0;
+            mahoSword.position.set(
+                baseX - sideX * slash * 0.8 * TILE,
+                baseY + 0.6 * (1 - slash) + 0.1,
+                baseZ - sideZ * slash * 0.8 * TILE
+            );
+            mahoSword.rotation.set(arcAngle * 0.3, yaw + arcAngle * 0.5, tiltZ);
+        } else {
+            // Idle: held at lower-right, gentle sway
+            const sway = Math.sin(time * 0.002) * 0.03;
+            mahoSword.position.set(baseX, baseY + sway, baseZ);
+            mahoSword.rotation.set(-0.2 + sway, yaw + 0.3, 0.4);
+        }
+    }
+
+    // ─── 3rd person model animation ───
+    const pm = fpsCamera.playerModel;
+    if (pm && pm._rightArm) {
+        if (isSwinging) {
+            // Body leans forward into the swing
+            if (pm._torso) pm._torso.rotation.x = 0.3 * swingProgress;
+            // Right arm swings sword: from raised behind to forward-down
+            const armSwing = -1.5 + swingProgress * 3.5; // from -1.5 (raised) to 2.0 (follow through)
+            pm._rightArm.rotation.x = armSwing;
+            pm._rightArm.rotation.z = -0.3 * (1 - swingProgress); // slight outward at start
+            // Left arm braces
+            if (pm._leftArm) pm._leftArm.rotation.x = -0.3 + swingProgress * 0.5;
+            // Legs: front leg steps forward
+            if (pm._rightLeg) pm._rightLeg.rotation.x = -0.4 * swingProgress;
+            if (pm._leftLeg) pm._leftLeg.rotation.x = 0.3 * swingProgress;
+        } else if (isCleaving) {
+            // Overhead slam — both arms raise then crash down
+            const raise = Math.min(swingProgress * 2, 1);
+            const slam = Math.max((swingProgress - 0.5) * 2, 0);
+            const armAngle = -Math.PI * 0.8 * raise + Math.PI * 1.0 * slam;
+            pm._rightArm.rotation.x = armAngle;
+            if (pm._leftArm) pm._leftArm.rotation.x = armAngle * 0.6;
+            if (pm._torso) pm._torso.rotation.x = 0.5 * slam;
+            if (pm._rightLeg) pm._rightLeg.rotation.x = -0.3 * slam;
+            if (pm._leftLeg) pm._leftLeg.rotation.x = 0.2 * slam;
+        } else {
+            // Idle pose — arms relaxed, slight breathing
+            const breath = Math.sin(time * 0.003) * 0.05;
+            pm._rightArm.rotation.set(breath, 0, 0);
+            if (pm._leftArm) pm._leftArm.rotation.set(breath, 0, 0);
+            if (pm._torso) pm._torso.rotation.x = 0;
+            if (pm._rightLeg) pm._rightLeg.rotation.x = 0;
+            if (pm._leftLeg) pm._leftLeg.rotation.x = 0;
+        }
     }
 }
 
