@@ -255,6 +255,229 @@ function selectClass(classId) {
     startGame();
 }
 
+// ─── PLAYER MODEL BUILDERS ──────────────────────────────────
+function buildGenericPlayerModel(cls) {
+    const pm = new THREE.Group();
+    const bodyCol = cls.color;
+    const pmBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 1.2, 6), new THREE.MeshStandardMaterial({ color: bodyCol, roughness: 0.5 }));
+    pmBody.position.y = 1.0; pm.add(pmBody);
+    const pmHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 6, 6), new THREE.MeshStandardMaterial({ color: '#e8d0b0', roughness: 0.5 }));
+    pmHead.position.y = 1.85; pm.add(pmHead);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat).translateX(-0.1).translateY(1.9).translateZ(0.2));
+    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat).translateX(0.1).translateY(1.9).translateZ(0.2));
+    const legMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e' });
+    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.6, 4), legMat).translateX(-0.12).translateY(0.3));
+    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.6, 4), legMat).translateX(0.12).translateY(0.3));
+    addPlayerLabel(pm, cls.name, bodyCol);
+    return pm;
+}
+
+function addPlayerLabel(pm, name, color) {
+    const labelCanvas = document.createElement('canvas');
+    labelCanvas.width = 128; labelCanvas.height = 32;
+    const lctx = labelCanvas.getContext('2d');
+    lctx.fillStyle = color; lctx.font = 'bold 16px monospace'; lctx.textAlign = 'center';
+    lctx.fillText(name, 64, 20);
+    const labelTex = new THREE.CanvasTexture(labelCanvas);
+    const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true }));
+    labelSprite.scale.set(1.5, 0.4, 1);
+    labelSprite.position.y = 2.3;
+    pm.add(labelSprite);
+}
+
+function buildMahoragaModel() {
+    const pm = new THREE.Group();
+    const skinCol = '#2a2a2a'; // dark grey-black skin
+    const skinMat = new THREE.MeshStandardMaterial({ color: skinCol, roughness: 0.6, metalness: 0.1 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.7 });
+
+    // Massive torso — wider and taller than normal
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.4, 1.6, 8), skinMat);
+    torso.position.y = 1.2; pm.add(torso);
+    // Chest/shoulder bulk — broad upper body
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.6), skinMat);
+    chest.position.y = 1.8; pm.add(chest);
+    // Neck
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.3, 6), skinMat);
+    neck.position.y = 2.1; pm.add(neck);
+    // Head — angular, no real face, just a dark featureless head
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.45, 0.35), darkMat);
+    head.position.y = 2.45; pm.add(head);
+    // Jaw plate (Mahoraga's distinctive jaw guard)
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.2),
+        new THREE.MeshStandardMaterial({ color: '#4a4a4a', metalness: 0.4, roughness: 0.5 }));
+    jaw.position.set(0, 2.2, 0.12); pm.add(jaw);
+    // Eyes — glowing white slits
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.05), eyeMat);
+    eyeL.position.set(-0.1, 2.5, 0.18); pm.add(eyeL);
+    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.05), eyeMat);
+    eyeR.position.set(0.1, 2.5, 0.18); pm.add(eyeR);
+
+    // 4 Arms — Mahoraga has 4 arms
+    const armMat = skinMat;
+    // Upper arms (pair 1 — outer, bigger)
+    for (let side = -1; side <= 1; side += 2) {
+        // Shoulder
+        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), armMat);
+        shoulder.position.set(side * 0.65, 1.9, 0); pm.add(shoulder);
+        // Upper arm
+        const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.7, 5), armMat);
+        upper.position.set(side * 0.75, 1.5, 0);
+        upper.rotation.z = side * 0.3; pm.add(upper);
+        // Forearm
+        const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 5), armMat);
+        fore.position.set(side * 0.85, 1.0, 0.1);
+        fore.rotation.z = side * 0.15; pm.add(fore);
+        // Fist
+        const fist = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.15), darkMat);
+        fist.position.set(side * 0.9, 0.65, 0.15); pm.add(fist);
+    }
+    // Inner arms (pair 2 — slightly smaller, closer to body)
+    for (let side = -1; side <= 1; side += 2) {
+        const shoulder2 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), armMat);
+        shoulder2.position.set(side * 0.45, 1.7, 0.1); pm.add(shoulder2);
+        const upper2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 5), armMat);
+        upper2.position.set(side * 0.5, 1.35, 0.15);
+        upper2.rotation.z = side * 0.2; pm.add(upper2);
+        const fore2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.5, 5), armMat);
+        fore2.position.set(side * 0.55, 0.95, 0.2);
+        fore2.rotation.z = side * 0.1; pm.add(fore2);
+        const fist2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.15, 0.12), darkMat);
+        fist2.position.set(side * 0.58, 0.65, 0.25); pm.add(fist2);
+    }
+
+    // Thick legs
+    const legMat = new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.7 });
+    for (let side = -1; side <= 1; side += 2) {
+        const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.7, 6), legMat);
+        thigh.position.set(side * 0.2, 0.35, 0); pm.add(thigh);
+        const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.5, 5), legMat);
+        shin.position.set(side * 0.2, -0.05, 0); pm.add(shin);
+        // Big feet
+        const foot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.3), legMat);
+        foot.position.set(side * 0.2, -0.3, 0.05); pm.add(foot);
+    }
+
+    // Loincloth / waist wrap (dark cloth)
+    const cloth = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.5),
+        new THREE.MeshStandardMaterial({ color: '#1a0a2e', roughness: 0.9 }));
+    cloth.position.y = 0.55; pm.add(cloth);
+
+    // Scale up — Mahoraga is massive
+    pm.scale.setScalar(1.3);
+
+    addPlayerLabel(pm, 'MAHORAGA', '#7c4dff');
+    return pm;
+}
+
+function buildSukunaModel() {
+    const pm = new THREE.Group();
+    const skinCol = '#d4a574'; // tan skin
+    const skinMat = new THREE.MeshStandardMaterial({ color: skinCol, roughness: 0.5 });
+    const clothMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.7 }); // dark outfit
+    const tattooMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' }); // black tattoo lines
+
+    // Torso — lean muscular build
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 1.3, 8), skinMat);
+    torso.position.y = 1.05; pm.add(torso);
+    // Open chest — dark robe/wrap
+    const robe = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.35), clothMat);
+    robe.position.y = 1.1; pm.add(robe);
+    // Exposed chest V opening
+    const chestSkin = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 0.01), skinMat);
+    chestSkin.position.set(0, 1.3, 0.18); pm.add(chestSkin);
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), skinMat);
+    head.position.y = 1.9; pm.add(head);
+    // Spiky hair (pink/salmon like Sukuna)
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#e88ca5', roughness: 0.6 });
+    for (let i = 0; i < 7; i++) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.25, 4), hairMat);
+        const angle = (i / 7) * Math.PI * 1.2 - Math.PI * 0.1;
+        spike.position.set(Math.sin(angle) * 0.15, 2.15 + Math.cos(i * 0.8) * 0.05, -Math.cos(angle) * 0.1);
+        spike.rotation.z = Math.sin(angle) * 0.4;
+        spike.rotation.x = -0.3;
+        pm.add(spike);
+    }
+
+    // 4 Eyes (Sukuna's defining feature)
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ff1744' }); // red eyes
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
+    // Top pair (normal position)
+    for (let side = -1; side <= 1; side += 2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
+        eye.position.set(side * 0.1, 1.95, 0.22); pm.add(eye);
+        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 5), eyeMat);
+        iris.position.set(side * 0.1, 1.95, 0.245); pm.add(iris);
+    }
+    // Bottom pair (smaller, below the main eyes)
+    for (let side = -1; side <= 1; side += 2) {
+        const eye2 = new THREE.Mesh(new THREE.SphereGeometry(0.03, 5, 5), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
+        eye2.position.set(side * 0.08, 1.87, 0.22); pm.add(eye2);
+        const iris2 = new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 5), eyeMat);
+        iris2.position.set(side * 0.08, 1.87, 0.24); pm.add(iris2);
+    }
+
+    // Facial tattoo lines (black lines on face and nose bridge)
+    const tatLine1 = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.01), tattooMat);
+    tatLine1.position.set(0, 1.88, 0.25); pm.add(tatLine1); // nose bridge line
+    const tatLine2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.01, 0.01), tattooMat);
+    tatLine2.position.set(0, 1.82, 0.25); pm.add(tatLine2); // cheek line
+    // Side face markings
+    for (let side = -1; side <= 1; side += 2) {
+        const mark = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.12, 0.01), tattooMat);
+        mark.position.set(side * 0.18, 1.92, 0.18); pm.add(mark);
+    }
+    // Body tattoo marks (on chest/arms)
+    for (let i = 0; i < 3; i++) {
+        const bodyTat = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.2, 0.01), tattooMat);
+        bodyTat.position.set(-0.1 + i * 0.1, 1.3, 0.19); pm.add(bodyTat);
+    }
+
+    // Mouth — smirk
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#880000' }));
+    mouth.position.set(0.02, 1.82, 0.25);
+    mouth.rotation.z = -0.15; pm.add(mouth);
+
+    // Arms — 2 normal arms
+    for (let side = -1; side <= 1; side += 2) {
+        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), clothMat);
+        shoulder.position.set(side * 0.4, 1.55, 0); pm.add(shoulder);
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.6, 5), skinMat);
+        arm.position.set(side * 0.48, 1.2, 0);
+        arm.rotation.z = side * 0.15; pm.add(arm);
+        const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.5, 5), skinMat);
+        forearm.position.set(side * 0.52, 0.85, 0.05); pm.add(forearm);
+        const hand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.08), skinMat);
+        hand.position.set(side * 0.54, 0.58, 0.08); pm.add(hand);
+        // Arm tattoo marks
+        for (let t = 0; t < 2; t++) {
+            const tat = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.01), tattooMat);
+            tat.position.set(side * 0.5, 1.1 - t * 0.25, 0.07); pm.add(tat);
+        }
+    }
+
+    // Legs — dark pants
+    for (let side = -1; side <= 1; side += 2) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.7, 5), clothMat);
+        leg.position.set(side * 0.12, 0.35, 0); pm.add(leg);
+        const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.2),
+            new THREE.MeshStandardMaterial({ color: '#111111' }));
+        shoe.position.set(side * 0.12, -0.02, 0.03); pm.add(shoe);
+    }
+
+    // Cursed energy aura glow
+    const aura = new THREE.PointLight('#e040fb', 2, TILE * 4, 2);
+    aura.position.y = 1.5; pm.add(aura);
+
+    addPlayerLabel(pm, 'SUKUNA', '#e040fb');
+    return pm;
+}
+
 function startGame() {
     currentFloor = 1;
     lives = 5;
@@ -287,35 +510,7 @@ function startGame() {
 
     // Create player model for 3rd person view
     if (fpsCamera.playerModel) scene.remove(fpsCamera.playerModel);
-    const pm = new THREE.Group();
-    const bodyCol = player.cls.color;
-    // Body cylinder
-    const pmBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 1.2, 6), new THREE.MeshStandardMaterial({ color: bodyCol, roughness: 0.5 }));
-    pmBody.position.y = 1.0;
-    pm.add(pmBody);
-    // Head sphere
-    const pmHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 6, 6), new THREE.MeshStandardMaterial({ color: '#e8d0b0', roughness: 0.5 }));
-    pmHead.position.y = 1.85;
-    pm.add(pmHead);
-    // Eyes
-    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
-    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat).translateX(-0.1).translateY(1.9).translateZ(0.2));
-    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat).translateX(0.1).translateY(1.9).translateZ(0.2));
-    // Legs
-    const legMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e' });
-    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.6, 4), legMat).translateX(-0.12).translateY(0.3));
-    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.6, 4), legMat).translateX(0.12).translateY(0.3));
-    // Class name label
-    const labelCanvas = document.createElement('canvas');
-    labelCanvas.width = 128; labelCanvas.height = 32;
-    const lctx = labelCanvas.getContext('2d');
-    lctx.fillStyle = bodyCol; lctx.font = 'bold 16px monospace'; lctx.textAlign = 'center';
-    lctx.fillText(player.cls.name, 64, 20);
-    const labelTex = new THREE.CanvasTexture(labelCanvas);
-    const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true }));
-    labelSprite.scale.set(1.5, 0.4, 1);
-    labelSprite.position.y = 2.3;
-    pm.add(labelSprite);
+    const pm = (player.classId === 'mahoraga') ? buildMahoragaModel() : buildGenericPlayerModel(player.cls);
     pm.visible = false; // hidden in 1st person by default
     scene.add(pm);
     fpsCamera.playerModel = pm;
@@ -1711,8 +1906,15 @@ function playerFAbility() {
         // Massive wheel spin animation for transformation
         mahoWheelTargetSpin += Math.PI * 8; // full 4 rotations
 
-        // Rebuild meshes with transformed colors
+        // Rebuild wheel/sword with transformed purple colors
         initMahoraga();
+
+        // Swap player model from Mahoraga shikigami to Sukuna
+        if (fpsCamera.playerModel) scene.remove(fpsCamera.playerModel);
+        const sukunaModel = buildSukunaModel();
+        sukunaModel.visible = fpsCamera.thirdPerson;
+        scene.add(sukunaModel);
+        fpsCamera.playerModel = sukunaModel;
 
         // Stat boosts
         player.damage = Math.round(player.damage * 1.8);
@@ -1721,9 +1923,6 @@ function playerFAbility() {
         player.speed *= 1.3;
         fpsCamera.speed = player.speed;
         player.attackSpeed = Math.round(player.attackSpeed * 0.7); // faster attacks
-
-        // Visual: scale up player model if in 3rd person
-        if (fpsCamera.playerModel) fpsCamera.playerModel.scale.setScalar(1.5);
 
         // AoE transformation burst — damage + knockback everything nearby
         const px = fpsCamera.posX, pz = fpsCamera.posZ;
