@@ -709,6 +709,45 @@ function buildSukunaModel() {
         finger.position.set((f - 1.5) * 0.02, -1.06, 0.03);
         rightArmPivot.add(finger);
     }
+    // ── Sword (cursed blade held in right hand) ──
+    const swordGroup = new THREE.Group();
+    swordGroup.position.set(0, -1.04, 0.04);
+    // Hilt wrap
+    const hiltMat = new THREE.MeshStandardMaterial({ color: '#2a1a1a', roughness: 0.6 });
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 5), hiltMat);
+    swordGroup.add(hilt);
+    // Hilt wrap bands
+    const wrapMat = new THREE.MeshStandardMaterial({ color: '#4a2030', roughness: 0.5 });
+    for (let w = 0; w < 3; w++) {
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.015, 5), wrapMat);
+        wrap.position.y = -0.05 + w * 0.05;
+        swordGroup.add(wrap);
+    }
+    // Guard (tsuba) — flat disc
+    const guardMat = new THREE.MeshStandardMaterial({ color: '#333333', metalness: 0.6, roughness: 0.3 });
+    const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.012, 6), guardMat);
+    guard.position.y = 0.09;
+    swordGroup.add(guard);
+    // Blade — long, slightly tapered, dark with red edge glow
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#1a1a2a', metalness: 0.8, roughness: 0.15 });
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.7, 0.008), bladeMat);
+    blade.position.y = 0.45;
+    swordGroup.add(blade);
+    // Blade edge glow (thin red strip along cutting edge)
+    const edgeGlowMat = new THREE.MeshBasicMaterial({ color: '#ff2244', transparent: true, opacity: 0.6 });
+    const edgeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.7, 0.012), edgeGlowMat);
+    edgeGlow.position.set(0.014, 0.45, 0);
+    swordGroup.add(edgeGlow);
+    // Blade tip — pointed
+    const tipMat = new THREE.MeshStandardMaterial({ color: '#1a1a2a', metalness: 0.8, roughness: 0.15 });
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.08, 4), tipMat);
+    tip.position.y = 0.84;
+    swordGroup.add(tip);
+    // Pommel (bottom cap)
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.022, 5, 5), guardMat);
+    pommel.position.y = -0.09;
+    swordGroup.add(pommel);
+    rightArmPivot.add(swordGroup);
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
 
