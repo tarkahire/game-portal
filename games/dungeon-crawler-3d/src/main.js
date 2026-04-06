@@ -26,6 +26,7 @@ let clock;
 let selectedClasses = [];
 let coopMode = false;
 let p2ClassSelect = false;
+let fpsSword = null; // 1st-person viewmodel sword (child of camera)
 
 // Player state
 let player = null;
@@ -879,6 +880,54 @@ function updateSukunaAnimation(pm, dt, moving, walkCycle) {
     return true;
 }
 
+// ─── 1ST-PERSON VIEWMODEL SWORD (visible when looking down) ─
+function buildFPSSword() {
+    const group = new THREE.Group();
+
+    const hiltMat = new THREE.MeshStandardMaterial({ color: '#2a1a1a', roughness: 0.6 });
+    const wrapMat = new THREE.MeshStandardMaterial({ color: '#4a2030', roughness: 0.5 });
+    const guardMat = new THREE.MeshStandardMaterial({ color: '#333333', metalness: 0.6, roughness: 0.3 });
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#1a1a2a', metalness: 0.8, roughness: 0.15 });
+    const edgeGlowMat = new THREE.MeshBasicMaterial({ color: '#ff2244', transparent: true, opacity: 0.6 });
+    const tipMat = new THREE.MeshStandardMaterial({ color: '#1a1a2a', metalness: 0.8, roughness: 0.15 });
+
+    // Hilt
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 5), hiltMat);
+    group.add(hilt);
+    // Wrap bands
+    for (let w = 0; w < 3; w++) {
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.012, 5), wrapMat);
+        wrap.position.y = -0.04 + w * 0.04;
+        group.add(wrap);
+    }
+    // Guard
+    const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.01, 6), guardMat);
+    guard.position.y = 0.07;
+    group.add(guard);
+    // Blade
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.5, 0.006), bladeMat);
+    blade.position.y = 0.33;
+    group.add(blade);
+    // Edge glow
+    const edgeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.002, 0.5, 0.009), edgeGlowMat);
+    edgeGlow.position.set(0.01, 0.33, 0);
+    group.add(edgeGlow);
+    // Tip
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.01, 0.06, 4), tipMat);
+    tip.position.y = 0.61;
+    group.add(tip);
+    // Pommel
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.017, 5, 5), guardMat);
+    pommel.position.y = -0.07;
+    group.add(pommel);
+
+    // Position in camera space: lower-right, angled forward
+    group.position.set(0.25, -0.35, -0.4);
+    group.rotation.set(-0.3, 0, -0.15); // slight tilt
+
+    return group;
+}
+
 function startGame() {
     currentFloor = 1;
     lives = 5;
@@ -927,6 +976,13 @@ function startGame() {
     pm.visible = false;
     scene.add(pm);
     fpsCamera.playerModel = pm;
+
+    // 1st-person viewmodel sword for Sukuna
+    if (fpsSword) { camera.remove(fpsSword); fpsSword = null; }
+    if (player.classId === 'sukuna') {
+        fpsSword = buildFPSSword();
+        camera.add(fpsSword);
+    }
 }
 
 function loadFloor(floor) {
@@ -2515,6 +2571,9 @@ function update() {
     updateScreenShake(dt);
     updateFovPunch();
     playerLight.position.copy(camera.position);
+
+    // Show viewmodel sword in 1st person, hide in 3rd person
+    if (fpsSword) fpsSword.visible = !fpsCamera.thirdPerson;
 
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
 
