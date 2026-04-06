@@ -1893,14 +1893,16 @@ function buildFPSFists() {
 
     // Right hand
     const rightFist = buildHand('right');
-    rightFist.position.set(0.18, -0.15, -0.35);
+    rightFist.position.set(0.25, -0.25, -0.5);
     rightFist.rotation.set(-0.3, 0, -0.1);
+    rightFist.scale.setScalar(1.4);
     group.add(rightFist);
 
     // Left hand
     const leftFist = buildHand('left');
-    leftFist.position.set(-0.18, -0.15, -0.35);
+    leftFist.position.set(-0.25, -0.25, -0.5);
     leftFist.rotation.set(-0.3, 0, 0.1);
+    leftFist.scale.setScalar(1.4);
     group.add(leftFist);
 
     group._rightFist = rightFist;
