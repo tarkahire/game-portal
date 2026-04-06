@@ -1806,45 +1806,101 @@ function buildFPSFists() {
     const group = new THREE.Group();
 
     const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d5b8', roughness: 0.5 });
+    const knuckleMat = new THREE.MeshStandardMaterial({ color: '#e0c0a0', roughness: 0.5 }); // slightly darker knuckles
     const gauntletMat = new THREE.MeshStandardMaterial({ color: '#2a8a2a', metalness: 0.5, roughness: 0.3 });
     const gauntletDarkMat = new THREE.MeshStandardMaterial({ color: '#1a5a1a', metalness: 0.4, roughness: 0.4 });
+    const nailMat = new THREE.MeshStandardMaterial({ color: '#e8c8b0', roughness: 0.4 });
 
-    // Right fist — lower right
-    const rightFist = new THREE.Group();
-    // Gauntlet
-    const rGauntlet = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.16, 6), gauntletMat);
-    rightFist.add(rGauntlet);
-    // Gauntlet ring
-    rightFist.add(new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.01, 6), gauntletDarkMat).translateY(0.05));
-    // Open palm
-    const rPalm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.045, 0.04), skinMat);
-    rPalm.position.set(0, -0.1, 0.03); rightFist.add(rPalm);
-    // Spread fingers
-    for (let f = 0; f < 4; f++) {
-        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.005, 0.04, 3), skinMat);
-        finger.position.set((f - 1.5) * 0.015, -0.13, 0.04);
-        finger.rotation.x = -0.3;
-        rightFist.add(finger);
+    function buildHand(side) {
+        const hand = new THREE.Group();
+
+        // Gauntlet on forearm
+        const gauntlet = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.048, 0.18, 6), gauntletMat);
+        hand.add(gauntlet);
+        // Gauntlet rings
+        for (let r = 0; r < 2; r++) {
+            hand.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.012, 6), gauntletDarkMat).translateY(0.06 - r * 0.1));
+        }
+
+        // Wrist
+        const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.035, 0.05, 5), skinMat);
+        wrist.position.y = -0.12; hand.add(wrist);
+
+        // Palm — wide flat block
+        const palm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.04), skinMat);
+        palm.position.set(0, -0.17, 0.02); hand.add(palm);
+
+        // 4 fingers — each with 2 segments and knuckle bumps
+        const fingerOffsets = [-0.027, -0.009, 0.009, 0.027];
+        const fingerLengths = [0.035, 0.04, 0.038, 0.03]; // middle longest
+        for (let f = 0; f < 4; f++) {
+            const fx = fingerOffsets[f];
+            const fLen = fingerLengths[f];
+
+            // Knuckle bump
+            const knuckle = new THREE.Mesh(new THREE.SphereGeometry(0.012, 5, 5), knuckleMat);
+            knuckle.position.set(fx, -0.21, 0.04);
+            hand.add(knuckle);
+
+            // First segment (proximal)
+            const seg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.008, fLen, 4), skinMat);
+            seg1.position.set(fx, -0.21 - fLen / 2 - 0.01, 0.045);
+            seg1.rotation.x = -0.15;
+            hand.add(seg1);
+
+            // Mid knuckle
+            const midKnuckle = new THREE.Mesh(new THREE.SphereGeometry(0.008, 4, 4), knuckleMat);
+            midKnuckle.position.set(fx, -0.21 - fLen - 0.01, 0.05);
+            hand.add(midKnuckle);
+
+            // Second segment (distal)
+            const seg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.006, fLen * 0.7, 4), skinMat);
+            seg2.position.set(fx, -0.21 - fLen - fLen * 0.35 - 0.015, 0.055);
+            seg2.rotation.x = -0.2;
+            hand.add(seg2);
+
+            // Fingernail
+            const nail = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.008, 0.005), nailMat);
+            nail.position.set(fx, -0.21 - fLen - fLen * 0.7 - 0.01, 0.06);
+            hand.add(nail);
+        }
+
+        // Thumb — on the side
+        const thumbDir = side === 'right' ? 1 : -1;
+        // Thumb base
+        const thumbBase = new THREE.Mesh(new THREE.SphereGeometry(0.011, 5, 5), knuckleMat);
+        thumbBase.position.set(thumbDir * 0.04, -0.16, 0.035);
+        hand.add(thumbBase);
+        // Thumb segment 1
+        const thumb1 = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.008, 0.03, 4), skinMat);
+        thumb1.position.set(thumbDir * 0.05, -0.18, 0.04);
+        thumb1.rotation.z = thumbDir * -0.6;
+        thumb1.rotation.x = -0.2;
+        hand.add(thumb1);
+        // Thumb segment 2
+        const thumb2 = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.006, 0.025, 4), skinMat);
+        thumb2.position.set(thumbDir * 0.06, -0.2, 0.045);
+        thumb2.rotation.z = thumbDir * -0.5;
+        thumb2.rotation.x = -0.3;
+        hand.add(thumb2);
+        // Thumb nail
+        const thumbNail = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.007, 0.005), nailMat);
+        thumbNail.position.set(thumbDir * 0.065, -0.215, 0.05);
+        hand.add(thumbNail);
+
+        return hand;
     }
-    rightFist.position.set(0.18, -0.18, -0.35);
-    rightFist.rotation.set(-0.4, 0, -0.15);
+
+    // Right hand
+    const rightFist = buildHand('right');
+    rightFist.position.set(0.18, -0.15, -0.35);
+    rightFist.rotation.set(-0.3, 0, -0.1);
     group.add(rightFist);
 
-    // Left fist — lower left
-    const leftFist = new THREE.Group();
-    const lGauntlet = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.16, 6), gauntletMat);
-    leftFist.add(lGauntlet);
-    leftFist.add(new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.01, 6), gauntletDarkMat).translateY(0.05));
-    const lPalm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.045, 0.04), skinMat);
-    lPalm.position.set(0, -0.1, 0.03); leftFist.add(lPalm);
-    for (let f = 0; f < 4; f++) {
-        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.005, 0.04, 3), skinMat);
-        finger.position.set((f - 1.5) * 0.015, -0.13, 0.04);
-        finger.rotation.x = -0.3;
-        leftFist.add(finger);
-    }
-    leftFist.position.set(-0.18, -0.18, -0.35);
-    leftFist.rotation.set(-0.4, 0, 0.15);
+    // Left hand
+    const leftFist = buildHand('left');
+    leftFist.position.set(-0.18, -0.15, -0.35);
+    leftFist.rotation.set(-0.3, 0, 0.1);
     group.add(leftFist);
 
     group._rightFist = rightFist;
