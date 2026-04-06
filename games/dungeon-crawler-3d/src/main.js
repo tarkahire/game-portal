@@ -2821,6 +2821,15 @@ function loadFloor(floor) {
 
     const startRoom = dungeon.rooms[0];
     fpsCamera.setPosition(startRoom.cx + 0.5, startRoom.cy + 0.5);
+    fpsCamera._spawnX = startRoom.cx + 0.5;
+    fpsCamera._spawnZ = startRoom.cy + 0.5;
+
+    // P2 spawn
+    if (coopMode && fpsCamera2) {
+        fpsCamera2.setPosition(startRoom.cx + 1, startRoom.cy + 1);
+        fpsCamera2._spawnX = startRoom.cx + 1;
+        fpsCamera2._spawnZ = startRoom.cy + 1;
+    }
 
     spawnEnemies(floor);
     updateHUD();

@@ -124,6 +124,14 @@ export class FPSCamera {
         this.posX = Math.max(1, Math.min(MAP_COLS - 1, this.posX));
         this.posZ = Math.max(1, Math.min(MAP_ROWS - 1, this.posZ));
 
+        // If player ended up inside a wall (from dash/teleport), snap back to spawn
+        if (!isWalkable(dungeonMap, this.posX, this.posZ)) {
+            if (this._spawnX !== undefined) {
+                this.posX = this._spawnX;
+                this.posZ = this._spawnZ;
+            }
+        }
+
         const worldX = this.posX * TILE;
         const worldZ = this.posZ * TILE;
         const fly = this.flyHeight || 0;
