@@ -1548,7 +1548,7 @@ function update() {
     updateDmgNumbers();
     updateWalkAnimation(dt);
     updateMinions(dt, now);
-    updateKataPortals(time);
+    // (old Katakuri portal update removed — Blox Fruits system)
     updateFruitEffects(now, dt);
 
     // Dash speed restore
