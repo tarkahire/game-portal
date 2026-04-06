@@ -27,6 +27,7 @@ let selectedClasses = [];
 let coopMode = false;
 let p2ClassSelect = false;
 let fpsSword = null; // 1st-person viewmodel sword (child of camera)
+let swordSwing = null; // active sword swing animation state
 
 // Player state
 let player = null;
@@ -929,6 +930,108 @@ function buildFPSSword() {
     return group;
 }
 
+// ─── SWORD SWING ANIMATION ─────────────────────────────────
+// Swing patterns per combo step — diagonal slashes alternating sides
+const SWORD_SWINGS = [
+    // Step 0: top-right to bottom-left diagonal slash
+    { startRot: { x: -1.2, y: 0.3, z: -0.8 }, endRot: { x: 0.4, y: -0.3, z: 0.5 },
+      startPos: { x: 0.35, y: 0.0, z: -0.3 }, endPos: { x: -0.1, y: -0.5, z: -0.5 }, dur: 150 },
+    // Step 1: top-left to bottom-right diagonal slash
+    { startRot: { x: -1.2, y: -0.4, z: 0.8 }, endRot: { x: 0.4, y: 0.3, z: -0.5 },
+      startPos: { x: -0.1, y: 0.0, z: -0.3 }, endPos: { x: 0.35, y: -0.5, z: -0.5 }, dur: 150 },
+    // Step 2: horizontal right-to-left sweep
+    { startRot: { x: -0.3, y: 0.6, z: -0.4 }, endRot: { x: -0.3, y: -0.6, z: 0.4 },
+      startPos: { x: 0.45, y: -0.2, z: -0.3 }, endPos: { x: -0.2, y: -0.2, z: -0.5 }, dur: 140 },
+    // Step 3 (finisher): big overhead slam
+    { startRot: { x: -1.8, y: 0, z: 0 }, endRot: { x: 0.6, y: 0, z: 0 },
+      startPos: { x: 0.15, y: 0.2, z: -0.25 }, endPos: { x: 0.15, y: -0.6, z: -0.55 }, dur: 200 },
+];
+
+// Resting position of the viewmodel sword
+const SWORD_REST = { x: 0.25, y: -0.35, z: -0.4, rx: -0.3, ry: 0, rz: -0.15 };
+
+function triggerSwordSwing(comboStep) {
+    const pattern = SWORD_SWINGS[comboStep % SWORD_SWINGS.length];
+    swordSwing = {
+        startTime: performance.now(),
+        dur: pattern.dur,
+        returnDur: 120, // ms to return to rest position
+        pattern,
+        phase: 'swing', // 'swing' -> 'return'
+    };
+
+    // 3rd person arm swing
+    const pm = fpsCamera.playerModel;
+    if (pm && pm._rightArm) {
+        const armSwings = [
+            { x: -1.5, z: -0.6 },  // diagonal R-to-L
+            { x: -1.5, z: 0.6 },   // diagonal L-to-R
+            { x: -0.3, z: -0.8 },  // horizontal sweep
+            { x: -2.0, z: 0 },     // overhead slam
+        ];
+        const armTarget = armSwings[comboStep % armSwings.length];
+        pm._rightArm.rotation.x = armTarget.x;
+        pm._rightArm.rotation.z = armTarget.z;
+        setTimeout(() => {
+            if (pm._rightArm) {
+                pm._rightArm.rotation.x = 0.05;
+                pm._rightArm.rotation.z = 0;
+            }
+        }, pattern.dur + 100);
+    }
+}
+
+function updateSwordSwing() {
+    if (!fpsSword || !swordSwing) return;
+
+    const now = performance.now();
+    const elapsed = now - swordSwing.startTime;
+    const p = swordSwing.pattern;
+
+    if (swordSwing.phase === 'swing') {
+        const t = Math.min(elapsed / swordSwing.dur, 1);
+        // Ease-out for snappy feel
+        const ease = 1 - Math.pow(1 - t, 3);
+
+        fpsSword.position.set(
+            p.startPos.x + (p.endPos.x - p.startPos.x) * ease,
+            p.startPos.y + (p.endPos.y - p.startPos.y) * ease,
+            p.startPos.z + (p.endPos.z - p.startPos.z) * ease
+        );
+        fpsSword.rotation.set(
+            p.startRot.x + (p.endRot.x - p.startRot.x) * ease,
+            p.startRot.y + (p.endRot.y - p.startRot.y) * ease,
+            p.startRot.z + (p.endRot.z - p.startRot.z) * ease
+        );
+
+        if (t >= 1) {
+            swordSwing.phase = 'return';
+            swordSwing.startTime = now;
+        }
+    } else if (swordSwing.phase === 'return') {
+        const t = Math.min((elapsed) / swordSwing.returnDur, 1);
+        // Ease-in-out for smooth return
+        const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+        fpsSword.position.set(
+            p.endPos.x + (SWORD_REST.x - p.endPos.x) * ease,
+            p.endPos.y + (SWORD_REST.y - p.endPos.y) * ease,
+            p.endPos.z + (SWORD_REST.z - p.endPos.z) * ease
+        );
+        fpsSword.rotation.set(
+            p.endRot.x + (SWORD_REST.rx - p.endRot.x) * ease,
+            p.endRot.y + (SWORD_REST.ry - p.endRot.y) * ease,
+            p.endRot.z + (SWORD_REST.rz - p.endRot.z) * ease
+        );
+
+        if (t >= 1) {
+            swordSwing = null;
+            fpsSword.position.set(SWORD_REST.x, SWORD_REST.y, SWORD_REST.z);
+            fpsSword.rotation.set(SWORD_REST.rx, SWORD_REST.ry, SWORD_REST.rz);
+        }
+    }
+}
+
 function startGame() {
     currentFloor = 1;
     lives = 5;
@@ -1723,6 +1826,11 @@ function playerAttack() {
     const hitX = px * TILE + fwdX * 2, hitY = EYE_HEIGHT + fly, hitZ = pz * TILE + fwdZ * 2;
 
     // Per-character M1 VFX — add character-specific hit effects here
+
+    // Sukuna sword swing animation (1st person viewmodel + 3rd person arm)
+    if (player.classId === 'sukuna') {
+        triggerSwordSwing(player._comboStep);
+    }
 
     // Finisher (4th hit) — extra effects
     if (isFinisher) {
@@ -2575,6 +2683,7 @@ function update() {
 
     // Show viewmodel sword in 1st person, hide in 3rd person
     if (fpsSword) fpsSword.visible = !fpsCamera.thirdPerson;
+    updateSwordSwing();
 
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
 
