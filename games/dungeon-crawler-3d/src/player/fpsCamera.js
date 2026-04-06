@@ -19,6 +19,7 @@ export class FPSCamera {
 
         // Player model (visible in 3rd person)
         this.playerModel = null;
+        this.flyHeight = 0; // extra Y offset for flying characters
 
         // Player position in tile coords (col, row)
         this.posX = 0;
@@ -114,26 +115,28 @@ export class FPSCamera {
         const worldX = this.posX * TILE;
         const worldZ = this.posZ * TILE;
 
+        const fly = this.flyHeight || 0;
+
         if (this.thirdPerson) {
             // 3rd person: camera behind + above player, looking at player
             const behindX = Math.sin(this.yaw) * this.tpDistance;
             const behindZ = Math.cos(this.yaw) * this.tpDistance;
             this.camera.position.set(
                 worldX + behindX,
-                EYE_HEIGHT + this.tpHeight,
+                EYE_HEIGHT + this.tpHeight + fly,
                 worldZ + behindZ
             );
-            this.camera.lookAt(worldX, EYE_HEIGHT, worldZ);
+            this.camera.lookAt(worldX, EYE_HEIGHT + fly, worldZ);
 
             // Show player model
             if (this.playerModel) {
                 this.playerModel.visible = true;
-                this.playerModel.position.set(worldX, 0, worldZ);
+                this.playerModel.position.set(worldX, fly, worldZ);
                 this.playerModel.rotation.y = -this.yaw;
             }
         } else {
             // 1st person
-            this.camera.position.set(worldX, EYE_HEIGHT, worldZ);
+            this.camera.position.set(worldX, EYE_HEIGHT + fly, worldZ);
             const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
             this.camera.quaternion.setFromEuler(euler);
 

@@ -291,26 +291,123 @@ function addPlayerLabel(pm, name, color) {
 // ─── BEAST FRUIT TRANSFORM MODELS ───────────────────────────
 function buildDragonModel() {
     const pm = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: '#ff6600', emissive: '#ff3d00', emissiveIntensity: 0.3, roughness: 0.5 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: '#bf360c', roughness: 0.6 });
-    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.5, 2, 8), mat).translateY(1.2));
-    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 1, 6), mat).translateY(2.5));
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.7), darkMat);
-    head.position.set(0, 3.1, 0.2); pm.add(head);
-    pm.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.5), darkMat).translateY(3.0).translateZ(0.55));
+    const greenMat = new THREE.MeshStandardMaterial({ color: '#2e7d32', emissive: '#1b5e20', emissiveIntensity: 0.2, roughness: 0.5 });
+    const darkGreen = new THREE.MeshStandardMaterial({ color: '#1b5e20', roughness: 0.6 });
+    const bellyMat = new THREE.MeshStandardMaterial({ color: '#4caf50', emissive: '#388e3c', emissiveIntensity: 0.1, roughness: 0.4 });
+    const hornMat = new THREE.MeshStandardMaterial({ color: '#3e2723', roughness: 0.7, metalness: 0.3 });
     const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffeb3b' });
-    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), eyeMat).translateX(-0.15).translateY(3.15).translateZ(0.5));
-    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), eyeMat).translateX(0.15).translateY(3.15).translateZ(0.5));
+
+    // ── Muscular torso ──
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 1.8, 8), greenMat);
+    torso.position.y = 1.3; pm.add(torso);
+    // Broad chest/shoulders
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.6, 0.7), greenMat);
+    chest.position.y = 2.0; pm.add(chest);
+    // Lighter belly
+    const belly = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.8, 0.15), bellyMat);
+    belly.position.set(0, 1.4, 0.25); pm.add(belly);
+
+    // ── Neck + Head ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 0.5, 6), greenMat);
+    neck.position.y = 2.4; pm.add(neck);
+    // Dragon head — angular snout
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.4, 0.5), darkGreen);
+    head.position.set(0, 2.8, 0.1); pm.add(head);
+    // Snout/jaw extending forward
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.4), darkGreen);
+    snout.position.set(0, 2.65, 0.45); pm.add(snout);
+    // Lower jaw
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.08, 0.35), new THREE.MeshStandardMaterial({ color: '#1a1a1a' }));
+    jaw.position.set(0, 2.55, 0.4); pm.add(jaw);
+    // Glowing yellow eyes
+    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeMat).translateX(-0.14).translateY(2.88).translateZ(0.32));
+    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeMat).translateX(0.14).translateY(2.88).translateZ(0.32));
+    // Eye glow
+    pm.add(new THREE.PointLight('#ffeb3b', 0.8, TILE, 2).translateY(2.9).translateZ(0.3));
+
+    // ── Horns (curved back) ──
     for (let s = -1; s <= 1; s += 2) {
-        pm.add(new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.4, 4), new THREE.MeshStandardMaterial({ color: '#4e342e' })).translateX(s * 0.2).translateY(3.4).translateZ(-0.1));
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 5), hornMat);
+        horn.position.set(s * 0.18, 3.1, -0.1);
+        horn.rotation.x = 0.4; horn.rotation.z = s * 0.2;
+        pm.add(horn);
     }
+
+    // ── Bat-like Wings (articulated — separate pivots for flapping) ──
     for (let s = -1; s <= 1; s += 2) {
-        const wing = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2, 3), new THREE.MeshStandardMaterial({ color: '#e65100', transparent: true, opacity: 0.8 }));
-        wing.position.set(s * 1.2, 2, -0.3); wing.rotation.z = s * 0.8; pm.add(wing);
+        const wingPivot = new THREE.Group();
+        wingPivot.position.set(s * 0.6, 2.1, -0.2);
+        // Upper wing membrane — large flat triangle
+        const wingGeo = new THREE.BufferGeometry();
+        const verts = new Float32Array([
+            0, 0, 0,
+            s * 1.8, 0.3, -0.3,
+            s * 1.2, -1.0, 0.1,
+            0, 0, 0,
+            s * 1.2, -1.0, 0.1,
+            s * 0.3, -0.8, 0.2,
+        ]);
+        wingGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+        wingGeo.computeVertexNormals();
+        const wingMat = new THREE.MeshStandardMaterial({ color: '#2e7d32', emissive: '#1b5e20', emissiveIntensity: 0.15, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+        wingPivot.add(new THREE.Mesh(wingGeo, wingMat));
+        // Wing bone/strut
+        const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.015, 1.6, 4), hornMat);
+        strut.position.set(s * 0.9, -0.3, -0.1);
+        strut.rotation.z = s * 0.5;
+        wingPivot.add(strut);
+        pm.add(wingPivot);
+        if (s === -1) pm._leftWing = wingPivot; else pm._rightWing = wingPivot;
     }
-    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.04, 1.5, 5), mat).translateY(0.5).translateZ(-0.8));
-    for (let s = -1; s <= 1; s += 2) pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.8, 5), darkMat).translateX(s * 0.3).translateY(0.3));
-    pm.add(new THREE.PointLight('#ff6600', 3, TILE * 5, 2));
+
+    // ── Arms with claws ──
+    for (let s = -1; s <= 1; s += 2) {
+        // Shoulder
+        pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6), greenMat).translateX(s * 0.7).translateY(2.05));
+        // Upper arm
+        pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.6, 5), greenMat).translateX(s * 0.75).translateY(1.6));
+        // Forearm
+        pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.5, 5), greenMat).translateX(s * 0.8).translateY(1.15));
+        // Clawed hand
+        const hand = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.15), darkGreen);
+        hand.position.set(s * 0.82, 0.85, 0.05); pm.add(hand);
+        // 3 claws per hand
+        for (let c = 0; c < 3; c++) {
+            const claw = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.15, 4), new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.6 }));
+            claw.position.set(s * 0.82 + (c - 1) * 0.06, 0.78, 0.12);
+            claw.rotation.x = Math.PI * 0.7;
+            pm.add(claw);
+        }
+    }
+
+    // ── Legs ──
+    for (let s = -1; s <= 1; s += 2) {
+        pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.7, 6), greenMat).translateX(s * 0.25).translateY(0.4));
+        pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.4, 5), darkGreen).translateX(s * 0.25).translateY(0.05));
+        // Feet with claws
+        pm.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.06, 0.25), darkGreen).translateX(s * 0.25).translateY(-0.15).translateZ(0.05));
+    }
+
+    // ── Spiked tail ──
+    const tail1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.8, 5), greenMat);
+    tail1.position.set(0, 0.6, -0.5); tail1.rotation.x = 0.6; pm.add(tail1);
+    const tail2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.03, 0.7, 5), greenMat);
+    tail2.position.set(0, 0.35, -1.0); tail2.rotation.x = 0.8; pm.add(tail2);
+    // Tail spike
+    pm.add(new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 4), hornMat).translateY(0.2).translateZ(-1.35));
+
+    // ── Spine spikes (along back) ──
+    for (let i = 0; i < 5; i++) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.18, 4), hornMat);
+        spike.position.set(0, 1.8 + i * 0.25, -0.3);
+        spike.rotation.x = 0.3;
+        pm.add(spike);
+    }
+
+    // ── Fire aura glow ──
+    pm.add(new THREE.PointLight('#4caf50', 2, TILE * 4, 2).translateY(1.5));
+    pm.add(new THREE.PointLight('#ffeb3b', 1, TILE * 2, 2).translateY(2.8).translateZ(0.4));
+
     return pm;
 }
 
@@ -422,7 +519,17 @@ function startGame() {
 
     // Create player model for 3rd person view
     if (fpsCamera.playerModel) scene.remove(fpsCamera.playerModel);
-    const pm = buildGenericPlayerModel(player.cls);
+    let pm;
+    if (player.classId === 'dragon') {
+        pm = buildDragonModel();
+        pm.scale.setScalar(0.6); // scaled down to fit dungeon
+        addPlayerLabel(pm, 'DRAGON', '#2e7d32');
+        player._flying = true; // dragon always flies
+        fpsCamera.flyHeight = 1.5; // hover above ground
+    } else {
+        pm = buildGenericPlayerModel(player.cls);
+        fpsCamera.flyHeight = 0;
+    }
     pm.visible = false; // hidden in 1st person by default
     scene.add(pm);
     fpsCamera.playerModel = pm;
@@ -673,15 +780,30 @@ function updateFovPunch() {
 
 // ── Improved Slash Trail (multiple trail segments) ──
 const slashTrails = [];
-const SLASH_POOL_SIZE = 5;
+const SLASH_POOL_SIZE = 8;
 let slashPool = [];
 let slashPoolInit = false;
+
+// Impact spark particles
+const sparkPool = [];
+const SPARK_POOL_SIZE = 30;
+let sparkPoolInit = false;
 
 function initSlashPool() {
     if (slashPoolInit) return;
     slashPoolInit = true;
+    // Slash planes — flat quads that face the camera, with gradient
     for (let i = 0; i < SLASH_POOL_SIZE; i++) {
-        const geo = new THREE.TorusGeometry(1.2, 0.06, 4, 16, Math.PI * 0.8);
+        // Curved slash shape — PlaneGeometry curved via vertex displacement
+        const geo = new THREE.PlaneGeometry(2.0, 0.4, 12, 1);
+        const pos = geo.attributes.position;
+        for (let v = 0; v < pos.count; v++) {
+            const x = pos.getX(v);
+            // Curve into an arc
+            const t = (x + 1) / 2; // 0..1
+            pos.setY(v, pos.getY(v) + Math.sin(t * Math.PI) * 0.6);
+        }
+        geo.computeVertexNormals();
         const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, side: THREE.DoubleSide });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.visible = false;
@@ -690,43 +812,70 @@ function initSlashPool() {
     }
 }
 
+function initSparkPool() {
+    if (sparkPoolInit) return;
+    sparkPoolInit = true;
+    for (let i = 0; i < SPARK_POOL_SIZE; i++) {
+        const geo = new THREE.SphereGeometry(0.08, 4, 4);
+        const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.visible = false;
+        scene.add(mesh);
+        sparkPool.push({ mesh, vx: 0, vy: 0, vz: 0, life: 0 });
+    }
+}
+
+function spawnImpactSparks(worldX, worldY, worldZ, color, count) {
+    initSparkPool();
+    for (let i = 0; i < count; i++) {
+        let spark = null;
+        for (const s of sparkPool) { if (!s.mesh.visible) { spark = s; break; } }
+        if (!spark) continue;
+        spark.mesh.position.set(worldX, worldY, worldZ);
+        spark.mesh.material.color.set(color);
+        spark.mesh.material.opacity = 1;
+        spark.mesh.visible = true;
+        spark.vx = (Math.random() - 0.5) * 8;
+        spark.vy = Math.random() * 6 + 2;
+        spark.vz = (Math.random() - 0.5) * 8;
+        spark.life = 15 + Math.random() * 10;
+        spark.maxLife = spark.life;
+    }
+}
+
 function spawnMeleeSlash(color) {
     initSlashPool();
     const yaw = fpsCamera.yaw;
     const pitch = fpsCamera.pitch || 0;
-    // Direction the crosshair is pointing
-    const dirX = -Math.sin(yaw) * Math.cos(pitch);
-    const dirY = Math.sin(pitch);
-    const dirZ = -Math.cos(yaw) * Math.cos(pitch);
-    const baseX = fpsCamera.posX * TILE + dirX * 2.5;
-    const baseY = EYE_HEIGHT + dirY * 2.5;
-    const baseZ = fpsCamera.posZ * TILE + dirZ * 2.5;
+    const fly = fpsCamera.flyHeight || 0;
+    const dirX = -Math.sin(yaw);
+    const dirZ = -Math.cos(yaw);
+    const baseX = fpsCamera.posX * TILE + dirX * 2;
+    const baseY = EYE_HEIGHT + fly + Math.sin(pitch) * 1.5;
+    const baseZ = fpsCamera.posZ * TILE + dirZ * 2;
 
-    // Spawn 3 staggered diagonal slash arcs facing the crosshair direction
-    for (let t = 0; t < 3; t++) {
+    // Combo step determines slash angle (alternating diagonal)
+    const step = player?._comboStep || 0;
+    const angles = [0.7, -0.7, 0.5, -0.9]; // alternating diagonal tilts
+    const tilt = angles[step % 4];
+
+    // Spawn 2 layered slash planes — one bright, one faded trail
+    for (let t = 0; t < 2; t++) {
         let mesh = null;
         for (const s of slashPool) { if (!s.visible) { mesh = s; break; } }
         if (!mesh) continue;
 
-        const offset = t * 0.12;
-        mesh.position.set(
-            baseX + dirX * offset,
-            baseY + t * 0.08,
-            baseZ + dirZ * offset
-        );
-        // Face the crosshair direction: rotate by yaw to face forward,
-        // then tilt diagonally (45 deg + slight variation per trail)
-        mesh.rotation.order = 'YXZ';
-        mesh.rotation.set(
-            pitch,                          // pitch matches vertical aim
-            yaw + Math.PI / 2,              // face the player's look direction
-            Math.PI / 4 + t * 0.15          // diagonal tilt (45 degrees)
-        );
+        mesh.position.set(baseX, baseY, baseZ);
+        // Billboard: face the camera
+        mesh.lookAt(camera.position);
+        // Then apply diagonal tilt
+        mesh.rotateZ(tilt + t * 0.15);
         mesh.material.color.set(color);
-        mesh.material.opacity = 0.9 - t * 0.15;
-        mesh.scale.set(0.6 + t * 0.25, 0.6 + t * 0.25, 0.6 + t * 0.25);
+        mesh.material.opacity = t === 0 ? 0.9 : 0.5;
+        const sc = 0.8 + t * 0.3;
+        mesh.scale.set(sc, sc, sc);
         mesh.visible = true;
-        slashTrails.push({ mesh, life: 10 + t * 2, maxLife: 10 + t * 2, yaw, pitch });
+        slashTrails.push({ mesh, life: 8 + t * 3, maxLife: 8 + t * 3 });
     }
 }
 
@@ -735,13 +884,24 @@ function updateMeleeSlashes() {
         const s = slashTrails[i];
         s.life--;
         const t = s.life / s.maxLife;
-        s.mesh.material.opacity = t * 0.9;
-        s.mesh.scale.multiplyScalar(1.05);
-        // Keep orientation locked to original aim direction — no spinning
+        s.mesh.material.opacity = t * 0.85;
+        s.mesh.scale.multiplyScalar(1.03);
         if (s.life <= 0) {
             s.mesh.visible = false;
             slashTrails.splice(i, 1);
         }
+    }
+    // Update sparks
+    for (const sp of sparkPool) {
+        if (!sp.mesh.visible) continue;
+        sp.life--;
+        sp.mesh.position.x += sp.vx * 0.016;
+        sp.mesh.position.y += sp.vy * 0.016;
+        sp.mesh.position.z += sp.vz * 0.016;
+        sp.vy -= 15 * 0.016; // gravity
+        sp.mesh.material.opacity = sp.life / sp.maxLife;
+        sp.mesh.scale.setScalar(sp.life / sp.maxLife);
+        if (sp.life <= 0) sp.mesh.visible = false;
     }
 }
 
@@ -752,25 +912,36 @@ function updateWalkAnimation(dt) {
     const pm = fpsCamera.playerModel;
     if (!pm || !fpsCamera.thirdPerson) return;
 
-    // Check if player is moving
     const moving = fpsCamera.keys['KeyW'] || fpsCamera.keys['KeyS'] ||
                    fpsCamera.keys['KeyA'] || fpsCamera.keys['KeyD'] ||
                    fpsCamera.keys['ArrowUp'] || fpsCamera.keys['ArrowDown'] ||
                    fpsCamera.keys['ArrowLeft'] || fpsCamera.keys['ArrowRight'];
 
+    walkCycle += dt * (moving ? 10 : 4); // slower idle cycle when not moving
+
+    // Dragon — wing flapping + hover bob (always active)
+    if (player.classId === 'dragon' || (player._transformed && player.cls?.type === 'beast')) {
+        const flapSpeed = moving ? 8 : 3;
+        const flapAngle = Math.sin(walkCycle * flapSpeed * 0.3) * (moving ? 0.6 : 0.3);
+        if (pm._leftWing) pm._leftWing.rotation.z = -flapAngle - 0.2;
+        if (pm._rightWing) pm._rightWing.rotation.z = flapAngle + 0.2;
+        // Hover bob
+        const hoverBob = Math.sin(walkCycle * 1.5) * 0.1;
+        const fly = fpsCamera.flyHeight || 0;
+        pm.position.y = fly + hoverBob;
+        // Slight forward lean when moving
+        if (pm.children[0]) {
+            // lean the whole model forward slightly
+        }
+        return;
+    }
+
+    // Generic walk bob
     if (moving) {
-        walkCycle += dt * 10;
-        const swing = Math.sin(walkCycle) * 0.5;
         const bob = Math.abs(Math.sin(walkCycle * 2)) * 0.08;
-
-        // Generic models don't have joint refs — skip Mahoraga (has its own anim)
-        if (player.classId === 'mahoraga') return;
-
-        // Body bob
-        pm.position.y = bob;
+        pm.position.y = (fpsCamera.flyHeight || 0) + bob;
     } else {
-        walkCycle = 0;
-        if (player.classId !== 'mahoraga' && pm.position) pm.position.y = 0;
+        pm.position.y = fpsCamera.flyHeight || 0;
     }
 }
 
@@ -1427,8 +1598,11 @@ function playerDodge() {
 function dealDamageToEnemy(e, dmg) {
     e.data.hp -= dmg;
 
+    // ── Impact sparks on hit ──
+    const sparkColor = player?.cls?.color || '#ffffff';
+    spawnImpactSparks(e.data.x * TILE, 1.5, e.data.z * TILE, sparkColor, dmg > 20 ? 8 : 4);
+
     // ── Hit reaction: flash white→red, scale bump, recoil ──
-    // Flash white first, then red
     e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#ffffff'); });
     setTimeout(() => {
         e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#ff0000'); });
