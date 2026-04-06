@@ -791,69 +791,19 @@ function playerSpecial() {
         case 'portal': // Rift Pull — teleport enemies to you
             for (const e of enemies3D) { if(!e.data.alive)continue; const d=Math.hypot(e.data.x-px,e.data.z-pz); if(d<10&&d>1){const a=Math.random()*Math.PI*2; e.data.x=px+Math.cos(a)*1.5; e.data.z=pz+Math.sin(a)*1.5; e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE); stunNear(2,1000);}}
             spawnMeleeSlash('#00bcd4'); break;
-        case 'katakuri': { // Dough Fist Fusillade — circle of portals, punching for 5s
-            // Find target area — nearest enemy or faced direction
-            const fX = -Math.sin(yaw), fZ = -Math.cos(yaw);
-            let targX = px + fX * 5, targZ = pz + fZ * 5;
-            let closest = Infinity;
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                const d = Math.hypot(e.data.x - px, e.data.z - pz);
-                if (d < 10 && d < closest) { closest = d; targX = e.data.x; targZ = e.data.z; }
-            }
+        case 'katakuri': { // Dough Fist Fusillade — Blox Fruits style: rapid barrage from side portals
+            if (kataPortals.length === 0) initKataPortals();
+            ensureFistPool();
 
-            // Spawn/show circle of 8 floor portals around target
-            if (!player._fusilladePortals) {
-                player._fusilladePortals = [];
-                player._fusilladeFists = [];
-                const col = player._haki ? '#1565c0' : '#f5f0e8';
-                const fistCol = player._haki ? '#0d47a1' : '#1a1a3a';
-                for (let p = 0; p < 8; p++) {
-                    const portal = new THREE.Mesh(
-                        new THREE.TorusGeometry(0.5, 0.1, 6, 14),
-                        new THREE.MeshBasicMaterial({ color: col })
-                    );
-                    portal.rotation.x = -Math.PI / 2;
-                    const hole = new THREE.Mesh(
-                        new THREE.CircleGeometry(0.32, 10),
-                        new THREE.MeshBasicMaterial({ color: '#0a0008', side: THREE.DoubleSide })
-                    );
-                    hole.rotation.x = Math.PI / 2;
-                    portal.add(hole);
-                    portal.visible = false;
-                    scene.add(portal);
-                    player._fusilladePortals.push(portal);
+            // Scale up side portals for dramatic effect
+            for (const p of kataPortals) p.scale.setScalar(1.8);
 
-                    // Fist for each portal
-                    const fistG = new THREE.Group();
-                    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 2, 4), new THREE.MeshBasicMaterial({ color: fistCol }));
-                    arm.position.y = 1;
-                    fistG.add(arm);
-                    const fist = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.55, 0.45), new THREE.MeshBasicMaterial({ color: fistCol }));
-                    fist.position.y = 2.2;
-                    fistG.add(fist);
-                    fistG.visible = false;
-                    scene.add(fistG);
-                    player._fusilladeFists.push(fistG);
-                }
-            }
-
-            // Position portals in a circle around target
-            const ringRadius = 2.5;
-            for (let p = 0; p < 8; p++) {
-                const angle = (p / 8) * Math.PI * 2;
-                const portalX = targX * TILE + Math.cos(angle) * ringRadius * TILE;
-                const portalZ = targZ * TILE + Math.sin(angle) * ringRadius * TILE;
-                player._fusilladePortals[p].position.set(portalX, 0.05, portalZ);
-                player._fusilladePortals[p].visible = true;
-                player._fusilladeFists[p].position.set(portalX, 0, portalZ);
-            }
-
-            // Punching loop for 5 seconds — each portal punches repeatedly
             player._fusilladeActive = true;
             player._fusilladeEnd = performance.now() + 5000;
-            player._fusilladeTarget = { x: targX, z: targZ };
+            player._fusilladeHits = 0;
+            player._fusilladeMaxHits = 16;
             player._fusilladeLastPunch = 0;
+            player._fusilladeSide = 0; // alternate left/right
             break; }
         case 'naruto': // Shadow Clones — 8 permanent
             summon('clone', 8, { hp:9999, damage:Math.round(player.damage*0.6), speed:player.speed, radius:0.35, attackRange:1.5, attackSpeed:400, life:Infinity, color:'#ff8f00' });
@@ -1137,54 +1087,88 @@ function playerQAbility() {
     }
 }
 
-// ─── FUSILLADE UPDATE (circle of portals punching for 5s) ───
+// ─── FUSILLADE UPDATE (Blox Fruits style: rapid fist barrage from side portals) ───
 function updateFusillade(now, dt) {
     if (!player || player.classId !== 'katakuri' || !player._fusilladeActive) return;
 
-    // Check if fusillade expired
-    if (now > player._fusilladeEnd) {
+    // Check if fusillade expired or hit cap
+    if (now > player._fusilladeEnd || player._fusilladeHits >= player._fusilladeMaxHits) {
         player._fusilladeActive = false;
-        if (player._fusilladePortals) {
-            for (const p of player._fusilladePortals) p.visible = false;
-            for (const f of player._fusilladeFists) { f.visible = false; f.scale.y = 0.01; }
-        }
+        // Restore portal scale
+        for (const p of kataPortals) p.scale.setScalar(1.0);
         return;
     }
 
-    // Punch every 200ms — cycle through the 8 portals
-    if (!player._fusilladeLastPunch) player._fusilladeLastPunch = 0;
-    if (now - player._fusilladeLastPunch > 200) {
+    // Fire a fist every ~312ms (16 hits over 5s), alternating left/right portal
+    if (now - player._fusilladeLastPunch > 312) {
         player._fusilladeLastPunch = now;
+        player._fusilladeHits++;
 
-        // Pick which portal punches (cycle through all 8)
-        if (player._fusilladeIdx === undefined) player._fusilladeIdx = 0;
-        const idx = player._fusilladeIdx % 8;
-        player._fusilladeIdx++;
+        const px = fpsCamera.posX, pz = fpsCamera.posZ;
+        const yaw = fpsCamera.yaw;
+        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
 
-        const fist = player._fusilladeFists[idx];
-        if (fist) {
-            // Punch animation — extend up then retract
-            fist.visible = true;
-            fist.scale.y = 1;
-            // Retract after 150ms
-            setTimeout(() => { if (fist) fist.scale.y = 0.01; }, 150);
+        // Lock-on: find nearest enemy in range
+        let lockTarget = null, lockDist = Infinity;
+        for (const e of enemies3D) {
+            if (!e.data.alive) continue;
+            const d = Math.hypot(e.data.x - px, e.data.z - pz);
+            if (d < 12 && d < lockDist) { lockDist = d; lockTarget = e; }
         }
 
-        // Damage enemies near this portal
-        const portal = player._fusilladePortals[idx];
-        if (portal) {
-            const portalTileX = portal.position.x / TILE;
-            const portalTileZ = portal.position.z / TILE;
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                if (Math.hypot(e.data.x - portalTileX, e.data.z - portalTileZ) < 1.5) {
-                    dealDamageToEnemy(e, Math.round(player.damage * 1.5));
-                    // Small knockback upward (visual bump)
-                    e.mesh.position.y = 0.5;
-                    setTimeout(() => { if (e.mesh) e.mesh.position.y = 0; }, 200);
-                }
+        // Aim at locked target or forward
+        let aimX, aimZ, aimWorldY = EYE_HEIGHT;
+        if (lockTarget) {
+            aimX = lockTarget.data.x * TILE;
+            aimZ = lockTarget.data.z * TILE;
+        } else {
+            aimX = (px + fwdX * 8) * TILE;
+            aimZ = (pz + fwdZ * 8) * TILE;
+        }
+
+        // Fire from alternating portal
+        const side = player._fusilladeSide % 2;
+        player._fusilladeSide++;
+        kataFireFist(side, aimX, aimWorldY, aimZ, Math.round(player.damage * 1.8));
+
+        // Pulse the firing portal
+        if (kataPortals[side]) {
+            kataPortals[side].scale.setScalar(2.2);
+            setTimeout(() => { if (kataPortals[side] && player._fusilladeActive) kataPortals[side].scale.setScalar(1.8); }, 200);
+        }
+
+        // Pull enemies toward the player on each hit
+        if (lockTarget) {
+            const dx = px - lockTarget.data.x, dz = pz - lockTarget.data.z;
+            const d = Math.hypot(dx, dz);
+            if (d > 1.5) {
+                const pullStrength = 0.4;
+                lockTarget.data.x += (dx / d) * pullStrength;
+                lockTarget.data.z += (dz / d) * pullStrength;
+                lockTarget.mesh.position.set(lockTarget.data.x * TILE, 0, lockTarget.data.z * TILE);
+            }
+            // Stun the target (prevent attack while being pummeled)
+            lockTarget.data.lastAttack = now + 400;
+        }
+
+        // Also pull nearby enemies (AoE vacuum effect)
+        for (const e of enemies3D) {
+            if (!e.data.alive || e === lockTarget) continue;
+            const dx = px - e.data.x, dz = pz - e.data.z;
+            const d = Math.hypot(dx, dz);
+            if (d < 6 && d > 1.5) {
+                const pull = 0.15;
+                e.data.x += (dx / d) * pull;
+                e.data.z += (dz / d) * pull;
+                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
             }
         }
+    }
+
+    // Keep portals pulsing/glowing during fusillade
+    const pulseT = Math.sin(now * 0.01) * 0.15;
+    for (const p of kataPortals) {
+        p.scale.setScalar(1.8 + pulseT);
     }
 }
 
