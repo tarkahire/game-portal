@@ -225,8 +225,6 @@ function init() {
                 if (e.code === 'KeyN') p2Ability('f');
                 if (e.code === 'Numpad0') p2Dodge();
             }
-            // Debug: log key codes to console (remove later)
-            if (coopMode) console.log('Key:', e.code, 'P2 alive:', player2?.alive);
         }
     });
 
@@ -2701,19 +2699,20 @@ function spawnImpactSparks(worldX, worldY, worldZ, color, count) {
     }
 }
 
-function spawnMeleeSlash(color) {
+function spawnMeleeSlash(color, forP2) {
     initSlashPool();
-    const yaw = fpsCamera.yaw;
-    const pitch = fpsCamera.pitch || 0;
-    const fly = fpsCamera.flyHeight || 0;
+    const cam = forP2 ? fpsCamera2 : fpsCamera;
+    const plr = forP2 ? player2 : player;
+    const yaw = cam.yaw;
+    const pitch = cam.pitch || 0;
+    const fly = cam.flyHeight || 0;
     const dirX = -Math.sin(yaw);
     const dirZ = -Math.cos(yaw);
-    const baseX = fpsCamera.posX * TILE + dirX * 2;
+    const baseX = cam.posX * TILE + dirX * 2;
     const baseY = EYE_HEIGHT + fly + Math.sin(pitch) * 1.5;
-    const baseZ = fpsCamera.posZ * TILE + dirZ * 2;
+    const baseZ = cam.posZ * TILE + dirZ * 2;
 
-    // Combo step determines slash angle (alternating diagonal)
-    const step = player?._comboStep || 0;
+    const step = plr?._comboStep || 0;
     const angles = [0.7, -0.7, 0.5, -0.9]; // alternating diagonal tilts
     const tilt = angles[step % 4];
 
@@ -3241,44 +3240,50 @@ function p2Attack() {
         }
     }
 
-    spawnMeleeSlash(player2.cls.color);
+    spawnMeleeSlash(player2.cls.color, true);
+
+    // P2 weapon swing on viewmodel
+    if (hasWeap && fpsSword2) {
+        const isToji2 = player2.classId === 'toji';
+        const isBrook2 = player2.classId === 'brook';
+        const swings = isToji2 ? SPEAR_SWINGS : isBrook2 ? CANE_SWINGS : SWORD_SWINGS;
+        const rest = isToji2 ? SPEAR_REST : isBrook2 ? CANE_REST : SWORD_REST;
+        const pattern = swings[player2._comboStep % swings.length];
+        swordSwing2 = {
+            startTime: performance.now(),
+            dur: pattern.dur,
+            returnDur: 120,
+            pattern,
+            phase: 'swing',
+            _restPos: rest,
+        };
+    }
+
     player2._comboStep = (player2._comboStep + 1) % 4;
 }
 
 function p2Ability(slot) {
-    // P2 abilities — simplified: just damage in front for now
+    // Temporarily swap player/camera so fruitAbility uses P2's state
     if (!player2 || !player2.alive) return;
-    const now = performance.now();
-    if (!player2._abilityCds) player2._abilityCds = { z: 0, x: 0, c: 0, v: 0, f: 0 };
-    const cd = player2.cls.abilityCooldowns?.[slot] || 5000;
-    if (now - player2._abilityCds[slot] < cd) return;
-    player2._abilityCds[slot] = now;
+    const savedPlayer = player;
+    const savedCamera = fpsCamera;
+    const savedSword = fpsSword;
+    const savedSwing = swordSwing;
+    player = player2;
+    fpsCamera = fpsCamera2;
+    fpsSword = fpsSword2;
+    swordSwing = swordSwing2;
 
-    const px = fpsCamera2.posX, pz = fpsCamera2.posZ;
-    const yaw = fpsCamera2.yaw;
-    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-    const range = 5;
+    fruitAbility(slot);
 
-    for (const e of enemies3D) {
-        if (!e.data.alive) continue;
-        const dx = e.data.x - px, dz = e.data.z - pz;
-        const d = Math.hypot(dx, dz);
-        if (d > range) continue;
-        const a = Math.atan2(-dx, -dz);
-        let ad = a - yaw;
-        while (ad > Math.PI) ad -= Math.PI * 2;
-        while (ad < -Math.PI) ad += Math.PI * 2;
-        if (Math.abs(ad) < Math.PI * 0.6) {
-            dealDamageToEnemy(e, Math.round(player2.damage * 2));
-        }
-    }
-
-    const wx = px * TILE, wz = pz * TILE;
-    emitParticles(wx + fwdX * 2, EYE_HEIGHT, wz + fwdZ * 2, {
-        color: [player2.cls.color, '#ffffff'], count: 15, speed: 4, spread: 1.5,
-        gravity: -3, life: 12, size: 0.12, sizeEnd: 0, drag: 0.96
-    });
-    screenShake(0.2, 100);
+    // Save any swing state changes back to P2
+    swordSwing2 = swordSwing;
+    fpsSword2 = fpsSword;
+    // Restore P1
+    player = savedPlayer;
+    fpsCamera = savedCamera;
+    fpsSword = savedSword;
+    swordSwing = savedSwing;
 }
 
 function p2Dodge() {
@@ -5054,6 +5059,43 @@ function update() {
         fpsCamera2.update(dt, dungeon.map);
         playerLight2.position.copy(camera2.position);
         if (fpsSword2) fpsSword2.visible = !fpsCamera2.thirdPerson;
+
+        // P2 weapon swing update
+        if (fpsSword2 && swordSwing2) {
+            const now2 = performance.now();
+            const elapsed2 = now2 - swordSwing2.startTime;
+            const p2 = swordSwing2.pattern;
+            const rest2 = swordSwing2._restPos || SWORD_REST;
+            if (swordSwing2.phase === 'swing') {
+                const t2 = Math.min(elapsed2 / swordSwing2.dur, 1);
+                const ease2 = 1 - Math.pow(1 - t2, 3);
+                fpsSword2.position.set(
+                    p2.startPos.x + (p2.endPos.x - p2.startPos.x) * ease2,
+                    p2.startPos.y + (p2.endPos.y - p2.startPos.y) * ease2,
+                    p2.startPos.z + (p2.endPos.z - p2.startPos.z) * ease2);
+                fpsSword2.rotation.set(
+                    p2.startRot.x + (p2.endRot.x - p2.startRot.x) * ease2,
+                    p2.startRot.y + (p2.endRot.y - p2.startRot.y) * ease2,
+                    p2.startRot.z + (p2.endRot.z - p2.startRot.z) * ease2);
+                if (t2 >= 1) { swordSwing2.phase = 'return'; swordSwing2.startTime = now2; }
+            } else {
+                const t2 = Math.min(elapsed2 / swordSwing2.returnDur, 1);
+                const ease2 = t2 < 0.5 ? 2 * t2 * t2 : 1 - Math.pow(-2 * t2 + 2, 2) / 2;
+                fpsSword2.position.set(
+                    p2.endPos.x + (rest2.x - p2.endPos.x) * ease2,
+                    p2.endPos.y + (rest2.y - p2.endPos.y) * ease2,
+                    p2.endPos.z + (rest2.z - p2.endPos.z) * ease2);
+                fpsSword2.rotation.set(
+                    p2.endRot.x + (rest2.rx - p2.endRot.x) * ease2,
+                    p2.endRot.y + (rest2.ry - p2.endRot.y) * ease2,
+                    p2.endRot.z + (rest2.rz - p2.endRot.z) * ease2);
+                if (t2 >= 1) {
+                    swordSwing2 = null;
+                    fpsSword2.position.set(rest2.x, rest2.y, rest2.z);
+                    fpsSword2.rotation.set(rest2.rx, rest2.ry, rest2.rz);
+                }
+            }
+        }
 
         // P2 room discovery
         const p2Room = getRoomAt(dungeon.rooms, fpsCamera2.posX, fpsCamera2.posZ);
