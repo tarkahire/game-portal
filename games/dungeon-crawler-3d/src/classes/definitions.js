@@ -60,4 +60,5 @@ export const CLASSES = {
     dog: { name: 'Dog', maxHp: 150, speed: 3.5, attackRange: 30, attackDamage: 16, attackSpeed: 280, attackType: 'melee', color: '#5d4037', specialCooldown: 3000, specialName: 'Pack Howl', weaponType: 'jaw' },
     kitsune: { name: 'Kitsune', maxHp: 95, speed: 2.8, attackRange: 28, attackDamage: 11, attackSpeed: 380, attackType: 'melee', color: '#00e5ff', specialCooldown: 4000, specialName: 'Fox Fire', weaponType: 'claw' },
     mahoraga: { name: 'Mahoraga', maxHp: 160, speed: 2.2, attackRange: 50, attackDamage: 18, attackSpeed: 500, attackType: 'melee', color: '#7c4dff', specialCooldown: 5000, specialName: 'Adaptation', weaponType: 'sword' },
+    parasite: { name: 'Parasite', maxHp: 70, speed: 3.2, attackRange: 40, attackDamage: 8, attackSpeed: 300, attackType: 'melee', color: '#76ff03', specialCooldown: 6000, specialName: 'Infest', weaponType: 'claw' },
 };

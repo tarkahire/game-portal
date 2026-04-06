@@ -1234,6 +1234,53 @@ function playerAttack() {
         return;
     }
 
+    // Parasite — Tendril Lash: extended whip, drains HP on hit
+    if (player.classId === 'parasite' && !player._parasiteInfesting) {
+        const px = fpsCamera.posX, pz = fpsCamera.posZ;
+        const yaw = fpsCamera.yaw;
+        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+        const range = player._apexPredator ? 5 : 3.5;
+        const drainAmt = player._apexPredator ? 4 : 2;
+
+        // Spawn tendril visual — a stretchy green line from player toward target
+        if (!player._tendrilMesh) {
+            player._tendrilMesh = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.03, 0.05, 1, 4),
+                new THREE.MeshBasicMaterial({ color: '#76ff03' })
+            );
+            scene.add(player._tendrilMesh);
+        }
+        // Show tendril extending forward
+        player._tendrilMesh.visible = true;
+        player._tendrilMesh.position.set(
+            px * TILE + fwdX * range * 0.5 * TILE,
+            EYE_HEIGHT - 0.2,
+            pz * TILE + fwdZ * range * 0.5 * TILE
+        );
+        player._tendrilMesh.scale.set(1, range * TILE * 0.5, 1);
+        player._tendrilMesh.lookAt(px * TILE + fwdX * range * TILE, EYE_HEIGHT - 0.2, pz * TILE + fwdZ * range * TILE);
+        player._tendrilMesh.rotateX(Math.PI / 2);
+        setTimeout(() => { if (player._tendrilMesh) player._tendrilMesh.visible = false; }, 200);
+
+        // Damage enemies in a narrow cone ahead + drain HP
+        for (const e of enemies3D) {
+            if (!e.data.alive) continue;
+            const dx = e.data.x - px, dz = e.data.z - pz;
+            const d = Math.hypot(dx, dz);
+            if (d > range) continue;
+            const a = Math.atan2(-dx, -dz);
+            let ad = a - yaw;
+            while (ad > Math.PI) ad -= Math.PI * 2; while (ad < -Math.PI) ad += Math.PI * 2;
+            if (Math.abs(ad) < Math.PI * 0.35) { // narrower cone — tendril whip
+                dealDamageToEnemy(e, player.damage);
+                // Drain HP
+                player.hp = Math.min(player.hp + drainAmt, player.maxHp);
+            }
+        }
+        spawnMeleeSlash('#76ff03');
+        return;
+    }
+
     if (player.attackType === 'melee') {
         // Melee — hit enemies in arc in front of camera
         const yaw = fpsCamera.yaw;
@@ -1534,9 +1581,58 @@ function playerSpecial() {
             stunNear(4, 1500);
             spawnMeleeSlash('#7c4dff');
             break; }
+        case 'parasite': { // Infest — attach to an enemy, ride them, they fight for you
+            // Find nearest non-boss enemy
+            let target = null, bestD = Infinity;
+            for (const e of enemies3D) {
+                if (!e.data.alive || e.data.isBoss) continue;
+                const d = Math.hypot(e.data.x - px, e.data.z - pz);
+                if (d < 6 && d < bestD) { bestD = d; target = e; }
+            }
+            if (!target) break;
+
+            // Attach to the enemy
+            player._parasiteInfesting = true;
+            player._parasiteHost = target;
+            player._parasiteHostOrigColor = target.mesh.children[0]?.material?.color?.getHex() || 0x76ff03;
+            player.invincible = now + 999999; // invincible while infesting
+
+            // Recolor host green to show infestation
+            target.mesh.traverse(c => { if (c.isMesh && c.material) c.material.color.set('#76ff03'); });
+            // Host now fights other enemies (flip its AI)
+            target.data._infested = true;
+            target.data._infestedEnd = now + 8000;
+            target.data.damage = Math.round(target.data.damage * 2); // boosted damage
+            // Hide player model
+            if (fpsCamera.playerModel) fpsCamera.playerModel.visible = false;
+
+            // Timer to eject
+            setTimeout(() => {
+                if (player._parasiteInfesting) parasiteEject();
+            }, 8000);
+            spawnMeleeSlash('#76ff03');
+            break; }
         default: // Fallback AoE
             aoeHit(4, 2); spawnMeleeSlash(player.cls.color);
     }
+}
+
+// Parasite eject — pop out of host
+function parasiteEject() {
+    if (!player || !player._parasiteInfesting) return;
+    const host = player._parasiteHost;
+    player._parasiteInfesting = false;
+    player.invincible = performance.now() + 500; // brief invuln on eject
+    if (fpsCamera.playerModel) fpsCamera.playerModel.visible = fpsCamera.thirdPerson;
+
+    if (host && host.data.alive) {
+        // Pop out near the host
+        fpsCamera.setPosition(host.data.x + (Math.random() - 0.5) * 2, host.data.z + (Math.random() - 0.5) * 2);
+        host.data._infested = false;
+        // Restore host color
+        host.mesh.traverse(c => { if (c.isMesh && c.material) c.material.color.set('#ff0000'); });
+    }
+    player._parasiteHost = null;
 }
 
 // ─── SECONDARY ABILITIES (R KEY) ────────────────────────────
@@ -1613,6 +1709,40 @@ function playerSecondary() {
                 }
             }, 400);
             break; }
+        case 'parasite': { // Drain — steal HP from all nearby enemies, green tendrils
+            if (now - player._secondaryCd < 3000) return; player._secondaryCd = now;
+            const drainRange = player._apexPredator ? 7 : 4;
+            const drainDmg = player._apexPredator ? 2.0 : 1.0;
+            let totalDrain = 0;
+
+            for (const e of enemies3D) {
+                if (!e.data.alive || e.data._infested) continue;
+                const dx = e.data.x - px, dz = e.data.z - pz;
+                const d = Math.hypot(dx, dz);
+                if (d > drainRange) continue;
+
+                const dmg = Math.round(player.damage * drainDmg);
+                dealDamageToEnemy(e, dmg);
+                totalDrain += Math.round(dmg * 0.5);
+
+                // Visual tendril connecting player to enemy
+                const tendril = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.02, 0.04, d * TILE, 4),
+                    new THREE.MeshBasicMaterial({ color: '#76ff03', transparent: true, opacity: 0.7 })
+                );
+                const midX = (px + e.data.x) * 0.5 * TILE;
+                const midZ = (pz + e.data.z) * 0.5 * TILE;
+                tendril.position.set(midX, EYE_HEIGHT * 0.5, midZ);
+                tendril.lookAt(e.data.x * TILE, EYE_HEIGHT * 0.5, e.data.z * TILE);
+                tendril.rotateX(Math.PI / 2);
+                scene.add(tendril);
+                setTimeout(() => scene.remove(tendril), 500);
+            }
+
+            // Heal from drain
+            if (totalDrain > 0) player.hp = Math.min(player.hp + totalDrain, player.maxHp);
+            spawnMeleeSlash('#76ff03');
+            break; }
         default: break;
     }
 }
@@ -1676,6 +1806,39 @@ function playerQAbility() {
                 e.data.lastAttack = now + 3000; // big stun
             }
             spawnMeleeSlash(mahoTransformed ? '#e040fb' : '#7c4dff');
+            break; }
+        case 'parasite': { // Evolve — activate absorption, each kill permanently buffs stats
+            if(!player._parasiteQCd)player._parasiteQCd=0;if(now-player._parasiteQCd<10000)break;player._parasiteQCd=now;
+            if (!player._parasiteEvolveStacks) player._parasiteEvolveStacks = 0;
+            player._parasiteEvolveStacks++;
+
+            // Immediate stat boost on activation
+            player.damage += 2;
+            player.maxHp += 10;
+            player.hp = Math.min(player.hp + 10, player.maxHp);
+            player.speed += 0.05;
+            fpsCamera.speed = player.speed;
+
+            // Visual — player grows slightly each evolve
+            if (fpsCamera.playerModel) {
+                const s = 1 + player._parasiteEvolveStacks * 0.08;
+                fpsCamera.playerModel.scale.setScalar(Math.min(s, 2.0));
+            }
+
+            // Green burst
+            spawnMeleeSlash('#76ff03');
+            // Tendrils radiate outward briefly
+            for (let i = 0; i < 6; i++) {
+                const a = (i / 6) * Math.PI * 2;
+                const t = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.02, 0.03, 3, 4),
+                    new THREE.MeshBasicMaterial({ color: '#76ff03', transparent: true, opacity: 0.6 })
+                );
+                t.position.set(px * TILE + Math.cos(a) * 1.5 * TILE, EYE_HEIGHT * 0.4, pz * TILE + Math.sin(a) * 1.5 * TILE);
+                t.rotation.z = a;
+                scene.add(t);
+                setTimeout(() => scene.remove(t), 600);
+            }
             break; }
         default: break;
     }
@@ -2006,6 +2169,95 @@ function playerFAbility() {
         return;
     }
 
+    // Parasite — Apex Predator: merge with nearest enemy (or boss!), gain their size + stats
+    if (player.classId === 'parasite') {
+        if (player._apexPredator) return; // already transformed
+
+        const px = fpsCamera.posX, pz = fpsCamera.posZ;
+        // Find nearest enemy — prefer boss
+        let target = null, bestD = Infinity;
+        let targetBoss = null, bestBossD = Infinity;
+        for (const e of enemies3D) {
+            if (!e.data.alive) continue;
+            const d = Math.hypot(e.data.x - px, e.data.z - pz);
+            if (e.data.isBoss && d < 10 && d < bestBossD) { bestBossD = d; targetBoss = e; }
+            if (d < 6 && d < bestD) { bestD = d; target = e; }
+        }
+        const victim = targetBoss || target;
+        if (!victim) return;
+
+        player._apexPredator = true;
+
+        // Absorb the victim's stats
+        const stolenDmg = Math.round(victim.data.damage * 0.8);
+        const stolenHp = Math.round(victim.data.maxHp * 0.5);
+        const stolenSpd = victim.data.speed * 0.3;
+        player.damage += stolenDmg;
+        player.maxHp += stolenHp;
+        player.hp = player.maxHp; // full heal
+        player.speed += stolenSpd;
+        fpsCamera.speed = player.speed;
+        player.attackSpeed = Math.round(player.attackSpeed * 0.6); // much faster
+
+        // Kill the victim (absorbed)
+        dealDamageToEnemy(victim, 99999);
+
+        // Rebuild player model — larger, mutated, green-glowing horror
+        if (fpsCamera.playerModel) scene.remove(fpsCamera.playerModel);
+        const pm = new THREE.Group();
+        const mutantMat = new THREE.MeshStandardMaterial({ color: '#2e7d32', emissive: '#76ff03', emissiveIntensity: 0.4, roughness: 0.5 });
+        // Big mutated torso
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.5, 2, 8), mutantMat);
+        body.position.y = 1.2; pm.add(body);
+        // Head — bulging, asymmetric
+        const headMat = new THREE.MeshStandardMaterial({ color: '#1b5e20', emissive: '#76ff03', emissiveIntensity: 0.3 });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 6, 6), headMat);
+        head.position.y = 2.4; head.scale.set(1, 0.8, 1.1); pm.add(head);
+        // Glowing eyes
+        const eyeMat = new THREE.MeshBasicMaterial({ color: '#76ff03' });
+        pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), eyeMat).translateX(-0.12).translateY(2.45).translateZ(0.28));
+        pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), eyeMat).translateX(0.15).translateY(2.5).translateZ(0.25));
+        // Multiple tendril arms
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const yOff = 1.4 + Math.sin(i * 1.5) * 0.4;
+            const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.08, 1.2, 4), mutantMat);
+            arm.position.set(Math.cos(angle) * 0.5, yOff, Math.sin(angle) * 0.5);
+            arm.rotation.z = angle * 0.3;
+            arm.rotation.x = Math.sin(angle) * 0.5;
+            pm.add(arm);
+        }
+        // Thick legs
+        const legMat = new THREE.MeshStandardMaterial({ color: '#1b5e20', roughness: 0.7 });
+        for (let s = -1; s <= 1; s += 2) {
+            pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.12, 0.8, 5), legMat).translateX(s * 0.25).translateY(0.3));
+        }
+        // Aura glow
+        pm.add(new THREE.PointLight('#76ff03', 3, TILE * 5, 2));
+        pm.scale.setScalar(victim.data.isBoss ? 1.8 : 1.4);
+        addPlayerLabel(pm, 'APEX PREDATOR', '#76ff03');
+        pm.visible = fpsCamera.thirdPerson;
+        scene.add(pm);
+        fpsCamera.playerModel = pm;
+
+        // Invincible during transformation
+        player.invincible = performance.now() + 2000;
+
+        // AoE burst
+        for (const e of enemies3D) {
+            if (!e.data.alive) continue;
+            const d = Math.hypot(e.data.x - px, e.data.z - pz);
+            if (d < 6) {
+                dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                e.data.lastAttack = performance.now() + 2000;
+            }
+        }
+        spawnMeleeSlash('#76ff03');
+        setTimeout(() => spawnMeleeSlash('#2e7d32'), 200);
+        setTimeout(() => spawnMeleeSlash('#76ff03'), 400);
+        return;
+    }
+
     // Other classes
     if (player.classId === 'jinwoo') { /* Arise boss placeholder */ }
 }
@@ -2328,6 +2580,19 @@ function dealDamageToEnemy(e, dmg) {
             for (const e2 of enemies3D) { if (!e2.data.alive || e2 === e) continue;
                 if (Math.hypot(e2.data.x - e.data.x, e2.data.z - e.data.z) < 3) dealDamageToEnemy(e2, Math.round(player.damage * 1.5)); }
         }
+        // Parasite — eject if host dies
+        if (player && player._parasiteInfesting && player._parasiteHost === e) {
+            parasiteEject();
+        }
+        // Parasite — absorb dead enemy stats (Evolve passive, stacks from Q)
+        if (player && player.classId === 'parasite' && player._parasiteEvolveStacks > 0) {
+            const absorb = Math.round(e.data.damage * 0.05 * player._parasiteEvolveStacks);
+            if (absorb > 0) {
+                player.damage += absorb;
+                player.maxHp += Math.round(absorb * 2);
+                player.hp = Math.min(player.hp + absorb * 2, player.maxHp);
+            }
+        }
         // Dog passive — 50% puppy on kill
         if (player && player.classId === 'dog' && Math.random() < 0.5) {
             spawnMinion('dog_pack', e.data.x, e.data.z,
@@ -2468,6 +2733,39 @@ function update() {
         billboardEnemy(e.mesh, camera.position);
         if (e.label) e.label.position.set(e.data.x * TILE, e.data.isBoss ? 5.5 : 3.5, e.data.z * TILE);
         animateEnemyMesh(e.mesh, e.data.enemyType, time);
+
+        // Infested enemies chase OTHER enemies instead of the player
+        if (e.data._infested) {
+            if (now > e.data._infestedEnd) { e.data._infested = false; e.mesh.traverse(c => { if (c.isMesh && c.material) c.material.color.set('#ff0000'); }); }
+            else {
+                // Find nearest non-infested enemy to attack
+                let target = null, bestD = Infinity;
+                for (const o of enemies3D) {
+                    if (o === e || !o.data.alive || o.data._infested) continue;
+                    const d = Math.hypot(o.data.x - e.data.x, o.data.z - e.data.z);
+                    if (d < 10 && d < bestD) { bestD = d; target = o; }
+                }
+                if (target) {
+                    const dx = target.data.x - e.data.x, dz = target.data.z - e.data.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.5) {
+                        const spd = e.data.speed * dt * 1.5;
+                        e.data.x += (dx / dist) * spd;
+                        e.data.z += (dz / dist) * spd;
+                        e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                    }
+                    if (dist < e.data.range + 0.5 && now - e.data.lastAttack > e.data.attackSpeed) {
+                        e.data.lastAttack = now;
+                        dealDamageToEnemy(target, e.data.damage);
+                    }
+                }
+                // Camera follows host if player is infesting
+                if (player._parasiteInfesting && player._parasiteHost === e) {
+                    fpsCamera.setPosition(e.data.x, e.data.z);
+                }
+            }
+            continue; // skip normal AI
+        }
 
         // AI — chase and attack player (with wall collision)
         if (distToPlayer < 12 && distToPlayer > e.data.radius) {
