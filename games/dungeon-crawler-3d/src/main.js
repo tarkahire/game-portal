@@ -1340,7 +1340,148 @@ function playerAttack() {
 function fruitAbility(slot) {
     if (!player || !player.alive) return;
     const now = performance.now();
-    // No characters defined yet — add ability code here
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const worldPx = px * TILE, worldPz = pz * TILE;
+
+    // Cooldown check
+    if (!player._abilityCds) player._abilityCds = { z: 0, x: 0, c: 0, v: 0, f: 0 };
+    const cd = player.cls.abilityCooldowns?.[slot] || 5000;
+    if (now - player._abilityCds[slot] < cd) return;
+    player._abilityCds[slot] = now;
+
+    // Helpers
+    const aoeHit = (range, dmgMult) => { for (const e of enemies3D) { if (!e.data.alive) continue; if (Math.hypot(e.data.x-px,e.data.z-pz)<range) dealDamageToEnemy(e, Math.round(player.damage*dmgMult)); }};
+    const stunNear = (range, dur) => { for (const e of enemies3D) { if (!e.data.alive) continue; if (Math.hypot(e.data.x-px,e.data.z-pz)<range) e.data.lastAttack = now + dur; }};
+    const pullEnemies = (cx, cz, range, strength) => { for (const e of enemies3D) { if (!e.data.alive) continue; const dx=cx-e.data.x,dz=cz-e.data.z; const d=Math.hypot(dx,dz); if(d<range&&d>0.5){e.data.x+=(dx/d)*strength;e.data.z+=(dz/d)*strength;e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE);}}};
+
+    const id = player.classId;
+
+    // ══════ GOJO ══════
+    if (id === 'gojo') {
+        if (slot === 'z') { // Cursed Technique Lapse: Blue — gravitational pull
+            // Target point: 5 tiles ahead
+            const targetX = px + fwdX * 5, targetZ = pz + fwdZ * 5;
+            const tWorldX = targetX * TILE, tWorldZ = targetZ * TILE;
+
+            // Blue orb — glowing sphere that appears at target location
+            const orbGeo = new THREE.SphereGeometry(0.4, 12, 12);
+            const orbMat = new THREE.MeshBasicMaterial({
+                color: '#1565c0', transparent: true, opacity: 0.8,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            orb.position.set(tWorldX, EYE_HEIGHT * 0.6, tWorldZ);
+            scene.add(orb);
+
+            // Inner bright core
+            const coreGeo = new THREE.SphereGeometry(0.15, 8, 8);
+            const coreMat = new THREE.MeshBasicMaterial({
+                color: '#82b1ff', transparent: true, opacity: 1,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            orb.add(core);
+
+            // Distortion rings spinning around the orb
+            for (let r = 0; r < 3; r++) {
+                const ring = new THREE.Mesh(
+                    new THREE.TorusGeometry(0.5 + r * 0.15, 0.02, 6, 16),
+                    new THREE.MeshBasicMaterial({ color: '#4fc3f7', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+                );
+                ring.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                orb.add(ring);
+            }
+
+            // Blue glow light
+            const blueLight = new THREE.PointLight('#1565c0', 5, TILE * 6, 2);
+            orb.add(blueLight);
+
+            // Particles getting sucked INTO the orb (converging)
+            emitParticles(tWorldX, EYE_HEIGHT * 0.6, tWorldZ, {
+                color: ['#1565c0', '#1e88e5', '#42a5f5', '#82b1ff'],
+                count: 30, speed: 4, spread: 3,
+                gravity: 0, life: 20, lifeVar: 10,
+                size: 0.12, sizeEnd: 0.02, drag: 0.92,
+                // Particles move INWARD (negative speed pulls toward center)
+                direction: { x: 0, y: 0, z: 0 }
+            });
+
+            // Ground ring at target
+            groundRing(tWorldX, tWorldZ, '#1565c0', 3, 800);
+            groundDecal(tWorldX, tWorldZ, '#0d47a1', 2, 2000);
+
+            // Pull enemies toward the blue orb over 1.5 seconds
+            const pullInterval = setInterval(() => {
+                pullEnemies(targetX, targetZ, 6, 0.8);
+                // Sucking particles each tick
+                emitParticles(tWorldX, EYE_HEIGHT * 0.6, tWorldZ, {
+                    color: ['#1565c0', '#42a5f5'], count: 5, speed: 2, spread: 2.5,
+                    gravity: 0, life: 8, size: 0.08, sizeEnd: 0, drag: 0.9
+                });
+            }, 100);
+
+            // Damage enemies near the orb every 300ms
+            let blueTicks = 0;
+            const dmgInterval = setInterval(() => {
+                blueTicks++;
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - targetX, e.data.z - targetZ) < 3) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 0.8));
+                    }
+                }
+                // Spin the rings
+                if (orb.parent) {
+                    orb.children.forEach(c => {
+                        if (c.geometry?.type === 'TorusGeometry') {
+                            c.rotation.x += 0.15;
+                            c.rotation.y += 0.1;
+                        }
+                    });
+                }
+            }, 300);
+
+            // Implode after 1.5s — final damage burst
+            setTimeout(() => {
+                clearInterval(pullInterval);
+                clearInterval(dmgInterval);
+                // Final burst — crush everything that got pulled in
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - targetX, e.data.z - targetZ) < 3.5) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 2));
+                    }
+                }
+                stunNear(4, 1500);
+                // Implosion VFX
+                emitParticles(tWorldX, EYE_HEIGHT * 0.6, tWorldZ, {
+                    color: ['#0d47a1', '#1565c0', '#1e88e5', '#ffffff'],
+                    count: 40, speed: 6, spread: 0.5,
+                    gravity: 0, life: 15, lifeVar: 8,
+                    size: 0.2, sizeEnd: 0, drag: 0.94, upward: 1
+                });
+                lightFlash(tWorldX, EYE_HEIGHT * 0.6, tWorldZ, '#1565c0', 8, 400);
+                groundRing(tWorldX, tWorldZ, '#42a5f5', 4, 500);
+                screenShake(0.4, 200);
+                triggerHitstop(50);
+                // Remove orb
+                scene.remove(orb);
+                orbMat.dispose(); orbGeo.dispose();
+            }, 1500);
+
+            // Hand pose — Gojo reaches forward
+            if (fpsCamera.playerModel?._rightArm) {
+                const arm = fpsCamera.playerModel._rightArm;
+                arm.rotation.x = -1.2; // arm extended forward
+                setTimeout(() => { arm.rotation.x = 0.05; }, 1500);
+            }
+
+            screenShake(0.15, 100);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#4fc3f7', 2, 200);
+        }
+    }
 }
 
 function playerSpecial() { fruitAbility("z"); }
