@@ -83,6 +83,37 @@ export class FPSCamera {
         this.posZ = tileZ;
     }
 
+    // Safe move — only sets position if target is walkable, otherwise stays put
+    safeMove(newX, newZ, dungeonMap) {
+        const r = PLAYER_RADIUS;
+        // Check if the target is walkable
+        if (isWalkable(dungeonMap, newX - r, newZ - r) &&
+            isWalkable(dungeonMap, newX + r, newZ - r) &&
+            isWalkable(dungeonMap, newX - r, newZ + r) &&
+            isWalkable(dungeonMap, newX + r, newZ + r)) {
+            this.posX = newX;
+            this.posZ = newZ;
+            return true;
+        }
+        // Try just X
+        if (isWalkable(dungeonMap, newX - r, this.posZ - r) &&
+            isWalkable(dungeonMap, newX + r, this.posZ - r) &&
+            isWalkable(dungeonMap, newX - r, this.posZ + r) &&
+            isWalkable(dungeonMap, newX + r, this.posZ + r)) {
+            this.posX = newX;
+            return true;
+        }
+        // Try just Z
+        if (isWalkable(dungeonMap, this.posX - r, newZ - r) &&
+            isWalkable(dungeonMap, this.posX + r, newZ - r) &&
+            isWalkable(dungeonMap, this.posX - r, newZ + r) &&
+            isWalkable(dungeonMap, this.posX + r, newZ + r)) {
+            this.posZ = newZ;
+            return true;
+        }
+        return false; // couldn't move at all
+    }
+
     update(dt, dungeonMap) {
         // Turn
         if (this._isKeyDown(this._keyTurnLeft)) { this.yaw += this.turnSpeed * dt; }

@@ -3604,8 +3604,7 @@ function playerAttack() {
 
         // Toji dash-thrust — lunge forward on 4th hit
         if (isToji) {
-            fpsCamera.posX += fwdX * 2;
-            fpsCamera.posZ += fwdZ * 2;
+            fpsCamera.safeMove(fpsCamera.posX + fwdX * 2, fpsCamera.posZ + fwdZ * 2, dungeon.map);
             fovPunch(14, 0.12);
             player.invincible = performance.now() + 300;
         }
@@ -3719,8 +3718,7 @@ function p2Dodge() {
     player2.dodgeCd = now;
     const fwdX = -Math.sin(fpsCamera2.yaw);
     const fwdZ = -Math.cos(fpsCamera2.yaw);
-    fpsCamera2.posX += fwdX * 2;
-    fpsCamera2.posZ += fwdZ * 2;
+    fpsCamera2.safeMove(fpsCamera2.posX + fwdX * 2, fpsCamera2.posZ + fwdZ * 2, dungeon.map);
     player2.invincible = now + 300;
 }
 
@@ -4684,8 +4682,7 @@ function fruitAbility(slot) {
             }
 
             // Teleport
-            fpsCamera.posX = newX;
-            fpsCamera.posZ = newZ;
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
 
             // VFX
             screenShake(0.2, 100);
@@ -4773,8 +4770,7 @@ function fruitAbility(slot) {
             }
 
             // Small lunge forward
-            fpsCamera.posX += fwdX * 1.5;
-            fpsCamera.posZ += fwdZ * 1.5;
+            fpsCamera.safeMove(fpsCamera.posX + fwdX * 1.5, fpsCamera.posZ + fwdZ * 1.5, dungeon.map);
             fovPunch(10, 0.1);
             lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#aaffcc', 3, 200);
         }
@@ -5093,8 +5089,7 @@ function fruitAbility(slot) {
             }
 
             // Teleport
-            fpsCamera.posX = newX;
-            fpsCamera.posZ = newZ;
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
 
             fovPunch(18, 0.08);
             player.invincible = performance.now() + 350;
@@ -5326,8 +5321,7 @@ function fruitAbility(slot) {
 
                 // Move forward
                 const moveDt = 0.016; // ~60fps
-                fpsCamera.posX += chargeFwdX * chargeSpeed * moveDt;
-                fpsCamera.posZ += chargeFwdZ * chargeSpeed * moveDt;
+                fpsCamera.safeMove(fpsCamera.posX + chargeFwdX * chargeSpeed * moveDt, fpsCamera.posZ + chargeFwdZ * chargeSpeed * moveDt, dungeon.map);
 
                 // Galloping leg animation while on all fours
                 const gallop = elapsed * 0.025;
@@ -5480,8 +5474,7 @@ function fruitAbility(slot) {
                 }
             }
 
-            fpsCamera.posX = newX;
-            fpsCamera.posZ = newZ;
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
             fovPunch(14, 0.1);
             player.invincible = performance.now() + 350;
             screenShake(0.15, 80);
