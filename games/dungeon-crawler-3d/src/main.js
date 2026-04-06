@@ -205,30 +205,25 @@ function init() {
             else if (gameState === 'paused') resumeGame();
         }
         if (gameState === 'playing') {
-            // Abilities — Z/X/C/V/F keys
-            if (e.code === 'KeyZ') fruitAbility('z');
-            if (e.code === 'KeyX') fruitAbility('x');
-            if (e.code === 'KeyC') fruitAbility('c');
-            if (e.code === 'KeyV') fruitAbility('v');
-            if (e.code === 'KeyF') fruitAbility('f');
-            // Abilities — / . , M keys (alternative bindings)
-            if (e.code === 'Slash') fruitAbility('z');
-            if (e.code === 'Period') fruitAbility('x');
-            if (e.code === 'Comma') fruitAbility('c');
-            if (e.code === 'KeyM') fruitAbility('v');
-            // Dodge
-            if (e.code === 'KeyQ') playerDodge();
-            if (e.code === 'Space') playerDodge();
-            // Basic attack — E key or left click
-            if (e.code === 'KeyE') playerAttack();
-            // ── P2 controls (numpad) ──
+            // ── P1 controls ──
+            if (e.code === 'KeyE') playerAttack();       // P1 attack
+            if (e.code === 'KeyZ') fruitAbility('z');     // P1 ability 1
+            if (e.code === 'KeyX') fruitAbility('x');     // P1 ability 2
+            if (e.code === 'KeyC') fruitAbility('c');     // P1 ability 3
+            if (e.code === 'KeyV') fruitAbility('v');     // P1 ability 4
+            if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
+            if (e.code === 'KeyQ') playerDodge();         // P1 dodge
+            if (e.code === 'Space') playerDodge();        // P1 dodge alt
+
+            // ── P2 controls ──
             if (coopMode && player2 && player2.alive) {
-                if (e.code === 'Numpad1') p2Attack();
-                if (e.code === 'Numpad4') p2Ability('z');
-                if (e.code === 'Numpad5') p2Ability('x');
-                if (e.code === 'Numpad6') p2Ability('c');
-                if (e.code === 'Numpad7') p2Ability('v');
-                if (e.code === 'Numpad2') p2Dodge();
+                if (e.code === 'Digit1') p2Attack();      // P2 attack (1 key)
+                if (e.code === 'Slash') p2Ability('z');    // P2 ability 1 (/)
+                if (e.code === 'Period') p2Ability('x');   // P2 ability 2 (.)
+                if (e.code === 'Comma') p2Ability('c');    // P2 ability 3 (,)
+                if (e.code === 'KeyM') p2Ability('v');     // P2 ability 4 (M)
+                if (e.code === 'KeyN') p2Ability('f');     // P2 ability 5 (N)
+                if (e.code === 'Numpad0') p2Dodge();       // P2 dodge (Numpad 0)
             }
         }
     });
