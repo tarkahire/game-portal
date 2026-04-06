@@ -1050,6 +1050,56 @@ function buildTojiModel() {
     const buttCap = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 5), collarMat);
     buttCap.position.y = -0.71;
     spearGroup.add(buttCap);
+    // ── Inventory Curse (purple worm coiled around shaft) ──
+    const wormMat = new THREE.MeshStandardMaterial({ color: '#5a2d82', roughness: 0.4, metalness: 0.1 });
+    const wormBellyMat = new THREE.MeshStandardMaterial({ color: '#7a4da2', roughness: 0.5 });
+    // Body segments spiraling around shaft
+    const wormSegs = 12;
+    for (let i = 0; i < wormSegs; i++) {
+        const t = i / wormSegs;
+        const angle = t * Math.PI * 3; // 1.5 full wraps
+        const radius = 0.035;
+        const segSize = 0.02 + Math.sin(t * Math.PI) * 0.008; // thicker in middle
+        const seg = new THREE.Mesh(new THREE.SphereGeometry(segSize, 5, 5), wormMat);
+        seg.position.set(
+            Math.cos(angle) * radius,
+            -0.3 + t * 0.9, // climb from lower shaft to near spear head
+            Math.sin(angle) * radius
+        );
+        seg.scale.set(1, 1.3, 1); // slightly elongated
+        spearGroup.add(seg);
+    }
+    // Worm head — near the spear blade, peeking out
+    const wormHead = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), wormMat);
+    wormHead.position.set(0.03, 0.62, 0.02);
+    wormHead.scale.set(1.2, 1, 1);
+    spearGroup.add(wormHead);
+    // Worm eyes — tiny glowing dots
+    const wormEyeMat = new THREE.MeshBasicMaterial({ color: '#ff44ff' });
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.006, 4, 4), wormEyeMat);
+        eye.position.set(0.03 + s * 0.012, 0.63, 0.04);
+        spearGroup.add(eye);
+    }
+    // Worm mouth — small dark slit
+    const wormMouth = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.005, 0.005),
+        new THREE.MeshBasicMaterial({ color: '#1a0a2a' }));
+    wormMouth.position.set(0.03, 0.615, 0.045);
+    spearGroup.add(wormMouth);
+    // Tail tip — near the butt end, thinner
+    const tailSegs = 4;
+    for (let i = 0; i < tailSegs; i++) {
+        const t = i / tailSegs;
+        const angle = Math.PI * 3 + t * Math.PI * 0.8;
+        const segSize = 0.015 - t * 0.003;
+        const tail = new THREE.Mesh(new THREE.SphereGeometry(segSize, 4, 4), wormBellyMat);
+        tail.position.set(
+            Math.cos(angle) * 0.03,
+            -0.35 - t * 0.2,
+            Math.sin(angle) * 0.03
+        );
+        spearGroup.add(tail);
+    }
     rightArmPivot.add(spearGroup);
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
@@ -1266,6 +1316,37 @@ function buildFPSSpear() {
     const butt = new THREE.Mesh(new THREE.SphereGeometry(0.014, 5, 5), collarMat);
     butt.position.y = -0.51;
     group.add(butt);
+
+    // ── Inventory Curse (purple worm coiled around shaft) ──
+    const wormMat = new THREE.MeshStandardMaterial({ color: '#5a2d82', roughness: 0.4, metalness: 0.1 });
+    const wormBellyMat = new THREE.MeshStandardMaterial({ color: '#7a4da2', roughness: 0.5 });
+    const fpsWormSegs = 10;
+    for (let i = 0; i < fpsWormSegs; i++) {
+        const t = i / fpsWormSegs;
+        const angle = t * Math.PI * 2.5;
+        const radius = 0.025;
+        const segSize = 0.014 + Math.sin(t * Math.PI) * 0.005;
+        const seg = new THREE.Mesh(new THREE.SphereGeometry(segSize, 4, 4), wormMat);
+        seg.position.set(
+            Math.cos(angle) * radius,
+            -0.2 + t * 0.65,
+            Math.sin(angle) * radius
+        );
+        seg.scale.set(1, 1.3, 1);
+        group.add(seg);
+    }
+    // Worm head peeking near blade
+    const fpsWormHead = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 5), wormMat);
+    fpsWormHead.position.set(0.022, 0.46, 0.015);
+    fpsWormHead.scale.set(1.2, 1, 1);
+    group.add(fpsWormHead);
+    // Eyes
+    const fpsWormEyeMat = new THREE.MeshBasicMaterial({ color: '#ff44ff' });
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.004, 3, 3), fpsWormEyeMat);
+        eye.position.set(0.022 + s * 0.008, 0.465, 0.03);
+        group.add(eye);
+    }
 
     // Position in camera space: lower-right, angled forward and more extended
     group.position.set(0.2, -0.3, -0.5);
@@ -3316,88 +3397,126 @@ function fruitAbility(slot) {
         }
 
         else if (slot === 'x') {
-            // ── CHAIN STRIKE — swing the chain in a wide arc, pulling enemies in ──
-            triggerSwordSwing(2); // horizontal sweep
-            screenShake(0.3, 200);
+            // ── WORM LUNGE — Inventory Curse extends from spear, bites and drags enemies in ──
+            screenShake(0.25, 150);
 
             const fly = fpsCamera.flyHeight || 0;
-            const chainRange = 6;
+            const lungeRange = 7;
+            const targetX = worldPx + fwdX * lungeRange;
+            const targetZ = worldPz + fwdZ * lungeRange;
 
-            // Chain whip visual — arc of segments
-            const chainParts = [];
+            // Build worm body extending forward from player — purple segments stretching out
+            const wormParts = [];
+            const wormSegCount = 16;
+            const wormBodyMat = new THREE.MeshStandardMaterial({ color: '#5a2d82', roughness: 0.4 });
+            const wormHeadMat = new THREE.MeshStandardMaterial({ color: '#7a3db2', roughness: 0.3 });
+
+            for (let i = 0; i < wormSegCount; i++) {
+                const t = i / (wormSegCount - 1);
+                const segX = worldPx + fwdX * t * lungeRange;
+                const segZ = worldPz + fwdZ * t * lungeRange;
+                // Sinuous wave motion
+                const perpX = -fwdZ, perpZ = fwdX;
+                const wave = Math.sin(t * Math.PI * 3) * 0.4;
+                const segSize = 0.12 + Math.sin(t * Math.PI) * 0.06; // thicker in middle
+                const seg = new THREE.Mesh(
+                    new THREE.SphereGeometry(segSize, 6, 6),
+                    i === wormSegCount - 1 ? wormHeadMat : wormBodyMat
+                );
+                seg.position.set(
+                    segX + perpX * wave,
+                    EYE_HEIGHT + fly - 0.3 + Math.sin(t * Math.PI * 2) * 0.2,
+                    segZ + perpZ * wave
+                );
+                seg.scale.set(1, 0.8, 1);
+                seg.visible = false; // start hidden, reveal in sequence
+                scene.add(seg);
+                wormParts.push(seg);
+            }
+
+            // Worm head details — big mouth and eyes at the tip
+            const headPos = wormParts[wormParts.length - 1].position;
+            // Glowing eyes
+            const wEyeMat = new THREE.MeshBasicMaterial({ color: '#ff44ff' });
+            for (let s = -1; s <= 1; s += 2) {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), wEyeMat);
+                eye.position.set(headPos.x + s * 0.08, headPos.y + 0.06, headPos.z);
+                eye.visible = false;
+                scene.add(eye);
+                wormParts.push(eye);
+            }
+            // Open mouth
+            const jawMat = new THREE.MeshBasicMaterial({ color: '#2a0a3a' });
+            const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), jawMat);
+            jaw.position.set(headPos.x, headPos.y - 0.02, headPos.z);
+            jaw.scale.set(1.2, 0.5, 1);
+            jaw.visible = false;
+            scene.add(jaw);
+            wormParts.push(jaw);
+
+            // Animate: reveal segments in rapid sequence (worm extending outward)
+            for (let i = 0; i < wormParts.length; i++) {
+                setTimeout(() => { wormParts[i].visible = true; }, i * 20);
+            }
+
+            // Purple slime trail particles
             for (let i = 0; i < 8; i++) {
-                const angle = fpsCamera.yaw + Math.PI + (i / 7 - 0.5) * Math.PI * 0.8;
-                const dist = 2 + i * 0.5;
-                const cx = worldPx + Math.sin(-angle) * dist;
-                const cz = worldPz + Math.cos(-angle) * dist;
-
-                const linkGeo = new THREE.SphereGeometry(0.08, 4, 4);
-                const linkMat = new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.7, roughness: 0.3 });
-                const link = new THREE.Mesh(linkGeo, linkMat);
-                link.position.set(cx, EYE_HEIGHT + fly - 0.3, cz);
-                scene.add(link);
-                chainParts.push(link);
-
-                // Chain line segment between links
-                if (i > 0) {
-                    const prev = chainParts[i - 1];
-                    const lineGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.6, 3);
-                    const lineMat = new THREE.MeshStandardMaterial({ color: '#666666', metalness: 0.6 });
-                    const line = new THREE.Mesh(lineGeo, lineMat);
-                    line.position.set(
-                        (cx + prev.position.x) / 2,
-                        EYE_HEIGHT + fly - 0.3,
-                        (cz + prev.position.z) / 2
-                    );
-                    line.lookAt(prev.position);
-                    line.rotateX(Math.PI / 2);
-                    scene.add(line);
-                    chainParts.push(line);
-                }
+                setTimeout(() => {
+                    const t = i / 7;
+                    const sx = worldPx + fwdX * t * lungeRange;
+                    const sz = worldPz + fwdZ * t * lungeRange;
+                    emitParticles(sx, EYE_HEIGHT + fly - 0.3, sz, {
+                        color: ['#5a2d82', '#7a4da2', '#9a6dc2'],
+                        count: 3, speed: 1.5, spread: 0.4,
+                        gravity: -6, life: 12, size: 0.06, sizeEnd: 0, drag: 0.96
+                    });
+                }, i * 30);
             }
 
-            // Sparks along chain arc
-            emitParticles(worldPx + fwdX * 3, EYE_HEIGHT + fly, worldPz + fwdZ * 3, {
-                color: ['#ffffff', '#cccccc', '#888888'],
-                count: 15, speed: 4, spread: 3,
-                gravity: -5, life: 10, size: 0.06, sizeEnd: 0, drag: 0.96
-            });
-
-            // Hit enemies in wide arc and pull them toward player
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                const dx = e.data.x - px, dz = e.data.z - pz;
-                const d = Math.hypot(dx, dz);
-                if (d > chainRange || d < 0.5) continue;
-                const a = Math.atan2(-dx, -dz);
-                let ad = a - yaw;
-                while (ad > Math.PI) ad -= Math.PI * 2;
-                while (ad < -Math.PI) ad += Math.PI * 2;
-                if (Math.abs(ad) < Math.PI * 0.55) {
-                    dealDamageToEnemy(e, Math.round(player.damage * 1.5));
-                    // Pull toward player
-                    e.data.x -= (dx / d) * 1.5;
-                    e.data.z -= (dz / d) * 1.5;
-                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
-                    // Stun briefly
-                    e.data.lastAttack = now + 800;
-                }
-            }
-
-            // Remove chain after 300ms
+            // Hit enemies in the line — bite damage + pull toward player
             setTimeout(() => {
-                for (const p of chainParts) { scene.remove(p); if (p.geometry) p.geometry.dispose(); if (p.material) p.material.dispose(); }
-            }, 300);
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    const dx = e.data.x - px, dz = e.data.z - pz;
+                    const d = Math.hypot(dx, dz);
+                    if (d > lungeRange / TILE + 1 || d < 0.5) continue;
+                    // Check if enemy is in the forward corridor
+                    const dot = dx * fwdX + dz * fwdZ;
+                    if (dot < 0) continue;
+                    const perpDist = Math.abs(dx * fwdZ - dz * fwdX);
+                    if (perpDist < 1.5) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 2));
+                        // Pull toward player (worm drags them)
+                        e.data.x -= (dx / d) * 2;
+                        e.data.z -= (dz / d) * 2;
+                        e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                        // Stun from bite
+                        e.data.lastAttack = now + 1200;
+                    }
+                }
+                screenShake(0.35, 150);
+                triggerHitstop(40);
+            }, wormSegCount * 20);
 
-            // Arm sweep
+            // Retract worm — reverse disappear
+            setTimeout(() => {
+                for (let i = wormParts.length - 1; i >= 0; i--) {
+                    setTimeout(() => {
+                        scene.remove(wormParts[i]);
+                        if (wormParts[i].geometry) wormParts[i].geometry.dispose();
+                        if (wormParts[i].material) wormParts[i].material.dispose();
+                    }, (wormParts.length - 1 - i) * 15);
+                }
+            }, wormSegCount * 20 + 200);
+
+            // Arm thrust
             const pm = fpsCamera.playerModel;
             if (pm?._rightArm) {
-                pm._rightArm.rotation.set(-0.3, 0, -1.0);
-                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 400);
+                pm._rightArm.rotation.set(-1.3, 0, 0);
+                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 500);
             }
 
-            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ffffff', 3, 200);
-            groundRing(worldPx, worldPz, '#888888', 5, 500);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#7a3db2', 3, 200);
         }
 
         else if (slot === 'c') {
