@@ -650,43 +650,198 @@ function resumeGame() {
 }
 
 // ─── VISUAL EFFECTS ─────────────────────────────────────────
-// Single reusable slash mesh — no allocation per attack
-let slashMesh = null;
-let slashTimer = 0;
 
-function initSlashMesh() {
-    if (slashMesh) return;
-    const geo = new THREE.TorusGeometry(1.2, 0.08, 4, 12, Math.PI * 0.7);
-    const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, side: THREE.DoubleSide });
-    slashMesh = new THREE.Mesh(geo, mat);
-    slashMesh.visible = false;
-    scene.add(slashMesh);
+// ── Screen Shake ──
+let shakeIntensity = 0;
+let shakeDuration = 0;
+let shakeTime = 0;
+
+function screenShake(intensity, duration) {
+    shakeIntensity = Math.max(shakeIntensity, intensity);
+    shakeDuration = Math.max(shakeDuration, duration);
+    shakeTime = 0;
+}
+
+function updateScreenShake(dt) {
+    if (shakeDuration <= 0) return;
+    shakeTime += dt * 1000;
+    if (shakeTime >= shakeDuration) {
+        shakeDuration = 0;
+        shakeIntensity = 0;
+        return;
+    }
+    const decay = 1 - shakeTime / shakeDuration;
+    const amp = shakeIntensity * decay;
+    camera.position.x += (Math.random() - 0.5) * amp;
+    camera.position.y += (Math.random() - 0.5) * amp * 0.5;
+    camera.position.z += (Math.random() - 0.5) * amp;
+}
+
+// ── Hitstop (brief freeze on big hits) ──
+let hitstopUntil = 0;
+
+function triggerHitstop(durationMs) {
+    hitstopUntil = Math.max(hitstopUntil, performance.now() + durationMs);
+}
+
+// ── Floating Damage Numbers ──
+const dmgNumbers = [];
+
+function spawnDmgNumber(worldX, worldY, worldZ, amount, color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128; canvas.height = 48;
+    const ctx = canvas.getContext('2d');
+    ctx.font = `bold ${amount > 20 ? 36 : 28}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#000000';
+    ctx.fillText(amount, 66, 36);
+    ctx.fillStyle = color || '#ffffff';
+    ctx.fillText(amount, 64, 34);
+    const tex = new THREE.CanvasTexture(canvas);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    const s = amount > 30 ? 1.8 : amount > 15 ? 1.3 : 0.9;
+    sprite.scale.set(s, s * 0.4, 1);
+    sprite.position.set(worldX + (Math.random() - 0.5) * 0.5, worldY, worldZ + (Math.random() - 0.5) * 0.5);
+    scene.add(sprite);
+    dmgNumbers.push({ sprite, life: 40, vy: 0.04 + Math.random() * 0.02 });
+}
+
+function updateDmgNumbers() {
+    for (let i = dmgNumbers.length - 1; i >= 0; i--) {
+        const d = dmgNumbers[i];
+        d.life--;
+        d.sprite.position.y += d.vy;
+        d.sprite.material.opacity = d.life / 40;
+        if (d.life <= 0) {
+            scene.remove(d.sprite);
+            d.sprite.material.map.dispose();
+            d.sprite.material.dispose();
+            dmgNumbers.splice(i, 1);
+        }
+    }
+}
+
+// ── Speed Lines (screen-space overlay during dodge/dash) ──
+let speedLineDiv = null;
+
+function showSpeedLines(durationMs) {
+    if (!speedLineDiv) {
+        speedLineDiv = document.createElement('div');
+        speedLineDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3;background:radial-gradient(ellipse at center,transparent 40%,rgba(255,255,255,0.15) 100%);opacity:0;transition:opacity 0.05s;';
+        document.body.appendChild(speedLineDiv);
+    }
+    speedLineDiv.style.opacity = '1';
+    speedLineDiv.style.background = 'radial-gradient(ellipse at center,transparent 30%,rgba(200,220,255,0.2) 70%,rgba(255,255,255,0.35) 100%)';
+    setTimeout(() => { if (speedLineDiv) speedLineDiv.style.opacity = '0'; }, durationMs);
+}
+
+// ── FOV Punch (briefly widen FOV for speed feel) ──
+let fovPunchTarget = 0;
+let fovPunchDecay = 0;
+const BASE_FOV = 75;
+
+function fovPunch(amount, decayRate) {
+    fovPunchTarget = Math.max(fovPunchTarget, amount);
+    fovPunchDecay = decayRate || 0.15;
+}
+
+function updateFovPunch() {
+    if (fovPunchTarget > 0.1) {
+        camera.fov = BASE_FOV + fovPunchTarget;
+        fovPunchTarget *= (1 - fovPunchDecay);
+        camera.updateProjectionMatrix();
+    } else if (camera.fov !== BASE_FOV) {
+        camera.fov = BASE_FOV;
+        fovPunchTarget = 0;
+        camera.updateProjectionMatrix();
+    }
+}
+
+// ── Improved Slash Trail (multiple trail segments) ──
+const slashTrails = [];
+const SLASH_POOL_SIZE = 5;
+let slashPool = [];
+let slashPoolInit = false;
+
+function initSlashPool() {
+    if (slashPoolInit) return;
+    slashPoolInit = true;
+    for (let i = 0; i < SLASH_POOL_SIZE; i++) {
+        const geo = new THREE.TorusGeometry(1.2, 0.06, 4, 16, Math.PI * 0.8);
+        const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, side: THREE.DoubleSide });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.visible = false;
+        scene.add(mesh);
+        slashPool.push(mesh);
+    }
 }
 
 function spawnMeleeSlash(color) {
-    initSlashMesh();
+    initSlashPool();
     const dirX = -Math.sin(fpsCamera.yaw);
     const dirZ = -Math.cos(fpsCamera.yaw);
-    slashMesh.position.set(
-        fpsCamera.posX * TILE + dirX * 2,
-        EYE_HEIGHT - 0.3,
-        fpsCamera.posZ * TILE + dirZ * 2
-    );
-    slashMesh.rotation.set(0, -fpsCamera.yaw + Math.PI / 2, Math.PI / 4);
-    slashMesh.material.color.set(color);
-    slashMesh.material.opacity = 0.9;
-    slashMesh.scale.set(1, 1, 1);
-    slashMesh.visible = true;
-    slashTimer = 8;
+    const baseX = fpsCamera.posX * TILE + dirX * 2;
+    const baseZ = fpsCamera.posZ * TILE + dirZ * 2;
+
+    // Spawn 3 staggered trail slashes for a fluid arc
+    for (let t = 0; t < 3; t++) {
+        let mesh = null;
+        for (const s of slashPool) { if (!s.visible) { mesh = s; break; } }
+        if (!mesh) continue;
+
+        const offset = t * 0.15;
+        mesh.position.set(baseX + dirX * offset, EYE_HEIGHT - 0.3 + t * 0.1, baseZ + dirZ * offset);
+        mesh.rotation.set(t * 0.1, -fpsCamera.yaw + Math.PI / 2, Math.PI / 4 + t * 0.2);
+        mesh.material.color.set(color);
+        mesh.material.opacity = 0.9 - t * 0.15;
+        mesh.scale.set(0.6 + t * 0.25, 0.6 + t * 0.25, 0.6 + t * 0.25);
+        mesh.visible = true;
+        slashTrails.push({ mesh, life: 10 + t * 2, maxLife: 10 + t * 2 });
+    }
 }
 
 function updateMeleeSlashes() {
-    if (!slashMesh || !slashMesh.visible) return;
-    slashTimer--;
-    slashMesh.material.opacity = slashTimer / 8 * 0.9;
-    slashMesh.scale.multiplyScalar(1.06);
-    slashMesh.rotation.z += 0.15;
-    if (slashTimer <= 0) slashMesh.visible = false;
+    for (let i = slashTrails.length - 1; i >= 0; i--) {
+        const s = slashTrails[i];
+        s.life--;
+        const t = s.life / s.maxLife;
+        s.mesh.material.opacity = t * 0.9;
+        s.mesh.scale.multiplyScalar(1.05);
+        s.mesh.rotation.z += 0.12;
+        if (s.life <= 0) {
+            s.mesh.visible = false;
+            slashTrails.splice(i, 1);
+        }
+    }
+}
+
+// ── Walking Animation (3rd person leg/arm bob) ──
+let walkCycle = 0;
+
+function updateWalkAnimation(dt) {
+    const pm = fpsCamera.playerModel;
+    if (!pm || !fpsCamera.thirdPerson) return;
+
+    // Check if player is moving
+    const moving = fpsCamera.keys['KeyW'] || fpsCamera.keys['KeyS'] ||
+                   fpsCamera.keys['KeyA'] || fpsCamera.keys['KeyD'] ||
+                   fpsCamera.keys['ArrowUp'] || fpsCamera.keys['ArrowDown'] ||
+                   fpsCamera.keys['ArrowLeft'] || fpsCamera.keys['ArrowRight'];
+
+    if (moving) {
+        walkCycle += dt * 10;
+        const swing = Math.sin(walkCycle) * 0.5;
+        const bob = Math.abs(Math.sin(walkCycle * 2)) * 0.08;
+
+        // Generic models don't have joint refs — skip Mahoraga (has its own anim)
+        if (player.classId === 'mahoraga') return;
+
+        // Body bob
+        pm.position.y = bob;
+    } else {
+        walkCycle = 0;
+        if (player.classId !== 'mahoraga' && pm.position) pm.position.y = 0;
+    }
 }
 
 // ─── KATAKURI 3D PORTAL SYSTEM ──────────────────────────────
@@ -2542,13 +2697,46 @@ function playerDodge() {
     player.invincible = now + 300;
     fpsCamera.speed = player.speed * 3;
     setTimeout(() => { fpsCamera.speed = player.speed; }, 300);
+    // VFX
+    showSpeedLines(300);
+    fovPunch(15, 0.12);
 }
 
 function dealDamageToEnemy(e, dmg) {
     e.data.hp -= dmg;
-    // Flash enemy red
-    e.mesh.traverse(child => { if (child.isMesh && child.material) child.material.emissive?.set('#ff0000'); });
-    setTimeout(() => { e.mesh.traverse(child => { if (child.isMesh && child.material && child.material.emissive) child.material.emissive.set('#000000'); }); }, 100);
+
+    // ── Hit reaction: flash white→red, scale bump, recoil ──
+    // Flash white first, then red
+    e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#ffffff'); });
+    setTimeout(() => {
+        e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#ff0000'); });
+    }, 50);
+    setTimeout(() => {
+        e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#000000'); });
+    }, 150);
+
+    // Scale bump (squash & stretch)
+    e.mesh.scale.set(1.2, 0.8, 1.2);
+    setTimeout(() => { if (e.mesh) e.mesh.scale.set(0.9, 1.15, 0.9); }, 60);
+    setTimeout(() => { if (e.mesh) e.mesh.scale.set(1, 1, 1); }, 150);
+
+    // Bounce up on big hits
+    if (dmg > 15) {
+        e.mesh.position.y = 0.3 + dmg * 0.02;
+        setTimeout(() => { if (e.mesh) e.mesh.position.y = 0; }, 200);
+    }
+
+    // Floating damage number
+    const numColor = dmg > 30 ? '#ff1744' : dmg > 15 ? '#ffab00' : '#ffffff';
+    spawnDmgNumber(e.data.x * TILE, 2.5, e.data.z * TILE, dmg, numColor);
+
+    // Screen shake (scales with damage)
+    const shakeAmt = Math.min(dmg * 0.015, 0.4);
+    screenShake(shakeAmt, 80 + dmg * 2);
+
+    // Hitstop on big hits
+    if (dmg > 25) triggerHitstop(40);
+    if (dmg > 50) triggerHitstop(80);
 
     if (e.data.hp <= 0) {
         e.data.alive = false;
@@ -2625,11 +2813,15 @@ function dealDamageToPlayer(dmg) {
     if (player.classId === 'rage') { if (!player._rageMeter) player._rageMeter = 0; player._rageMeter = Math.min(50, player._rageMeter + reduced); }
     player.invincible = now + 200;
 
-    // Red flash on screen
+    // Red vignette flash on screen
     const flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,0,0,0.3);z-index:4;pointer-events:none;';
+    flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:4;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(255,0,0,0.5) 100%);';
     document.body.appendChild(flash);
-    setTimeout(() => flash.remove(), 150);
+    setTimeout(() => flash.remove(), 200);
+
+    // Screen shake when taking damage
+    screenShake(0.3 + reduced * 0.02, 150);
+    if (reduced > 10) triggerHitstop(30);
 
     if (player.hp <= 0) {
         player.alive = false;
@@ -2650,6 +2842,8 @@ function update() {
     const now = performance.now();
 
     fpsCamera.update(dt, dungeon.map);
+    updateScreenShake(dt);
+    updateFovPunch();
     playerLight.position.copy(camera.position);
 
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
@@ -2661,8 +2855,19 @@ function update() {
         syncTorchVisibility(torchLights, dungeon);
     }
 
+    // Hitstop — freeze game logic briefly on big hits
+    if (performance.now() < hitstopUntil) {
+        updateScreenShake(dt);
+        updateFovPunch();
+        updateDmgNumbers();
+        renderer.render(scene, camera);
+        return;
+    }
+
     updateTorchLights(torchLights, time);
     updateMeleeSlashes();
+    updateDmgNumbers();
+    updateWalkAnimation(dt);
     updateMinions(dt, now);
     updateKataPortals(time);
     updateKataGrab();
