@@ -62,6 +62,7 @@ function init() {
     scene.fog = new THREE.FogExp2(PAL.fog, 0.008);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+    scene.add(camera); // camera must be in scene graph for child objects (viewmodel sword) to render
 
     renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('game-canvas') });
     renderer.setSize(window.innerWidth, window.innerHeight);
