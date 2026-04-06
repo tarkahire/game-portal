@@ -1816,14 +1816,18 @@ function playerAttack() {
         if (Math.abs(ad) < Math.PI * 0.5) {
             // Sukuna combo tracker — track consecutive M1 hits per enemy
             if (isSukuna) {
-                if (!e.data._sukunaCombo) e.data._sukunaCombo = 0;
-                if (!e.data._sukunaLastStep) e.data._sukunaLastStep = -1;
-                // Must be consecutive steps (0->1->2->3)
-                if (player._comboStep === e.data._sukunaLastStep + 1 || player._comboStep === 0) {
-                    if (player._comboStep === 0) e.data._sukunaCombo = 1;
-                    else e.data._sukunaCombo++;
+                if (e.data._sukunaCombo === undefined) e.data._sukunaCombo = 0;
+                if (e.data._sukunaLastStep === undefined) e.data._sukunaLastStep = -1;
+                // Step 0 always starts/restarts the combo
+                if (player._comboStep === 0) {
+                    e.data._sukunaCombo = 1;
+                    e.data._sukunaLastStep = 0;
+                } else if (player._comboStep === e.data._sukunaLastStep + 1) {
+                    // Consecutive hit — advance
+                    e.data._sukunaCombo++;
                     e.data._sukunaLastStep = player._comboStep;
                 } else {
+                    // Missed a step — reset
                     e.data._sukunaCombo = 1;
                     e.data._sukunaLastStep = player._comboStep;
                 }
@@ -1835,10 +1839,13 @@ function playerAttack() {
                 e.data._sukunaCombo = 0;
                 e.data._sukunaLastStep = -1;
             } else {
-                dealDamageToEnemy(e, dmg);
-                // Knockback
-                e.data.x += (dx / d) * step.kb;
-                e.data.z += (dz / d) * step.kb;
+                // Sukuna slashes can't kill — leave at 1 HP so bisect can finish
+                const actualDmg = (isSukuna && e.data.hp - dmg <= 0) ? Math.max(0, e.data.hp - 1) : dmg;
+                dealDamageToEnemy(e, actualDmg);
+                // Knockback — Sukuna uses less KB to keep enemies in combo range
+                const kb = isSukuna ? step.kb * 0.3 : step.kb;
+                e.data.x += (dx / d) * kb;
+                e.data.z += (dz / d) * kb;
                 e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
             }
         }
@@ -2663,8 +2670,10 @@ function dealDamageToEnemy(e, dmg) {
 
 // ─── SUKUNA BISECT — cut enemy in half on full 4-hit combo ──
 function sukunaBisect(e) {
+    if (!e.data.alive) return; // safety — already dead
     const wx = e.data.x * TILE;
     const wz = e.data.z * TILE;
+    console.log('SUKUNA BISECT!', e.data.name || e.data.type, 'at', wx, wz);
 
     // Big screen effects
     screenShake(0.6, 400);
