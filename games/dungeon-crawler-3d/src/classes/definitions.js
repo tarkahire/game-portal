@@ -59,4 +59,5 @@ export const CLASSES = {
     ink: { name: 'Ink', maxHp: 85, speed: 2.8, attackRange: 160, attackDamage: 10, attackSpeed: 450, attackType: 'ranged', color: '#263238', specialCooldown: 5000, specialName: 'Draw Soldier', weaponType: 'brush' },
     dog: { name: 'Dog', maxHp: 150, speed: 3.5, attackRange: 30, attackDamage: 16, attackSpeed: 280, attackType: 'melee', color: '#5d4037', specialCooldown: 3000, specialName: 'Pack Howl', weaponType: 'jaw' },
     kitsune: { name: 'Kitsune', maxHp: 95, speed: 2.8, attackRange: 28, attackDamage: 11, attackSpeed: 380, attackType: 'melee', color: '#00e5ff', specialCooldown: 4000, specialName: 'Fox Fire', weaponType: 'claw' },
+    mahoraga: { name: 'Mahoraga', maxHp: 160, speed: 2.2, attackRange: 50, attackDamage: 18, attackSpeed: 500, attackType: 'melee', color: '#7c4dff', specialCooldown: 5000, specialName: 'Adaptation', weaponType: 'sword' },
 };

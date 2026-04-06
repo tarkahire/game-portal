@@ -49,32 +49,33 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 - **Controls**:
   - Player 1: WASD move, Mouse aim+click attack, E special, R secondary, Q class-specific, F arise boss (Jin-Woo), Space dodge, Tab inventory
   - Player 2: Arrow keys move, Numpad 0 attack, 1 special, 5 secondary, 4 class-specific, 6 arise boss, 2 dodge, 3 inventory
-- **Classes (62)**: Angel, Demon, Draco, Healer, Lightning, Portal, Katakuri, Naruto, Megumi, Jin-Woo, Frog, Bee Swarm, T-Rex, Wendigo, Alien Queen, Comet, Telekinesis, Mind Control, Chimera, Mimic, Supernova, Puppet Master, Medusa, Cerberus, Minotaur, Anubis, Thor, Venom, Cordyceps, Leech, Chrono, Dimension Cutter, Paradox, Drummer, Siren, Mercury, Acid, Smoke, Ant Colony, Rat King, Locust, Mecha Shark, Ghost Rider, Ice Phoenix, Plague Rat, Card Dealer, Dice Roller, Chess King, Rage, Fear, Love, Chaos, Senor Pink, Ink, Dog, Kitsune, Skeleton, Archer, Slime, Bat, Dark Knight, Necromancer
+- **Classes (63)**: Angel, Demon, Draco, Healer, Lightning, Portal, Katakuri, Naruto, Megumi, Jin-Woo, Frog, Bee Swarm, T-Rex, Wendigo, Alien Queen, Comet, Telekinesis, Mind Control, Chimera, Mimic, Supernova, Puppet Master, Medusa, Cerberus, Minotaur, Anubis, Thor, Venom, Cordyceps, Leech, Chrono, Dimension Cutter, Paradox, Drummer, Siren, Mercury, Acid, Smoke, Ant Colony, Rat King, Locust, Mecha Shark, Ghost Rider, Ice Phoenix, Plague Rat, Card Dealer, Dice Roller, Chess King, Rage, Fear, Love, Chaos, Senor Pink, Ink, Dog, Kitsune, Mahoraga, Skeleton, Archer, Slime, Bat, Dark Knight, Necromancer
 - **Recent additions**: Katakuri 16-portal ring system with dough fist M1s + Fusillade + Haki (blue); Senor Pink (Sui Sui) walk-through-walls + dive + whirlpool; Ink class with puddle resource system + Draw Soldier + Masterpiece golem; Dog class (OP) with permanent pack + puppy spawn + fetch frenzy + alpha howl; Kitsune with tails meter transformation (human -> nine-tailed fox with cyan arc slashes)
 - **Full docs**: See `games/dungeon-crawler/docs/` for architecture, classes, gameplay, network, controls
 
 ### Dungeon Crawler 3D
 - **Path**: `games/dungeon-crawler-3d/`
 - **Tech**: Three.js v0.162.0 (CDN via jsdelivr importmap), ES modules, PeerJS (WebRTC multiplayer)
-- **Features**: First-person 3D dungeon crawler inspired by Wolfenstein/DOOM; same 62 classes as 2D version; procedural dungeon generation (reused from 2D); cyberpunk neon walls/floors/ceilings with torch lighting; futuristic horror enemies with gaping mouths and sharp teeth; all 62 class specials ported (E/R/Q/F abilities); 3D minion system (shadows, clones, imps, dogs, face-huggers etc.); boss encounters with floating "BOSS" labels; full HUD (HP, XP, floor, lives, gold, special cooldown, boss HP bar, minimap); 1st/3rd person camera toggle (C key); online co-op via PeerJS; class selection screen with all 62 classes
+- **Features**: First-person 3D dungeon crawler inspired by Wolfenstein/DOOM; same 63 classes as 2D version; procedural dungeon generation (reused from 2D); cyberpunk neon walls/floors/ceilings with torch lighting; futuristic horror enemies with gaping mouths and sharp teeth; all 63 class specials ported (E/R/Q/F abilities); 3D minion system (shadows, clones, imps, dogs, face-huggers etc.); boss encounters with floating "BOSS" labels; full HUD (HP, XP, floor, lives, gold, special cooldown, boss HP bar, minimap); 1st/3rd person camera toggle (C key); online co-op via PeerJS; class selection screen with all 63 classes
 - **Controls**:
   - WASD / Arrow keys: move (forward/back/strafe)
   - Mouse: look around (pointer lock)
   - Left click: attack (melee arc or ranged projectile based on class)
   - E: special ability, R: secondary ability, Q: class ability, F: class F-ability
   - Space: dodge, C: toggle 1st/3rd person camera, ESC: pause
-- **Katakuri 3D specifics**: Two dough donut portals float at player's sides; M1 punches big navy blocky fists from portals with lock-on auto-aim and knockback; E Fusillade spawns circle of 8 floor portals that punch upward for 5s; R Restless Dough Barrage rapid fists; Q Haki permanent blue upgrade; F grab enemies with hands + throw launches them via floor portal uppercut into ceiling ricochet
+- **Katakuri 3D specifics**: Two dough donut portals float at player's sides; M1 punches big navy blocky fists from portals with lock-on auto-aim and knockback; E Fusillade fires 16 rapid fists from side portals (Blox Fruits style) with enemy pull + stun; R Restless Dough Barrage rapid fists; Q Haki permanent blue upgrade; F grab enemies with hands + throw launches them via floor portal uppercut into ceiling ricochet
+- **Mahoraga 3D specifics**: Wheel of Dharma floats above player (8-spoke spinning wheel); Sword of Extermination visible during attacks; M1 wide sweeping sword slashes with knockback; E Adaptation spins wheel, heals, grants stacking damage reduction (up to 60%); R Cleave massive overhead sword slam with AoE stun + bounce; Q Wheel Turn AoE pull + damage + 3s stun; F Divine General Transformation (permanent: 1.8x damage, 1.5x HP, full heal, 1.3x speed, faster attacks, purple positive energy glow on sword/wheel, AoE burst on transform)
 - **File structure**:
   - `index.html` — entry point with Three.js importmap, HUD markup, all menu screens
   - `style.css` — cyberpunk neon HUD + menu styling
-  - `src/main.js` — game loop, state, combat, all 62 specials, Katakuri portal system, minion system, HUD
+  - `src/main.js` — game loop, state, combat, all 63 specials, Katakuri portal system, Mahoraga wheel/sword system, minion system, HUD
   - `src/constants.js` — TILE, WALL_HEIGHT, EYE_HEIGHT, color palette
   - `src/dungeon/generator.js` — dungeon generation (ported from 2D)
   - `src/dungeon/meshBuilder.js` — tile grid to 3D walls/floors/ceilings with textures
   - `src/dungeon/torchLights.js` — PointLight placement + flicker
   - `src/player/fpsCamera.js` — FPS controls, pointer lock, WASD, wall collision, 1st/3rd person toggle
   - `src/enemies/meshFactory.js` — 3D enemy mesh builders (horror style with teeth)
-  - `src/classes/definitions.js` — all 62 class stats
+  - `src/classes/definitions.js` — all 63 class stats
   - `src/network/network.js` — PeerJS multiplayer (create/join room, lobby, state sync)
 
 ## Adding a New Game
