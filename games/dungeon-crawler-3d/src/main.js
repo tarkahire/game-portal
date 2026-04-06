@@ -1341,6 +1341,36 @@ function buildBrookModel() {
         finger.position.set((f - 1.5) * 0.015, -1.01, 0.03);
         rightArmPivot.add(finger);
     }
+    // ── Soul Solid cane sword (held in right hand) ──
+    const caneGroup = new THREE.Group();
+    caneGroup.position.set(0, -1.0, 0.04);
+    caneGroup.rotation.x = Math.PI / 2; // cane points forward
+    // Cane shaft — elegant dark purple-black
+    const caneMat = new THREE.MeshStandardMaterial({ color: '#1a0a2a', roughness: 0.4, metalness: 0.2 });
+    const caneShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.1, 5), caneMat);
+    caneGroup.add(caneShaft);
+    // Cane handle — curved hook shape (skull/music note motif)
+    const handleMat = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 0.7, roughness: 0.2 }); // gold
+    // Hook curve
+    const hookCurve = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 5, 8, Math.PI), handleMat);
+    hookCurve.position.set(0.04, -0.58, 0);
+    hookCurve.rotation.z = Math.PI / 2;
+    caneGroup.add(hookCurve);
+    // Hook grip top
+    const hookTop = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 5), handleMat);
+    hookTop.position.y = -0.56;
+    caneGroup.add(hookTop);
+    // Cane tip — small metal cap
+    const tipMat = new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.6, roughness: 0.3 });
+    const caneTip = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.008, 0.03, 5), tipMat);
+    caneTip.position.y = 0.57;
+    caneGroup.add(caneTip);
+    // Hidden blade inside — faint icy blue glow at the seam
+    const seamGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.008, 6),
+        new THREE.MeshBasicMaterial({ color: '#88ccff', transparent: true, opacity: 0.5 }));
+    seamGlow.position.y = -0.3;
+    caneGroup.add(seamGlow);
+    rightArmPivot.add(caneGroup);
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
 
@@ -1594,6 +1624,61 @@ function buildFPSSpear() {
     return group;
 }
 
+// ─── 1ST-PERSON VIEWMODEL SOUL CANE (Brook) ────────────────
+function buildFPSCane() {
+    const group = new THREE.Group();
+
+    const caneMat = new THREE.MeshStandardMaterial({ color: '#1a0a2a', roughness: 0.4, metalness: 0.2 });
+    const handleMat = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 0.7, roughness: 0.2 });
+    const tipMat = new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.6, roughness: 0.3 });
+
+    // Cane shaft
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.85, 5), caneMat);
+    group.add(shaft);
+    // Hook handle
+    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.008, 5, 8, Math.PI), handleMat);
+    hook.position.set(0.03, -0.44, 0);
+    hook.rotation.z = Math.PI / 2;
+    group.add(hook);
+    // Hook top ball
+    const hookBall = new THREE.Mesh(new THREE.SphereGeometry(0.014, 5, 5), handleMat);
+    hookBall.position.y = -0.43;
+    group.add(hookBall);
+    // Tip cap
+    const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.006, 0.025, 5), tipMat);
+    tip.position.y = 0.44;
+    group.add(tip);
+    // Blue seam glow (hidden blade)
+    const seam = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.006, 6),
+        new THREE.MeshBasicMaterial({ color: '#88ccff', transparent: true, opacity: 0.5 }));
+    seam.position.y = -0.22;
+    group.add(seam);
+
+    // Position in camera space
+    group.position.set(0.22, -0.32, -0.45);
+    group.rotation.set(-0.25, 0, -0.12);
+
+    return group;
+}
+
+// Cane swing patterns — elegant fencing thrusts and iaido draws
+const CANE_SWINGS = [
+    // Step 0: quick thrust forward
+    { startRot: { x: -0.25, y: 0, z: -0.12 }, endRot: { x: -0.25, y: 0, z: -0.12 },
+      startPos: { x: 0.22, y: -0.32, z: -0.3 }, endPos: { x: 0.22, y: -0.28, z: -0.85 }, dur: 110 },
+    // Step 1: upward draw slash (pulling blade out)
+    { startRot: { x: 0.2, y: 0.15, z: -0.1 }, endRot: { x: -0.7, y: -0.1, z: 0.1 },
+      startPos: { x: 0.25, y: -0.45, z: -0.35 }, endPos: { x: 0.15, y: 0.0, z: -0.6 }, dur: 130 },
+    // Step 2: elegant side sweep
+    { startRot: { x: -0.25, y: 0.4, z: -0.2 }, endRot: { x: -0.25, y: -0.4, z: 0.2 },
+      startPos: { x: 0.35, y: -0.3, z: -0.4 }, endPos: { x: -0.1, y: -0.3, z: -0.5 }, dur: 120 },
+    // Step 3 (finisher): iaido — pull blade, wide slash, resheathe
+    { startRot: { x: -1.2, y: 0.3, z: -0.6 }, endRot: { x: 0.3, y: -0.3, z: 0.4 },
+      startPos: { x: 0.3, y: -0.1, z: -0.3 }, endPos: { x: -0.05, y: -0.45, z: -0.6 }, dur: 160 },
+];
+
+const CANE_REST = { x: 0.22, y: -0.32, z: -0.45, rx: -0.25, ry: 0, rz: -0.12 };
+
 // Spear swing patterns — thrusts and sweeps instead of slashes
 const SPEAR_SWINGS = [
     // Step 0: straight poke — spear jabs forward
@@ -1635,7 +1720,8 @@ const SWORD_REST = { x: 0.25, y: -0.35, z: -0.4, rx: -0.3, ry: 0, rz: -0.15 };
 function triggerSwordSwing(comboStep) {
     // Pick the right swing set based on character
     const isToji = player?.classId === 'toji';
-    const swings = isToji ? SPEAR_SWINGS : SWORD_SWINGS;
+    const isBrook = player?.classId === 'brook';
+    const swings = isToji ? SPEAR_SWINGS : isBrook ? CANE_SWINGS : SWORD_SWINGS;
     const pattern = swings[comboStep % swings.length];
     swordSwing = {
         startTime: performance.now(),
@@ -1643,7 +1729,7 @@ function triggerSwordSwing(comboStep) {
         returnDur: 120,
         pattern,
         phase: 'swing',
-        _restPos: isToji ? SPEAR_REST : SWORD_REST, // which rest position to return to
+        _restPos: isToji ? SPEAR_REST : isBrook ? CANE_REST : SWORD_REST,
     };
 
     // 3rd person arm swing
@@ -1654,6 +1740,11 @@ function triggerSwordSwing(comboStep) {
             { x: -1.3, z: -0.15 }, // poke right
             { x: -1.3, z: 0.15 },  // poke left
             { x: -1.6, z: 0 },     // dash-thrust
+        ] : isBrook ? [
+            { x: -1.3, z: 0 },     // thrust
+            { x: -1.6, z: 0.4 },   // upward draw
+            { x: -0.3, z: -0.7 },  // side sweep
+            { x: -1.8, z: -0.5 },  // iaido slash
         ] : [
             { x: -1.5, z: -0.6 },
             { x: -1.5, z: 0.6 },
@@ -1785,6 +1876,9 @@ function startGame() {
         camera.add(fpsSword);
     } else if (player.classId === 'toji') {
         fpsSword = buildFPSSpear();
+        camera.add(fpsSword);
+    } else if (player.classId === 'brook') {
+        fpsSword = buildFPSCane();
         camera.add(fpsSword);
     }
 }
@@ -2502,7 +2596,8 @@ function playerAttack() {
     const range = 3.0 + (player._transformed ? 1.5 : 0);
     const isSukuna = player.classId === 'sukuna';
     const isToji = player.classId === 'toji';
-    const hasWeaponCombo = isSukuna || isToji;
+    const isBrook = player.classId === 'brook';
+    const hasWeaponCombo = isSukuna || isToji || isBrook;
     // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
     const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
     const isFinisher = player._comboStep === 3;
