@@ -15,8 +15,11 @@ import { NET, createRoom, joinRoom, hostSelectClass, clientSelectClass, hostStar
 // ─── GLOBALS ────────────────────────────────────────────────
 let scene, camera, renderer;
 let fpsCamera;
+let camera2; // P2 camera for split-screen
+let fpsCamera2; // P2 controls
 let dungeon, dungeonMesh, torchLights;
 let playerLight;
+let playerLight2; // P2 light
 let enemies3D = [];
 let projectiles3D = [];
 let minions3D = [];
@@ -26,11 +29,14 @@ let clock;
 let selectedClasses = [];
 let coopMode = false;
 let p2ClassSelect = false;
-let fpsSword = null; // 1st-person viewmodel sword (child of camera)
-let swordSwing = null; // active sword swing animation state
+let fpsSword = null; // 1st-person viewmodel weapon (child of camera)
+let fpsSword2 = null; // P2 viewmodel weapon
+let swordSwing = null; // active weapon swing animation state
+let swordSwing2 = null; // P2 weapon swing
 
 // Player state
 let player = null;
+let player2 = null; // P2 state
 let lives = 5;
 let runStats = { enemiesKilled: 0, goldCollected: 0, floorsCleared: 0, bossesKilled: 0, itemsFound: 0 };
 
@@ -63,13 +69,19 @@ function init() {
     scene.fog = new THREE.FogExp2(PAL.fog, 0.008);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
-    scene.add(camera); // camera must be in scene graph for child objects (viewmodel sword) to render
+    scene.add(camera);
+
+    // P2 camera for split-screen
+    camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+    scene.add(camera2);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('game-canvas') });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.4;
+    renderer.setScissorTest(false); // enabled during split-screen render
+    renderer.autoClear = false; // we'll clear manually for split-screen
 
     const ambient = new THREE.AmbientLight('#2a2a3e', 1.2);
     scene.add(ambient);
@@ -77,8 +89,22 @@ function init() {
     scene.add(hemi);
     playerLight = new THREE.PointLight('#00ffcc', 3.5, TILE * 10, 1.2);
     scene.add(playerLight);
+    playerLight2 = new THREE.PointLight('#00ffcc', 3.5, TILE * 10, 1.2);
+    scene.add(playerLight2);
 
-    fpsCamera = new FPSCamera(camera, renderer.domElement);
+    // P1 camera — WASD controls
+    fpsCamera = new FPSCamera(camera, renderer.domElement, {
+        forward: ['KeyW'], backward: ['KeyS'],
+        turnLeft: ['KeyA'], turnRight: ['KeyD'],
+        toggleTP: 'KeyT'
+    });
+    // P2 camera — Arrow key controls (shared key state so both read from same listener)
+    fpsCamera2 = new FPSCamera(camera2, renderer.domElement, {
+        forward: ['ArrowUp'], backward: ['ArrowDown'],
+        turnLeft: ['ArrowLeft'], turnRight: ['ArrowRight'],
+        toggleTP: 'KeyY', // Y for P2 toggle
+        sharedKeys: fpsCamera.keys // share the same key state object
+    });
 
     // Shared projectile geometry — big and glowing
     projGeo = new THREE.SphereGeometry(0.3, 8, 8);
@@ -86,9 +112,12 @@ function init() {
     projMatEnemy = new THREE.MeshBasicMaterial({ color: '#ff4400' });
 
     window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
+        const w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w / h;
         camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera2.aspect = w / h;
+        camera2.updateProjectionMatrix();
+        renderer.setSize(w, h);
     });
 
     // Build class select grids
@@ -97,7 +126,7 @@ function init() {
 
     // UI bindings
     document.getElementById('btn-solo').onclick = () => startRun(false);
-    document.getElementById('btn-coop').onclick = () => { alert('2P Local requires two mice — use Online Co-op to play together across devices!'); showScreen('online-screen'); };
+    document.getElementById('btn-coop').onclick = () => startRun(true);
     document.getElementById('btn-online').onclick = () => showScreen('online-screen');
     document.getElementById('btn-back-online').onclick = () => { cleanupNetwork(); showScreen('title-screen'); };
 
@@ -192,6 +221,15 @@ function init() {
             if (e.code === 'Space') playerDodge();
             // Basic attack — Numpad 0 or left click
             if (e.code === 'Numpad0') playerAttack();
+            // ── P2 controls (numpad) ──
+            if (coopMode && player2 && player2.alive) {
+                if (e.code === 'Numpad1') p2Attack();
+                if (e.code === 'Numpad4') p2Ability('z');
+                if (e.code === 'Numpad5') p2Ability('x');
+                if (e.code === 'Numpad6') p2Ability('c');
+                if (e.code === 'Numpad7') p2Ability('v');
+                if (e.code === 'Numpad2') p2Dodge();
+            }
         }
     });
 
@@ -2310,6 +2348,53 @@ function startGame() {
         fpsSword = buildFPSFists();
         camera.add(fpsSword);
     }
+
+    // ── P2 setup (split-screen coop) ──
+    player2 = null;
+    if (fpsSword2) { camera2.remove(fpsSword2); fpsSword2 = null; }
+    if (fpsCamera2.playerModel) { scene.remove(fpsCamera2.playerModel); fpsCamera2.playerModel = null; }
+
+    if (coopMode && selectedClasses.length >= 2) {
+        const cls2 = CLASSES[selectedClasses[1]];
+        player2 = {
+            classId: selectedClasses[1], cls: cls2,
+            hp: cls2.maxHp, maxHp: cls2.maxHp,
+            speed: cls2.speed, damage: cls2.attackDamage,
+            attackSpeed: cls2.attackSpeed, attackRange: cls2.attackRange,
+            attackType: cls2.attackType, defense: 0,
+            lastAttack: 0, lastSpecial: 0,
+            specialCooldown: cls2.specialCooldown,
+            level: 1, xp: 0, xpToNext: 50,
+            alive: true, dodgeCd: 0, invincible: 0,
+            _transformed: false, _flying: false,
+            _abilityCds: { z: 0, x: 0, c: 0, v: 0, f: 0 },
+            _comboStep: 0, _comboTimer: 0,
+        };
+        fpsCamera2.speed = cls2.speed;
+        fpsCamera2.flyHeight = 0;
+
+        // Spawn P2 at start room but offset slightly
+        const startRoom = dungeon.rooms[0];
+        fpsCamera2.setPosition(startRoom.cx + 1, startRoom.cy + 1);
+
+        // P2 model
+        let pm2;
+        if (player2.classId === 'gojo') { pm2 = buildGojoModel(); addPlayerLabel(pm2, 'P2 GOJO', '#4fc3f7'); }
+        else if (player2.classId === 'sukuna') { pm2 = buildSukunaModel(); addPlayerLabel(pm2, 'P2 SUKUNA', '#ff2244'); }
+        else if (player2.classId === 'toji') { pm2 = buildTojiModel(); addPlayerLabel(pm2, 'P2 TOJI', '#2a6e3f'); }
+        else if (player2.classId === 'brook') { pm2 = buildBrookModel(); addPlayerLabel(pm2, 'P2 BROOK', '#88ccff'); }
+        else if (player2.classId === 'bakugo') { pm2 = buildBakugoModel(); addPlayerLabel(pm2, 'P2 BAKUGO', '#ff8800'); }
+        else { pm2 = buildGenericPlayerModel(cls2); }
+        pm2.visible = false;
+        scene.add(pm2);
+        fpsCamera2.playerModel = pm2;
+
+        // P2 viewmodel weapon
+        if (player2.classId === 'sukuna') { fpsSword2 = buildFPSSword(); camera2.add(fpsSword2); }
+        else if (player2.classId === 'toji') { fpsSword2 = buildFPSSpear(); camera2.add(fpsSword2); }
+        else if (player2.classId === 'brook') { fpsSword2 = buildFPSCane(); camera2.add(fpsSword2); }
+        else if (player2.classId === 'bakugo') { fpsSword2 = buildFPSFists(); camera2.add(fpsSword2); }
+    }
 }
 
 function loadFloor(floor) {
@@ -3106,6 +3191,109 @@ function playerAttack() {
 
     // Advance combo
     player._comboStep = (player._comboStep + 1) % 4;
+}
+
+// ─── P2 ATTACK (mirrors playerAttack but for player2 + fpsCamera2) ──
+function p2Attack() {
+    if (!player2 || !player2.alive) return;
+    const now = performance.now();
+    if (now - player2.lastAttack < player2.attackSpeed) return;
+    player2.lastAttack = now;
+
+    if (!player2._comboStep) player2._comboStep = 0;
+    if (!player2._comboTimer) player2._comboTimer = 0;
+    if (now - player2._comboTimer > COMBO_WINDOW) player2._comboStep = 0;
+    const step = COMBO_STEPS[player2._comboStep];
+    player2._comboTimer = now;
+
+    const px = fpsCamera2.posX, pz = fpsCamera2.posZ;
+    const yaw = fpsCamera2.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const range = 3.0;
+    const hasWeap = ['sukuna','toji','brook'].includes(player2.classId);
+    const dmg = hasWeap ? Math.round(player2.damage * step.dmgMult * 0.25) : Math.round(player2.damage * step.dmgMult);
+    const isFinisher = player2._comboStep === 3;
+
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const dx = e.data.x - px, dz = e.data.z - pz;
+        const d = Math.hypot(dx, dz);
+        if (d > range || d < 0.1) continue;
+        const a = Math.atan2(-dx, -dz);
+        let ad = a - yaw;
+        while (ad > Math.PI) ad -= Math.PI * 2;
+        while (ad < -Math.PI) ad += Math.PI * 2;
+        if (Math.abs(ad) < Math.PI * 0.5) {
+            if (hasWeap) {
+                if (e.data._weaponCombo === undefined) e.data._weaponCombo = 0;
+                if (e.data._weaponLastStep === undefined) e.data._weaponLastStep = -1;
+                if (player2._comboStep === 0) { e.data._weaponCombo = 1; e.data._weaponLastStep = 0; }
+                else if (player2._comboStep === e.data._weaponLastStep + 1) { e.data._weaponCombo++; e.data._weaponLastStep = player2._comboStep; }
+                else { e.data._weaponCombo = 1; e.data._weaponLastStep = player2._comboStep; }
+            }
+            if (hasWeap && isFinisher && e.data._weaponCombo >= 4) {
+                sukunaBisect(e);
+                e.data._weaponCombo = 0; e.data._weaponLastStep = -1;
+            } else {
+                const actualDmg = (hasWeap && e.data.hp - dmg <= 0) ? Math.max(0, e.data.hp - 1) : dmg;
+                dealDamageToEnemy(e, actualDmg);
+                const kb = hasWeap ? step.kb * 0.3 : step.kb;
+                e.data.x += (dx / d) * kb; e.data.z += (dz / d) * kb;
+                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+            }
+        }
+    }
+
+    spawnMeleeSlash(player2.cls.color);
+    player2._comboStep = (player2._comboStep + 1) % 4;
+}
+
+function p2Ability(slot) {
+    // P2 abilities — simplified: just damage in front for now
+    if (!player2 || !player2.alive) return;
+    const now = performance.now();
+    if (!player2._abilityCds) player2._abilityCds = { z: 0, x: 0, c: 0, v: 0, f: 0 };
+    const cd = player2.cls.abilityCooldowns?.[slot] || 5000;
+    if (now - player2._abilityCds[slot] < cd) return;
+    player2._abilityCds[slot] = now;
+
+    const px = fpsCamera2.posX, pz = fpsCamera2.posZ;
+    const yaw = fpsCamera2.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const range = 5;
+
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const dx = e.data.x - px, dz = e.data.z - pz;
+        const d = Math.hypot(dx, dz);
+        if (d > range) continue;
+        const a = Math.atan2(-dx, -dz);
+        let ad = a - yaw;
+        while (ad > Math.PI) ad -= Math.PI * 2;
+        while (ad < -Math.PI) ad += Math.PI * 2;
+        if (Math.abs(ad) < Math.PI * 0.6) {
+            dealDamageToEnemy(e, Math.round(player2.damage * 2));
+        }
+    }
+
+    const wx = px * TILE, wz = pz * TILE;
+    emitParticles(wx + fwdX * 2, EYE_HEIGHT, wz + fwdZ * 2, {
+        color: [player2.cls.color, '#ffffff'], count: 15, speed: 4, spread: 1.5,
+        gravity: -3, life: 12, size: 0.12, sizeEnd: 0, drag: 0.96
+    });
+    screenShake(0.2, 100);
+}
+
+function p2Dodge() {
+    if (!player2 || !player2.alive) return;
+    const now = performance.now();
+    if (now - (player2.dodgeCd || 0) < 800) return;
+    player2.dodgeCd = now;
+    const fwdX = -Math.sin(fpsCamera2.yaw);
+    const fwdZ = -Math.cos(fpsCamera2.yaw);
+    fpsCamera2.posX += fwdX * 2;
+    fpsCamera2.posZ += fwdZ * 2;
+    player2.invincible = now + 300;
 }
 
 // ─── ABILITY DISPATCHER (Z/X/C/V/F) — clean slate ──────────────
@@ -4864,6 +5052,20 @@ function update() {
     if (fpsSword) fpsSword.visible = !fpsCamera.thirdPerson;
     updateSwordSwing();
 
+    // P2 update
+    if (coopMode && player2) {
+        fpsCamera2.update(dt, dungeon.map);
+        playerLight2.position.copy(camera2.position);
+        if (fpsSword2) fpsSword2.visible = !fpsCamera2.thirdPerson;
+
+        // P2 room discovery
+        const p2Room = getRoomAt(dungeon.rooms, fpsCamera2.posX, fpsCamera2.posZ);
+        if (p2Room && !p2Room.explored) {
+            p2Room.explored = true;
+            syncTorchVisibility(torchLights, dungeon);
+        }
+    }
+
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
 
     // Room discovery
@@ -5148,7 +5350,41 @@ function showScreen(id) {
 // ─── GAME LOOP ──────────────────────────────────────────────
 function gameLoop() {
     update();
-    renderer.render(scene, camera);
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    if (coopMode && player2) {
+        // Split-screen: left half = P1, right half = P2
+        renderer.setScissorTest(true);
+
+        // P1 — left half
+        const halfW = Math.floor(w / 2);
+        camera.aspect = halfW / h;
+        camera.updateProjectionMatrix();
+        renderer.setViewport(0, 0, halfW, h);
+        renderer.setScissor(0, 0, halfW, h);
+        renderer.clear();
+        renderer.render(scene, camera);
+
+        // P2 — right half
+        camera2.aspect = (w - halfW) / h;
+        camera2.updateProjectionMatrix();
+        renderer.setViewport(halfW, 0, w - halfW, h);
+        renderer.setScissor(halfW, 0, w - halfW, h);
+        renderer.clear();
+        renderer.render(scene, camera2);
+
+        renderer.setScissorTest(false);
+    } else {
+        // Solo — full screen
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setViewport(0, 0, w, h);
+        renderer.clear();
+        renderer.render(scene, camera);
+    }
+
     requestAnimationFrame(gameLoop);
 }
 

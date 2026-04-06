@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-//  FPS CAMERA — Keyboard-only controls, no mouse required
+//  FPS CAMERA — Keyboard-only controls, configurable key bindings
 // ═══════════════════════════════════════════════════════════════
 
 import * as THREE from 'three';
@@ -7,36 +7,54 @@ import { TILE, EYE_HEIGHT, PLAYER_RADIUS, MAP_COLS, MAP_ROWS } from '../constant
 import { isWalkable } from '../dungeon/generator.js';
 
 export class FPSCamera {
-    constructor(camera, domElement) {
+    /**
+     * @param {THREE.Camera} camera
+     * @param {HTMLElement} domElement
+     * @param {object} [keyConfig] — optional key overrides
+     *   { forward, backward, turnLeft, turnRight } — each is a key code string
+     */
+    constructor(camera, domElement, keyConfig) {
         this.camera = camera;
         this.domElement = domElement;
-        this.yaw = 0;    // horizontal rotation
-        this.pitch = 0;  // vertical rotation
-        this.locked = true; // always active — no pointer lock needed
+        this.yaw = 0;
+        this.pitch = 0;
+        this.locked = true; // always active
         this.thirdPerson = false;
         this.tpDistance = 6;
         this.tpHeight = 3.5;
 
-        // Player model (visible in 3rd person)
         this.playerModel = null;
         this.flyHeight = 0;
 
-        // Player position in tile coords (col, row)
         this.posX = 0;
         this.posZ = 0;
         this.speed = 3.0;
         this.modelYaw = 0;
-        this.turnSpeed = 3.0; // radians per second for keyboard turning
+        this.turnSpeed = 3.0;
 
-        // Keys
-        this.keys = {};
-        this._onKeyDown = (e) => {
-            this.keys[e.code] = true;
-            if (e.code === 'KeyT') this.thirdPerson = !this.thirdPerson;
-        };
-        this._onKeyUp = (e) => { this.keys[e.code] = false; };
+        // Key bindings
+        const kc = keyConfig || {};
+        this._keyForward = kc.forward || ['KeyW', 'ArrowUp'];
+        this._keyBackward = kc.backward || ['KeyS', 'ArrowDown'];
+        this._keyTurnLeft = kc.turnLeft || ['KeyA', 'ArrowLeft'];
+        this._keyTurnRight = kc.turnRight || ['KeyD', 'ArrowRight'];
+        this._keyToggleTP = kc.toggleTP || 'KeyT';
 
-        // Mouse look still works if pointer is locked (optional)
+        // Shared key state — use a shared object if provided, otherwise own
+        this.keys = kc.sharedKeys || {};
+        this._ownsKeys = !kc.sharedKeys;
+
+        if (this._ownsKeys) {
+            this._onKeyDown = (e) => {
+                this.keys[e.code] = true;
+                if (e.code === this._keyToggleTP) this.thirdPerson = !this.thirdPerson;
+            };
+            this._onKeyUp = (e) => { this.keys[e.code] = false; };
+            document.addEventListener('keydown', this._onKeyDown);
+            document.addEventListener('keyup', this._onKeyUp);
+        }
+
+        // Mouse look (optional — works if pointer locked)
         this._onMouseMove = (e) => {
             if (document.pointerLockElement !== this.domElement) return;
             this.yaw -= e.movementX * 0.002;
@@ -45,17 +63,19 @@ export class FPSCamera {
         };
         this._onPointerLockChange = () => {};
         this._onClick = () => {
-            // Optional: click to enable mouse look
             if (document.pointerLockElement !== this.domElement) {
                 this.domElement.requestPointerLock();
             }
         };
 
-        document.addEventListener('keydown', this._onKeyDown);
-        document.addEventListener('keyup', this._onKeyUp);
         document.addEventListener('mousemove', this._onMouseMove);
         document.addEventListener('pointerlockchange', this._onPointerLockChange);
         this.domElement.addEventListener('click', this._onClick);
+    }
+
+    _isKeyDown(keyCodes) {
+        if (Array.isArray(keyCodes)) return keyCodes.some(k => this.keys[k]);
+        return this.keys[keyCodes];
     }
 
     setPosition(tileX, tileZ) {
@@ -64,22 +84,18 @@ export class FPSCamera {
     }
 
     update(dt, dungeonMap) {
-        // A / Left Arrow = turn left
-        if (this.keys['KeyA'] || this.keys['ArrowLeft']) { this.yaw += this.turnSpeed * dt; }
-        // D / Right Arrow = turn right
-        if (this.keys['KeyD'] || this.keys['ArrowRight']) { this.yaw -= this.turnSpeed * dt; }
+        // Turn
+        if (this._isKeyDown(this._keyTurnLeft)) { this.yaw += this.turnSpeed * dt; }
+        if (this._isKeyDown(this._keyTurnRight)) { this.yaw -= this.turnSpeed * dt; }
 
-        // Movement direction relative to camera facing
+        // Movement
         let moveX = 0, moveZ = 0;
         const fwdX = -Math.sin(this.yaw);
         const fwdZ = -Math.cos(this.yaw);
 
-        // W / Up Arrow = forward
-        if (this.keys['KeyW'] || this.keys['ArrowUp']) { moveX += fwdX; moveZ += fwdZ; }
-        // S / Down Arrow = backward
-        if (this.keys['KeyS'] || this.keys['ArrowDown']) { moveX -= fwdX; moveZ -= fwdZ; }
+        if (this._isKeyDown(this._keyForward)) { moveX += fwdX; moveZ += fwdZ; }
+        if (this._isKeyDown(this._keyBackward)) { moveX -= fwdX; moveZ -= fwdZ; }
 
-        // Normalize diagonal
         const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
         if (len > 0) {
             moveX /= len;
@@ -91,7 +107,6 @@ export class FPSCamera {
         const newX = this.posX + moveX * spd;
         const newZ = this.posZ + moveZ * spd;
 
-        // Wall collision — axis-separated
         const r = PLAYER_RADIUS;
         if (isWalkable(dungeonMap, newX - r, this.posZ - r) &&
             isWalkable(dungeonMap, newX + r, this.posZ - r) &&
@@ -106,14 +121,11 @@ export class FPSCamera {
             this.posZ = newZ;
         }
 
-        // Clamp to map bounds
         this.posX = Math.max(1, Math.min(MAP_COLS - 1, this.posX));
         this.posZ = Math.max(1, Math.min(MAP_ROWS - 1, this.posZ));
 
-        // Player world position
         const worldX = this.posX * TILE;
         const worldZ = this.posZ * TILE;
-
         const fly = this.flyHeight || 0;
 
         if (this.thirdPerson) {
@@ -132,7 +144,6 @@ export class FPSCamera {
                 this.playerModel.rotation.y = this.yaw + Math.PI;
             }
         } else {
-            // 1st person
             this.camera.position.set(worldX, EYE_HEIGHT + fly, worldZ);
             const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
             this.camera.quaternion.setFromEuler(euler);
@@ -146,8 +157,10 @@ export class FPSCamera {
     }
 
     dispose() {
-        document.removeEventListener('keydown', this._onKeyDown);
-        document.removeEventListener('keyup', this._onKeyUp);
+        if (this._ownsKeys) {
+            document.removeEventListener('keydown', this._onKeyDown);
+            document.removeEventListener('keyup', this._onKeyUp);
+        }
         document.removeEventListener('mousemove', this._onMouseMove);
         document.removeEventListener('pointerlockchange', this._onPointerLockChange);
         this.domElement.removeEventListener('click', this._onClick);
