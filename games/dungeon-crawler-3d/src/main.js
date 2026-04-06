@@ -291,122 +291,197 @@ function addPlayerLabel(pm, name, color) {
 // ─── BEAST FRUIT TRANSFORM MODELS ───────────────────────────
 function buildDragonModel() {
     const pm = new THREE.Group();
-    const greenMat = new THREE.MeshStandardMaterial({ color: '#2e7d32', emissive: '#1b5e20', emissiveIntensity: 0.2, roughness: 0.5 });
-    const darkGreen = new THREE.MeshStandardMaterial({ color: '#1b5e20', roughness: 0.6 });
-    const bellyMat = new THREE.MeshStandardMaterial({ color: '#4caf50', emissive: '#388e3c', emissiveIntensity: 0.1, roughness: 0.4 });
-    const hornMat = new THREE.MeshStandardMaterial({ color: '#3e2723', roughness: 0.7, metalness: 0.3 });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffeb3b' });
 
-    // ── Muscular torso ──
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 1.8, 8), greenMat);
-    torso.position.y = 1.3; pm.add(torso);
-    // Broad chest/shoulders
-    const chest = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.6, 0.7), greenMat);
-    chest.position.y = 2.0; pm.add(chest);
-    // Lighter belly
-    const belly = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.8, 0.15), bellyMat);
-    belly.position.set(0, 1.4, 0.25); pm.add(belly);
+    // Color palette matching the concept art
+    const greenScale = new THREE.MeshStandardMaterial({ color: '#1a8a5c', emissive: '#0d6b46', emissiveIntensity: 0.15, roughness: 0.4 });
+    const darkGreen = new THREE.MeshStandardMaterial({ color: '#0d5c3a', roughness: 0.5 });
+    const bellyMat = new THREE.MeshStandardMaterial({ color: '#e8d5b0', roughness: 0.5 }); // cream underbelly
+    const goldMat = new THREE.MeshStandardMaterial({ color: '#c8a020', emissive: '#8b6914', emissiveIntensity: 0.3, metalness: 0.6, roughness: 0.3 }); // golden armor
+    const darkMane = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.8 }); // dark mane/fur
+    const orangeGlow = new THREE.MeshBasicMaterial({ color: '#ff6600' }); // orange accent lines
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ff4400' }); // red-orange eyes
+    const hornMat = new THREE.MeshStandardMaterial({ color: '#2a2a2a', roughness: 0.6, metalness: 0.2 });
+    const fangMat = new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.4, roughness: 0.3 });
 
-    // ── Neck + Head ──
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 0.5, 6), greenMat);
-    neck.position.y = 2.4; pm.add(neck);
-    // Dragon head — angular snout
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.4, 0.5), darkGreen);
-    head.position.set(0, 2.8, 0.1); pm.add(head);
-    // Snout/jaw extending forward
-    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.4), darkGreen);
-    snout.position.set(0, 2.65, 0.45); pm.add(snout);
-    // Lower jaw
-    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.08, 0.35), new THREE.MeshStandardMaterial({ color: '#1a1a1a' }));
-    jaw.position.set(0, 2.55, 0.4); pm.add(jaw);
-    // Glowing yellow eyes
-    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeMat).translateX(-0.14).translateY(2.88).translateZ(0.32));
-    pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeMat).translateX(0.14).translateY(2.88).translateZ(0.32));
-    // Eye glow
-    pm.add(new THREE.PointLight('#ffeb3b', 0.8, TILE, 2).translateY(2.9).translateZ(0.3));
+    // The whole dragon is built horizontally (serpentine), then rotated
+    // so it faces forward. Body segments along Z axis.
 
-    // ── Horns (curved back) ──
-    for (let s = -1; s <= 1; s += 2) {
-        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 5), hornMat);
-        horn.position.set(s * 0.18, 3.1, -0.1);
-        horn.rotation.x = 0.4; horn.rotation.z = s * 0.2;
-        pm.add(horn);
+    // ── Serpentine Body — 10 connected segments curving like a snake ──
+    const SEGS = 12;
+    const bodyRadius = 0.2;
+    for (let i = 0; i < SEGS; i++) {
+        const t = i / (SEGS - 1); // 0..1 along body
+        const r = bodyRadius * (1 - t * 0.4); // taper toward tail
+        // S-curve shape
+        const x = Math.sin(t * Math.PI * 1.5) * 0.6;
+        const z = -t * 3.5; // length along Z
+        const y = Math.sin(t * Math.PI) * 0.3 + 0.8; // slight arch
+
+        // Green scaled body segment
+        const seg = new THREE.Mesh(new THREE.SphereGeometry(r, 6, 6), greenScale);
+        seg.scale.set(1, 1, 1.4); // elongate each segment
+        seg.position.set(x, y, z);
+        pm.add(seg);
+
+        // Cream underbelly stripe (bottom of each segment)
+        const bellyStripe = new THREE.Mesh(new THREE.BoxGeometry(r * 0.8, 0.03, r * 2), bellyMat);
+        bellyStripe.position.set(x, y - r * 0.7, z);
+        pm.add(bellyStripe);
+
+        // Orange accent line along the side (every other segment)
+        if (i % 2 === 0 && i < SEGS - 2) {
+            const accent = new THREE.Mesh(new THREE.BoxGeometry(r * 2.2, 0.02, 0.04), orangeGlow);
+            accent.position.set(x, y, z);
+            pm.add(accent);
+        }
+
+        // Dark mane spikes along the top (like fur tufts)
+        if (i < SEGS - 3) {
+            for (let s = -1; s <= 1; s += 2) {
+                const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.15 + Math.random() * 0.1, 3), darkMane);
+                spike.position.set(x + s * r * 0.5, y + r * 0.6, z - 0.05);
+                spike.rotation.z = s * 0.4;
+                spike.rotation.x = -0.3 + Math.random() * 0.2;
+                pm.add(spike);
+            }
+            // Top center mane spike
+            const topSpike = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.12, 3), darkMane);
+            topSpike.position.set(x, y + r * 0.8, z);
+            pm.add(topSpike);
+        }
     }
 
-    // ── Bat-like Wings (articulated — separate pivots for flapping) ──
-    for (let s = -1; s <= 1; s += 2) {
-        const wingPivot = new THREE.Group();
-        wingPivot.position.set(s * 0.6, 2.1, -0.2);
-        // Upper wing membrane — large flat triangle
-        const wingGeo = new THREE.BufferGeometry();
-        const verts = new Float32Array([
-            0, 0, 0,
-            s * 1.8, 0.3, -0.3,
-            s * 1.2, -1.0, 0.1,
-            0, 0, 0,
-            s * 1.2, -1.0, 0.1,
-            s * 0.3, -0.8, 0.2,
-        ]);
-        wingGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
-        wingGeo.computeVertexNormals();
-        const wingMat = new THREE.MeshStandardMaterial({ color: '#2e7d32', emissive: '#1b5e20', emissiveIntensity: 0.15, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
-        wingPivot.add(new THREE.Mesh(wingGeo, wingMat));
-        // Wing bone/strut
-        const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.015, 1.6, 4), hornMat);
-        strut.position.set(s * 0.9, -0.3, -0.1);
-        strut.rotation.z = s * 0.5;
-        wingPivot.add(strut);
-        pm.add(wingPivot);
-        if (s === -1) pm._leftWing = wingPivot; else pm._rightWing = wingPivot;
+    // ── Tail end — thin whip with dark tuft ──
+    const tailEnd = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.06, 0.6, 4), greenScale);
+    tailEnd.position.set(0.1, 0.55, -3.8); tailEnd.rotation.x = 0.5; pm.add(tailEnd);
+    // Dark tail tuft (like flames/fur)
+    for (let i = 0; i < 4; i++) {
+        const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.2, 3), darkMane);
+        tuft.position.set(0.1 + (Math.random()-0.5)*0.1, 0.4, -4.0 - i*0.08);
+        tuft.rotation.x = 0.8; tuft.rotation.z = (Math.random()-0.5)*0.5;
+        pm.add(tuft);
     }
 
-    // ── Arms with claws ──
-    for (let s = -1; s <= 1; s += 2) {
-        // Shoulder
-        pm.add(new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6), greenMat).translateX(s * 0.7).translateY(2.05));
-        // Upper arm
-        pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.6, 5), greenMat).translateX(s * 0.75).translateY(1.6));
-        // Forearm
-        pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.5, 5), greenMat).translateX(s * 0.8).translateY(1.15));
-        // Clawed hand
-        const hand = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.15), darkGreen);
-        hand.position.set(s * 0.82, 0.85, 0.05); pm.add(hand);
-        // 3 claws per hand
+    // ── Small legs/claws (4 short legs along the body) ──
+    const legPositions = [
+        { x: 0.3, y: 0.65, z: -0.5 },
+        { x: -0.3, y: 0.65, z: -0.5 },
+        { x: 0.15, y: 0.6, z: -2.2 },
+        { x: -0.15, y: 0.6, z: -2.2 },
+    ];
+    for (const lp of legPositions) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.3, 4), greenScale);
+        leg.position.set(lp.x, lp.y - 0.15, lp.z);
+        pm.add(leg);
+        // Claws
         for (let c = 0; c < 3; c++) {
-            const claw = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.15, 4), new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.6 }));
-            claw.position.set(s * 0.82 + (c - 1) * 0.06, 0.78, 0.12);
+            const claw = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.08, 3), fangMat);
+            claw.position.set(lp.x + (c-1)*0.03, lp.y - 0.32, lp.z + 0.02);
             claw.rotation.x = Math.PI * 0.7;
             pm.add(claw);
         }
     }
 
-    // ── Legs ──
+    // ── HEAD (the most detailed part) ──
+    const headY = 1.2, headZ = 0.6;
+
+    // Neck (angled up from first body segment)
+    const neckSeg = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.5, 6), greenScale);
+    neckSeg.position.set(0, headY - 0.3, headZ - 0.2);
+    neckSeg.rotation.x = -0.5;
+    pm.add(neckSeg);
+
+    // Main skull
+    const skull = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.45), darkGreen);
+    skull.position.set(0, headY, headZ); pm.add(skull);
+
+    // Snout (forward-pointing)
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.35), greenScale);
+    snout.position.set(0, headY - 0.05, headZ + 0.35); pm.add(snout);
+
+    // Lower jaw
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.3), darkGreen);
+    jaw.position.set(0, headY - 0.17, headZ + 0.3); pm.add(jaw);
+
+    // Fangs (upper)
     for (let s = -1; s <= 1; s += 2) {
-        pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.7, 6), greenMat).translateX(s * 0.25).translateY(0.4));
-        pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.4, 5), darkGreen).translateX(s * 0.25).translateY(0.05));
-        // Feet with claws
-        pm.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.06, 0.25), darkGreen).translateX(s * 0.25).translateY(-0.15).translateZ(0.05));
+        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.1, 4), fangMat);
+        fang.position.set(s * 0.08, headY - 0.18, headZ + 0.45);
+        fang.rotation.x = Math.PI;
+        pm.add(fang);
     }
 
-    // ── Spiked tail ──
-    const tail1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.8, 5), greenMat);
-    tail1.position.set(0, 0.6, -0.5); tail1.rotation.x = 0.6; pm.add(tail1);
-    const tail2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.03, 0.7, 5), greenMat);
-    tail2.position.set(0, 0.35, -1.0); tail2.rotation.x = 0.8; pm.add(tail2);
-    // Tail spike
-    pm.add(new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 4), hornMat).translateY(0.2).translateZ(-1.35));
-
-    // ── Spine spikes (along back) ──
-    for (let i = 0; i < 5; i++) {
-        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.18, 4), hornMat);
-        spike.position.set(0, 1.8 + i * 0.25, -0.3);
-        spike.rotation.x = 0.3;
-        pm.add(spike);
+    // Red-orange glowing eyes
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), eyeMat);
+        eye.position.set(s * 0.13, headY + 0.05, headZ + 0.18);
+        pm.add(eye);
+        // Eye glow light
+        const glow = new THREE.PointLight('#ff4400', 0.6, TILE * 0.8, 2);
+        glow.position.copy(eye.position);
+        pm.add(glow);
     }
 
-    // ── Fire aura glow ──
-    pm.add(new THREE.PointLight('#4caf50', 2, TILE * 4, 2).translateY(1.5));
-    pm.add(new THREE.PointLight('#ffeb3b', 1, TILE * 2, 2).translateY(2.8).translateZ(0.4));
+    // Orange accent stripe across forehead
+    const foreheadStripe = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.025, 0.08), orangeGlow);
+    foreheadStripe.position.set(0, headY + 0.12, headZ + 0.1); pm.add(foreheadStripe);
+
+    // Golden armor plate on forehead
+    const armorPlate = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, 0.15), goldMat);
+    armorPlate.position.set(0, headY + 0.16, headZ + 0.05); pm.add(armorPlate);
+
+    // Main horns (tall, dark, swept back)
+    for (let s = -1; s <= 1; s += 2) {
+        // Big main horn
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.4, 5), hornMat);
+        horn.position.set(s * 0.15, headY + 0.35, headZ - 0.1);
+        horn.rotation.x = 0.4; horn.rotation.z = s * 0.15;
+        pm.add(horn);
+        // Smaller secondary horn
+        const horn2 = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.25, 4), hornMat);
+        horn2.position.set(s * 0.1, headY + 0.25, headZ);
+        horn2.rotation.x = 0.3; horn2.rotation.z = s * 0.25;
+        pm.add(horn2);
+    }
+    // Center horn/spike
+    const centerHorn = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.2, 4), hornMat);
+    centerHorn.position.set(0, headY + 0.3, headZ - 0.05);
+    centerHorn.rotation.x = 0.3;
+    pm.add(centerHorn);
+
+    // Dark mane around head (spiky tufts radiating outward)
+    for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const mane = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.25 + Math.random() * 0.1, 3), darkMane);
+        const mx = Math.cos(angle) * 0.25;
+        const my = Math.sin(angle) * 0.25;
+        mane.position.set(mx, headY + my, headZ - 0.15);
+        mane.rotation.z = angle + Math.PI / 2;
+        mane.rotation.x = -0.3;
+        pm.add(mane);
+    }
+
+    // ── Golden orb/gem on chest area ──
+    const gem = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8),
+        new THREE.MeshStandardMaterial({ color: '#9c27b0', emissive: '#7b1fa2', emissiveIntensity: 0.6, metalness: 0.3 }));
+    gem.position.set(0, 0.85, 0.15); pm.add(gem);
+    // Gold ring around gem
+    const gemRing = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.02, 6, 12), goldMat);
+    gemRing.position.copy(gem.position);
+    gemRing.rotation.x = Math.PI / 2;
+    pm.add(gemRing);
+    pm.add(new THREE.PointLight('#9c27b0', 1, TILE * 2, 2).translateY(0.85).translateZ(0.15));
+
+    // ── Ambient glow ──
+    pm.add(new THREE.PointLight('#ff6600', 1.5, TILE * 3, 2).translateY(1));
+
+    // No wings — Eastern dragons don't have wings, they fly by magic
+    // Remove wing refs so flap animation doesn't crash
+    pm._leftWing = null;
+    pm._rightWing = null;
+
+    // Body undulates instead — store segment refs for animation
+    pm._isEasternDragon = true;
 
     return pm;
 }
@@ -525,7 +600,7 @@ function startGame() {
         pm.scale.setScalar(0.6); // scaled down to fit dungeon
         addPlayerLabel(pm, 'DRAGON', '#2e7d32');
         player._flying = true; // dragon always flies
-        fpsCamera.flyHeight = 1.5; // hover above ground
+        fpsCamera.flyHeight = 0.3; // hover just a few inches off the floor
     } else {
         pm = buildGenericPlayerModel(player.cls);
         fpsCamera.flyHeight = 0;
@@ -919,19 +994,29 @@ function updateWalkAnimation(dt) {
 
     walkCycle += dt * (moving ? 10 : 4); // slower idle cycle when not moving
 
-    // Dragon — wing flapping + hover bob (always active)
+    // Dragon / Beast hover animation
     if (player.classId === 'dragon' || (player._transformed && player.cls?.type === 'beast')) {
-        const flapSpeed = moving ? 8 : 3;
-        const flapAngle = Math.sin(walkCycle * flapSpeed * 0.3) * (moving ? 0.6 : 0.3);
-        if (pm._leftWing) pm._leftWing.rotation.z = -flapAngle - 0.2;
-        if (pm._rightWing) pm._rightWing.rotation.z = flapAngle + 0.2;
-        // Hover bob
-        const hoverBob = Math.sin(walkCycle * 1.5) * 0.1;
         const fly = fpsCamera.flyHeight || 0;
+        // Gentle hover bob
+        const hoverBob = Math.sin(walkCycle * 1.5) * 0.06;
         pm.position.y = fly + hoverBob;
-        // Slight forward lean when moving
-        if (pm.children[0]) {
-            // lean the whole model forward slightly
+
+        // Eastern dragon — serpentine body undulation
+        if (pm._isEasternDragon) {
+            // Slight body sway side to side when moving
+            if (moving) {
+                pm.rotation.z = Math.sin(walkCycle * 0.8) * 0.04;
+                pm.rotation.x = Math.sin(walkCycle * 1.2) * 0.02;
+            } else {
+                pm.rotation.z *= 0.95; // settle
+                pm.rotation.x *= 0.95;
+            }
+        } else {
+            // Western dragon — wing flapping
+            const flapSpeed = moving ? 8 : 3;
+            const flapAngle = Math.sin(walkCycle * flapSpeed * 0.3) * (moving ? 0.6 : 0.3);
+            if (pm._leftWing) pm._leftWing.rotation.z = -flapAngle - 0.2;
+            if (pm._rightWing) pm._rightWing.rotation.z = flapAngle + 0.2;
         }
         return;
     }
