@@ -4967,6 +4967,100 @@ function fruitAbility(slot) {
             });
         }
     }
+
+    // ══════ DENJI ══════
+    if (id === 'denji') {
+        if (slot === 'z') {
+            // ── CHAIN RIP — pull the ripcord, chainsaw blades erupt from arms and rip forward ──
+            screenShake(0.4, 300);
+            triggerHitstop(60);
+            fovPunch(10, 0.15);
+
+            const fly = fpsCamera.flyHeight || 0;
+
+            // Ripcord pull animation — arm yanks back
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) {
+                pm._rightArm.rotation.set(0.8, 0, -0.3); // pull back
+                setTimeout(() => {
+                    if (pm?._rightArm) pm._rightArm.rotation.set(-1.5, 0, 0); // thrust forward with chainsaw
+                }, 200);
+                setTimeout(() => {
+                    if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                }, 800);
+            }
+
+            // Chainsaw engine rev VFX — orange sparks burst from player
+            emitParticles(worldPx, EYE_HEIGHT + fly, worldPz, {
+                color: ['#ff6600', '#ff4400', '#ffaa00', '#ff8800'],
+                count: 20, speed: 3, spread: 0.8,
+                gravity: -2, life: 10, size: 0.1, sizeEnd: 0, drag: 0.96, upward: 1
+            });
+
+            // After 200ms — chainsaw rips forward
+            setTimeout(() => {
+                // Chainsaw blade trail — jagged orange/red teeth traveling forward
+                const chainRange = 8;
+                for (let i = 0; i < 8; i++) {
+                    setTimeout(() => {
+                        const dist = 1.5 + i * 1;
+                        const sx = worldPx + fwdX * dist;
+                        const sz = worldPz + fwdZ * dist;
+
+                        // Chainsaw tooth — jagged triangle
+                        const toothGeo = new THREE.ConeGeometry(0.15, 0.3, 3);
+                        const toothMat = new THREE.MeshBasicMaterial({
+                            color: '#ff6600', transparent: true, opacity: 0.9,
+                            blending: THREE.AdditiveBlending, depthWrite: false
+                        });
+                        const tooth = new THREE.Mesh(toothGeo, toothMat);
+                        tooth.position.set(sx, EYE_HEIGHT + fly - 0.2, sz);
+                        tooth.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                        scene.add(tooth);
+
+                        // Metal sparks
+                        emitParticles(sx, EYE_HEIGHT + fly, sz, {
+                            color: ['#ff8800', '#ffaa00', '#ffffff', '#ff4400'],
+                            count: 6, speed: 4, spread: 0.6,
+                            gravity: -8, life: 8, size: 0.06, sizeEnd: 0, drag: 0.95
+                        });
+
+                        // Hit enemies along the chain rip path
+                        for (const e of enemies3D) {
+                            if (!e.data.alive) continue;
+                            const dx = e.data.x - (px + fwdX * dist / TILE);
+                            const dz = e.data.z - (pz + fwdZ * dist / TILE);
+                            if (Math.hypot(dx, dz) < 1.5) {
+                                dealDamageToEnemy(e, Math.round(player.damage * 2.5));
+                                // Knockback along the rip direction
+                                e.data.x += fwdX * 0.8;
+                                e.data.z += fwdZ * 0.8;
+                                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                            }
+                        }
+
+                        // Fade tooth
+                        const start = performance.now();
+                        const fadeTooth = () => {
+                            const t = (performance.now() - start) / 250;
+                            if (t >= 1) { scene.remove(tooth); tooth.geometry.dispose(); tooth.material.dispose(); return; }
+                            toothMat.opacity = (1 - t) * 0.9;
+                            tooth.scale.setScalar(1 + t * 0.5);
+                            tooth.rotation.z += 0.3;
+                            requestAnimationFrame(fadeTooth);
+                        };
+                        requestAnimationFrame(fadeTooth);
+                    }, i * 50);
+                }
+
+                screenShake(0.3, 200);
+                lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#ff6600', 5, 300);
+                groundDecal(worldPx + fwdX * 4, worldPz + fwdZ * 4, '#cc4400', 1.5, 2000);
+            }, 200);
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff8800', 3, 200);
+        }
+    }
 }
 
 function playerSpecial() { fruitAbility("z"); }
