@@ -1515,6 +1515,344 @@ function updateBrookAnimation(pm, dt, moving, walkCycle) {
     return true;
 }
 
+// ─── BAKUGO 3D MODEL ──────────────────────────────────────
+function buildBakugoModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d5b8', roughness: 0.5 });
+    const tankTopMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.6 }); // black tank top
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#2a4a2a', roughness: 0.7 }); // dark green cargo pants
+    const beltMat = new THREE.MeshStandardMaterial({ color: '#444444', roughness: 0.5 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#f5d442', roughness: 0.6 }); // spiky blonde
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#cc2200' }); // angry red eyes
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.8 });
+    const gauntletMat = new THREE.MeshStandardMaterial({ color: '#2a8a2a', metalness: 0.5, roughness: 0.3 }); // green gauntlets
+    const gauntletDarkMat = new THREE.MeshStandardMaterial({ color: '#1a5a1a', metalness: 0.4, roughness: 0.4 });
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — black tank top, muscular
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.24, 0.85, 8), tankTopMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    // Broad shoulders
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.24, 0.34), tankTopMat);
+    shoulders.position.y = 0.85; torsoPivot.add(shoulders);
+    // Tank top straps
+    for (let s = -1; s <= 1; s += 2) {
+        const strap = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.15, 0.03), tankTopMat);
+        strap.position.set(s * 0.12, 0.98, 0.12);
+        torsoPivot.add(strap);
+    }
+    // Exposed upper chest/neck area (tank top)
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.1, 0.04), skinMat);
+    chest.position.set(0, 0.95, 0.14); torsoPivot.add(chest);
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.12, 6), skinMat);
+    neck.position.y = 1.1; torsoPivot.add(neck);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
+    head.position.y = 1.35; head.scale.set(1, 1.02, 0.95); torsoPivot.add(head);
+
+    // Angular jaw
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), skinMat);
+    chin.position.set(0, 1.2, 0.12); chin.scale.set(1.2, 0.55, 1); torsoPivot.add(chin);
+
+    // ── Eyes — angry, sharp ──
+    const eyeGeo = new THREE.SphereGeometry(0.03, 6, 6);
+    const pupilGeo = new THREE.SphereGeometry(0.016, 4, 4);
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(eyeGeo, eyeMat);
+        eye.position.set(s * 0.08, 1.39, 0.19);
+        torsoPivot.add(eye);
+        const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+        pupil.position.set(s * 0.08, 1.39, 0.215);
+        torsoPivot.add(pupil);
+    }
+    // Angry brows — deeply furrowed
+    for (let s = -1; s <= 1; s += 2) {
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.02, 0.02), skinMat);
+        brow.position.set(s * 0.08, 1.44, 0.18);
+        brow.rotation.z = s * -0.35; // sharp angry angle
+        torsoPivot.add(brow);
+    }
+
+    // ── Nose ──
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.05, 4), skinMat);
+    nose.position.set(0, 1.34, 0.21); nose.rotation.x = Math.PI * 0.6;
+    torsoPivot.add(nose);
+
+    // ── Mouth — angry scowl ──
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.015, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#aa5533' }));
+    mouth.position.set(0, 1.26, 0.19);
+    mouth.rotation.z = 0.05; // slight scowl angle
+    torsoPivot.add(mouth);
+
+    // ── Ears ──
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), skinMat);
+        ear.position.set(s * 0.2, 1.37, 0);
+        ear.scale.set(0.6, 1, 0.6);
+        torsoPivot.add(ear);
+    }
+
+    // ── Hair — spiky explosive blonde going in all directions ──
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), hairMat);
+    hairBase.position.y = 1.46; hairBase.scale.set(1.1, 0.9, 1.05);
+    torsoPivot.add(hairBase);
+    const hairSpikes = [
+        // Big upward spikes
+        { x: 0, y: 1.68, z: 0, rx: -0.2, rz: 0, h: 0.22 },
+        { x: 0.1, y: 1.65, z: 0.03, rx: -0.3, rz: 0.4, h: 0.2 },
+        { x: -0.1, y: 1.65, z: 0.03, rx: -0.3, rz: -0.4, h: 0.2 },
+        { x: 0.06, y: 1.67, z: -0.02, rx: 0.1, rz: 0.2, h: 0.18 },
+        { x: -0.06, y: 1.67, z: -0.02, rx: 0.1, rz: -0.2, h: 0.18 },
+        // Side spikes — exploding outward
+        { x: 0.18, y: 1.55, z: 0, rx: 0, rz: 0.8, h: 0.17 },
+        { x: -0.18, y: 1.55, z: 0, rx: 0, rz: -0.8, h: 0.17 },
+        { x: 0.15, y: 1.6, z: 0.06, rx: -0.2, rz: 0.6, h: 0.15 },
+        { x: -0.15, y: 1.6, z: 0.06, rx: -0.2, rz: -0.6, h: 0.15 },
+        // Back spikes
+        { x: 0, y: 1.58, z: -0.12, rx: 0.6, rz: 0, h: 0.16 },
+        { x: 0.1, y: 1.55, z: -0.1, rx: 0.5, rz: 0.3, h: 0.14 },
+        { x: -0.1, y: 1.55, z: -0.1, rx: 0.5, rz: -0.3, h: 0.14 },
+        // Forward spikes over forehead
+        { x: 0.04, y: 1.6, z: 0.12, rx: -0.6, rz: 0.15, h: 0.13 },
+        { x: -0.04, y: 1.6, z: 0.11, rx: -0.5, rz: -0.1, h: 0.12 },
+    ];
+    for (const sp of hairSpikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, sp.h, 4), hairMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Right arm (bare skin upper, gauntlet on forearm/hand) ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.42, 0.85, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat));
+    // Upper arm — bare muscular
+    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.4, 5), skinMat);
+    rUpperArm.position.y = -0.25; rightArmPivot.add(rUpperArm);
+    // Elbow
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), skinMat).translateY(-0.48));
+    // Forearm — grenade gauntlet
+    const rGauntlet = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.35, 6), gauntletMat);
+    rGauntlet.position.y = -0.7; rightArmPivot.add(rGauntlet);
+    // Gauntlet ring details
+    for (let r = 0; r < 2; r++) {
+        const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.092, 0.092, 0.015, 6), gauntletDarkMat);
+        ring.position.y = -0.58 - r * 0.18; rightArmPivot.add(ring);
+    }
+    // Hand — palm facing OUTWARD (open palm for explosions)
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.07, 0.06), skinMat);
+    rHand.position.set(0, -0.92, 0.06); rightArmPivot.add(rHand);
+    // Fingers spread open (explosion ready)
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.008, 0.06, 3), skinMat);
+        finger.position.set((f - 1.5) * 0.022, -0.96, 0.09);
+        finger.rotation.x = -0.3; // angled outward
+        rightArmPivot.add(finger);
+    }
+    // Thumb
+    const rThumb = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.008, 0.04, 3), skinMat);
+    rThumb.position.set(0.05, -0.93, 0.06);
+    rThumb.rotation.z = -0.5;
+    rightArmPivot.add(rThumb);
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm (mirrored, also gauntlet + open palm) ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.42, 0.85, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat));
+    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.4, 5), skinMat);
+    lUpperArm.position.y = -0.25; leftArmPivot.add(lUpperArm);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), skinMat).translateY(-0.48));
+    const lGauntlet = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.35, 6), gauntletMat);
+    lGauntlet.position.y = -0.7; leftArmPivot.add(lGauntlet);
+    for (let r = 0; r < 2; r++) {
+        const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.092, 0.092, 0.015, 6), gauntletDarkMat);
+        ring.position.y = -0.58 - r * 0.18; leftArmPivot.add(ring);
+    }
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.07, 0.06), skinMat);
+    lHand.position.set(0, -0.92, 0.06); leftArmPivot.add(lHand);
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.008, 0.06, 3), skinMat);
+        finger.position.set((f - 1.5) * 0.022, -0.96, 0.09);
+        finger.rotation.x = -0.3;
+        leftArmPivot.add(finger);
+    }
+    const lThumb = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.008, 0.04, 3), skinMat);
+    lThumb.position.set(-0.05, -0.93, 0.06);
+    lThumb.rotation.z = 0.5;
+    leftArmPivot.add(lThumb);
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Right leg ──
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.11, 0.65, 0);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.065, 5, 5), pantsMat));
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.45, 5), pantsMat);
+    rThigh.position.y = -0.28; rightLegPivot.add(rThigh);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat).translateY(-0.52));
+    const rShin = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.42, 5), pantsMat);
+    rShin.position.y = -0.75; rightLegPivot.add(rShin);
+    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.16), shoeMat);
+    rShoe.position.set(0, -0.98, 0.03); rightLegPivot.add(rShoe);
+    pm.add(rightLegPivot);
+    pm._rightLeg = rightLegPivot;
+
+    // ── Left leg ──
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.11, 0.65, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.065, 5, 5), pantsMat));
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.45, 5), pantsMat);
+    lThigh.position.y = -0.28; leftLegPivot.add(lThigh);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat).translateY(-0.52));
+    const lShin = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.42, 5), pantsMat);
+    lShin.position.y = -0.75; leftLegPivot.add(lShin);
+    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.16), shoeMat);
+    lShoe.position.set(0, -0.98, 0.03); leftLegPivot.add(lShoe);
+    pm.add(leftLegPivot);
+    pm._leftLeg = leftLegPivot;
+
+    // ── Belt ──
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.24, 0.06, 8), beltMat);
+    belt.position.y = 0.62; pm.add(belt);
+
+    // Explosion aura — warm orange glow
+    const aura = new THREE.PointLight('#ff8800', 0.6, TILE * 3, 2);
+    aura.position.y = 1.0; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isBakugo = true;
+    return pm;
+}
+
+// ─── BAKUGO WALK/IDLE ANIMATION ────────────────────────────
+function updateBakugoAnimation(pm, dt, moving, walkCycle) {
+    if (!pm._isBakugo) return false;
+
+    const t = walkCycle;
+
+    if (moving) {
+        // Aggressive forward charge — fists back, leaning hard forward
+        const stride = 0.7;
+        const bodyBob = Math.abs(Math.sin(t * 2)) * 0.06;
+
+        if (pm._rightLeg) pm._rightLeg.rotation.x = Math.sin(t) * stride;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = Math.sin(t + Math.PI) * stride;
+
+        // Arms held back and out — palms facing backward (explosion propulsion pose)
+        if (pm._rightArm) {
+            pm._rightArm.rotation.x = 0.4 + Math.sin(t + Math.PI) * 0.25; // trailing behind
+            pm._rightArm.rotation.z = -0.3;
+        }
+        if (pm._leftArm) {
+            pm._leftArm.rotation.x = 0.4 + Math.sin(t) * 0.25;
+            pm._leftArm.rotation.z = 0.3;
+        }
+
+        // Heavy forward lean — charging
+        if (pm._torso) {
+            pm._torso.rotation.x = 0.12;
+            pm._torso.rotation.z = Math.sin(t) * 0.04;
+        }
+
+        pm.position.y = (fpsCamera.flyHeight || 0) + bodyBob;
+
+        if (pm._auraLight) pm._auraLight.intensity = 0.7 + Math.sin(t * 4) * 0.3;
+    } else {
+        // Idle — aggressive ready stance, fists up and out, palms open
+        const breath = Math.sin(t * 0.6) * 0.02;
+
+        // Arms up in front, palms facing outward — ready to explode
+        if (pm._rightArm) {
+            pm._rightArm.rotation.x = -0.6 + breath;
+            pm._rightArm.rotation.z = -0.25;
+        }
+        if (pm._leftArm) {
+            pm._leftArm.rotation.x = -0.6 + breath;
+            pm._leftArm.rotation.z = 0.25;
+        }
+
+        if (pm._rightLeg) pm._rightLeg.rotation.x = 0.05;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = -0.05;
+
+        if (pm._torso) {
+            pm._torso.rotation.x = 0.03 + breath;
+            pm._torso.rotation.z = 0;
+        }
+
+        pm.position.y = fpsCamera.flyHeight || 0;
+
+        if (pm._auraLight) pm._auraLight.intensity = 0.5 + Math.sin(t * 0.5) * 0.2;
+    }
+
+    return true;
+}
+
+// ─── 1ST-PERSON VIEWMODEL FISTS (Bakugo) ───────────────────
+function buildFPSFists() {
+    const group = new THREE.Group();
+
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d5b8', roughness: 0.5 });
+    const gauntletMat = new THREE.MeshStandardMaterial({ color: '#2a8a2a', metalness: 0.5, roughness: 0.3 });
+    const gauntletDarkMat = new THREE.MeshStandardMaterial({ color: '#1a5a1a', metalness: 0.4, roughness: 0.4 });
+
+    // Right fist — lower right
+    const rightFist = new THREE.Group();
+    // Gauntlet
+    const rGauntlet = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.16, 6), gauntletMat);
+    rightFist.add(rGauntlet);
+    // Gauntlet ring
+    rightFist.add(new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.01, 6), gauntletDarkMat).translateY(0.05));
+    // Open palm
+    const rPalm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.045, 0.04), skinMat);
+    rPalm.position.set(0, -0.1, 0.03); rightFist.add(rPalm);
+    // Spread fingers
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.005, 0.04, 3), skinMat);
+        finger.position.set((f - 1.5) * 0.015, -0.13, 0.04);
+        finger.rotation.x = -0.3;
+        rightFist.add(finger);
+    }
+    rightFist.position.set(0.18, -0.35, -0.35);
+    rightFist.rotation.set(-0.4, 0, -0.15);
+    group.add(rightFist);
+
+    // Left fist — lower left
+    const leftFist = new THREE.Group();
+    const lGauntlet = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.16, 6), gauntletMat);
+    leftFist.add(lGauntlet);
+    leftFist.add(new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.01, 6), gauntletDarkMat).translateY(0.05));
+    const lPalm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.045, 0.04), skinMat);
+    lPalm.position.set(0, -0.1, 0.03); leftFist.add(lPalm);
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.005, 0.04, 3), skinMat);
+        finger.position.set((f - 1.5) * 0.015, -0.13, 0.04);
+        finger.rotation.x = -0.3;
+        leftFist.add(finger);
+    }
+    leftFist.position.set(-0.18, -0.35, -0.35);
+    leftFist.rotation.set(-0.4, 0, 0.15);
+    group.add(leftFist);
+
+    group._rightFist = rightFist;
+    group._leftFist = leftFist;
+
+    return group;
+}
+
 // ─── 1ST-PERSON VIEWMODEL SWORD (visible when looking down) ─
 function buildFPSSword() {
     const group = new THREE.Group();
@@ -1880,6 +2218,9 @@ function startGame() {
     } else if (player.classId === 'brook') {
         pm = buildBrookModel();
         addPlayerLabel(pm, 'BROOK', '#88ccff');
+    } else if (player.classId === 'bakugo') {
+        pm = buildBakugoModel();
+        addPlayerLabel(pm, 'BAKUGO', '#ff8800');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
@@ -1898,6 +2239,9 @@ function startGame() {
         camera.add(fpsSword);
     } else if (player.classId === 'brook') {
         fpsSword = buildFPSCane();
+        camera.add(fpsSword);
+    } else if (player.classId === 'bakugo') {
+        fpsSword = buildFPSFists();
         camera.add(fpsSword);
     }
 }
@@ -2574,6 +2918,7 @@ function updateWalkAnimation(dt) {
     if (updateSukunaAnimation(pm, dt, moving, walkCycle)) return;
     if (updateTojiAnimation(pm, dt, moving, walkCycle)) return;
     if (updateBrookAnimation(pm, dt, moving, walkCycle)) return;
+    if (updateBakugoAnimation(pm, dt, moving, walkCycle)) return;
 
     // Generic walk bob
     if (moving) {
