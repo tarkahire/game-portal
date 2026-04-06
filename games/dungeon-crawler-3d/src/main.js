@@ -1826,7 +1826,7 @@ function buildFPSFists() {
         finger.rotation.x = -0.3;
         rightFist.add(finger);
     }
-    rightFist.position.set(0.18, -0.35, -0.35);
+    rightFist.position.set(0.18, -0.18, -0.35);
     rightFist.rotation.set(-0.4, 0, -0.15);
     group.add(rightFist);
 
@@ -1843,7 +1843,7 @@ function buildFPSFists() {
         finger.rotation.x = -0.3;
         leftFist.add(finger);
     }
-    leftFist.position.set(-0.18, -0.35, -0.35);
+    leftFist.position.set(-0.18, -0.18, -0.35);
     leftFist.rotation.set(-0.4, 0, 0.15);
     group.add(leftFist);
 
