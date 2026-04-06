@@ -135,7 +135,7 @@ export class FPSCamera {
             if (this.playerModel) {
                 this.playerModel.visible = true;
                 this.playerModel.position.set(worldX, fly, worldZ);
-                this.playerModel.rotation.y = -this.yaw;
+                this.playerModel.rotation.y = this.yaw + Math.PI;
             }
         } else {
             // 1st person
