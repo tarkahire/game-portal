@@ -53,31 +53,44 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 - **Recent additions**: Katakuri 16-portal ring system with dough fist M1s + Fusillade + Haki (blue); Senor Pink (Sui Sui) walk-through-walls + dive + whirlpool; Ink class with puddle resource system + Draw Soldier + Masterpiece golem; Dog class (OP) with permanent pack + puppy spawn + fetch frenzy + alpha howl; Kitsune with tails meter transformation (human -> nine-tailed fox with cyan arc slashes)
 - **Full docs**: See `games/dungeon-crawler/docs/` for architecture, classes, gameplay, network, controls
 
-### Dungeon Crawler 3D
+### Dungeon Crawler 3D (Blox Fruits Edition)
 - **Path**: `games/dungeon-crawler-3d/`
 - **Tech**: Three.js v0.162.0 (CDN via jsdelivr importmap), ES modules, PeerJS (WebRTC multiplayer)
-- **Features**: First-person 3D dungeon crawler inspired by Wolfenstein/DOOM; same 64 classes as 2D version; procedural dungeon generation (reused from 2D); cyberpunk neon walls/floors/ceilings with torch lighting; futuristic horror enemies with gaping mouths and sharp teeth; all 64 class specials ported (E/R/Q/F abilities); 3D minion system (shadows, clones, imps, dogs, face-huggers etc.); boss encounters with floating "BOSS" labels; full HUD (HP, XP, floor, lives, gold, special cooldown, boss HP bar, minimap); 1st/3rd person camera toggle (C key); online co-op via PeerJS; class selection screen with all 64 classes
-- **Controls**:
-  - WASD / Arrow keys: move (forward/back/strafe)
+- **Features**: First-person 3D dungeon crawler with Blox Fruits class system; 15 playable fruits (Dough, Dragon, Leopard, Buddha, Light, Dark, Flame, Ice, Magma, Phoenix, Rumble, Quake, Venom, Spirit, Sound); Blox Fruits-style controls (Z/X/C/V/F abilities, Q dash, M1 4-hit combo); Beast fruit transformations (Dragon, Leopard, Buddha, Phoenix, Venom); procedural dungeon generation; cyberpunk neon visual style; screen shake, hitstop, floating damage numbers, speed lines; boss encounters; 5-slot ability cooldown HUD; 1st/3rd person camera toggle (T key)
+- **Controls** (Blox Fruits style):
+  - WASD / Arrow keys: move
   - Mouse: look around (pointer lock)
-  - Left click: attack (melee arc or ranged projectile based on class)
-  - E: special ability, R: secondary ability, Q: class ability, F: class F-ability
-  - Space: dodge, C: toggle 1st/3rd person camera, ESC: pause
-- **Katakuri 3D specifics**: Two dough donut portals float at player's sides; M1 punches big navy blocky fists from portals with lock-on auto-aim and knockback; E Fusillade fires 16 rapid fists from side portals (Blox Fruits style) with enemy pull + stun; R Restless Dough Barrage rapid fists; Q Haki permanent blue upgrade; F grab enemies with hands + throw launches them via floor portal uppercut into ceiling ricochet
-- **Parasite 3D specifics**: Tendril-based class that steals from enemies; M1 tendril lash (narrow cone, drains HP on hit); E Infest (attach to an enemy — ride them as they fight other enemies for 8s, camera follows, player invincible); R Drain (AoE HP steal with visible green tendrils connecting to each victim); Q Evolve (stacking permanent stat buff — +damage/HP/speed each use, kills absorb enemy stats proportional to stacks, player model grows); F Apex Predator (merge with nearest enemy or boss — absorb their stats permanently, full heal, mutated horror model with 6 tendril arms, green glow, AoE burst)
-- **Mahoraga 3D specifics**: Wheel of Dharma floats above player (8-spoke spinning wheel); Sword of Extermination visible during attacks; M1 wide sweeping sword slashes with knockback; E Adaptation spins wheel, heals, grants stacking damage reduction (up to 60%); R Cleave massive overhead sword slam with AoE stun + bounce; Q Wheel Turn AoE pull + damage + 3s stun; F Divine General Transformation (permanent: 1.8x damage, 1.5x HP, full heal, 1.3x speed, faster attacks, purple positive energy glow on sword/wheel, AoE burst on transform)
+  - Left click (M1): 4-hit melee combo (4th hit = finisher with extra knockback + screen shake)
+  - Z: Ability 1, X: Ability 2, C: Ability 3, V: Ability 4 (transform for Beast fruits), F: Ability 5 (flight/mobility)
+  - Q / Space: Dash (300ms invincibility + 3x speed + speed lines + FOV punch)
+  - T: toggle 1st/3rd person camera, ESC: pause
+- **Fruits (15)**:
+  - **Dough** (Special): Roller Donut projectile, Restless Barrage, Fusillade channeled 16-hit barrage with pull, Unstoppable AoE slam, flight
+  - **Dragon** (Beast): Fire Breath cone, Dragon Claw dash, Fire Shower rain, Dragon Transform (2x scale, wings, 1.8x dmg), flight
+  - **Leopard** (Beast): Prowl Punch dash, Spiraling Frenzy multi-hit, Predator Leap, Leopard Transform (1.3x, speed aura, 1.8x speed), rush
+  - **Buddha** (Beast): Impact Fist shockwave, Shift teleport, Heavenly Stomp, Buddha Transform (3x golden giant, 2.5x HP, 50% dmg reduction), zen dash
+  - **Light** (Elemental): Light Beam, Barrage of Light 5-shot, Light Speed Kick dash, Divine Arrow mega beam, flight
+  - **Dark** (Elemental): Dimensional Slash, Dark Vortex pull+AoE, Black Hole massive pull, World of Darkness screen-wide, flight
+  - **Flame** (Elemental): Fire Bullets 3-shot, Fire Column AoE, Fire Fist big projectile, Flame Destroyer AoE, flight
+  - **Ice** (Elemental): Ice Spears + freeze, Glacial Surge freeze wave, Ice Bird projectile, Absolute Zero freeze-all, flight
+  - **Magma** (Elemental): Magma Fist, Magma Eruption cone, Magma Hound tracking, Volcanic Storm AoE, flight
+  - **Phoenix** (Beast): Blue Flames heal+attack, Flame Gatling 8-shot, Regeneration Flame big heal, Phoenix Transform (wings, heal-over-time), flight
+  - **Rumble** (Elemental): Thunder Bolt + stun, Lightning Storm AoE, Sky Judgement big strike, Thunderstorm massive, flight
+  - **Quake** (Natural): Quake Punch shockwave, Quake Erupt ground smash, Sea Quake massive, Tsunami screen-wide destruction, quake dash
+  - **Venom** (Natural): Poison Daggers, Toxic Fog DOT cloud, Venom Shower rain, Hydra Transform (3-headed, 1.7x dmg), dash
+  - **Spirit** (Natural): Fire Spirit proj, Ice Spirit proj+freeze, Fire Spirit AoE, Spirit Convergence dual-element mega, flight
+  - **Sound** (Natural): Sound Blast cone+stun, Rhythmic Barrage multi-hit, Tempo Charge speed/dmg buff, Fortissimo AoE, dash
 - **File structure**:
-  - `index.html` — entry point with Three.js importmap, HUD markup, all menu screens
+  - `index.html` — entry point with Three.js importmap, HUD with 5-slot ability bar
   - `style.css` — cyberpunk neon HUD + menu styling
-  - `src/main.js` — game loop, state, combat, all 63 specials, Katakuri portal system, Mahoraga wheel/sword system, minion system, HUD
-  - `src/constants.js` — TILE, WALL_HEIGHT, EYE_HEIGHT, color palette
-  - `src/dungeon/generator.js` — dungeon generation (ported from 2D)
-  - `src/dungeon/meshBuilder.js` — tile grid to 3D walls/floors/ceilings with textures
-  - `src/dungeon/torchLights.js` — PointLight placement + flicker
-  - `src/player/fpsCamera.js` — FPS controls, pointer lock, WASD, wall collision, 1st/3rd person toggle
-  - `src/enemies/meshFactory.js` — 3D enemy mesh builders (horror style with teeth)
-  - `src/classes/definitions.js` — all 64 class stats
-  - `src/network/network.js` — PeerJS multiplayer (create/join room, lobby, state sync)
+  - `src/main.js` — game loop, M1 combo system, fruitAbility() dispatcher, VFX (screen shake, hitstop, damage numbers, slash trails, speed lines), beast transform models, minion system, HUD
+  - `src/classes/definitions.js` — 15 Blox Fruit definitions with stats + ability metadata + cooldowns
+  - `src/player/fpsCamera.js` — FPS controls, pointer lock, WASD, wall collision, 1st/3rd person toggle (T key)
+  - `src/dungeon/generator.js` — dungeon generation
+  - `src/dungeon/meshBuilder.js` — 3D walls/floors/ceilings
+  - `src/dungeon/torchLights.js` — torch lighting
+  - `src/enemies/meshFactory.js` — 3D enemy mesh builders
+  - `src/network/network.js` — PeerJS multiplayer
 
 ## Adding a New Game
 

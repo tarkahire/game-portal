@@ -32,8 +32,8 @@
                 <button id="btn-stats" class="menu-btn secondary">Stats</button>
             </div>
             <div class="controls-hint">
-                <p>WASD/Arrows to move | Mouse to look | Click to attack</p>
-                <p>E: Special | R: Secondary | Q: Class Ability | Space: Dodge</p>
+                <p>WASD/Arrows to move | Mouse to look | M1: 4-hit combo</p>
+                <p>Z/X/C/V: Fruit abilities | F: Flight/Mobility | Q: Dash | T: Camera</p>
             </div>
             <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
         </div>
@@ -104,7 +104,13 @@
             <div class="hud-bar-container xp-container">
                 <div id="hud-xp-bar" class="hud-bar xp-bar"></div>
             </div>
-            <div id="hud-special-cd">[ Divine Wings ] READY</div>
+            <div id="hud-ability-bar" style="display:flex;gap:6px;margin-top:6px;">
+                <div class="ability-slot" data-key="z" style="background:rgba(0,0,0,0.6);border:1px solid #ff0080;padding:2px 8px;border-radius:4px;font-size:11px;min-width:50px;text-align:center;"><span style="color:#ff0080;font-weight:bold;">Z</span> <span class="ability-cd" style="color:#0ff;">READY</span></div>
+                <div class="ability-slot" data-key="x" style="background:rgba(0,0,0,0.6);border:1px solid #ff0080;padding:2px 8px;border-radius:4px;font-size:11px;min-width:50px;text-align:center;"><span style="color:#ff0080;font-weight:bold;">X</span> <span class="ability-cd" style="color:#0ff;">READY</span></div>
+                <div class="ability-slot" data-key="c" style="background:rgba(0,0,0,0.6);border:1px solid #ff0080;padding:2px 8px;border-radius:4px;font-size:11px;min-width:50px;text-align:center;"><span style="color:#ff0080;font-weight:bold;">C</span> <span class="ability-cd" style="color:#0ff;">READY</span></div>
+                <div class="ability-slot" data-key="v" style="background:rgba(0,0,0,0.6);border:1px solid #ff0080;padding:2px 8px;border-radius:4px;font-size:11px;min-width:50px;text-align:center;"><span style="color:#ff0080;font-weight:bold;">V</span> <span class="ability-cd" style="color:#0ff;">READY</span></div>
+                <div class="ability-slot" data-key="f" style="background:rgba(0,0,0,0.6);border:1px solid #ff0080;padding:2px 8px;border-radius:4px;font-size:11px;min-width:50px;text-align:center;"><span style="color:#ff0080;font-weight:bold;">F</span> <span class="ability-cd" style="color:#0ff;">READY</span></div>
+            </div>
         </div>
 
         <!-- Top center -->

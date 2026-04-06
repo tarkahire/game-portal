@@ -29,7 +29,7 @@ export class FPSCamera {
         this.keys = {};
         this._onKeyDown = (e) => {
             this.keys[e.code] = true;
-            if (e.code === 'KeyC') this.thirdPerson = !this.thirdPerson;
+            if (e.code === 'KeyT') this.thirdPerson = !this.thirdPerson;
         };
         this._onKeyUp = (e) => { this.keys[e.code] = false; };
         this._onMouseMove = (e) => {

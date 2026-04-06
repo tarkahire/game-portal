@@ -1,64 +1,81 @@
 // ═══════════════════════════════════════════════════════════════
-//  ALL 62 CLASS DEFINITIONS — stats only (no 2D draw functions)
+//  BLOX FRUITS — 15 fruits with stats + ability metadata
 // ═══════════════════════════════════════════════════════════════
 
 export const CLASSES = {
-    angel: { name: 'Angel', maxHp: 90, speed: 3.25, attackRange: 160, attackDamage: 13, attackSpeed: 450, attackType: 'ranged', color: '#f0e68c', specialCooldown: 6000, specialName: 'Divine Wings', weaponType: 'scepter' },
-    demon: { name: 'Demon', maxHp: 100, speed: 2.4, attackRange: 35, attackDamage: 14, attackSpeed: 450, attackType: 'melee', color: '#cc2222', specialCooldown: 5000, specialName: 'Summon Imps', weaponType: 'claw' },
-    draco: { name: 'Draco', maxHp: 110, speed: 2.3, attackRange: 40, attackDamage: 11, attackSpeed: 400, attackType: 'melee', color: '#6a1b9a', specialCooldown: 4000, specialName: 'Dragon Beam', weaponType: 'claw' },
-    healer: { name: 'Healer', maxHp: 75, speed: 2.6, attackRange: 140, attackDamage: 8, attackSpeed: 600, attackType: 'ranged', color: '#43a047', specialCooldown: 3000, specialName: 'Healing Circle', weaponType: 'staff' },
-    lightning: { name: 'Lightning', maxHp: 70, speed: 4.4, attackRange: 170, attackDamage: 12, attackSpeed: 400, attackType: 'ranged', color: '#ffeb3b', specialCooldown: 5000, specialName: 'Lightning Net', weaponType: 'rod' },
-    portal: { name: 'Portal', maxHp: 85, speed: 2.8, attackRange: 150, attackDamage: 12, attackSpeed: 500, attackType: 'ranged', color: '#00bcd4', specialCooldown: 6000, specialName: 'Rift Pull', weaponType: 'orb' },
-    naruto: { name: 'Naruto', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 11, attackSpeed: 380, attackType: 'melee', color: '#ff8f00', specialCooldown: 5000, specialName: 'Shadow Clones', weaponType: 'fist' },
-    megumi: { name: 'Megumi', maxHp: 85, speed: 2.7, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#1a237e', specialCooldown: 5000, specialName: 'Divine Dogs', weaponType: 'staff' },
-    jinwoo: { name: 'Jin-Woo', maxHp: 110, speed: 3.0, attackRange: 32, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#311b92', specialCooldown: 6000, specialName: 'Shadow Army', weaponType: 'sword' },
-    katakuri: { name: 'Katakuri', maxHp: 120, speed: 2.7, attackRange: 35, attackDamage: 8, attackSpeed: 180, attackType: 'melee', color: '#c62828', specialCooldown: 6000, specialName: 'Fusillade', weaponType: 'fist' },
-    frog: { name: 'Frog', maxHp: 100, speed: 2.5, attackRange: 25, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#4caf50', specialCooldown: 0, specialName: 'Electric Tongue', weaponType: 'tongue' },
-    beeswarm: { name: 'Bee Swarm', maxHp: 60, speed: 3.5, attackRange: 160, attackDamage: 14, attackSpeed: 600, attackType: 'ranged', color: '#fdd835', specialCooldown: 3000, specialName: 'Split Swarm', weaponType: 'swarm' },
-    trex: { name: 'T-Rex', maxHp: 180, speed: 1.8, attackRange: 40, attackDamage: 20, attackSpeed: 600, attackType: 'melee', color: '#4e342e', specialCooldown: 4000, specialName: 'Dino Stomp', weaponType: 'jaw' },
-    wendigo: { name: 'Wendigo', maxHp: 90, speed: 2.8, attackRange: 30, attackDamage: 12, attackSpeed: 380, attackType: 'melee', color: '#b0bec5', specialCooldown: 3000, specialName: 'Devour', weaponType: 'claw' },
-    alienqueen: { name: 'Alien Queen', maxHp: 110, speed: 2.3, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#1b5e20', specialCooldown: 4000, specialName: 'Lay Eggs', weaponType: 'claw' },
-    comet: { name: 'Comet', maxHp: 75, speed: 4.2, attackRange: 25, attackDamage: 10, attackSpeed: 350, attackType: 'melee', color: '#ff6f00', specialCooldown: 2000, specialName: 'Comet Dash', weaponType: 'fist' },
-    telekinesis: { name: 'Telekinesis', maxHp: 80, speed: 2.6, attackRange: 160, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#7c4dff', specialCooldown: 3000, specialName: 'TK Throw', weaponType: 'orb' },
-    mindcontrol: { name: 'Mind Control', maxHp: 70, speed: 2.5, attackRange: 150, attackDamage: 9, attackSpeed: 550, attackType: 'ranged', color: '#e040fb', specialCooldown: 6000, specialName: 'Possess', weaponType: 'orb' },
-    chimera: { name: 'Chimera', maxHp: 110, speed: 2.6, attackRange: 35, attackDamage: 13, attackSpeed: 400, attackType: 'melee', color: '#ff8f00', specialCooldown: 3000, specialName: 'Switch Head', weaponType: 'claw' },
-    mimic: { name: 'Mimic', maxHp: 90, speed: 2.8, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#8d6e63', specialCooldown: 5000, specialName: 'Copy', weaponType: 'claw' },
-    supernova: { name: 'Supernova', maxHp: 85, speed: 2.4, attackRange: 130, attackDamage: 8, attackSpeed: 500, attackType: 'ranged', color: '#fff176', specialCooldown: 0, specialName: 'Charge & Release', weaponType: 'orb' },
-    puppet: { name: 'Puppet Master', maxHp: 75, speed: 2.5, attackRange: 160, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#9c27b0', specialCooldown: 500, specialName: 'Strings', weaponType: 'staff' },
-    medusa: { name: 'Medusa', maxHp: 80, speed: 2.5, attackRange: 130, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#4caf50', specialCooldown: 3000, specialName: 'Stone Gaze', weaponType: 'orb' },
-    cerberus: { name: 'Cerberus', maxHp: 130, speed: 2.4, attackRange: 35, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#d32f2f', specialCooldown: 3500, specialName: 'Triple Breath', weaponType: 'jaw' },
-    minotaur: { name: 'Minotaur', maxHp: 140, speed: 1.8, attackRange: 35, attackDamage: 18, attackSpeed: 550, attackType: 'melee', color: '#5d4037', specialCooldown: 2500, specialName: 'Bull Charge', weaponType: 'fist' },
-    anubis: { name: 'Anubis', maxHp: 90, speed: 2.7, attackRange: 150, attackDamage: 12, attackSpeed: 480, attackType: 'ranged', color: '#fdd835', specialCooldown: 4000, specialName: 'Death Mark', weaponType: 'staff' },
-    thor: { name: 'Thor', maxHp: 120, speed: 2.6, attackRange: 35, attackDamage: 15, attackSpeed: 450, attackType: 'melee', color: '#42a5f5', specialCooldown: 3000, specialName: 'Mjolnir Throw', weaponType: 'hammer' },
-    venom: { name: 'Venom', maxHp: 115, speed: 3.0, attackRange: 40, attackDamage: 13, attackSpeed: 350, attackType: 'melee', color: '#111111', specialCooldown: 2000, specialName: 'Tentacle Burst', weaponType: 'claw' },
-    cordyceps: { name: 'Cordyceps', maxHp: 85, speed: 2.3, attackRange: 120, attackDamage: 9, attackSpeed: 550, attackType: 'ranged', color: '#ff8f00', specialCooldown: 5000, specialName: 'Infect', weaponType: 'staff' },
-    leech: { name: 'Leech', maxHp: 70, speed: 2.8, attackRange: 22, attackDamage: 8, attackSpeed: 300, attackType: 'melee', color: '#880e4f', specialCooldown: 1500, specialName: 'Latch On', weaponType: 'tongue' },
-    chrono: { name: 'Chrono', maxHp: 80, speed: 2.8, attackRange: 140, attackDamage: 11, attackSpeed: 480, attackType: 'ranged', color: '#00bcd4', specialCooldown: 8000, specialName: 'Rewind', weaponType: 'orb' },
-    dimcutter: { name: 'Dim Cutter', maxHp: 85, speed: 2.6, attackRange: 35, attackDamage: 13, attackSpeed: 400, attackType: 'melee', color: '#00e5ff', specialCooldown: 3000, specialName: 'Portal Slash', weaponType: 'sword' },
-    paradox: { name: 'Paradox', maxHp: 90, speed: 2.7, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff80ab', specialCooldown: 6000, specialName: 'Time Echo', weaponType: 'sword' },
-    drummer: { name: 'Drummer', maxHp: 95, speed: 2.5, attackRange: 28, attackDamage: 10, attackSpeed: 350, attackType: 'melee', color: '#ff5722', specialCooldown: 0, specialName: 'Beat Drop', weaponType: 'fist' },
-    siren: { name: 'Siren', maxHp: 75, speed: 2.6, attackRange: 160, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#80deea', specialCooldown: 4000, specialName: 'Lure Song', weaponType: 'orb' },
-    mercury: { name: 'Mercury', maxHp: 95, speed: 3.0, attackRange: 32, attackDamage: 13, attackSpeed: 370, attackType: 'melee', color: '#b0bec5', specialCooldown: 2500, specialName: 'Reshape', weaponType: 'sword' },
-    acid: { name: 'Acid', maxHp: 80, speed: 2.4, attackRange: 25, attackDamage: 9, attackSpeed: 400, attackType: 'melee', color: '#76ff03', specialCooldown: 1500, specialName: 'Dissolve', weaponType: 'claw' },
-    smoke: { name: 'Smoke', maxHp: 65, speed: 3.2, attackRange: 120, attackDamage: 10, attackSpeed: 500, attackType: 'ranged', color: '#546e7a', specialCooldown: 3000, specialName: 'Smoke Bomb', weaponType: 'orb' },
-    antcolony: { name: 'Ant Colony', maxHp: 100, speed: 2.2, attackRange: 20, attackDamage: 7, attackSpeed: 200, attackType: 'melee', color: '#795548', specialCooldown: 4000, specialName: 'Swarm Rush', weaponType: 'swarm' },
-    ratking: { name: 'Rat King', maxHp: 90, speed: 2.8, attackRange: 25, attackDamage: 11, attackSpeed: 350, attackType: 'melee', color: '#616161', specialCooldown: 3000, specialName: 'Rat Horde', weaponType: 'claw' },
-    locust: { name: 'Locust', maxHp: 70, speed: 3.5, attackRange: 20, attackDamage: 6, attackSpeed: 250, attackType: 'melee', color: '#827717', specialCooldown: 2000, specialName: 'Plague Cloud', weaponType: 'swarm' },
-    mechashark: { name: 'Mecha Shark', maxHp: 120, speed: 2.8, attackRange: 180, attackDamage: 14, attackSpeed: 450, attackType: 'ranged', color: '#37474f', specialCooldown: 3000, specialName: 'Torpedo', weaponType: 'jaw' },
-    ghostrider: { name: 'Ghost Rider', maxHp: 100, speed: 3.0, attackRange: 35, attackDamage: 14, attackSpeed: 380, attackType: 'melee', color: '#ff6f00', specialCooldown: 3000, specialName: 'Hellfire Chain', weaponType: 'chain' },
-    icephoenix: { name: 'Ice Phoenix', maxHp: 85, speed: 3.2, attackRange: 150, attackDamage: 12, attackSpeed: 450, attackType: 'ranged', color: '#4fc3f7', specialCooldown: 5000, specialName: 'Frost Dive', weaponType: 'orb' },
-    plaguerat: { name: 'Plague Rat', maxHp: 80, speed: 3.0, attackRange: 25, attackDamage: 8, attackSpeed: 320, attackType: 'melee', color: '#33691e', specialCooldown: 2000, specialName: 'Sneeze', weaponType: 'claw' },
-    carddealer: { name: 'Card Dealer', maxHp: 85, speed: 2.6, attackRange: 150, attackDamage: 11, attackSpeed: 480, attackType: 'ranged', color: '#d32f2f', specialCooldown: 2000, specialName: 'Draw Card', weaponType: 'card' },
-    diceroller: { name: 'Dice Roller', maxHp: 90, speed: 2.6, attackRange: 30, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#ffffff', specialCooldown: 1500, specialName: 'Roll Dice', weaponType: 'fist' },
-    chessking: { name: 'Chess King', maxHp: 95, speed: 2.0, attackRange: 140, attackDamage: 11, attackSpeed: 500, attackType: 'ranged', color: '#fdd835', specialCooldown: 4000, specialName: 'Summon Pawns', weaponType: 'scepter' },
-    rage: { name: 'Rage', maxHp: 110, speed: 2.5, attackRange: 30, attackDamage: 10, attackSpeed: 400, attackType: 'melee', color: '#d50000', specialCooldown: 0, specialName: 'Unleash', weaponType: 'fist' },
-    fear: { name: 'Fear', maxHp: 80, speed: 2.8, attackRange: 140, attackDamage: 12, attackSpeed: 480, attackType: 'ranged', color: '#4a148c', specialCooldown: 3500, specialName: 'Nightmare', weaponType: 'orb' },
-    love: { name: 'Love', maxHp: 75, speed: 2.6, attackRange: 150, attackDamage: 9, attackSpeed: 500, attackType: 'ranged', color: '#e91e63', specialCooldown: 5000, specialName: 'Charm', weaponType: 'orb' },
-    chaos: { name: 'Chaos', maxHp: 90, speed: 2.8, attackRange: 35, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff00ff', specialCooldown: 1000, specialName: '???', weaponType: 'random' },
-    suisui: { name: 'Señor Pink', maxHp: 100, speed: 3.0, attackRange: 30, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#e91e63', specialCooldown: 4000, specialName: 'Dive', weaponType: 'fist' },
-    ink: { name: 'Ink', maxHp: 85, speed: 2.8, attackRange: 160, attackDamage: 10, attackSpeed: 450, attackType: 'ranged', color: '#263238', specialCooldown: 5000, specialName: 'Draw Soldier', weaponType: 'brush' },
-    dog: { name: 'Dog', maxHp: 150, speed: 3.5, attackRange: 30, attackDamage: 16, attackSpeed: 280, attackType: 'melee', color: '#5d4037', specialCooldown: 3000, specialName: 'Pack Howl', weaponType: 'jaw' },
-    kitsune: { name: 'Kitsune', maxHp: 95, speed: 2.8, attackRange: 28, attackDamage: 11, attackSpeed: 380, attackType: 'melee', color: '#00e5ff', specialCooldown: 4000, specialName: 'Fox Fire', weaponType: 'claw' },
-    mahoraga: { name: 'Mahoraga', maxHp: 160, speed: 2.2, attackRange: 50, attackDamage: 18, attackSpeed: 500, attackType: 'melee', color: '#7c4dff', specialCooldown: 5000, specialName: 'Adaptation', weaponType: 'sword' },
-    parasite: { name: 'Parasite', maxHp: 70, speed: 3.2, attackRange: 40, attackDamage: 8, attackSpeed: 300, attackType: 'melee', color: '#76ff03', specialCooldown: 6000, specialName: 'Infest', weaponType: 'claw' },
+    dough: {
+        name: 'Dough', type: 'special', maxHp: 120, speed: 2.7, attackRange: 35, attackDamage: 10, attackSpeed: 200, attackType: 'melee', color: '#f5f0e0', specialCooldown: 6000, specialName: 'Roller Donut', weaponType: 'fist',
+        abilities: { z: 'Roller Donut', x: 'Restless Dough Barrage', c: 'Dough Fist Fusillade', v: 'Unstoppable Dough', f: 'Dough Flight' },
+        abilityCooldowns: { z: 6000, x: 8000, c: 12000, v: 15000, f: 1000 }
+    },
+    dragon: {
+        name: 'Dragon', type: 'beast', maxHp: 150, speed: 2.3, attackRange: 40, attackDamage: 14, attackSpeed: 350, attackType: 'melee', color: '#ff6600', specialCooldown: 5000, specialName: 'Fire Breath', weaponType: 'claw',
+        abilities: { z: 'Fire Breath', x: 'Dragon Claw', c: 'Fire Shower', v: 'Dragon Transform', f: 'Dragon Flight' },
+        abilityCooldowns: { z: 5000, x: 7000, c: 10000, v: 20000, f: 1000 }
+    },
+    leopard: {
+        name: 'Leopard', type: 'beast', maxHp: 100, speed: 3.8, attackRange: 30, attackDamage: 13, attackSpeed: 250, attackType: 'melee', color: '#64ffda', specialCooldown: 4000, specialName: 'Prowl', weaponType: 'claw',
+        abilities: { z: 'Prowl Punch', x: 'Spiraling Frenzy', c: 'Predator Leap', v: 'Leopard Transform', f: 'Leopard Rush' },
+        abilityCooldowns: { z: 4000, x: 6000, c: 8000, v: 20000, f: 1000 }
+    },
+    buddha: {
+        name: 'Buddha', type: 'beast', maxHp: 200, speed: 1.8, attackRange: 60, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ffd600', specialCooldown: 5000, specialName: 'Impact', weaponType: 'fist',
+        abilities: { z: 'Impact Fist', x: 'Shift', c: 'Heavenly Stomp', v: 'Buddha Transform', f: 'Zen Dash' },
+        abilityCooldowns: { z: 5000, x: 6000, c: 10000, v: 20000, f: 2000 }
+    },
+    light: {
+        name: 'Light', type: 'elemental', maxHp: 80, speed: 4.5, attackRange: 180, attackDamage: 12, attackSpeed: 300, attackType: 'melee', color: '#ffeb3b', specialCooldown: 4000, specialName: 'Light Beam', weaponType: 'orb',
+        abilities: { z: 'Light Beam', x: 'Barrage of Light', c: 'Light Speed Kick', v: 'Divine Arrow', f: 'Light Flight' },
+        abilityCooldowns: { z: 4000, x: 6000, c: 8000, v: 12000, f: 1000 }
+    },
+    dark: {
+        name: 'Dark', type: 'elemental', maxHp: 90, speed: 2.8, attackRange: 150, attackDamage: 13, attackSpeed: 350, attackType: 'melee', color: '#1a1a2e', specialCooldown: 5000, specialName: 'Dark Vortex', weaponType: 'orb',
+        abilities: { z: 'Dimensional Slash', x: 'Dark Vortex', c: 'Black Hole', v: 'World of Darkness', f: 'Dark Flight' },
+        abilityCooldowns: { z: 5000, x: 7000, c: 10000, v: 15000, f: 1000 }
+    },
+    flame: {
+        name: 'Flame', type: 'elemental', maxHp: 90, speed: 3.0, attackRange: 150, attackDamage: 11, attackSpeed: 350, attackType: 'melee', color: '#ff5722', specialCooldown: 4000, specialName: 'Fire Bullets', weaponType: 'orb',
+        abilities: { z: 'Fire Bullets', x: 'Fire Column', c: 'Fire Fist', v: 'Flame Destroyer', f: 'Flame Flight' },
+        abilityCooldowns: { z: 4000, x: 6000, c: 8000, v: 12000, f: 1000 }
+    },
+    ice: {
+        name: 'Ice', type: 'elemental', maxHp: 95, speed: 2.8, attackRange: 150, attackDamage: 11, attackSpeed: 380, attackType: 'melee', color: '#4fc3f7', specialCooldown: 5000, specialName: 'Ice Spears', weaponType: 'orb',
+        abilities: { z: 'Ice Spears', x: 'Glacial Surge', c: 'Ice Bird', v: 'Absolute Zero', f: 'Ice Flight' },
+        abilityCooldowns: { z: 5000, x: 7000, c: 10000, v: 15000, f: 1000 }
+    },
+    magma: {
+        name: 'Magma', type: 'elemental', maxHp: 110, speed: 2.4, attackRange: 140, attackDamage: 14, attackSpeed: 400, attackType: 'melee', color: '#ff3d00', specialCooldown: 5000, specialName: 'Magma Fist', weaponType: 'fist',
+        abilities: { z: 'Magma Fist', x: 'Magma Eruption', c: 'Magma Hound', v: 'Volcanic Storm', f: 'Magma Flight' },
+        abilityCooldowns: { z: 5000, x: 7000, c: 10000, v: 15000, f: 1000 }
+    },
+    phoenix: {
+        name: 'Phoenix', type: 'beast', maxHp: 100, speed: 3.0, attackRange: 140, attackDamage: 10, attackSpeed: 380, attackType: 'melee', color: '#00bcd4', specialCooldown: 5000, specialName: 'Blue Flames', weaponType: 'orb',
+        abilities: { z: 'Blue Flames', x: 'Flame Gatling', c: 'Regeneration Flame', v: 'Phoenix Transform', f: 'Phoenix Flight' },
+        abilityCooldowns: { z: 5000, x: 7000, c: 8000, v: 20000, f: 1000 }
+    },
+    rumble: {
+        name: 'Rumble', type: 'elemental', maxHp: 85, speed: 3.5, attackRange: 170, attackDamage: 12, attackSpeed: 350, attackType: 'melee', color: '#ffd740', specialCooldown: 4000, specialName: 'Thunder Bolt', weaponType: 'orb',
+        abilities: { z: 'Thunder Bolt', x: 'Lightning Storm', c: 'Sky Judgement', v: 'Thunderstorm', f: 'Rumble Flight' },
+        abilityCooldowns: { z: 4000, x: 6000, c: 10000, v: 14000, f: 1000 }
+    },
+    quake: {
+        name: 'Quake', type: 'natural', maxHp: 130, speed: 2.4, attackRange: 35, attackDamage: 16, attackSpeed: 450, attackType: 'melee', color: '#ffab00', specialCooldown: 5000, specialName: 'Quake Punch', weaponType: 'fist',
+        abilities: { z: 'Quake Punch', x: 'Quake Erupt', c: 'Sea Quake', v: 'Tsunami', f: 'Quake Dash' },
+        abilityCooldowns: { z: 5000, x: 7000, c: 10000, v: 15000, f: 3000 }
+    },
+    venom: {
+        name: 'Venom', type: 'natural', maxHp: 120, speed: 2.6, attackRange: 140, attackDamage: 13, attackSpeed: 400, attackType: 'melee', color: '#76ff03', specialCooldown: 5000, specialName: 'Poison Daggers', weaponType: 'claw',
+        abilities: { z: 'Poison Daggers', x: 'Toxic Fog', c: 'Venom Shower', v: 'Hydra Transform', f: 'Venom Dash' },
+        abilityCooldowns: { z: 5000, x: 7000, c: 10000, v: 20000, f: 2000 }
+    },
+    spirit: {
+        name: 'Spirit', type: 'natural', maxHp: 95, speed: 2.8, attackRange: 150, attackDamage: 12, attackSpeed: 400, attackType: 'melee', color: '#ff8a65', specialCooldown: 5000, specialName: 'Spirit Bomb', weaponType: 'orb',
+        abilities: { z: 'Spirit Bomb', x: 'Ice Spirit', c: 'Fire Spirit', v: 'Spirit Convergence', f: 'Spirit Flight' },
+        abilityCooldowns: { z: 5000, x: 6000, c: 6000, v: 14000, f: 1000 }
+    },
+    sound: {
+        name: 'Sound', type: 'natural', maxHp: 90, speed: 3.0, attackRange: 140, attackDamage: 11, attackSpeed: 380, attackType: 'melee', color: '#e040fb', specialCooldown: 4000, specialName: 'Sound Blast', weaponType: 'orb',
+        abilities: { z: 'Sound Blast', x: 'Rhythmic Barrage', c: 'Tempo Charge', v: 'Fortissimo', f: 'Sound Dash' },
+        abilityCooldowns: { z: 4000, x: 6000, c: 8000, v: 14000, f: 2000 }
+    },
 };
