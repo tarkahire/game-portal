@@ -1237,6 +1237,245 @@ function updateTojiAnimation(pm, dt, moving, walkCycle) {
     return true;
 }
 
+// ─── BROOK 3D MODEL ────────────────────────────────────────
+function buildBrookModel() {
+    const pm = new THREE.Group();
+    const boneMat = new THREE.MeshStandardMaterial({ color: '#f5f0e0', roughness: 0.4, metalness: 0.1 });
+    const darkBoneMat = new THREE.MeshStandardMaterial({ color: '#d8d0b8', roughness: 0.5 });
+    const suitMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.6 }); // black suit
+    const shirtMat = new THREE.MeshStandardMaterial({ color: '#e8e0d0', roughness: 0.5 }); // white shirt underneath
+    const tieMat = new THREE.MeshStandardMaterial({ color: '#cc8800', roughness: 0.5 }); // orange/yellow cravat
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.7 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#0a0a0a', roughness: 0.8 });
+    const afroMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.9 }); // big black afro
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#000000' }); // hollow eye sockets
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — suit jacket (Brook is very tall and thin)
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 1.0, 6), suitMat);
+    upperBody.position.y = 0.55; torsoPivot.add(upperBody);
+    // Shoulders — narrow, bony
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.18, 0.25), suitMat);
+    shoulders.position.y = 0.95; torsoPivot.add(shoulders);
+    // White shirt V at chest
+    const shirt = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.2, 0.04), shirtMat);
+    shirt.position.set(0, 0.85, 0.12); torsoPivot.add(shirt);
+    // Cravat / bow tie — orange-yellow
+    const tie = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.03), tieMat);
+    tie.position.set(0, 0.93, 0.13); torsoPivot.add(tie);
+    // Suit jacket lapels
+    for (let s = -1; s <= 1; s += 2) {
+        const lapel = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.2, 0.03), suitMat);
+        lapel.position.set(s * 0.07, 0.85, 0.13);
+        lapel.rotation.z = s * 0.15;
+        torsoPivot.add(lapel);
+    }
+
+    // ── Neck — thin bony ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.18, 5), boneMat);
+    neck.position.y = 1.15; torsoPivot.add(neck);
+
+    // ── Skull head ──
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), boneMat);
+    skull.position.y = 1.42; skull.scale.set(1, 1.1, 0.95); torsoPivot.add(skull);
+    // Jaw — separate lower jaw bone
+    const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), darkBoneMat);
+    jaw.position.set(0, 1.28, 0.08); jaw.scale.set(1.2, 0.5, 0.9); torsoPivot.add(jaw);
+    // Teeth — upper row
+    for (let t = 0; t < 5; t++) {
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.025, 0.015), boneMat);
+        tooth.position.set((t - 2) * 0.025, 1.31, 0.16);
+        torsoPivot.add(tooth);
+    }
+    // Teeth — lower row
+    for (let t = 0; t < 5; t++) {
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.015), darkBoneMat);
+        tooth.position.set((t - 2) * 0.025, 1.27, 0.15);
+        torsoPivot.add(tooth);
+    }
+
+    // ── Eye sockets — hollow dark holes ──
+    for (let s = -1; s <= 1; s += 2) {
+        const socket = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), eyeMat);
+        socket.position.set(s * 0.07, 1.46, 0.16);
+        torsoPivot.add(socket);
+        // Tiny soul light inside each eye
+        const soulLight = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4),
+            new THREE.MeshBasicMaterial({ color: '#88ccff' }));
+        soulLight.position.set(s * 0.07, 1.46, 0.17);
+        torsoPivot.add(soulLight);
+    }
+    // Nose hole — just a dark triangle indent
+    const noseHole = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.03, 3),
+        new THREE.MeshBasicMaterial({ color: '#1a1a1a' }));
+    noseHole.position.set(0, 1.39, 0.19);
+    noseHole.rotation.x = Math.PI;
+    torsoPivot.add(noseHole);
+
+    // ── AFRO — big round black afro ──
+    const afro = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), afroMat);
+    afro.position.y = 1.55; afro.scale.set(1.1, 1.0, 1.05);
+    torsoPivot.add(afro);
+
+    // ── Right arm (bony, suit sleeve) ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.34, 0.9, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), suitMat));
+    // Upper arm — suit sleeve
+    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.45, 4), suitMat);
+    rUpperArm.position.y = -0.28; rightArmPivot.add(rUpperArm);
+    // Elbow joint — bone
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.035, 4, 4), boneMat).translateY(-0.52));
+    // Forearm — bone (no flesh, he's a skeleton)
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.4, 4), boneMat);
+    rForearm.position.y = -0.73; rightArmPivot.add(rForearm);
+    // Hand — bony
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.05), boneMat);
+    rHand.position.set(0, -0.96, 0.02); rightArmPivot.add(rHand);
+    // Bony fingers
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.005, 0.05, 3), boneMat);
+        finger.position.set((f - 1.5) * 0.015, -1.01, 0.03);
+        rightArmPivot.add(finger);
+    }
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm (mirrored) ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.34, 0.9, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), suitMat));
+    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.45, 4), suitMat);
+    lUpperArm.position.y = -0.28; leftArmPivot.add(lUpperArm);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.035, 4, 4), boneMat).translateY(-0.52));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.4, 4), boneMat);
+    lForearm.position.y = -0.73; leftArmPivot.add(lForearm);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.05), boneMat);
+    lHand.position.set(0, -0.96, 0.02); leftArmPivot.add(lHand);
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.005, 0.05, 3), boneMat);
+        finger.position.set((f - 1.5) * 0.015, -1.01, 0.03);
+        leftArmPivot.add(finger);
+    }
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Right leg (thin bone legs in suit pants) ──
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.08, 0.65, 0);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), pantsMat));
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.5, 4), pantsMat);
+    rThigh.position.y = -0.3; rightLegPivot.add(rThigh);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.04, 4, 4), pantsMat).translateY(-0.56));
+    const rShin = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.46, 4), pantsMat);
+    rShin.position.y = -0.8; rightLegPivot.add(rShin);
+    // Pointy dress shoes
+    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.04, 0.16), shoeMat);
+    rShoe.position.set(0, -1.05, 0.04); rightLegPivot.add(rShoe);
+    // Shoe tip
+    const rShoeTip = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 4), shoeMat);
+    rShoeTip.position.set(0, -1.05, 0.14); rShoeTip.rotation.x = Math.PI / 2;
+    rightLegPivot.add(rShoeTip);
+    pm.add(rightLegPivot);
+    pm._rightLeg = rightLegPivot;
+
+    // ── Left leg ──
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.08, 0.65, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), pantsMat));
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.5, 4), pantsMat);
+    lThigh.position.y = -0.3; leftLegPivot.add(lThigh);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.04, 4, 4), pantsMat).translateY(-0.56));
+    const lShin = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.46, 4), pantsMat);
+    lShin.position.y = -0.8; leftLegPivot.add(lShin);
+    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.04, 0.16), shoeMat);
+    lShoe.position.set(0, -1.05, 0.04); leftLegPivot.add(lShoe);
+    const lShoeTip = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 4), shoeMat);
+    lShoeTip.position.set(0, -1.05, 0.14); lShoeTip.rotation.x = Math.PI / 2;
+    leftLegPivot.add(lShoeTip);
+    pm.add(leftLegPivot);
+    pm._leftLeg = leftLegPivot;
+
+    // ── Soul aura — faint icy blue glow ──
+    const aura = new THREE.PointLight('#88ccff', 0.5, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isBrook = true;
+    return pm;
+}
+
+// ─── BROOK WALK/IDLE ANIMATION ─────────────────────────────
+function updateBrookAnimation(pm, dt, moving, walkCycle) {
+    if (!pm._isBrook) return false;
+
+    const t = walkCycle;
+
+    if (moving) {
+        // Lanky, bouncy, jaunty skeleton run — long strides, lots of bounce
+        const stride = 0.7;
+        const armSwing = 0.6;
+        const bodyBob = Math.abs(Math.sin(t * 2)) * 0.1; // exaggerated bounce
+
+        if (pm._rightLeg) pm._rightLeg.rotation.x = Math.sin(t) * stride;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = Math.sin(t + Math.PI) * stride;
+
+        // Arms swing wide — floppy skeleton energy
+        if (pm._rightArm) {
+            pm._rightArm.rotation.x = Math.sin(t + Math.PI) * armSwing;
+            pm._rightArm.rotation.z = Math.sin(t * 2) * 0.1; // slight flail
+        }
+        if (pm._leftArm) {
+            pm._leftArm.rotation.x = Math.sin(t) * armSwing;
+            pm._leftArm.rotation.z = Math.sin(t * 2 + 1) * -0.1;
+        }
+
+        // Torso — slight forward lean + exaggerated side sway
+        if (pm._torso) {
+            pm._torso.rotation.x = 0.06;
+            pm._torso.rotation.z = Math.sin(t) * 0.06; // more sway than others
+        }
+
+        pm.position.y = (fpsCamera.flyHeight || 0) + bodyBob;
+
+        if (pm._auraLight) pm._auraLight.intensity = 0.5 + Math.sin(t * 3) * 0.2;
+    } else {
+        // Idle — gentleman skeleton pose, slight head tilt, body sway
+        const breath = Math.sin(t * 0.4) * 0.02;
+        const sway = Math.sin(t * 0.25) * 0.025;
+
+        // Right arm relaxed, left arm slightly out (gentleman stance)
+        if (pm._rightArm) {
+            pm._rightArm.rotation.x = 0.05 + breath;
+            pm._rightArm.rotation.z = -0.08;
+        }
+        if (pm._leftArm) {
+            pm._leftArm.rotation.x = 0.1 + breath;
+            pm._leftArm.rotation.z = 0.15; // hand slightly out
+        }
+
+        if (pm._rightLeg) pm._rightLeg.rotation.x = 0;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = 0;
+
+        if (pm._torso) {
+            pm._torso.rotation.x = breath;
+            pm._torso.rotation.z = sway; // gentle sway side to side
+        }
+
+        pm.position.y = fpsCamera.flyHeight || 0;
+
+        if (pm._auraLight) pm._auraLight.intensity = 0.4 + Math.sin(t * 0.3) * 0.15;
+    }
+
+    return true;
+}
+
 // ─── 1ST-PERSON VIEWMODEL SWORD (visible when looking down) ─
 function buildFPSSword() {
     const group = new THREE.Group();
@@ -1528,6 +1767,9 @@ function startGame() {
     } else if (player.classId === 'toji') {
         pm = buildTojiModel();
         addPlayerLabel(pm, 'TOJI', '#2a6e3f');
+    } else if (player.classId === 'brook') {
+        pm = buildBrookModel();
+        addPlayerLabel(pm, 'BROOK', '#88ccff');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
@@ -2218,6 +2460,7 @@ function updateWalkAnimation(dt) {
     if (updateGojoAnimation(pm, dt, moving, walkCycle)) return;
     if (updateSukunaAnimation(pm, dt, moving, walkCycle)) return;
     if (updateTojiAnimation(pm, dt, moving, walkCycle)) return;
+    if (updateBrookAnimation(pm, dt, moving, walkCycle)) return;
 
     // Generic walk bob
     if (moving) {

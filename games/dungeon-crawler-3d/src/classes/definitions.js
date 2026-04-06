@@ -24,4 +24,11 @@ export const CLASSES = {
         abilities: { z: 'Inverted Spear', x: 'Chain Strike', c: 'Playful Cloud', v: 'Heavenly Restriction', f: 'Flash Step' },
         abilityCooldowns: { z: 3000, x: 3500, c: 7000, v: 18000, f: 2000 }
     },
+    brook: {
+        name: 'Brook', type: 'swordsman', maxHp: 100, speed: 3.6, attackRange: 38,
+        attackDamage: 16, attackSpeed: 220, attackType: 'melee', color: '#88ccff',
+        specialCooldown: 4000, specialName: 'Soul King', weaponType: 'sword',
+        abilities: { z: 'Hanauta Sancho', x: 'Soul Solid', c: 'Blizzard Slice', v: 'Soul King', f: 'Dash' },
+        abilityCooldowns: { z: 3000, x: 4000, c: 8000, v: 18000, f: 2500 }
+    },
 };
