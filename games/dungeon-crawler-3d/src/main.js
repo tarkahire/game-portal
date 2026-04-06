@@ -692,25 +692,41 @@ function initSlashPool() {
 
 function spawnMeleeSlash(color) {
     initSlashPool();
-    const dirX = -Math.sin(fpsCamera.yaw);
-    const dirZ = -Math.cos(fpsCamera.yaw);
-    const baseX = fpsCamera.posX * TILE + dirX * 2;
-    const baseZ = fpsCamera.posZ * TILE + dirZ * 2;
+    const yaw = fpsCamera.yaw;
+    const pitch = fpsCamera.pitch || 0;
+    // Direction the crosshair is pointing
+    const dirX = -Math.sin(yaw) * Math.cos(pitch);
+    const dirY = Math.sin(pitch);
+    const dirZ = -Math.cos(yaw) * Math.cos(pitch);
+    const baseX = fpsCamera.posX * TILE + dirX * 2.5;
+    const baseY = EYE_HEIGHT + dirY * 2.5;
+    const baseZ = fpsCamera.posZ * TILE + dirZ * 2.5;
 
-    // Spawn 3 staggered trail slashes for a fluid arc
+    // Spawn 3 staggered diagonal slash arcs facing the crosshair direction
     for (let t = 0; t < 3; t++) {
         let mesh = null;
         for (const s of slashPool) { if (!s.visible) { mesh = s; break; } }
         if (!mesh) continue;
 
-        const offset = t * 0.15;
-        mesh.position.set(baseX + dirX * offset, EYE_HEIGHT - 0.3 + t * 0.1, baseZ + dirZ * offset);
-        mesh.rotation.set(t * 0.1, -fpsCamera.yaw + Math.PI / 2, Math.PI / 4 + t * 0.2);
+        const offset = t * 0.12;
+        mesh.position.set(
+            baseX + dirX * offset,
+            baseY + t * 0.08,
+            baseZ + dirZ * offset
+        );
+        // Face the crosshair direction: rotate by yaw to face forward,
+        // then tilt diagonally (45 deg + slight variation per trail)
+        mesh.rotation.order = 'YXZ';
+        mesh.rotation.set(
+            pitch,                          // pitch matches vertical aim
+            yaw + Math.PI / 2,              // face the player's look direction
+            Math.PI / 4 + t * 0.15          // diagonal tilt (45 degrees)
+        );
         mesh.material.color.set(color);
         mesh.material.opacity = 0.9 - t * 0.15;
         mesh.scale.set(0.6 + t * 0.25, 0.6 + t * 0.25, 0.6 + t * 0.25);
         mesh.visible = true;
-        slashTrails.push({ mesh, life: 10 + t * 2, maxLife: 10 + t * 2 });
+        slashTrails.push({ mesh, life: 10 + t * 2, maxLife: 10 + t * 2, yaw, pitch });
     }
 }
 
@@ -721,7 +737,7 @@ function updateMeleeSlashes() {
         const t = s.life / s.maxLife;
         s.mesh.material.opacity = t * 0.9;
         s.mesh.scale.multiplyScalar(1.05);
-        s.mesh.rotation.z += 0.12;
+        // Keep orientation locked to original aim direction — no spinning
         if (s.life <= 0) {
             s.mesh.visible = false;
             slashTrails.splice(i, 1);
