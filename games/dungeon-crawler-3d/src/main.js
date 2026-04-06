@@ -1564,117 +1564,239 @@ function fruitAbility(slot) {
             player._redActive = true;
         }
 
-        else if (slot === 'c') { // Hollow Purple — Blue + Red combined, devastating beam
-            // Both arms come together
-            if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = -1.0;
-            if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = -1.0;
+        else if (slot === 'c') { // Hollow Purple — CUTSCENE: front view, blue+red merge, fire
+            // ── FREEZE EVERYTHING ──
+            player.invincible = now + 5000;
+            const savedGameState = gameState;
+            // Pause enemy AI by setting a cutscene flag
+            player._cutsceneActive = true;
 
-            // Charge phase (600ms) — blue and red particles spiral into a point
-            const chargeX = worldPx + fwdX * 1.5, chargeZ = worldPz + fwdZ * 1.5;
-            const chargeY = EYE_HEIGHT - 0.1;
+            // Save camera state
+            const savedCamPos = camera.position.clone();
+            const savedCamQuat = camera.quaternion.clone();
+            const savedLocked = fpsCamera.locked;
+            fpsCamera.locked = false; // prevent mouse input during cutscene
 
-            // Blue particles from left
-            emitParticles(chargeX - Math.cos(yaw) * 1.5, chargeY, chargeZ + Math.sin(yaw) * 1.5, {
-                color: ['#1565c0', '#42a5f5'], count: 15, speed: 3, spread: 0.5,
-                direction: { x: Math.cos(yaw) * 2, y: 0, z: -Math.sin(yaw) * 2 },
-                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.9
-            });
-            // Red particles from right
-            emitParticles(chargeX + Math.cos(yaw) * 1.5, chargeY, chargeZ - Math.sin(yaw) * 1.5, {
-                color: ['#d50000', '#ff1744'], count: 15, speed: 3, spread: 0.5,
-                direction: { x: -Math.cos(yaw) * 2, y: 0, z: Math.sin(yaw) * 2 },
-                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.9
-            });
+            // Show player model for cutscene
+            const pm = fpsCamera.playerModel;
+            if (pm) pm.visible = true;
 
-            // Purple orb forms at charge point
-            const purpleOrb = new THREE.Mesh(
-                new THREE.SphereGeometry(0.2, 10, 10),
-                new THREE.MeshBasicMaterial({ color: '#7c4dff', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })
+            // ── POSITION CAMERA: front view of Gojo ──
+            // Camera faces Gojo from the front, slightly above
+            const frontDist = 3.5;
+            const camX = worldPx + fwdX * frontDist;
+            const camZ = worldPz + fwdZ * frontDist;
+            const camY = EYE_HEIGHT + 0.5;
+            camera.position.set(camX, camY, camZ);
+            camera.lookAt(worldPx, EYE_HEIGHT - 0.2, worldPz);
+
+            // Arms out to sides
+            if (pm?._rightArm) pm._rightArm.rotation.set(-0.5, 0, -0.8);
+            if (pm?._leftArm) pm._leftArm.rotation.set(-0.5, 0, 0.8);
+
+            // Darken screen edges
+            const vignette = document.createElement('div');
+            vignette.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.7) 100%);';
+            document.body.appendChild(vignette);
+
+            // ── BLUE ORB (left side of Gojo) ──
+            const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw); // perpendicular to facing
+            const blueOrbPos = new THREE.Vector3(worldPx - perpX * 2, EYE_HEIGHT + 0.5, worldPz - perpZ * 2);
+            const blueOrb = new THREE.Mesh(
+                new THREE.SphereGeometry(0.6, 14, 14),
+                new THREE.MeshBasicMaterial({ color: '#1565c0', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
             );
-            purpleOrb.position.set(chargeX, chargeY, chargeZ);
-            purpleOrb.add(new THREE.PointLight('#7c4dff', 3, TILE * 4, 2));
-            scene.add(purpleOrb);
+            blueOrb.position.copy(blueOrbPos);
+            blueOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 10),
+                new THREE.MeshBasicMaterial({ color: '#82b1ff', blending: THREE.AdditiveBlending, transparent: true, opacity: 1, depthWrite: false })));
+            blueOrb.add(new THREE.PointLight('#1565c0', 6, TILE * 5, 2));
+            // Spinning rings
+            for (let r = 0; r < 2; r++) {
+                const ring = new THREE.Mesh(
+                    new THREE.TorusGeometry(0.7 + r * 0.2, 0.02, 6, 16),
+                    new THREE.MeshBasicMaterial({ color: '#42a5f5', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+                );
+                ring.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                blueOrb.add(ring);
+            }
+            scene.add(blueOrb);
 
-            // Grow the orb during charge
-            let chargeFrame = 0;
-            const chargeAnim = setInterval(() => {
-                chargeFrame++;
-                const s = 0.2 + chargeFrame * 0.05;
-                purpleOrb.scale.setScalar(Math.min(s, 1.5));
-                // Swirling particles
-                emitParticles(chargeX, chargeY, chargeZ, {
-                    color: ['#7c4dff', '#b388ff', '#ea80fc'],
-                    count: 3, speed: 1.5, spread: 0.8,
-                    gravity: 0, life: 6, size: 0.08, sizeEnd: 0, drag: 0.92
+            // ── RED ORB (right side of Gojo) ──
+            const redOrbPos = new THREE.Vector3(worldPx + perpX * 2, EYE_HEIGHT + 0.5, worldPz + perpZ * 2);
+            const redOrb = new THREE.Mesh(
+                new THREE.SphereGeometry(0.6, 14, 14),
+                new THREE.MeshBasicMaterial({ color: '#d50000', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            redOrb.position.copy(redOrbPos);
+            redOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 10),
+                new THREE.MeshBasicMaterial({ color: '#ff8a80', blending: THREE.AdditiveBlending, transparent: true, opacity: 1, depthWrite: false })));
+            redOrb.add(new THREE.PointLight('#d50000', 6, TILE * 5, 2));
+            for (let r = 0; r < 2; r++) {
+                const ring = new THREE.Mesh(
+                    new THREE.TorusGeometry(0.7 + r * 0.2, 0.02, 6, 16),
+                    new THREE.MeshBasicMaterial({ color: '#ff5252', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+                );
+                ring.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                redOrb.add(ring);
+            }
+            scene.add(redOrb);
+
+            // Blue + red particles swirling around their respective orbs
+            const orbParticleInt = setInterval(() => {
+                if (!blueOrb.parent) { clearInterval(orbParticleInt); return; }
+                emitParticles(blueOrb.position.x, blueOrb.position.y, blueOrb.position.z, {
+                    color: ['#1565c0', '#42a5f5', '#82b1ff'], count: 4, speed: 1.5, spread: 0.8,
+                    gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
                 });
-                if (chargeFrame > 12) clearInterval(chargeAnim);
-            }, 50);
+                emitParticles(redOrb.position.x, redOrb.position.y, redOrb.position.z, {
+                    color: ['#d50000', '#ff1744', '#ff8a80'], count: 4, speed: 1.5, spread: 0.8,
+                    gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
+                });
+                // Spin rings
+                blueOrb.children.forEach(c => { if (c.geometry?.type === 'TorusGeometry') { c.rotation.x += 0.08; c.rotation.y += 0.06; }});
+                redOrb.children.forEach(c => { if (c.geometry?.type === 'TorusGeometry') { c.rotation.x += 0.08; c.rotation.y += 0.06; }});
+            }, 60);
 
-            screenShake(0.2, 600);
+            screenShake(0.15, 1500);
 
-            // After 600ms — FIRE THE BEAM
+            // ── At 1000ms: ORBS SMASH TOGETHER ──
+            const mergeStart = 1000;
+            const mergeDur = 500;
+            const mergeCenter = new THREE.Vector3(worldPx, EYE_HEIGHT + 0.3, worldPz);
+
+            // Animate orbs sliding toward center
+            let mergeFrame = 0;
+            const mergeAnim = setInterval(() => {
+                mergeFrame++;
+                const t = Math.min(mergeFrame / (mergeDur / 33), 1);
+                const ease = t * t; // ease-in
+                blueOrb.position.lerpVectors(blueOrbPos, mergeCenter, ease);
+                redOrb.position.lerpVectors(redOrbPos, mergeCenter, ease);
+                // Orbs shrink slightly as they merge
+                const s = 1 - ease * 0.4;
+                blueOrb.scale.setScalar(s);
+                redOrb.scale.setScalar(s);
+                // Camera slowly zooms in
+                const zoomT = ease * 0.3;
+                camera.position.set(camX - fwdX * zoomT * 2, camY, camZ - fwdZ * zoomT * 2);
+                camera.lookAt(mergeCenter.x, mergeCenter.y, mergeCenter.z);
+                // Arms come together
+                if (pm?._rightArm) pm._rightArm.rotation.set(-1.0 * ease - 0.5, 0, -0.8 + ease * 0.8);
+                if (pm?._leftArm) pm._leftArm.rotation.set(-1.0 * ease - 0.5, 0, 0.8 - ease * 0.8);
+
+                if (t >= 1) clearInterval(mergeAnim);
+            }, 33);
+
+            // ── At 1500ms: COLLISION — purple orb forms ──
             setTimeout(() => {
-                scene.remove(purpleOrb);
+                clearInterval(orbParticleInt);
+                scene.remove(blueOrb); scene.remove(redOrb);
 
-                // Arms push forward
-                if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = -1.5;
-                if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = -1.5;
-                setTimeout(() => {
-                    if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = 0.05;
-                    if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = 0.05;
-                }, 600);
+                // FLASH on collision
+                screenFlash('rgba(255,255,255,0.6)', 200);
+                screenShake(0.6, 300);
+                triggerHitstop(120);
 
-                // Beam from player to target (long range)
-                const beamEndX = worldPx + fwdX * 12 * TILE;
-                const beamEndZ = worldPz + fwdZ * 12 * TILE;
-                beamEffect(chargeX, chargeY, chargeZ, beamEndX, chargeY, beamEndZ, '#7c4dff', 600, 0.35);
-
-                // Second thinner inner beam
-                beamEffect(chargeX, chargeY, chargeZ, beamEndX, chargeY, beamEndZ, '#ea80fc', 500, 0.15);
-
-                // Damage everything in the beam path
-                for (const e of enemies3D) {
-                    if (!e.data.alive) continue;
-                    const dx = e.data.x - px, dz = e.data.z - pz;
-                    // Check if enemy is within the beam corridor
-                    const along = dx * fwdX + dz * fwdZ; // distance along beam
-                    const perp = Math.abs(dx * fwdZ - dz * fwdX); // distance from beam center
-                    if (along > 0 && along < 12 && perp < 2) {
-                        dealDamageToEnemy(e, Math.round(player.damage * 5));
-                        // Knockback along beam direction
-                        e.data.x += fwdX * 2;
-                        e.data.z += fwdZ * 2;
-                        e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
-                    }
-                }
-
-                // Massive particles along beam path
-                for (let i = 0; i < 8; i++) {
-                    const t = i / 8;
-                    const bx = chargeX + fwdX * t * 12 * TILE;
-                    const bz = chargeZ + fwdZ * t * 12 * TILE;
-                    emitParticles(bx, chargeY, bz, {
-                        color: ['#7c4dff', '#b388ff', '#ea80fc', '#ffffff'],
-                        count: 8, speed: 3, spread: 1,
-                        gravity: -1, life: 15, lifeVar: 8,
-                        size: 0.2, sizeEnd: 0, drag: 0.96, upward: 0.5
-                    });
-                }
-
-                // Ground scorch along path
-                for (let i = 1; i < 6; i++) {
-                    groundDecal(
-                        (px + fwdX * i * 2) * TILE,
-                        (pz + fwdZ * i * 2) * TILE,
-                        '#7c4dff', 1.5, 3000
+                // Purple orb appears
+                const purpleOrb = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.8, 14, 14),
+                    new THREE.MeshBasicMaterial({ color: '#7c4dff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
+                );
+                purpleOrb.position.copy(mergeCenter);
+                purpleOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 10),
+                    new THREE.MeshBasicMaterial({ color: '#ea80fc', blending: THREE.AdditiveBlending, transparent: true, opacity: 1, depthWrite: false })));
+                purpleOrb.add(new THREE.PointLight('#7c4dff', 10, TILE * 8, 2));
+                // Distortion rings
+                for (let r = 0; r < 3; r++) {
+                    const ring = new THREE.Mesh(
+                        new THREE.TorusGeometry(1.0 + r * 0.2, 0.025, 6, 20),
+                        new THREE.MeshBasicMaterial({ color: '#b388ff', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })
                     );
+                    ring.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                    purpleOrb.add(ring);
                 }
+                scene.add(purpleOrb);
 
-                screenShake(0.7, 400);
-                triggerHitstop(100);
-                lightFlash(chargeX, chargeY, chargeZ, '#7c4dff', 10, 500);
-                screenFlash('rgba(124,77,255,0.3)', 300);
-            }, 600);
+                // Explosion of blue + red + purple particles at merge point
+                emitParticles(mergeCenter.x, mergeCenter.y, mergeCenter.z, {
+                    color: ['#1565c0', '#d50000', '#7c4dff', '#ea80fc', '#ffffff'],
+                    count: 50, speed: 5, spread: 0.5,
+                    gravity: 0, life: 15, lifeVar: 8,
+                    size: 0.15, sizeEnd: 0, drag: 0.95, upward: 0.5
+                });
+
+                // Grow purple orb briefly
+                let growFrame = 0;
+                const growAnim = setInterval(() => {
+                    growFrame++;
+                    purpleOrb.scale.setScalar(1 + growFrame * 0.05);
+                    purpleOrb.children.forEach(c => { if (c.geometry?.type === 'TorusGeometry') { c.rotation.x += 0.12; c.rotation.y += 0.08; }});
+                    emitParticles(mergeCenter.x, mergeCenter.y, mergeCenter.z, {
+                        color: ['#7c4dff', '#b388ff'], count: 3, speed: 2, spread: 1,
+                        gravity: 0, life: 8, size: 0.1, sizeEnd: 0, drag: 0.93
+                    });
+                    if (growFrame > 15) clearInterval(growAnim);
+                }, 40);
+
+                // ── At 2200ms: SNAP BACK + FIRE ──
+                setTimeout(() => {
+                    // Remove cutscene elements
+                    vignette.remove();
+                    scene.remove(purpleOrb);
+                    player._cutsceneActive = false;
+                    fpsCamera.locked = savedLocked;
+
+                    // Restore camera
+                    camera.position.copy(savedCamPos);
+                    camera.quaternion.copy(savedCamQuat);
+                    if (pm) pm.visible = fpsCamera.thirdPerson;
+
+                    // Arms push forward to fire
+                    if (pm?._rightArm) pm._rightArm.rotation.set(-1.5, 0, 0);
+                    if (pm?._leftArm) pm._leftArm.rotation.set(-1.5, 0, 0);
+                    setTimeout(() => {
+                        if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                        if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+                    }, 600);
+
+                    // ── FIRE HUGE PURPLE BALL FORWARD ──
+                    const fireX = worldPx + fwdX * 1.5, fireZ = worldPz + fwdZ * 1.5;
+                    const projOrb = new THREE.Mesh(
+                        new THREE.SphereGeometry(1.0, 14, 14),
+                        new THREE.MeshBasicMaterial({ color: '#7c4dff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
+                    );
+                    projOrb.position.set(fireX, EYE_HEIGHT, fireZ);
+                    projOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 10),
+                        new THREE.MeshBasicMaterial({ color: '#ffffff', blending: THREE.AdditiveBlending, transparent: true, opacity: 0.8, depthWrite: false })));
+                    projOrb.add(new THREE.PointLight('#7c4dff', 8, TILE * 8, 2));
+                    // Outer shell
+                    projOrb.add(new THREE.Mesh(new THREE.SphereGeometry(1.5, 10, 10),
+                        new THREE.MeshBasicMaterial({ color: '#b388ff', transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false })));
+                    scene.add(projOrb);
+
+                    projectiles3D.push({
+                        mesh: projOrb, vx: fwdX * 12, vz: fwdZ * 12,
+                        damage: Math.round(player.damage * 6), owner: 'player',
+                        traveled: 0, range: 60, _isHollowPurple: true
+                    });
+
+                    // Trail particles as it flies
+                    const trailInt = setInterval(() => {
+                        if (!projOrb.parent) { clearInterval(trailInt); return; }
+                        emitParticles(projOrb.position.x, projOrb.position.y, projOrb.position.z, {
+                            color: ['#7c4dff', '#b388ff', '#ea80fc', '#ffffff'],
+                            count: 6, speed: 2, spread: 0.5,
+                            gravity: 0, life: 12, size: 0.2, sizeEnd: 0, drag: 0.96
+                        });
+                        // Ground scorch under the ball
+                        groundDecal(projOrb.position.x, projOrb.position.z, '#7c4dff', 1, 2000);
+                    }, 50);
+
+                    screenShake(0.5, 400);
+                    lightFlash(fireX, EYE_HEIGHT, fireZ, '#7c4dff', 8, 300);
+                    screenFlash('rgba(124,77,255,0.3)', 200);
+                }, 700);
+            }, mergeStart + mergeDur);
         }
 
         else if (slot === 'v') { // Domain Expansion: Unlimited Void
@@ -2143,6 +2265,9 @@ function update() {
         animateEnemyMesh(e.mesh, e.data.enemyType, time);
 
 
+
+        // Freeze enemies during cutscenes
+        if (player._cutsceneActive) continue;
 
         // AI — chase and attack player (with wall collision)
         if (distToPlayer < 12 && distToPlayer > e.data.radius) {
