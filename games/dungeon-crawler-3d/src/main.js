@@ -217,14 +217,16 @@ function init() {
 
             // ── P2 controls ──
             if (coopMode && player2 && player2.alive) {
-                if (e.code === 'Backslash') p2Attack();    // P2 attack (\ key)
-                if (e.code === 'KeyM') p2Ability('z');     // P2 ability 1 (M = Z)
-                if (e.code === 'Comma') p2Ability('x');    // P2 ability 2 (, = X)
-                if (e.code === 'Period') p2Ability('c');   // P2 ability 3 (. = C)
-                if (e.code === 'Slash') p2Ability('v');    // P2 ability 4 (/ = V)
-                if (e.code === 'KeyN') p2Ability('f');     // P2 ability 5 (N = F)
-                if (e.code === 'Numpad0') p2Dodge();       // P2 dodge (Numpad 0)
+                if (e.code === 'Backslash' || e.code === 'IntlBackslash') p2Attack();
+                if (e.code === 'KeyM') p2Ability('z');
+                if (e.code === 'Comma') p2Ability('x');
+                if (e.code === 'Period') p2Ability('c');
+                if (e.code === 'Slash') p2Ability('v');
+                if (e.code === 'KeyN') p2Ability('f');
+                if (e.code === 'Numpad0') p2Dodge();
             }
+            // Debug: log key codes to console (remove later)
+            if (coopMode) console.log('Key:', e.code, 'P2 alive:', player2?.alive);
         }
     });
 
