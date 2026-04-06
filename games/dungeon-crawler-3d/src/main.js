@@ -288,7 +288,257 @@ function addPlayerLabel(pm, name, color) {
     pm.add(labelSprite);
 }
 
-// ─── CHARACTER MODELS (clean slate — add new characters here) ────
+// ─── GOJO SATORU 3D MODEL ───────────────────────────────────
+function buildGojoModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d5b8', roughness: 0.5 });
+    const jacketMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.6 }); // dark navy/black jacket
+    const innerMat = new THREE.MeshStandardMaterial({ color: '#2c2c44', roughness: 0.6 }); // slightly lighter inner
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#111122', roughness: 0.7 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#0a0a15', roughness: 0.8 });
+    const blindfoldMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.4 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#e8e8f0', roughness: 0.6 }); // white/silver hair
+
+    // ── Torso pivot (for body lean) ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — jacket/coat
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.24, 0.9, 8), jacketMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    // Chest width — broader shoulders
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.25, 0.35), jacketMat);
+    shoulders.position.y = 0.85; torsoPivot.add(shoulders);
+    // Collar / high neck of the uniform
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.2, 6), jacketMat);
+    collar.position.y = 1.05; torsoPivot.add(collar);
+    // Inner shirt visible at collar
+    const innerShirt = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.08, 6), innerMat);
+    innerShirt.position.set(0, 1.0, 0.08); torsoPivot.add(innerShirt);
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.15, 6), skinMat);
+    neck.position.y = 1.15; torsoPivot.add(neck);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
+    head.position.y = 1.4; head.scale.set(1, 1.05, 0.95); torsoPivot.add(head);
+
+    // Jaw / chin definition
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat);
+    chin.position.set(0, 1.25, 0.12); chin.scale.set(1.2, 0.7, 1); torsoPivot.add(chin);
+
+    // ── Blindfold (wrapped around eyes) ──
+    const blindfold = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.08, 0.22), blindfoldMat);
+    blindfold.position.set(0, 1.43, 0.05); torsoPivot.add(blindfold);
+    // Blindfold wrapping around sides
+    for (let s = -1; s <= 1; s += 2) {
+        const wrap = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.07, 0.12), blindfoldMat);
+        wrap.position.set(s * 0.22, 1.43, -0.04); torsoPivot.add(wrap);
+    }
+    // Blindfold tail (hanging strip on right side)
+    const bfTail = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.18, 0.04), blindfoldMat);
+    bfTail.position.set(0.24, 1.35, -0.06);
+    bfTail.rotation.z = -0.3;
+    torsoPivot.add(bfTail);
+
+    // ── Hair (spiky white) ──
+    // Base hair volume
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), hairMat);
+    hairBase.position.y = 1.5; hairBase.scale.set(1.05, 0.9, 1);
+    torsoPivot.add(hairBase);
+    // Spiky hair strands — upward and slightly forward/sideways
+    const spikePositions = [
+        { x: 0, y: 1.7, z: 0.05, rx: -0.3, rz: 0, h: 0.22 },
+        { x: 0.08, y: 1.68, z: 0.03, rx: -0.2, rz: 0.3, h: 0.2 },
+        { x: -0.08, y: 1.68, z: 0.03, rx: -0.2, rz: -0.3, h: 0.2 },
+        { x: 0.15, y: 1.63, z: -0.02, rx: 0, rz: 0.5, h: 0.18 },
+        { x: -0.15, y: 1.63, z: -0.02, rx: 0, rz: -0.5, h: 0.18 },
+        { x: 0.05, y: 1.67, z: -0.1, rx: 0.3, rz: 0.2, h: 0.16 },
+        { x: -0.05, y: 1.67, z: -0.1, rx: 0.3, rz: -0.2, h: 0.16 },
+        { x: 0, y: 1.65, z: -0.12, rx: 0.4, rz: 0, h: 0.15 },
+        { x: 0.12, y: 1.6, z: 0.06, rx: -0.15, rz: 0.4, h: 0.17 },
+        { x: -0.12, y: 1.6, z: 0.06, rx: -0.15, rz: -0.4, h: 0.17 },
+    ];
+    for (const sp of spikePositions) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, sp.h, 4), hairMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Nose ──
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 4), skinMat);
+    nose.position.set(0, 1.36, 0.2);
+    nose.rotation.x = Math.PI * 0.6;
+    torsoPivot.add(nose);
+
+    // ── Mouth (subtle line) ──
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#cc8888' }));
+    mouth.position.set(0.01, 1.3, 0.19); torsoPivot.add(mouth);
+
+    // ── Ears ──
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04, 5, 5), skinMat);
+        ear.position.set(s * 0.2, 1.4, 0);
+        ear.scale.set(0.6, 1, 0.6);
+        torsoPivot.add(ear);
+    }
+
+    // ── Right arm (articulated at shoulder) ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.4, 0.82, 0);
+    // Shoulder joint sphere
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), jacketMat));
+    // Upper arm
+    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.065, 0.45, 5), jacketMat);
+    rUpperArm.position.y = -0.28; rightArmPivot.add(rUpperArm);
+    // Elbow
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), jacketMat).translateY(-0.52));
+    // Forearm
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.055, 0.4, 5), jacketMat);
+    rForearm.position.y = -0.75; rightArmPivot.add(rForearm);
+    // Hand
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.06), skinMat);
+    rHand.position.set(0, -0.98, 0.02); rightArmPivot.add(rHand);
+    // Fingers (subtle)
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.05, 3), skinMat);
+        finger.position.set((f - 1.5) * 0.018, -1.04, 0.03);
+        rightArmPivot.add(finger);
+    }
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm (articulated at shoulder) ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.4, 0.82, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), jacketMat));
+    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.065, 0.45, 5), jacketMat);
+    lUpperArm.position.y = -0.28; leftArmPivot.add(lUpperArm);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), jacketMat).translateY(-0.52));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.055, 0.4, 5), jacketMat);
+    lForearm.position.y = -0.75; leftArmPivot.add(lForearm);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.06), skinMat);
+    lHand.position.set(0, -0.98, 0.02); leftArmPivot.add(lHand);
+    for (let f = 0; f < 4; f++) {
+        leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.05, 3), skinMat).translateX((f-1.5)*0.018).translateY(-1.04).translateZ(0.03));
+    }
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Right leg (articulated at hip) ──
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.1, 0.65, 0);
+    // Hip joint
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat));
+    // Thigh
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.45, 5), pantsMat);
+    rThigh.position.y = -0.28; rightLegPivot.add(rThigh);
+    // Knee
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), pantsMat).translateY(-0.52));
+    // Shin
+    const rShin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.42, 5), pantsMat);
+    rShin.position.y = -0.75; rightLegPivot.add(rShin);
+    // Shoe
+    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.16), shoeMat);
+    rShoe.position.set(0, -0.98, 0.03); rightLegPivot.add(rShoe);
+    pm.add(rightLegPivot);
+    pm._rightLeg = rightLegPivot;
+
+    // ── Left leg (articulated at hip) ──
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.1, 0.65, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat));
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.45, 5), pantsMat);
+    lThigh.position.y = -0.28; leftLegPivot.add(lThigh);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), pantsMat).translateY(-0.52));
+    const lShin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.42, 5), pantsMat);
+    lShin.position.y = -0.75; leftLegPivot.add(lShin);
+    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.16), shoeMat);
+    lShoe.position.set(0, -0.98, 0.03); leftLegPivot.add(lShoe);
+    pm.add(leftLegPivot);
+    pm._leftLeg = leftLegPivot;
+
+    // ── Belt / waist line ──
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.23, 0.06, 8),
+        new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.5 }));
+    belt.position.y = 0.62; pm.add(belt);
+
+    // ── Infinity aura (subtle blue glow around character) ──
+    const aura = new THREE.PointLight('#4fc3f7', 0.8, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    // Mark as Gojo for animation system
+    pm._isGojo = true;
+
+    return pm;
+}
+
+// ─── GOJO WALK/IDLE ANIMATION ───────────────────────────────
+function updateGojoAnimation(pm, dt, moving, walkCycle) {
+    if (!pm._isGojo) return false; // not Gojo, skip
+
+    const t = walkCycle;
+
+    if (moving) {
+        // ── Walking ──
+        const stride = 0.6; // how far legs swing
+        const armSwing = 0.5; // how far arms swing
+        const bodyBob = Math.abs(Math.sin(t * 2)) * 0.06;
+        const bodyLean = Math.sin(t) * 0.03; // slight side-to-side lean
+
+        // Legs — opposite phase (right forward when left back)
+        if (pm._rightLeg) pm._rightLeg.rotation.x = Math.sin(t) * stride;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = Math.sin(t + Math.PI) * stride;
+
+        // Arms — swing opposite to legs (natural walk)
+        if (pm._rightArm) pm._rightArm.rotation.x = Math.sin(t + Math.PI) * armSwing;
+        if (pm._leftArm) pm._leftArm.rotation.x = Math.sin(t) * armSwing;
+
+        // Torso — slight lean forward + side sway
+        if (pm._torso) {
+            pm._torso.rotation.x = 0.05; // lean forward slightly
+            pm._torso.rotation.z = bodyLean;
+        }
+
+        // Vertical bob
+        pm.position.y = (fpsCamera.flyHeight || 0) + bodyBob;
+
+        // Aura pulses slightly brighter when moving
+        if (pm._auraLight) pm._auraLight.intensity = 0.8 + Math.sin(t * 3) * 0.3;
+    } else {
+        // ── Idle — breathing + subtle sway ──
+        const breath = Math.sin(t * 0.6) * 0.02;
+        const idleSway = Math.sin(t * 0.3) * 0.01;
+
+        // Arms relax at sides with gentle sway
+        if (pm._rightArm) pm._rightArm.rotation.x = breath + 0.05;
+        if (pm._leftArm) pm._leftArm.rotation.x = breath + 0.05;
+
+        // Legs straight
+        if (pm._rightLeg) pm._rightLeg.rotation.x = 0;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = 0;
+
+        // Torso — slight breathing rise/fall
+        if (pm._torso) {
+            pm._torso.rotation.x = breath;
+            pm._torso.rotation.z = idleSway;
+        }
+
+        pm.position.y = fpsCamera.flyHeight || 0;
+
+        // Calm aura
+        if (pm._auraLight) pm._auraLight.intensity = 0.6 + Math.sin(t * 0.5) * 0.15;
+    }
+
+    return true; // handled
+}
 
 function startGame() {
     currentFloor = 1;
@@ -324,7 +574,13 @@ function startGame() {
 
     // Create player model for 3rd person view
     if (fpsCamera.playerModel) scene.remove(fpsCamera.playerModel);
-    const pm = buildGenericPlayerModel(player.cls);
+    let pm;
+    if (player.classId === 'gojo') {
+        pm = buildGojoModel();
+        addPlayerLabel(pm, 'GOJO', '#4fc3f7');
+    } else {
+        pm = buildGenericPlayerModel(player.cls);
+    }
     fpsCamera.flyHeight = 0;
     pm.visible = false;
     scene.add(pm);
@@ -998,7 +1254,8 @@ function updateWalkAnimation(dt) {
 
     walkCycle += dt * (moving ? 10 : 4); // slower idle cycle when not moving
 
-    // Per-character animation — add hover/fly/special walk here
+    // Per-character animation
+    if (updateGojoAnimation(pm, dt, moving, walkCycle)) return;
 
     // Generic walk bob
     if (moving) {

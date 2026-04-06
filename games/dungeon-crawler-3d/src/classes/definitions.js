@@ -1,13 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
-//  CHARACTER DEFINITIONS — clean slate, add new characters here
+//  CHARACTER DEFINITIONS
 // ═══════════════════════════════════════════════════════════════
 
 export const CLASSES = {
-    placeholder: {
-        name: 'Fighter', type: 'basic', maxHp: 100, speed: 3.0, attackRange: 35,
-        attackDamage: 10, attackSpeed: 350, attackType: 'melee', color: '#00ffcc',
-        specialCooldown: 5000, specialName: 'Punch', weaponType: 'fist',
-        abilities: { z: 'Punch', x: 'Kick', c: 'Slam', v: 'Power Up', f: 'Dash' },
-        abilityCooldowns: { z: 3000, x: 4000, c: 6000, v: 15000, f: 2000 }
+    gojo: {
+        name: 'Gojo Satoru', type: 'sorcerer', maxHp: 120, speed: 3.2, attackRange: 35,
+        attackDamage: 14, attackSpeed: 300, attackType: 'melee', color: '#4fc3f7',
+        specialCooldown: 5000, specialName: 'Infinity', weaponType: 'fist',
+        abilities: { z: 'Blue', x: 'Red', c: 'Hollow Purple', v: 'Domain Expansion', f: 'Teleport' },
+        abilityCooldowns: { z: 4000, x: 5000, c: 10000, v: 20000, f: 3000 }
     },
 };
