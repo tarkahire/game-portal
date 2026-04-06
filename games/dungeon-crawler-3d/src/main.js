@@ -570,25 +570,68 @@ function updateKataPortals(time) {
         }
         const progress = 1 - (f.life / f.maxLife);
         f.mesh.position.lerpVectors(f.start, f.target, progress);
+        f.mesh.lookAt(f.target); // keep fist aimed at target as it flies
     }
 }
 
-// Pool of reusable fist meshes to avoid creating/destroying
+// Pool of reusable fist meshes — proper fist + arm like M1 punches
 const KATA_FIST_POOL_SIZE = 20;
 let kataFistPool = [];
 let kataFistPoolInit = false;
 
+function buildFistGroup(col) {
+    const g = new THREE.Group();
+    // Arm cylinder
+    const arm = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.16, 2.5, 5),
+        new THREE.MeshBasicMaterial({ color: col })
+    );
+    arm.rotation.x = Math.PI / 2;
+    arm.position.z = 1.25;
+    g.add(arm);
+    // Wrist
+    const wrist = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.25, 0.3, 5),
+        new THREE.MeshBasicMaterial({ color: col })
+    );
+    wrist.rotation.x = Math.PI / 2;
+    wrist.position.z = 2.6;
+    g.add(wrist);
+    // Big blocky fist
+    const fist = new THREE.Mesh(
+        new THREE.BoxGeometry(0.75, 0.65, 0.55),
+        new THREE.MeshStandardMaterial({ color: col, roughness: 0.4, metalness: 0.2 })
+    );
+    fist.position.z = 3.1;
+    g.add(fist);
+    // Knuckle ridges
+    for (let k = 0; k < 4; k++) {
+        const ridge = new THREE.Mesh(
+            new THREE.BoxGeometry(0.13, 0.1, 0.13),
+            new THREE.MeshBasicMaterial({ color: col })
+        );
+        ridge.position.set((k - 1.5) * 0.18, 0.22, 3.4);
+        g.add(ridge);
+    }
+    // Thumb
+    const thumb = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, 0.4, 0.2),
+        new THREE.MeshBasicMaterial({ color: col })
+    );
+    thumb.position.set(0.42, 0, 2.9);
+    g.add(thumb);
+    return g;
+}
+
 function ensureFistPool() {
     if (kataFistPoolInit) return;
     kataFistPoolInit = true;
-    const col = '#1a1a3a'; // dark navy like the big fists
-    const geo = new THREE.BoxGeometry(0.6, 0.5, 0.45);
-    const mat = new THREE.MeshBasicMaterial({ color: col });
+    const col = '#1a1a3a'; // dark navy
     for (let i = 0; i < KATA_FIST_POOL_SIZE; i++) {
-        const m = new THREE.Mesh(geo, mat.clone());
-        m.visible = false;
-        scene.add(m);
-        kataFistPool.push(m);
+        const g = buildFistGroup(col);
+        g.visible = false;
+        scene.add(g);
+        kataFistPool.push(g);
     }
 }
 
@@ -602,12 +645,17 @@ function kataFireFist(fromPortalIdx, targetX, targetY, targetZ, damage) {
 
     const portal = kataPortals[fromPortalIdx];
     const isHaki = player && player._haki;
-    fist.material.color.set(isHaki ? '#1565c0' : '#f5f0e0');
+    const col = isHaki ? '#0d47a1' : '#1a1a3a';
+    // Recolor all children in the group
+    fist.traverse(c => { if (c.isMesh && c.material) c.material.color.set(col); });
     fist.position.copy(portal.position);
     fist.visible = true;
 
     const start = portal.position.clone();
     const target = new THREE.Vector3(targetX + (Math.random()-0.5)*1.5, targetY, targetZ + (Math.random()-0.5)*1.5);
+
+    // Orient fist to face the target
+    fist.lookAt(target);
 
     kataFists.push({ mesh: fist, start, target, life: 12, maxLife: 12, damage });
 }
