@@ -540,6 +540,305 @@ function updateGojoAnimation(pm, dt, moving, walkCycle) {
     return true; // handled
 }
 
+// ─── RYOMEN SUKUNA 3D MODEL ────────────────────────────────
+function buildSukunaModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#e8c8a8', roughness: 0.5 });
+    const tattooSkinMat = new THREE.MeshStandardMaterial({ color: '#c8a888', roughness: 0.5 }); // slightly darker where tattoos sit
+    const tattooMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' }); // black tattoo lines
+    const hakamaMat = new THREE.MeshStandardMaterial({ color: '#1a0a1a', roughness: 0.7 }); // dark purple-black hakama
+    const sashMat = new THREE.MeshStandardMaterial({ color: '#3a1a2a', roughness: 0.6 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#f5c8d0', roughness: 0.5 }); // pink-ish hair
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ff2244' }); // red eyes
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
+    const nailMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.3 }); // dark painted nails
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#0a0a0a', roughness: 0.8 });
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — bare muscular torso (Sukuna's Heian era form)
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.26, 0.9, 8), tattooSkinMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    // Broader shoulders — muscular build
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.28, 0.38), tattooSkinMat);
+    shoulders.position.y = 0.88; torsoPivot.add(shoulders);
+
+    // Tattoo lines on torso (black line segments on the body)
+    const tattooParts = [
+        // Chest center vertical line
+        { w: 0.02, h: 0.5, d: 0.01, x: 0, y: 0.6, z: 0.27 },
+        // Left chest horizontal
+        { w: 0.2, h: 0.02, d: 0.01, x: -0.1, y: 0.7, z: 0.27 },
+        // Right chest horizontal
+        { w: 0.2, h: 0.02, d: 0.01, x: 0.1, y: 0.7, z: 0.27 },
+        // Left shoulder band
+        { w: 0.02, h: 0.15, d: 0.01, x: -0.32, y: 0.85, z: 0.16 },
+        // Right shoulder band
+        { w: 0.02, h: 0.15, d: 0.01, x: 0.32, y: 0.85, z: 0.16 },
+        // Abdomen horizontal lines
+        { w: 0.25, h: 0.015, d: 0.01, x: 0, y: 0.4, z: 0.26 },
+        { w: 0.2, h: 0.015, d: 0.01, x: 0, y: 0.3, z: 0.25 },
+    ];
+    for (const tp of tattooParts) {
+        const tat = new THREE.Mesh(new THREE.BoxGeometry(tp.w, tp.h, tp.d), tattooMat);
+        tat.position.set(tp.x, tp.y, tp.z);
+        torsoPivot.add(tat);
+    }
+
+    // ── Neck (thick, muscular) ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.15, 6), tattooSkinMat);
+    neck.position.y = 1.15; torsoPivot.add(neck);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 10, 10), skinMat);
+    head.position.y = 1.4; head.scale.set(1, 1.05, 0.95); torsoPivot.add(head);
+
+    // Jaw — strong angular jaw
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), skinMat);
+    chin.position.set(0, 1.24, 0.13); chin.scale.set(1.3, 0.6, 1); torsoPivot.add(chin);
+
+    // ── Face tattoos (black lines on face) ──
+    // Line down nose bridge
+    const faceTat1 = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.12, 0.01), tattooMat);
+    faceTat1.position.set(0, 1.4, 0.22); torsoPivot.add(faceTat1);
+    // Lines on cheeks (left)
+    const faceTat2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.015, 0.01), tattooMat);
+    faceTat2.position.set(-0.12, 1.37, 0.18); torsoPivot.add(faceTat2);
+    // Lines on cheeks (right)
+    const faceTat3 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.015, 0.01), tattooMat);
+    faceTat3.position.set(0.12, 1.37, 0.18); torsoPivot.add(faceTat3);
+    // Forehead line
+    const faceTat4 = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.06, 0.01), tattooMat);
+    faceTat4.position.set(0, 1.52, 0.2); torsoPivot.add(faceTat4);
+
+    // ── Eyes — 4 eyes (2 normal + 2 below) — Sukuna's true form ──
+    const eyeGeo = new THREE.SphereGeometry(0.035, 6, 6);
+    const pupilGeo = new THREE.SphereGeometry(0.018, 4, 4);
+    // Upper pair
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(eyeGeo, eyeMat);
+        eye.position.set(s * 0.09, 1.44, 0.2);
+        torsoPivot.add(eye);
+        const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+        pupil.position.set(s * 0.09, 1.44, 0.23);
+        torsoPivot.add(pupil);
+    }
+    // Lower pair (smaller, slightly below)
+    const smallEyeGeo = new THREE.SphereGeometry(0.025, 5, 5);
+    const smallPupilGeo = new THREE.SphereGeometry(0.013, 4, 4);
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(smallEyeGeo, eyeMat);
+        eye.position.set(s * 0.07, 1.37, 0.2);
+        torsoPivot.add(eye);
+        const pupil = new THREE.Mesh(smallPupilGeo, pupilMat);
+        pupil.position.set(s * 0.07, 1.37, 0.225);
+        torsoPivot.add(pupil);
+    }
+
+    // ── Nose ──
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 4), skinMat);
+    nose.position.set(0, 1.38, 0.22);
+    nose.rotation.x = Math.PI * 0.6;
+    torsoPivot.add(nose);
+
+    // ── Mouth — confident smirk ──
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.012, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#992244' }));
+    mouth.position.set(0.01, 1.3, 0.21); torsoPivot.add(mouth);
+    // Slight upward curve on one side (smirk)
+    const smirk = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.01, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#992244' }));
+    smirk.position.set(0.05, 1.305, 0.21);
+    smirk.rotation.z = 0.3;
+    torsoPivot.add(smirk);
+
+    // ── Ears ──
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04, 5, 5), skinMat);
+        ear.position.set(s * 0.21, 1.42, 0);
+        ear.scale.set(0.6, 1, 0.6);
+        torsoPivot.add(ear);
+    }
+
+    // ── Hair — pink, slicked back with some spikes ──
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), hairMat);
+    hairBase.position.y = 1.5; hairBase.scale.set(1.05, 0.85, 1.05);
+    torsoPivot.add(hairBase);
+    // Slicked back spikes
+    const hairSpikes = [
+        { x: 0, y: 1.65, z: -0.08, rx: 0.5, rz: 0, h: 0.2 },
+        { x: 0.1, y: 1.62, z: -0.06, rx: 0.4, rz: 0.3, h: 0.18 },
+        { x: -0.1, y: 1.62, z: -0.06, rx: 0.4, rz: -0.3, h: 0.18 },
+        { x: 0.06, y: 1.66, z: -0.02, rx: 0.3, rz: 0.15, h: 0.16 },
+        { x: -0.06, y: 1.66, z: -0.02, rx: 0.3, rz: -0.15, h: 0.16 },
+        { x: 0.15, y: 1.58, z: -0.04, rx: 0.3, rz: 0.5, h: 0.15 },
+        { x: -0.15, y: 1.58, z: -0.04, rx: 0.3, rz: -0.5, h: 0.15 },
+        // A few forward-hanging strands
+        { x: 0.05, y: 1.6, z: 0.12, rx: -0.4, rz: 0.2, h: 0.12 },
+        { x: -0.04, y: 1.6, z: 0.1, rx: -0.3, rz: -0.1, h: 0.1 },
+    ];
+    for (const sp of hairSpikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.035, sp.h, 4), hairMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Right arm (muscular, tattooed) ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.42, 0.85, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), tattooSkinMat));
+    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.075, 0.45, 5), tattooSkinMat);
+    rUpperArm.position.y = -0.28; rightArmPivot.add(rUpperArm);
+    // Arm tattoo bands
+    for (let b = 0; b < 2; b++) {
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.076, 0.076, 0.015, 6), tattooMat);
+        band.position.y = -0.15 - b * 0.18; rightArmPivot.add(band);
+    }
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), tattooSkinMat).translateY(-0.52));
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.065, 0.4, 5), tattooSkinMat);
+    rForearm.position.y = -0.75; rightArmPivot.add(rForearm);
+    // Hand
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.07), skinMat);
+    rHand.position.set(0, -0.98, 0.02); rightArmPivot.add(rHand);
+    // Dark nails (clawed)
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.06, 3), nailMat);
+        finger.position.set((f - 1.5) * 0.02, -1.06, 0.03);
+        rightArmPivot.add(finger);
+    }
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm (mirrored) ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.42, 0.85, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), tattooSkinMat));
+    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.075, 0.45, 5), tattooSkinMat);
+    lUpperArm.position.y = -0.28; leftArmPivot.add(lUpperArm);
+    for (let b = 0; b < 2; b++) {
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.076, 0.076, 0.015, 6), tattooMat);
+        band.position.y = -0.15 - b * 0.18; leftArmPivot.add(band);
+    }
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), tattooSkinMat).translateY(-0.52));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.065, 0.4, 5), tattooSkinMat);
+    lForearm.position.y = -0.75; leftArmPivot.add(lForearm);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.07), skinMat);
+    lHand.position.set(0, -0.98, 0.02); leftArmPivot.add(lHand);
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.06, 3), nailMat);
+        finger.position.set((f - 1.5) * 0.02, -1.06, 0.03);
+        leftArmPivot.add(finger);
+    }
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Right leg ──
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.11, 0.65, 0);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.065, 5, 5), hakamaMat));
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.45, 5), hakamaMat);
+    rThigh.position.y = -0.28; rightLegPivot.add(rThigh);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), hakamaMat).translateY(-0.52));
+    const rShin = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.42, 5), hakamaMat);
+    rShin.position.y = -0.75; rightLegPivot.add(rShin);
+    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.16), shoeMat);
+    rShoe.position.set(0, -0.98, 0.03); rightLegPivot.add(rShoe);
+    pm.add(rightLegPivot);
+    pm._rightLeg = rightLegPivot;
+
+    // ── Left leg ──
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.11, 0.65, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.065, 5, 5), hakamaMat));
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.45, 5), hakamaMat);
+    lThigh.position.y = -0.28; leftLegPivot.add(lThigh);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), hakamaMat).translateY(-0.52));
+    const lShin = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.42, 5), hakamaMat);
+    lShin.position.y = -0.75; leftLegPivot.add(lShin);
+    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.16), shoeMat);
+    lShoe.position.set(0, -0.98, 0.03); leftLegPivot.add(lShoe);
+    pm.add(leftLegPivot);
+    pm._leftLeg = leftLegPivot;
+
+    // ── Sash / waist wrap ──
+    const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.25, 0.08, 8), sashMat);
+    sash.position.y = 0.64; pm.add(sash);
+
+    // ── Cursed energy aura (menacing red glow) ──
+    const aura = new THREE.PointLight('#ff2244', 0.6, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isSukuna = true;
+
+    return pm;
+}
+
+// ─── SUKUNA WALK/IDLE ANIMATION ────────────────────────────
+function updateSukunaAnimation(pm, dt, moving, walkCycle) {
+    if (!pm._isSukuna) return false;
+
+    const t = walkCycle;
+
+    if (moving) {
+        // Aggressive confident stride
+        const stride = 0.65;
+        const armSwing = 0.4;
+        const bodyBob = Math.abs(Math.sin(t * 2)) * 0.05;
+
+        if (pm._rightLeg) pm._rightLeg.rotation.x = Math.sin(t) * stride;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = Math.sin(t + Math.PI) * stride;
+
+        // Arms swing with slightly bent posture (menacing)
+        if (pm._rightArm) pm._rightArm.rotation.x = Math.sin(t + Math.PI) * armSwing - 0.1;
+        if (pm._leftArm) pm._leftArm.rotation.x = Math.sin(t) * armSwing - 0.1;
+
+        if (pm._torso) {
+            pm._torso.rotation.x = 0.07; // lean forward — aggressive posture
+            pm._torso.rotation.z = Math.sin(t) * 0.04;
+        }
+
+        pm.position.y = (fpsCamera.flyHeight || 0) + bodyBob;
+
+        // Aura flares when moving
+        if (pm._auraLight) pm._auraLight.intensity = 0.8 + Math.sin(t * 4) * 0.4;
+    } else {
+        // Idle — menacing stillness with slow breathing
+        const breath = Math.sin(t * 0.5) * 0.02;
+
+        // Arms slightly away from body (confident stance)
+        if (pm._rightArm) {
+            pm._rightArm.rotation.x = 0.08 + breath;
+            pm._rightArm.rotation.z = -0.1;
+        }
+        if (pm._leftArm) {
+            pm._leftArm.rotation.x = 0.08 + breath;
+            pm._leftArm.rotation.z = 0.1;
+        }
+
+        if (pm._rightLeg) pm._rightLeg.rotation.x = 0;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = 0;
+
+        if (pm._torso) {
+            pm._torso.rotation.x = breath;
+            pm._torso.rotation.z = 0;
+        }
+
+        pm.position.y = fpsCamera.flyHeight || 0;
+
+        // Slow pulsing aura
+        if (pm._auraLight) pm._auraLight.intensity = 0.5 + Math.sin(t * 0.4) * 0.2;
+    }
+
+    return true;
+}
+
 function startGame() {
     currentFloor = 1;
     lives = 5;
@@ -578,6 +877,9 @@ function startGame() {
     if (player.classId === 'gojo') {
         pm = buildGojoModel();
         addPlayerLabel(pm, 'GOJO', '#4fc3f7');
+    } else if (player.classId === 'sukuna') {
+        pm = buildSukunaModel();
+        addPlayerLabel(pm, 'SUKUNA', '#ff2244');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
@@ -1256,6 +1558,7 @@ function updateWalkAnimation(dt) {
 
     // Per-character animation
     if (updateGojoAnimation(pm, dt, moving, walkCycle)) return;
+    if (updateSukunaAnimation(pm, dt, moving, walkCycle)) return;
 
     // Generic walk bob
     if (moving) {
