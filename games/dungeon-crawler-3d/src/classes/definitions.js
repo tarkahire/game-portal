@@ -39,7 +39,7 @@ export const CLASSES = {
         abilityCooldowns: { z: 3000, x: 3500, c: 8000, v: 18000, f: 2000 }
     },
     denji: {
-        name: 'Denji', type: 'devil', maxHp: 160, speed: 4.5, attackRange: 35,
+        name: 'Denji', type: 'devil', maxHp: 160, speed: 6.0, attackRange: 35,
         attackDamage: 19, attackSpeed: 240, attackType: 'melee', color: '#cc4400',
         specialCooldown: 4000, specialName: 'Chainsaw Devil', weaponType: 'chainsaw',
         abilities: { z: 'Chain Rip', x: 'Buzzsaw', c: 'Devil Charge', v: 'Full Devil', f: 'Chain Dash' },

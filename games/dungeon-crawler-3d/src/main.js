@@ -2085,33 +2085,43 @@ function updateDenjiAnimation(pm, dt, moving, walkCycle) {
     const t = walkCycle;
 
     if (moving) {
-        // Scrappy, slightly uncoordinated run — energetic but messy
-        const stride = 0.65;
-        const armSwing = 0.5;
-        const bodyBob = Math.abs(Math.sin(t * 2)) * 0.07;
+        // Blazing fast sprint — wide stride, arms pumping hard
+        const stride = 0.85;
+        const armSwing = 0.6;
+        const bodyBob = Math.abs(Math.sin(t * 2)) * 0.05;
 
         if (pm._rightLeg) pm._rightLeg.rotation.x = Math.sin(t) * stride;
         if (pm._leftLeg) pm._leftLeg.rotation.x = Math.sin(t + Math.PI) * stride;
 
-        // Arms swing unevenly — scrappy fighter
+        // Arms pump hard — chainsaws swinging
         if (pm._rightArm) {
             pm._rightArm.rotation.x = Math.sin(t + Math.PI) * armSwing;
-            pm._rightArm.rotation.z = Math.sin(t * 2) * 0.08;
+            pm._rightArm.rotation.z = Math.sin(t * 2) * 0.1;
         }
         if (pm._leftArm) {
-            pm._leftArm.rotation.x = Math.sin(t) * armSwing * 0.85;
-            pm._leftArm.rotation.z = Math.sin(t * 2 + 0.5) * -0.06;
+            pm._leftArm.rotation.x = Math.sin(t) * armSwing;
+            pm._leftArm.rotation.z = Math.sin(t * 2 + 0.5) * -0.1;
         }
 
-        // Slight forward lean + more body bounce than others
+        // Hard forward lean — sprinting posture
         if (pm._torso) {
-            pm._torso.rotation.x = 0.08;
-            pm._torso.rotation.z = Math.sin(t) * 0.05;
+            pm._torso.rotation.x = 0.15;
+            pm._torso.rotation.z = Math.sin(t) * 0.04;
         }
 
         pm.position.y = (fpsCamera.flyHeight || 0) + bodyBob;
 
-        if (pm._auraLight) pm._auraLight.intensity = 0.4 + Math.sin(t * 3) * 0.2;
+        if (pm._auraLight) pm._auraLight.intensity = 2.0 + Math.sin(t * 4) * 0.8;
+
+        // Fiery aura trail — flame particles behind when running
+        const wx = pm.position.x, wz = pm.position.z;
+        if (Math.random() < 0.5) {
+            emitParticles(wx, 0.5, wz, {
+                color: ['#ff4400', '#ff6600', '#ff8800', '#ffaa00', '#ff2200'],
+                count: 2, speed: 2, spread: 0.4,
+                gravity: -1.5, life: 8, size: 0.12, sizeEnd: 0, drag: 0.97, upward: 2.5
+            });
+        }
     } else {
         // Idle — relaxed slouch, hands at sides, breathing
         const breath = Math.sin(t * 0.5) * 0.02;
