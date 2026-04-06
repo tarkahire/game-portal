@@ -5060,6 +5060,282 @@ function fruitAbility(slot) {
 
             lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff8800', 3, 200);
         }
+
+        else if (slot === 'x') {
+            // ── BUZZSAW — spin with chainsaw arms extended, AoE around player ──
+            screenShake(0.4, 600);
+            triggerHitstop(40);
+
+            const fly = fpsCamera.flyHeight || 0;
+            const pm = fpsCamera.playerModel;
+
+            // Arms extend outward
+            if (pm?._rightArm) pm._rightArm.rotation.set(-0.5, 0, -1.2);
+            if (pm?._leftArm) pm._leftArm.rotation.set(-0.5, 0, 1.2);
+
+            // Spinning sawblade ring around player
+            const sawRingGeo = new THREE.TorusGeometry(2.5, 0.08, 4, 24);
+            const sawRingMat = new THREE.MeshBasicMaterial({
+                color: '#ff6600', transparent: true, opacity: 0.8,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const sawRing = new THREE.Mesh(sawRingGeo, sawRingMat);
+            sawRing.position.set(worldPx, EYE_HEIGHT + fly - 0.5, worldPz);
+            sawRing.rotation.x = Math.PI / 2;
+            scene.add(sawRing);
+
+            // Inner ring
+            const sawRing2 = new THREE.Mesh(
+                new THREE.TorusGeometry(1.8, 0.05, 4, 24),
+                new THREE.MeshBasicMaterial({ color: '#ffaa00', transparent: true, opacity: 0.5, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            sawRing2.position.copy(sawRing.position);
+            sawRing2.rotation.x = Math.PI / 2;
+            scene.add(sawRing2);
+
+            // Spin and deal damage over 0.8 seconds
+            let sawTicks = 0;
+            const sawInterval = setInterval(() => {
+                sawTicks++;
+                sawRing.rotation.z += 0.5;
+                sawRing2.rotation.z -= 0.6;
+
+                // Sparks flying off the saw
+                const angle = sawTicks * 0.8;
+                emitParticles(
+                    worldPx + Math.cos(angle) * 2.5, EYE_HEIGHT + fly - 0.3, worldPz + Math.sin(angle) * 2.5,
+                    { color: ['#ff8800', '#ffaa00', '#ffffff'], count: 3, speed: 4, spread: 0.3,
+                      gravity: -6, life: 8, size: 0.06, sizeEnd: 0, drag: 0.95 }
+                );
+
+                // AoE damage around player
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    const d = Math.hypot(e.data.x - px, e.data.z - pz);
+                    if (d < 3.5) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.2));
+                        // Push outward
+                        const dx = e.data.x - px, dz = e.data.z - pz;
+                        if (d > 0.3) {
+                            e.data.x += (dx / d) * 0.4;
+                            e.data.z += (dz / d) * 0.4;
+                            e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                        }
+                    }
+                }
+
+                if (sawTicks >= 8) {
+                    clearInterval(sawInterval);
+                    scene.remove(sawRing); sawRing.geometry.dispose(); sawRing.material.dispose();
+                    scene.remove(sawRing2); sawRing2.geometry.dispose(); sawRing2.material.dispose();
+                    if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                    if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+                }
+            }, 100);
+
+            groundRing(worldPx, worldPz, '#ff6600', 3, 600);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff6600', 5, 400);
+            fovPunch(8, 0.2);
+        }
+
+        else if (slot === 'c') {
+            // ── DEVIL CHARGE — lunge forward headfirst with chainsaw, plowing through enemies ──
+            const pm = fpsCamera.playerModel;
+            const fly = fpsCamera.flyHeight || 0;
+            const chargeDist = 7;
+
+            // Lean forward hard
+            if (pm?._torso) pm._torso.rotation.x = 0.4;
+            if (pm?._rightArm) pm._rightArm.rotation.set(-1.5, 0, -0.3);
+            if (pm?._leftArm) pm._leftArm.rotation.set(-1.5, 0, 0.3);
+
+            screenShake(0.5, 400);
+            fovPunch(18, 0.15);
+
+            // Chainsaw trail along charge path
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const t = (i + 1) / 6;
+                    const tx = worldPx + fwdX * chargeDist * t * TILE / TILE;
+                    const tz = worldPz + fwdZ * chargeDist * t * TILE / TILE;
+
+                    // Chainsaw teeth trail
+                    const trailGeo = new THREE.ConeGeometry(0.2, 0.4, 3);
+                    const trailMat = new THREE.MeshBasicMaterial({
+                        color: '#ff4400', transparent: true, opacity: 0.7,
+                        blending: THREE.AdditiveBlending, depthWrite: false
+                    });
+                    const trail = new THREE.Mesh(trailGeo, trailMat);
+                    trail.position.set(
+                        worldPx + fwdX * TILE * chargeDist * t,
+                        EYE_HEIGHT + fly - 0.3,
+                        worldPz + fwdZ * TILE * chargeDist * t
+                    );
+                    trail.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                    scene.add(trail);
+
+                    // Sparks
+                    emitParticles(trail.position.x, trail.position.y, trail.position.z, {
+                        color: ['#ff6600', '#ff8800', '#ffaa00'],
+                        count: 4, speed: 3, spread: 0.5,
+                        gravity: -6, life: 8, size: 0.08, sizeEnd: 0, drag: 0.95
+                    });
+
+                    setTimeout(() => { scene.remove(trail); trail.geometry.dispose(); trail.material.dispose(); }, 300);
+                }, i * 40);
+            }
+
+            // Damage everything in the charge corridor
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const ex = e.data.x, ez = e.data.z;
+                const toX = ex - px, toZ = ez - pz;
+                const dot = toX * fwdX + toZ * fwdZ;
+                if (dot > 0 && dot < chargeDist) {
+                    const perp = Math.abs(toX * fwdZ - toZ * fwdX);
+                    if (perp < 1.5) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 4));
+                        // Launch enemies to the side
+                        const side = (toX * (-fwdZ) + toZ * fwdX) > 0 ? 1 : -1;
+                        e.data.x += (-fwdZ) * side * 2;
+                        e.data.z += fwdX * side * 2;
+                        e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                        e.mesh.position.y = 1; // launch up
+                        setTimeout(() => { if (e.mesh) e.mesh.position.y = 0; }, 400);
+                    }
+                }
+            }
+
+            // Teleport forward
+            fpsCamera.posX += fwdX * chargeDist;
+            fpsCamera.posZ += fwdZ * chargeDist;
+            player.invincible = performance.now() + 500;
+
+            // Ground scorch along path
+            groundDecal(worldPx + fwdX * chargeDist * 0.5 * TILE, worldPz + fwdZ * chargeDist * 0.5 * TILE, '#cc4400', 2, 2500);
+            lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#ff4400', 6, 300);
+
+            setTimeout(() => {
+                if (pm?._torso) pm._torso.rotation.x = 0.04;
+                if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+            }, 400);
+        }
+
+        else if (slot === 'v') {
+            // ── FULL DEVIL — transform into Chainsaw Devil form, massive buff ──
+            const pm = fpsCamera.playerModel;
+            const fly = fpsCamera.flyHeight || 0;
+
+            screenFlash('rgba(200,60,0,0.7)', 1200);
+            screenShake(0.7, 1000);
+            triggerHitstop(100);
+
+            // Transformation burst — orange/red energy explosion
+            emitParticles(worldPx, EYE_HEIGHT + fly, worldPz, {
+                color: ['#cc4400', '#ff6600', '#ff8800', '#ffaa00', '#ff2200'],
+                count: 50, speed: 5, spread: 1.5,
+                gravity: -2, life: 25, lifeVar: 15,
+                size: 0.2, sizeEnd: 0, drag: 0.97, upward: 2
+            });
+            groundRing(worldPx, worldPz, '#cc4400', 5, 1000);
+
+            // Buff: massive damage + speed + heal
+            const origSpeed = player.speed;
+            const origDamage = player.damage;
+            player.speed *= 1.6;
+            player.damage = Math.round(player.damage * 3);
+            player.hp = Math.min(player.hp + 50, player.maxHp); // heal on transform
+            fpsCamera.speed = player.speed;
+            player.invincible = performance.now() + 1500;
+
+            // Orange chainsaw aura
+            const devilAura = new THREE.PointLight('#ff4400', 4, TILE * 5, 2);
+            devilAura.position.y = 1.2;
+            if (pm) pm.add(devilAura);
+
+            // Pulsing particles while transformed
+            const devilParticles = setInterval(() => {
+                emitParticles(
+                    fpsCamera.posX * TILE, 0.5, fpsCamera.posZ * TILE,
+                    { color: ['#cc4400', '#ff6600', '#ff2200'], count: 4, speed: 2, spread: 0.6,
+                      gravity: -1.5, life: 12, size: 0.08, sizeEnd: 0, drag: 0.97, upward: 2.5 }
+                );
+            }, 120);
+
+            // Chainsaw rev sound effect — spinning teeth particles around body
+            const teethInt = setInterval(() => {
+                const a = performance.now() * 0.01;
+                for (let i = 0; i < 2; i++) {
+                    const ta = a + i * Math.PI;
+                    emitParticles(
+                        fpsCamera.posX * TILE + Math.cos(ta) * 1, 1, fpsCamera.posZ * TILE + Math.sin(ta) * 1,
+                        { color: ['#ff8800', '#ffaa00'], count: 1, speed: 1, spread: 0.2,
+                          gravity: 0, life: 5, size: 0.05, sizeEnd: 0, drag: 0.98 }
+                    );
+                }
+            }, 80);
+
+            // Revert after 8 seconds
+            setTimeout(() => {
+                player.speed = origSpeed;
+                player.damage = origDamage;
+                fpsCamera.speed = origSpeed;
+                clearInterval(devilParticles);
+                clearInterval(teethInt);
+                if (pm) pm.remove(devilAura);
+                emitParticles(fpsCamera.posX * TILE, 1, fpsCamera.posZ * TILE, {
+                    color: ['#cc4400', '#ff6600', '#ffffff'],
+                    count: 25, speed: 3, spread: 1,
+                    gravity: -2, life: 15, size: 0.1, sizeEnd: 0, drag: 0.96, upward: 1
+                });
+                if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+            }, 8000);
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff4400', 8, 500);
+            if (pm?._rightArm) pm._rightArm.rotation.set(-0.8, 0, -0.4);
+            if (pm?._leftArm) pm._leftArm.rotation.set(-0.8, 0, 0.4);
+        }
+
+        else if (slot === 'f') {
+            // ── CHAIN DASH — short burst forward with chainsaw sparks ──
+            const dashDist = 5;
+            const fly = fpsCamera.flyHeight || 0;
+            const newX = px + fwdX * dashDist;
+            const newZ = pz + fwdZ * dashDist;
+
+            // Chainsaw spark trail
+            for (let i = 0; i < 4; i++) {
+                const t = (i + 1) / 4;
+                const trailX = worldPx + fwdX * TILE * dashDist * t;
+                const trailZ = worldPz + fwdZ * TILE * dashDist * t;
+                emitParticles(trailX, EYE_HEIGHT + fly, trailZ, {
+                    color: ['#ff6600', '#ff8800', '#ffaa00'],
+                    count: 3, speed: 2, spread: 0.3,
+                    gravity: -5, life: 6, size: 0.05, sizeEnd: 0, drag: 0.96
+                });
+            }
+
+            // Damage enemies in path
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const toX = e.data.x - px, toZ = e.data.z - pz;
+                const dot = toX * fwdX + toZ * fwdZ;
+                if (dot > 0 && dot < dashDist) {
+                    const perp = Math.abs(toX * fwdZ - toZ * fwdX);
+                    if (perp < 1.2) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                    }
+                }
+            }
+
+            fpsCamera.posX = newX;
+            fpsCamera.posZ = newZ;
+            fovPunch(14, 0.1);
+            player.invincible = performance.now() + 350;
+            screenShake(0.15, 80);
+        }
     }
 }
 
