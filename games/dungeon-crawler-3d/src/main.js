@@ -1046,11 +1046,6 @@ function buildTojiModel() {
     const spearCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.02, 0.04, 6), collarMat);
     spearCollar.position.y = 0.69;
     spearGroup.add(spearCollar);
-    // Faint green glow on the spear head (nullifies cursed techniques)
-    const spearGlowMat = new THREE.MeshBasicMaterial({ color: '#2a6e3f', transparent: true, opacity: 0.3 });
-    const spearGlow = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), spearGlowMat);
-    spearGlow.position.y = 0.78;
-    spearGroup.add(spearGlow);
     // Butt cap
     const buttCap = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 5), collarMat);
     buttCap.position.y = -0.71;
@@ -1267,10 +1262,6 @@ function buildFPSSpear() {
     const head = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.16, 4), headMat);
     head.position.y = 0.6;
     group.add(head);
-    // Green glow on tip
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), glowMat);
-    glow.position.y = 0.62;
-    group.add(glow);
     // Butt cap
     const butt = new THREE.Mesh(new THREE.SphereGeometry(0.014, 5, 5), collarMat);
     butt.position.y = -0.51;
