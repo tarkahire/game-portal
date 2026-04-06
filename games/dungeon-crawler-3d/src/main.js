@@ -1276,18 +1276,18 @@ function buildFPSSpear() {
 
 // Spear swing patterns — thrusts and sweeps instead of slashes
 const SPEAR_SWINGS = [
-    // Step 0: quick forward thrust
+    // Step 0: straight poke — spear jabs forward
     { startRot: { x: -0.2, y: 0, z: -0.1 }, endRot: { x: -0.2, y: 0, z: -0.1 },
-      startPos: { x: 0.2, y: -0.3, z: -0.3 }, endPos: { x: 0.2, y: -0.25, z: -0.8 }, dur: 120 },
-    // Step 1: upward sweep
-    { startRot: { x: 0.3, y: 0.2, z: -0.2 }, endRot: { x: -0.8, y: -0.1, z: 0.1 },
-      startPos: { x: 0.25, y: -0.5, z: -0.4 }, endPos: { x: 0.1, y: 0.0, z: -0.6 }, dur: 140 },
-    // Step 2: horizontal sweep right to left
-    { startRot: { x: -0.2, y: 0.5, z: -0.3 }, endRot: { x: -0.2, y: -0.5, z: 0.3 },
-      startPos: { x: 0.4, y: -0.3, z: -0.4 }, endPos: { x: -0.15, y: -0.3, z: -0.5 }, dur: 130 },
-    // Step 3 (finisher): big overhead stab down
-    { startRot: { x: -1.5, y: 0, z: 0 }, endRot: { x: 0.3, y: 0, z: 0 },
-      startPos: { x: 0.15, y: 0.15, z: -0.3 }, endPos: { x: 0.15, y: -0.55, z: -0.7 }, dur: 180 },
+      startPos: { x: 0.2, y: -0.3, z: -0.35 }, endPos: { x: 0.2, y: -0.28, z: -0.9 }, dur: 100 },
+    // Step 1: poke slightly angled right
+    { startRot: { x: -0.2, y: 0.15, z: -0.05 }, endRot: { x: -0.2, y: 0.15, z: -0.05 },
+      startPos: { x: 0.25, y: -0.32, z: -0.35 }, endPos: { x: 0.25, y: -0.26, z: -0.9 }, dur: 100 },
+    // Step 2: poke slightly angled left
+    { startRot: { x: -0.2, y: -0.15, z: -0.1 }, endRot: { x: -0.2, y: -0.15, z: -0.1 },
+      startPos: { x: 0.15, y: -0.28, z: -0.35 }, endPos: { x: 0.15, y: -0.24, z: -0.9 }, dur: 100 },
+    // Step 3 (finisher): dash-thrust — pulls back then lunges far forward
+    { startRot: { x: -0.15, y: 0, z: -0.1 }, endRot: { x: -0.15, y: 0, z: -0.1 },
+      startPos: { x: 0.2, y: -0.25, z: -0.15 }, endPos: { x: 0.2, y: -0.25, z: -1.1 }, dur: 150 },
 ];
 
 const SPEAR_REST = { x: 0.2, y: -0.3, z: -0.5, rx: -0.2, ry: 0, rz: -0.1 };
@@ -1330,10 +1330,10 @@ function triggerSwordSwing(comboStep) {
     const pm = fpsCamera.playerModel;
     if (pm && pm._rightArm) {
         const armSwings = isToji ? [
-            { x: -1.3, z: 0 },     // forward thrust
-            { x: -1.8, z: 0.3 },   // upward sweep
-            { x: -0.3, z: -0.9 },  // horizontal sweep
-            { x: -2.2, z: 0 },     // overhead stab
+            { x: -1.3, z: 0 },     // poke
+            { x: -1.3, z: -0.15 }, // poke right
+            { x: -1.3, z: 0.15 },  // poke left
+            { x: -1.6, z: 0 },     // dash-thrust
         ] : [
             { x: -1.5, z: -0.6 },
             { x: -1.5, z: 0.6 },
@@ -2246,6 +2246,14 @@ function playerAttack() {
         triggerHitstop(50);
         fovPunch(8, 0.15);
         setTimeout(() => spawnMeleeSlash(player.cls.color), 50);
+
+        // Toji dash-thrust — lunge forward on 4th hit
+        if (isToji) {
+            fpsCamera.posX += fwdX * 2;
+            fpsCamera.posZ += fwdZ * 2;
+            fovPunch(14, 0.12);
+            player.invincible = performance.now() + 300;
+        }
     }
 
     // Advance combo
