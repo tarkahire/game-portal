@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-//  FPS CAMERA — PointerLock, mouse look, WASD, wall collision
+//  FPS CAMERA — Keyboard-only controls, no mouse required
 // ═══════════════════════════════════════════════════════════════
 
 import * as THREE from 'three';
@@ -12,20 +12,21 @@ export class FPSCamera {
         this.domElement = domElement;
         this.yaw = 0;    // horizontal rotation
         this.pitch = 0;  // vertical rotation
-        this.locked = false;
-        this.thirdPerson = false; // toggle with C
-        this.tpDistance = 6;      // distance behind player in 3rd person
-        this.tpHeight = 3.5;     // height above player in 3rd person
+        this.locked = true; // always active — no pointer lock needed
+        this.thirdPerson = false;
+        this.tpDistance = 6;
+        this.tpHeight = 3.5;
 
         // Player model (visible in 3rd person)
         this.playerModel = null;
-        this.flyHeight = 0; // extra Y offset for flying characters
+        this.flyHeight = 0;
 
         // Player position in tile coords (col, row)
         this.posX = 0;
         this.posZ = 0;
-        this.speed = 3.0; // base speed in tiles/sec
-        this.modelYaw = 0; // the direction the 3rd person model faces (smoothed)
+        this.speed = 3.0;
+        this.modelYaw = 0;
+        this.turnSpeed = 3.0; // radians per second for keyboard turning
 
         // Keys
         this.keys = {};
@@ -34,17 +35,18 @@ export class FPSCamera {
             if (e.code === 'KeyT') this.thirdPerson = !this.thirdPerson;
         };
         this._onKeyUp = (e) => { this.keys[e.code] = false; };
+
+        // Mouse look still works if pointer is locked (optional)
         this._onMouseMove = (e) => {
-            if (!this.locked) return;
+            if (document.pointerLockElement !== this.domElement) return;
             this.yaw -= e.movementX * 0.002;
             this.pitch -= e.movementY * 0.002;
             this.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.pitch));
         };
-        this._onPointerLockChange = () => {
-            this.locked = document.pointerLockElement === this.domElement;
-        };
+        this._onPointerLockChange = () => {};
         this._onClick = () => {
-            if (!this.locked) {
+            // Optional: click to enable mouse look
+            if (document.pointerLockElement !== this.domElement) {
                 this.domElement.requestPointerLock();
             }
         };
@@ -62,32 +64,26 @@ export class FPSCamera {
     }
 
     update(dt, dungeonMap) {
-        if (!this.locked) return;
+        // A / Left Arrow = turn left
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) { this.yaw += this.turnSpeed * dt; }
+        // D / Right Arrow = turn right
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) { this.yaw -= this.turnSpeed * dt; }
 
         // Movement direction relative to camera facing
         let moveX = 0, moveZ = 0;
-        // Forward vector (direction camera faces on XZ plane)
         const fwdX = -Math.sin(this.yaw);
         const fwdZ = -Math.cos(this.yaw);
-        // Right vector (perpendicular to forward)
-        const rightX = -Math.cos(this.yaw);
-        const rightZ = Math.sin(this.yaw);
 
         // W / Up Arrow = forward
         if (this.keys['KeyW'] || this.keys['ArrowUp']) { moveX += fwdX; moveZ += fwdZ; }
         // S / Down Arrow = backward
         if (this.keys['KeyS'] || this.keys['ArrowDown']) { moveX -= fwdX; moveZ -= fwdZ; }
-        // A / Left Arrow = strafe left
-        if (this.keys['KeyA'] || this.keys['ArrowLeft']) { moveX -= rightX; moveZ -= rightZ; }
-        // D / Right Arrow = strafe right
-        if (this.keys['KeyD'] || this.keys['ArrowRight']) { moveX += rightX; moveZ += rightZ; }
 
         // Normalize diagonal
         const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
         if (len > 0) {
             moveX /= len;
             moveZ /= len;
-            // Track movement direction for model facing
             this._moveYaw = Math.atan2(moveX, moveZ);
         }
 
@@ -95,7 +91,7 @@ export class FPSCamera {
         const newX = this.posX + moveX * spd;
         const newZ = this.posZ + moveZ * spd;
 
-        // Wall collision — axis-separated (same as 2D game)
+        // Wall collision — axis-separated
         const r = PLAYER_RADIUS;
         if (isWalkable(dungeonMap, newX - r, this.posZ - r) &&
             isWalkable(dungeonMap, newX + r, this.posZ - r) &&
@@ -121,7 +117,6 @@ export class FPSCamera {
         const fly = this.flyHeight || 0;
 
         if (this.thirdPerson) {
-            // 3rd person: camera behind + above player, looking at player
             const behindX = Math.sin(this.yaw) * this.tpDistance;
             const behindZ = Math.cos(this.yaw) * this.tpDistance;
             this.camera.position.set(
@@ -131,7 +126,6 @@ export class FPSCamera {
             );
             this.camera.lookAt(worldX, EYE_HEIGHT + fly, worldZ);
 
-            // Show player model — faces where camera is looking
             if (this.playerModel) {
                 this.playerModel.visible = true;
                 this.playerModel.position.set(worldX, fly, worldZ);
@@ -143,12 +137,10 @@ export class FPSCamera {
             const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
             this.camera.quaternion.setFromEuler(euler);
 
-            // Hide player model
             if (this.playerModel) this.playerModel.visible = false;
         }
     }
 
-    // Get facing angle on the XZ plane (for combat)
     get facingAngle() {
         return this.yaw;
     }

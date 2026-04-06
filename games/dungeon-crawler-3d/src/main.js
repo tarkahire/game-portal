@@ -175,20 +175,29 @@ function init() {
             if (gameState === 'playing') { gameState = 'paused'; document.getElementById('pause-overlay').style.display = ''; document.exitPointerLock(); }
             else if (gameState === 'paused') resumeGame();
         }
-        if (gameState === 'playing' && fpsCamera.locked) {
+        if (gameState === 'playing') {
+            // Abilities — Z/X/C/V/F keys
             if (e.code === 'KeyZ') fruitAbility('z');
             if (e.code === 'KeyX') fruitAbility('x');
             if (e.code === 'KeyC') fruitAbility('c');
             if (e.code === 'KeyV') fruitAbility('v');
             if (e.code === 'KeyF') fruitAbility('f');
+            // Abilities — / . , M keys (alternative bindings)
+            if (e.code === 'Slash') fruitAbility('z');
+            if (e.code === 'Period') fruitAbility('x');
+            if (e.code === 'Comma') fruitAbility('c');
+            if (e.code === 'KeyM') fruitAbility('v');
+            // Dodge
             if (e.code === 'KeyQ') playerDodge();
             if (e.code === 'Space') playerDodge();
+            // Basic attack — Numpad 0 or left click
+            if (e.code === 'Numpad0') playerAttack();
         }
     });
 
-    // Mouse attack
+    // Mouse attack (still works if pointer is locked)
     renderer.domElement.addEventListener('mousedown', (e) => {
-        if (e.button === 0 && gameState === 'playing' && fpsCamera.locked) playerAttack();
+        if (e.button === 0 && gameState === 'playing') playerAttack();
     });
 
     showScreen('title-screen');
@@ -2252,7 +2261,6 @@ function startGame() {
     gameState = 'playing';
     showScreen(null);
     document.getElementById('hud').style.display = '';
-    renderer.domElement.requestPointerLock();
 
     // Reset fruit state
     player._transformed = false;
@@ -2436,7 +2444,6 @@ function gameOver() {
 function resumeGame() {
     gameState = 'playing';
     document.getElementById('pause-overlay').style.display = 'none';
-    renderer.domElement.requestPointerLock();
 }
 
 // ─── VISUAL EFFECTS ─────────────────────────────────────────
