@@ -1976,41 +1976,60 @@ function buildDenjiModel() {
         torsoPivot.add(spike);
     }
 
-    // ── Right arm (shirt sleeve) ──
-    const rightArmPivot = new THREE.Group();
-    rightArmPivot.position.set(0.36, 0.85, 0);
-    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), shirtMat));
-    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.4, 5), shirtMat);
-    rUpperArm.position.y = -0.25; rightArmPivot.add(rUpperArm);
-    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.045, 5, 5), skinMat).translateY(-0.48));
-    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.38, 5), skinMat);
-    rForearm.position.y = -0.7; rightArmPivot.add(rForearm);
-    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.06), skinMat);
-    rHand.position.set(0, -0.92, 0.02); rightArmPivot.add(rHand);
-    for (let f = 0; f < 4; f++) {
-        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.007, 0.045, 3), skinMat);
-        finger.position.set((f - 1.5) * 0.016, -0.97, 0.03);
-        rightArmPivot.add(finger);
+    // Chainsaw materials
+    const chainsawMat = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.7, roughness: 0.3 });
+    const chainsawDarkMat = new THREE.MeshStandardMaterial({ color: '#333333', metalness: 0.6, roughness: 0.4 });
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.8, roughness: 0.2 });
+    const toothMat = new THREE.MeshStandardMaterial({ color: '#aaaaaa', metalness: 0.9, roughness: 0.15 });
+
+    function buildChainsawArm(side) {
+        const armPivot = new THREE.Group();
+        armPivot.position.set(side * 0.36, 0.85, 0);
+        // Shoulder
+        armPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), shirtMat));
+        // Upper arm — shirt sleeve
+        const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.35, 5), shirtMat);
+        upperArm.position.y = -0.22; armPivot.add(upperArm);
+        // Elbow joint — where flesh meets chainsaw
+        const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat);
+        elbow.position.y = -0.42; armPivot.add(elbow);
+        // Chainsaw body — replaces forearm
+        const sawBody = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.35, 6), chainsawMat);
+        sawBody.position.y = -0.63; armPivot.add(sawBody);
+        // Chainsaw housing rings
+        for (let r = 0; r < 3; r++) {
+            const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.053, 0.053, 0.012, 6), chainsawDarkMat);
+            ring.position.y = -0.5 - r * 0.12; armPivot.add(ring);
+        }
+        // Chainsaw blade — flat extending forward from the end
+        const sawBlade = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.5, 0.006), bladeMat);
+        sawBlade.position.set(0, -0.85, 0.04);
+        sawBlade.rotation.x = Math.PI / 2; // blade points forward
+        armPivot.add(sawBlade);
+        // Teeth along both edges of the blade
+        for (let t = 0; t < 6; t++) {
+            for (let edgeSide = -1; edgeSide <= 1; edgeSide += 2) {
+                const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.02, 3), toothMat);
+                tooth.position.set(edgeSide * 0.014, -0.85, 0.04 + (t / 5 - 0.5) * 0.45);
+                tooth.rotation.z = edgeSide * Math.PI / 2;
+                armPivot.add(tooth);
+            }
+        }
+        // Blade tip
+        const sawTip = new THREE.Mesh(new THREE.SphereGeometry(0.015, 5, 5), bladeMat);
+        sawTip.position.set(0, -0.85, 0.29); armPivot.add(sawTip);
+        // Orange glow at chainsaw core
+        const sawGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.1, 4),
+            new THREE.MeshBasicMaterial({ color: '#ff6600', transparent: true, opacity: 0.4 }));
+        sawGlow.position.y = -0.75; armPivot.add(sawGlow);
+        return armPivot;
     }
+
+    const rightArmPivot = buildChainsawArm(1);
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
 
-    // ── Left arm (mirrored) ──
-    const leftArmPivot = new THREE.Group();
-    leftArmPivot.position.set(-0.36, 0.85, 0);
-    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), shirtMat));
-    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.4, 5), shirtMat);
-    lUpperArm.position.y = -0.25; leftArmPivot.add(lUpperArm);
-    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.045, 5, 5), skinMat).translateY(-0.48));
-    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.38, 5), skinMat);
-    lForearm.position.y = -0.7; leftArmPivot.add(lForearm);
-    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.06), skinMat);
-    lHand.position.set(0, -0.92, 0.02); leftArmPivot.add(lHand);
-    for (let f = 0; f < 4; f++) {
-        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.007, 0.045, 3), skinMat);
-        finger.position.set((f - 1.5) * 0.016, -0.97, 0.03);
-        leftArmPivot.add(finger);
-    }
+    const leftArmPivot = buildChainsawArm(-1);
     torsoPivot.add(leftArmPivot);
     pm._leftArm = leftArmPivot;
 
@@ -2123,6 +2142,81 @@ function updateDenjiAnimation(pm, dt, moving, walkCycle) {
 
     return true;
 }
+
+// ─── 1ST-PERSON VIEWMODEL CHAINSAW ARMS (Denji) ────────────
+function buildFPSChainsaws() {
+    const group = new THREE.Group();
+
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d5b8', roughness: 0.5 });
+    const chainsawMat = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.7, roughness: 0.3 });
+    const chainsawDarkMat = new THREE.MeshStandardMaterial({ color: '#333333', metalness: 0.6, roughness: 0.4 });
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.8, roughness: 0.2 });
+    const toothMat = new THREE.MeshStandardMaterial({ color: '#aaaaaa', metalness: 0.9, roughness: 0.15 });
+
+    function buildFPSSaw(side) {
+        const saw = new THREE.Group();
+        // Forearm — skin transitioning to metal
+        const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.12, 5), skinMat);
+        forearm.position.y = 0.06; saw.add(forearm);
+        // Chainsaw body
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.14, 6), chainsawMat);
+        saw.add(body);
+        // Housing rings
+        for (let r = 0; r < 2; r++) {
+            saw.add(new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.008, 6), chainsawDarkMat).translateY(-0.04 + r * 0.08));
+        }
+        // Blade extending forward
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.35, 0.004), bladeMat);
+        blade.position.set(0, -0.08, 0.04);
+        blade.rotation.x = Math.PI / 2;
+        saw.add(blade);
+        // Teeth on blade edges
+        for (let t = 0; t < 5; t++) {
+            for (let es = -1; es <= 1; es += 2) {
+                const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.005, 0.014, 3), toothMat);
+                tooth.position.set(es * 0.01, -0.08, 0.04 + (t / 4 - 0.5) * 0.3);
+                tooth.rotation.z = es * Math.PI / 2;
+                saw.add(tooth);
+            }
+        }
+        // Blade tip
+        saw.add(new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), bladeMat).translateY(-0.08).translateZ(0.21));
+        // Orange glow
+        saw.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.06, 4),
+            new THREE.MeshBasicMaterial({ color: '#ff6600', transparent: true, opacity: 0.4 })).translateY(-0.02));
+
+        saw.position.set(side * 0.2, -0.2, -0.4);
+        saw.rotation.set(-0.3, 0, side * -0.1);
+        return saw;
+    }
+
+    const rightSaw = buildFPSSaw(1);
+    const leftSaw = buildFPSSaw(-1);
+    group.add(rightSaw);
+    group.add(leftSaw);
+    group._rightFist = rightSaw;
+    group._leftFist = leftSaw;
+
+    return group;
+}
+
+// Chainsaw arm swing patterns — alternating slashes
+const CHAINSAW_SWINGS = [
+    // Step 0: right arm slash right-to-left
+    { startRot: { x: -0.3, y: 0.4, z: -0.3 }, endRot: { x: -0.3, y: -0.4, z: 0.3 },
+      startPos: { x: 0.3, y: -0.1, z: -0.3 }, endPos: { x: -0.15, y: -0.25, z: -0.5 }, dur: 130 },
+    // Step 1: left arm slash left-to-right
+    { startRot: { x: -0.3, y: -0.4, z: 0.3 }, endRot: { x: -0.3, y: 0.4, z: -0.3 },
+      startPos: { x: -0.15, y: -0.1, z: -0.3 }, endPos: { x: 0.3, y: -0.25, z: -0.5 }, dur: 130 },
+    // Step 2: double overhead chop
+    { startRot: { x: -1.0, y: 0, z: 0 }, endRot: { x: 0.3, y: 0, z: 0 },
+      startPos: { x: 0.05, y: 0.1, z: -0.3 }, endPos: { x: 0.05, y: -0.4, z: -0.55 }, dur: 150 },
+    // Step 3 (finisher): cross slash — both arms X pattern
+    { startRot: { x: -0.8, y: 0, z: -0.6 }, endRot: { x: 0.3, y: 0, z: 0.6 },
+      startPos: { x: 0, y: 0.0, z: -0.25 }, endPos: { x: 0, y: -0.35, z: -0.6 }, dur: 160 },
+];
+
+const CHAINSAW_REST = { x: 0, y: -0.15, z: -0.4, rx: -0.2, ry: 0, rz: 0 };
 
 // ─── 1ST-PERSON VIEWMODEL FISTS (Bakugo) ───────────────────
 function buildFPSFists() {
@@ -2459,7 +2553,8 @@ function triggerSwordSwing(comboStep) {
     // Pick the right swing set based on character
     const isToji = player?.classId === 'toji';
     const isBrook = player?.classId === 'brook';
-    const swings = isToji ? SPEAR_SWINGS : isBrook ? CANE_SWINGS : SWORD_SWINGS;
+    const isDenji = player?.classId === 'denji';
+    const swings = isDenji ? CHAINSAW_SWINGS : isToji ? SPEAR_SWINGS : isBrook ? CANE_SWINGS : SWORD_SWINGS;
     const pattern = swings[comboStep % swings.length];
     swordSwing = {
         startTime: performance.now(),
@@ -2467,22 +2562,27 @@ function triggerSwordSwing(comboStep) {
         returnDur: 120,
         pattern,
         phase: 'swing',
-        _restPos: isToji ? SPEAR_REST : isBrook ? CANE_REST : SWORD_REST,
+        _restPos: isDenji ? CHAINSAW_REST : isToji ? SPEAR_REST : isBrook ? CANE_REST : SWORD_REST,
     };
 
     // 3rd person arm swing
     const pm = fpsCamera.playerModel;
     if (pm && pm._rightArm) {
-        const armSwings = isToji ? [
-            { x: -1.3, z: 0 },     // poke
-            { x: -1.3, z: -0.15 }, // poke right
-            { x: -1.3, z: 0.15 },  // poke left
-            { x: -1.6, z: 0 },     // dash-thrust
+        const armSwings = isDenji ? [
+            { x: -1.2, z: -0.5 },  // right slash
+            { x: -1.2, z: 0.5 },   // left slash (left arm leads)
+            { x: -1.8, z: 0 },     // overhead chop
+            { x: -1.5, z: -0.8 },  // cross slash
+        ] : isToji ? [
+            { x: -1.3, z: 0 },
+            { x: -1.3, z: -0.15 },
+            { x: -1.3, z: 0.15 },
+            { x: -1.6, z: 0 },
         ] : isBrook ? [
-            { x: -1.3, z: 0 },     // thrust
-            { x: -1.6, z: 0.4 },   // upward draw
-            { x: -0.3, z: -0.7 },  // side sweep
-            { x: -1.8, z: -0.5 },  // iaido slash
+            { x: -1.3, z: 0 },
+            { x: -1.6, z: 0.4 },
+            { x: -0.3, z: -0.7 },
+            { x: -1.8, z: -0.5 },
         ] : [
             { x: -1.5, z: -0.6 },
             { x: -1.5, z: 0.6 },
@@ -2498,6 +2598,22 @@ function triggerSwordSwing(comboStep) {
                 pm._rightArm.rotation.z = 0;
             }
         }, pattern.dur + 100);
+
+        // Denji: left arm also swings (both arms are chainsaws)
+        if (isDenji && pm._leftArm) {
+            const leftArmSwings = [
+                { x: -1.2, z: 0.5 },
+                { x: -1.2, z: -0.5 },
+                { x: -1.8, z: 0 },
+                { x: -1.5, z: 0.8 },
+            ];
+            const leftTarget = leftArmSwings[comboStep % leftArmSwings.length];
+            pm._leftArm.rotation.x = leftTarget.x;
+            pm._leftArm.rotation.z = leftTarget.z;
+            setTimeout(() => {
+                if (pm._leftArm) { pm._leftArm.rotation.x = 0.05; pm._leftArm.rotation.z = 0; }
+            }, pattern.dur + 100);
+        }
     }
 }
 
@@ -2626,6 +2742,9 @@ function startGame() {
     } else if (player.classId === 'bakugo') {
         fpsSword = buildFPSFists();
         camera.add(fpsSword);
+    } else if (player.classId === 'denji') {
+        fpsSword = buildFPSChainsaws();
+        camera.add(fpsSword);
     }
 
     // ── P2 setup (split-screen coop) ──
@@ -2674,6 +2793,7 @@ function startGame() {
         else if (player2.classId === 'toji') { fpsSword2 = buildFPSSpear(); camera2.add(fpsSword2); }
         else if (player2.classId === 'brook') { fpsSword2 = buildFPSCane(); camera2.add(fpsSword2); }
         else if (player2.classId === 'bakugo') { fpsSword2 = buildFPSFists(); camera2.add(fpsSword2); }
+        else if (player2.classId === 'denji') { fpsSword2 = buildFPSChainsaws(); camera2.add(fpsSword2); }
     }
 }
 
@@ -3393,7 +3513,8 @@ function playerAttack() {
     const isSukuna = player.classId === 'sukuna';
     const isToji = player.classId === 'toji';
     const isBrook = player.classId === 'brook';
-    const hasWeaponCombo = isSukuna || isToji || isBrook;
+    const isDenji = player.classId === 'denji';
+    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji;
     // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
     const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
     const isFinisher = player._comboStep === 3;
@@ -3444,9 +3565,19 @@ function playerAttack() {
     }
 
     // Visual effects per step
-    spawnMeleeSlash(player.cls.color);
     const fly = fpsCamera.flyHeight || 0;
     const hitX = px * TILE + fwdX * 2, hitY = EYE_HEIGHT + fly, hitZ = pz * TILE + fwdZ * 2;
+
+    if (isDenji) {
+        // Chainsaw sparks instead of generic slash
+        emitParticles(hitX, hitY, hitZ, {
+            color: ['#ff8800', '#ffaa00', '#ffffff', '#ff6600'],
+            count: 8, speed: 5, spread: 0.8,
+            gravity: -8, life: 6, size: 0.05, sizeEnd: 0, drag: 0.95
+        });
+    } else {
+        spawnMeleeSlash(player.cls.color);
+    }
 
     // Per-character M1 VFX — add character-specific hit effects here
 
@@ -3492,7 +3623,7 @@ function p2Attack() {
     const yaw = fpsCamera2.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const range = 3.0;
-    const hasWeap = ['sukuna','toji','brook'].includes(player2.classId);
+    const hasWeap = ['sukuna','toji','brook','denji'].includes(player2.classId);
     const dmg = hasWeap ? Math.round(player2.damage * step.dmgMult * 0.25) : Math.round(player2.damage * step.dmgMult);
     const isFinisher = player2._comboStep === 3;
 
