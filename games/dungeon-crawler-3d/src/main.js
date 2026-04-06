@@ -712,7 +712,7 @@ function buildSukunaModel() {
     // ── Sword (cursed blade held in right hand) ──
     const swordGroup = new THREE.Group();
     swordGroup.position.set(0, -1.04, 0.04);
-    swordGroup.rotation.x = Math.PI; // flip so blade points downward from hand
+    swordGroup.rotation.x = Math.PI / 2; // blade points forward (outward from hand)
     // Hilt wrap
     const hiltMat = new THREE.MeshStandardMaterial({ color: '#2a1a1a', roughness: 0.6 });
     const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 5), hiltMat);
