@@ -1021,6 +1021,41 @@ function buildTojiModel() {
         finger.position.set((f - 1.5) * 0.02, -1.02, 0.03);
         rightArmPivot.add(finger);
     }
+    // ── Inverted Spear of Heaven (held in right hand) ──
+    const spearGroup = new THREE.Group();
+    spearGroup.position.set(0, -1.0, 0.04);
+    spearGroup.rotation.x = Math.PI / 2; // spear points forward from hand
+    // Shaft — long dark wooden pole
+    const shaftMat = new THREE.MeshStandardMaterial({ color: '#3a2a1a', roughness: 0.7 });
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4, 5), shaftMat);
+    spearGroup.add(shaft);
+    // Shaft wrap near grip
+    const gripWrapMat = new THREE.MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.5 });
+    for (let w = 0; w < 4; w++) {
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.012, 5), gripWrapMat);
+        wrap.position.y = -0.15 + w * 0.06;
+        spearGroup.add(wrap);
+    }
+    // Spear head — dark metallic blade, wider at base tapering to point
+    const spearHeadMat = new THREE.MeshStandardMaterial({ color: '#2a2a3a', metalness: 0.85, roughness: 0.15 });
+    const spearHead = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.22, 4), spearHeadMat);
+    spearHead.position.y = 0.81;
+    spearGroup.add(spearHead);
+    // Spear head base collar
+    const collarMat = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.6, roughness: 0.3 });
+    const spearCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.02, 0.04, 6), collarMat);
+    spearCollar.position.y = 0.69;
+    spearGroup.add(spearCollar);
+    // Faint green glow on the spear head (nullifies cursed techniques)
+    const spearGlowMat = new THREE.MeshBasicMaterial({ color: '#2a6e3f', transparent: true, opacity: 0.3 });
+    const spearGlow = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), spearGlowMat);
+    spearGlow.position.y = 0.78;
+    spearGroup.add(spearGlow);
+    // Butt cap
+    const buttCap = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 5), collarMat);
+    buttCap.position.y = -0.71;
+    spearGroup.add(buttCap);
+    rightArmPivot.add(spearGroup);
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
 
@@ -1205,6 +1240,67 @@ function buildFPSSword() {
     return group;
 }
 
+// ─── 1ST-PERSON VIEWMODEL SPEAR (Toji) ─────────────────────
+function buildFPSSpear() {
+    const group = new THREE.Group();
+
+    const shaftMat = new THREE.MeshStandardMaterial({ color: '#3a2a1a', roughness: 0.7 });
+    const gripWrapMat = new THREE.MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.5 });
+    const headMat = new THREE.MeshStandardMaterial({ color: '#2a2a3a', metalness: 0.85, roughness: 0.15 });
+    const collarMat = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.6, roughness: 0.3 });
+    const glowMat = new THREE.MeshBasicMaterial({ color: '#2a6e3f', transparent: true, opacity: 0.3 });
+
+    // Shaft — long pole
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.0, 5), shaftMat);
+    group.add(shaft);
+    // Grip wraps
+    for (let w = 0; w < 4; w++) {
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.01, 5), gripWrapMat);
+        wrap.position.y = -0.12 + w * 0.05;
+        group.add(wrap);
+    }
+    // Spear head collar
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.016, 0.03, 6), collarMat);
+    collar.position.y = 0.5;
+    group.add(collar);
+    // Spear head — pointed blade
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.16, 4), headMat);
+    head.position.y = 0.6;
+    group.add(head);
+    // Green glow on tip
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), glowMat);
+    glow.position.y = 0.62;
+    group.add(glow);
+    // Butt cap
+    const butt = new THREE.Mesh(new THREE.SphereGeometry(0.014, 5, 5), collarMat);
+    butt.position.y = -0.51;
+    group.add(butt);
+
+    // Position in camera space: lower-right, angled forward and more extended
+    group.position.set(0.2, -0.3, -0.5);
+    group.rotation.set(-0.2, 0, -0.1);
+
+    return group;
+}
+
+// Spear swing patterns — thrusts and sweeps instead of slashes
+const SPEAR_SWINGS = [
+    // Step 0: quick forward thrust
+    { startRot: { x: -0.2, y: 0, z: -0.1 }, endRot: { x: -0.2, y: 0, z: -0.1 },
+      startPos: { x: 0.2, y: -0.3, z: -0.3 }, endPos: { x: 0.2, y: -0.25, z: -0.8 }, dur: 120 },
+    // Step 1: upward sweep
+    { startRot: { x: 0.3, y: 0.2, z: -0.2 }, endRot: { x: -0.8, y: -0.1, z: 0.1 },
+      startPos: { x: 0.25, y: -0.5, z: -0.4 }, endPos: { x: 0.1, y: 0.0, z: -0.6 }, dur: 140 },
+    // Step 2: horizontal sweep right to left
+    { startRot: { x: -0.2, y: 0.5, z: -0.3 }, endRot: { x: -0.2, y: -0.5, z: 0.3 },
+      startPos: { x: 0.4, y: -0.3, z: -0.4 }, endPos: { x: -0.15, y: -0.3, z: -0.5 }, dur: 130 },
+    // Step 3 (finisher): big overhead stab down
+    { startRot: { x: -1.5, y: 0, z: 0 }, endRot: { x: 0.3, y: 0, z: 0 },
+      startPos: { x: 0.15, y: 0.15, z: -0.3 }, endPos: { x: 0.15, y: -0.55, z: -0.7 }, dur: 180 },
+];
+
+const SPEAR_REST = { x: 0.2, y: -0.3, z: -0.5, rx: -0.2, ry: 0, rz: -0.1 };
+
 // ─── SWORD SWING ANIMATION ─────────────────────────────────
 // Swing patterns per combo step — diagonal slashes alternating sides
 const SWORD_SWINGS = [
@@ -1226,23 +1322,32 @@ const SWORD_SWINGS = [
 const SWORD_REST = { x: 0.25, y: -0.35, z: -0.4, rx: -0.3, ry: 0, rz: -0.15 };
 
 function triggerSwordSwing(comboStep) {
-    const pattern = SWORD_SWINGS[comboStep % SWORD_SWINGS.length];
+    // Pick the right swing set based on character
+    const isToji = player?.classId === 'toji';
+    const swings = isToji ? SPEAR_SWINGS : SWORD_SWINGS;
+    const pattern = swings[comboStep % swings.length];
     swordSwing = {
         startTime: performance.now(),
         dur: pattern.dur,
-        returnDur: 120, // ms to return to rest position
+        returnDur: 120,
         pattern,
-        phase: 'swing', // 'swing' -> 'return'
+        phase: 'swing',
+        _restPos: isToji ? SPEAR_REST : SWORD_REST, // which rest position to return to
     };
 
     // 3rd person arm swing
     const pm = fpsCamera.playerModel;
     if (pm && pm._rightArm) {
-        const armSwings = [
-            { x: -1.5, z: -0.6 },  // diagonal R-to-L
-            { x: -1.5, z: 0.6 },   // diagonal L-to-R
-            { x: -0.3, z: -0.8 },  // horizontal sweep
-            { x: -2.0, z: 0 },     // overhead slam
+        const armSwings = isToji ? [
+            { x: -1.3, z: 0 },     // forward thrust
+            { x: -1.8, z: 0.3 },   // upward sweep
+            { x: -0.3, z: -0.9 },  // horizontal sweep
+            { x: -2.2, z: 0 },     // overhead stab
+        ] : [
+            { x: -1.5, z: -0.6 },
+            { x: -1.5, z: 0.6 },
+            { x: -0.3, z: -0.8 },
+            { x: -2.0, z: 0 },
         ];
         const armTarget = armSwings[comboStep % armSwings.length];
         pm._rightArm.rotation.x = armTarget.x;
@@ -1285,24 +1390,24 @@ function updateSwordSwing() {
         }
     } else if (swordSwing.phase === 'return') {
         const t = Math.min((elapsed) / swordSwing.returnDur, 1);
-        // Ease-in-out for smooth return
         const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const rest = swordSwing._restPos || SWORD_REST;
 
         fpsSword.position.set(
-            p.endPos.x + (SWORD_REST.x - p.endPos.x) * ease,
-            p.endPos.y + (SWORD_REST.y - p.endPos.y) * ease,
-            p.endPos.z + (SWORD_REST.z - p.endPos.z) * ease
+            p.endPos.x + (rest.x - p.endPos.x) * ease,
+            p.endPos.y + (rest.y - p.endPos.y) * ease,
+            p.endPos.z + (rest.z - p.endPos.z) * ease
         );
         fpsSword.rotation.set(
-            p.endRot.x + (SWORD_REST.rx - p.endRot.x) * ease,
-            p.endRot.y + (SWORD_REST.ry - p.endRot.y) * ease,
-            p.endRot.z + (SWORD_REST.rz - p.endRot.z) * ease
+            p.endRot.x + (rest.rx - p.endRot.x) * ease,
+            p.endRot.y + (rest.ry - p.endRot.y) * ease,
+            p.endRot.z + (rest.rz - p.endRot.z) * ease
         );
 
         if (t >= 1) {
             swordSwing = null;
-            fpsSword.position.set(SWORD_REST.x, SWORD_REST.y, SWORD_REST.z);
-            fpsSword.rotation.set(SWORD_REST.rx, SWORD_REST.ry, SWORD_REST.rz);
+            fpsSword.position.set(rest.x, rest.y, rest.z);
+            fpsSword.rotation.set(rest.rx, rest.ry, rest.rz);
         }
     }
 }
@@ -1359,10 +1464,13 @@ function startGame() {
     scene.add(pm);
     fpsCamera.playerModel = pm;
 
-    // 1st-person viewmodel sword for Sukuna
+    // 1st-person viewmodel weapon
     if (fpsSword) { camera.remove(fpsSword); fpsSword = null; }
     if (player.classId === 'sukuna') {
         fpsSword = buildFPSSword();
+        camera.add(fpsSword);
+    } else if (player.classId === 'toji') {
+        fpsSword = buildFPSSpear();
         camera.add(fpsSword);
     }
 }
@@ -2078,8 +2186,10 @@ function playerAttack() {
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const range = 3.0 + (player._transformed ? 1.5 : 0);
     const isSukuna = player.classId === 'sukuna';
-    // Sukuna M1s do much less damage — the real kill is the 4th hit execute
-    const dmg = isSukuna ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
+    const isToji = player.classId === 'toji';
+    const hasWeaponCombo = isSukuna || isToji;
+    // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
+    const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
     const isFinisher = player._comboStep === 3;
 
     // Hit enemies in arc in front
@@ -2093,36 +2203,33 @@ function playerAttack() {
         while (ad > Math.PI) ad -= Math.PI * 2;
         while (ad < -Math.PI) ad += Math.PI * 2;
         if (Math.abs(ad) < Math.PI * 0.5) {
-            // Sukuna combo tracker — track consecutive M1 hits per enemy
-            if (isSukuna) {
-                if (e.data._sukunaCombo === undefined) e.data._sukunaCombo = 0;
-                if (e.data._sukunaLastStep === undefined) e.data._sukunaLastStep = -1;
-                // Step 0 always starts/restarts the combo
+            // Weapon combo tracker — track consecutive M1 hits per enemy
+            if (hasWeaponCombo) {
+                if (e.data._weaponCombo === undefined) e.data._weaponCombo = 0;
+                if (e.data._weaponLastStep === undefined) e.data._weaponLastStep = -1;
                 if (player._comboStep === 0) {
-                    e.data._sukunaCombo = 1;
-                    e.data._sukunaLastStep = 0;
-                } else if (player._comboStep === e.data._sukunaLastStep + 1) {
-                    // Consecutive hit — advance
-                    e.data._sukunaCombo++;
-                    e.data._sukunaLastStep = player._comboStep;
+                    e.data._weaponCombo = 1;
+                    e.data._weaponLastStep = 0;
+                } else if (player._comboStep === e.data._weaponLastStep + 1) {
+                    e.data._weaponCombo++;
+                    e.data._weaponLastStep = player._comboStep;
                 } else {
-                    // Missed a step — reset
-                    e.data._sukunaCombo = 1;
-                    e.data._sukunaLastStep = player._comboStep;
+                    e.data._weaponCombo = 1;
+                    e.data._weaponLastStep = player._comboStep;
                 }
             }
 
-            // On Sukuna finisher (4th hit) — if enemy caught all 4, execute with bisection
-            if (isSukuna && isFinisher && e.data._sukunaCombo >= 4) {
+            // On finisher (4th hit) — if enemy caught all 4, execute with bisection
+            if (hasWeaponCombo && isFinisher && e.data._weaponCombo >= 4) {
                 sukunaBisect(e);
-                e.data._sukunaCombo = 0;
-                e.data._sukunaLastStep = -1;
+                e.data._weaponCombo = 0;
+                e.data._weaponLastStep = -1;
             } else {
-                // Sukuna slashes can't kill — leave at 1 HP so bisect can finish
-                const actualDmg = (isSukuna && e.data.hp - dmg <= 0) ? Math.max(0, e.data.hp - 1) : dmg;
+                // Weapon combo M1s can't kill — leave at 1 HP so bisect can finish
+                const actualDmg = (hasWeaponCombo && e.data.hp - dmg <= 0) ? Math.max(0, e.data.hp - 1) : dmg;
                 dealDamageToEnemy(e, actualDmg);
-                // Knockback — Sukuna uses less KB to keep enemies in combo range
-                const kb = isSukuna ? step.kb * 0.3 : step.kb;
+                // Weapon users use less KB to keep enemies in combo range
+                const kb = hasWeaponCombo ? step.kb * 0.3 : step.kb;
                 e.data.x += (dx / d) * kb;
                 e.data.z += (dz / d) * kb;
                 e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
@@ -2137,8 +2244,8 @@ function playerAttack() {
 
     // Per-character M1 VFX — add character-specific hit effects here
 
-    // Sukuna sword swing animation (1st person viewmodel + 3rd person arm)
-    if (isSukuna) {
+    // Weapon swing animation (1st person viewmodel + 3rd person arm)
+    if (hasWeaponCombo) {
         triggerSwordSwing(player._comboStep);
     }
 
