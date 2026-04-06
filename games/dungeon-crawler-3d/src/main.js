@@ -882,6 +882,281 @@ function updateSukunaAnimation(pm, dt, moving, walkCycle) {
     return true;
 }
 
+// ─── TOJI FUSHIGURO 3D MODEL ───────────────────────────────
+function buildTojiModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#d4b896', roughness: 0.5 });
+    const scarSkinMat = new THREE.MeshStandardMaterial({ color: '#c0a080', roughness: 0.5 });
+    const shirtMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.6 }); // black fitted shirt
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#2a2a2a', roughness: 0.7 }); // dark cargo pants
+    const beltMat = new THREE.MeshStandardMaterial({ color: '#4a3a2a', roughness: 0.5 }); // brown utility belt
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.6 }); // black messy hair
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#1a3a1a' }); // dark green eyes
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.8 });
+    const scarMat = new THREE.MeshBasicMaterial({ color: '#9a7a6a' }); // lip scar
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — fitted black shirt, muscular build
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.9, 8), shirtMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    // Broad shoulders — Toji is built
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.26, 0.36), shirtMat);
+    shoulders.position.y = 0.88; torsoPivot.add(shoulders);
+    // Shirt collar — V-neck showing some chest
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.17, 0.12, 6), shirtMat);
+    collar.position.y = 1.02; torsoPivot.add(collar);
+    // Exposed chest at V-neck
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.04), skinMat);
+    chest.position.set(0, 0.98, 0.14); torsoPivot.add(chest);
+
+    // ── Neck (thick, muscular) ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.14, 6), skinMat);
+    neck.position.y = 1.13; torsoPivot.add(neck);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 10, 10), skinMat);
+    head.position.y = 1.38; head.scale.set(1, 1.03, 0.95); torsoPivot.add(head);
+
+    // Strong jaw
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), skinMat);
+    chin.position.set(0, 1.22, 0.12); chin.scale.set(1.3, 0.55, 1); torsoPivot.add(chin);
+
+    // ── Scar on lip (right side) ──
+    const scar = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.04, 0.01), scarMat);
+    scar.position.set(0.05, 1.28, 0.21); torsoPivot.add(scar);
+
+    // ── Eyes — sharp, narrow, green ──
+    const eyeGeo = new THREE.SphereGeometry(0.03, 6, 6);
+    const pupilGeo = new THREE.SphereGeometry(0.016, 4, 4);
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(eyeGeo, eyeMat);
+        eye.position.set(s * 0.085, 1.42, 0.2);
+        torsoPivot.add(eye);
+        const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+        pupil.position.set(s * 0.085, 1.42, 0.225);
+        torsoPivot.add(pupil);
+    }
+    // Brow ridge — slightly furrowed, gives a stern look
+    for (let s = -1; s <= 1; s += 2) {
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.02), skinMat);
+        brow.position.set(s * 0.085, 1.46, 0.19);
+        brow.rotation.z = s * -0.15; // angled inward — stern
+        torsoPivot.add(brow);
+    }
+
+    // ── Nose ──
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.065, 4), skinMat);
+    nose.position.set(0, 1.37, 0.22);
+    nose.rotation.x = Math.PI * 0.6;
+    torsoPivot.add(nose);
+
+    // ── Mouth — slight smirk ──
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#aa7766' }));
+    mouth.position.set(0, 1.28, 0.2); torsoPivot.add(mouth);
+
+    // ── Ears ──
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04, 5, 5), skinMat);
+        ear.position.set(s * 0.21, 1.4, 0);
+        ear.scale.set(0.6, 1, 0.6);
+        torsoPivot.add(ear);
+    }
+
+    // ── Hair — black, messy, medium length with bangs falling over forehead ──
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), hairMat);
+    hairBase.position.y = 1.48; hairBase.scale.set(1.05, 0.85, 1.05);
+    torsoPivot.add(hairBase);
+    // Messy spikes — less neat than Sukuna, more wild
+    const hairSpikes = [
+        // Top tufts
+        { x: 0, y: 1.62, z: 0, rx: -0.1, rz: 0, h: 0.14 },
+        { x: 0.08, y: 1.6, z: 0.02, rx: -0.15, rz: 0.25, h: 0.13 },
+        { x: -0.08, y: 1.6, z: 0.02, rx: -0.15, rz: -0.25, h: 0.13 },
+        { x: 0.14, y: 1.56, z: -0.02, rx: 0.1, rz: 0.5, h: 0.11 },
+        { x: -0.14, y: 1.56, z: -0.02, rx: 0.1, rz: -0.5, h: 0.11 },
+        // Back hair
+        { x: 0, y: 1.55, z: -0.14, rx: 0.5, rz: 0, h: 0.14 },
+        { x: 0.08, y: 1.53, z: -0.12, rx: 0.4, rz: 0.2, h: 0.12 },
+        { x: -0.08, y: 1.53, z: -0.12, rx: 0.4, rz: -0.2, h: 0.12 },
+        // Front bangs falling over forehead
+        { x: 0.04, y: 1.55, z: 0.14, rx: -0.7, rz: 0.1, h: 0.14 },
+        { x: -0.03, y: 1.56, z: 0.13, rx: -0.6, rz: -0.15, h: 0.13 },
+        { x: 0.1, y: 1.53, z: 0.11, rx: -0.5, rz: 0.3, h: 0.11 },
+        { x: -0.1, y: 1.54, z: 0.1, rx: -0.5, rz: -0.25, h: 0.1 },
+    ];
+    for (const sp of hairSpikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, sp.h, 4), hairMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Right arm (muscular, bare below short sleeve) ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.44, 0.85, 0);
+    // Shoulder
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), shirtMat));
+    // Upper arm — shirt sleeve
+    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.07, 0.25, 5), shirtMat);
+    rUpperArm.position.y = -0.18; rightArmPivot.add(rUpperArm);
+    // Lower upper arm — bare skin
+    const rLowerUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.2, 5), skinMat);
+    rLowerUpper.position.y = -0.38; rightArmPivot.add(rLowerUpper);
+    // Elbow
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), skinMat).translateY(-0.5));
+    // Forearm — bare, muscular
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.06, 0.4, 5), skinMat);
+    rForearm.position.y = -0.73; rightArmPivot.add(rForearm);
+    // Hand
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.07), skinMat);
+    rHand.position.set(0, -0.96, 0.02); rightArmPivot.add(rHand);
+    // Fingers
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.01, 0.05, 3), skinMat);
+        finger.position.set((f - 1.5) * 0.02, -1.02, 0.03);
+        rightArmPivot.add(finger);
+    }
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm (mirrored) ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.44, 0.85, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), shirtMat));
+    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.07, 0.25, 5), shirtMat);
+    lUpperArm.position.y = -0.18; leftArmPivot.add(lUpperArm);
+    const lLowerUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.2, 5), skinMat);
+    lLowerUpper.position.y = -0.38; leftArmPivot.add(lLowerUpper);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), skinMat).translateY(-0.5));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.06, 0.4, 5), skinMat);
+    lForearm.position.y = -0.73; leftArmPivot.add(lForearm);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.07), skinMat);
+    lHand.position.set(0, -0.96, 0.02); leftArmPivot.add(lHand);
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.01, 0.05, 3), skinMat);
+        finger.position.set((f - 1.5) * 0.02, -1.02, 0.03);
+        leftArmPivot.add(finger);
+    }
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Right leg ──
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.11, 0.65, 0);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.065, 5, 5), pantsMat));
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.45, 5), pantsMat);
+    rThigh.position.y = -0.28; rightLegPivot.add(rThigh);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat).translateY(-0.52));
+    const rShin = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.42, 5), pantsMat);
+    rShin.position.y = -0.75; rightLegPivot.add(rShin);
+    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.17), shoeMat);
+    rShoe.position.set(0, -0.98, 0.03); rightLegPivot.add(rShoe);
+    pm.add(rightLegPivot);
+    pm._rightLeg = rightLegPivot;
+
+    // ── Left leg ──
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.11, 0.65, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.065, 5, 5), pantsMat));
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.45, 5), pantsMat);
+    lThigh.position.y = -0.28; leftLegPivot.add(lThigh);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat).translateY(-0.52));
+    const lShin = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.42, 5), pantsMat);
+    lShin.position.y = -0.75; leftLegPivot.add(lShin);
+    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.17), shoeMat);
+    lShoe.position.set(0, -0.98, 0.03); leftLegPivot.add(lShoe);
+    pm.add(leftLegPivot);
+    pm._leftLeg = leftLegPivot;
+
+    // ── Utility belt ──
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.25, 0.07, 8), beltMat);
+    belt.position.y = 0.63; pm.add(belt);
+    // Belt pouches
+    for (let s = -1; s <= 1; s += 2) {
+        const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.04),
+            new THREE.MeshStandardMaterial({ color: '#3a2a1a', roughness: 0.6 }));
+        pouch.position.set(s * 0.22, 0.6, 0.1);
+        pm.add(pouch);
+    }
+
+    // No cursed energy aura — Toji has zero CE (Heavenly Restriction)
+    // Instead, a very faint green tint from physical power
+    pm._isToji = true;
+
+    return pm;
+}
+
+// ─── TOJI WALK/IDLE ANIMATION ──────────────────────────────
+function updateTojiAnimation(pm, dt, moving, walkCycle) {
+    if (!pm._isToji) return false;
+
+    const t = walkCycle;
+
+    if (moving) {
+        // Fast, light-footed assassin run — longer stride, lower bounce
+        const stride = 0.75;
+        const armSwing = 0.55;
+        const bodyBob = Math.abs(Math.sin(t * 2)) * 0.04; // less bounce — efficient runner
+
+        // Legs — fast, wide stride
+        if (pm._rightLeg) pm._rightLeg.rotation.x = Math.sin(t) * stride;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = Math.sin(t + Math.PI) * stride;
+
+        // Arms — one pumps, the other trails back slightly (assassin run)
+        if (pm._rightArm) {
+            pm._rightArm.rotation.x = Math.sin(t + Math.PI) * armSwing;
+            pm._rightArm.rotation.z = 0;
+        }
+        if (pm._leftArm) {
+            pm._leftArm.rotation.x = Math.sin(t) * armSwing * 0.7; // left arm swings less
+            pm._leftArm.rotation.z = 0.05;
+        }
+
+        // Torso — lean forward more (sprinting posture)
+        if (pm._torso) {
+            pm._torso.rotation.x = 0.1;
+            pm._torso.rotation.z = Math.sin(t) * 0.03;
+        }
+
+        pm.position.y = (fpsCamera.flyHeight || 0) + bodyBob;
+    } else {
+        // Idle — relaxed but alert, weight on one leg
+        const breath = Math.sin(t * 0.5) * 0.015;
+
+        // Right arm relaxed at side
+        if (pm._rightArm) {
+            pm._rightArm.rotation.x = 0.03 + breath;
+            pm._rightArm.rotation.z = -0.05;
+        }
+        // Left arm — hand in pocket / resting on belt
+        if (pm._leftArm) {
+            pm._leftArm.rotation.x = 0.15;
+            pm._leftArm.rotation.z = 0.12;
+        }
+
+        // Legs — slight asymmetric stance
+        if (pm._rightLeg) pm._rightLeg.rotation.x = 0;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = 0.05; // one leg slightly forward
+
+        if (pm._torso) {
+            pm._torso.rotation.x = breath;
+            pm._torso.rotation.z = 0.02; // slight lean
+        }
+
+        pm.position.y = fpsCamera.flyHeight || 0;
+    }
+
+    return true;
+}
+
 // ─── 1ST-PERSON VIEWMODEL SWORD (visible when looking down) ─
 function buildFPSSword() {
     const group = new THREE.Group();
@@ -1073,6 +1348,9 @@ function startGame() {
     } else if (player.classId === 'sukuna') {
         pm = buildSukunaModel();
         addPlayerLabel(pm, 'SUKUNA', '#ff2244');
+    } else if (player.classId === 'toji') {
+        pm = buildTojiModel();
+        addPlayerLabel(pm, 'TOJI', '#2a6e3f');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
@@ -1759,6 +2037,7 @@ function updateWalkAnimation(dt) {
     // Per-character animation
     if (updateGojoAnimation(pm, dt, moving, walkCycle)) return;
     if (updateSukunaAnimation(pm, dt, moving, walkCycle)) return;
+    if (updateTojiAnimation(pm, dt, moving, walkCycle)) return;
 
     // Generic walk bob
     if (moving) {

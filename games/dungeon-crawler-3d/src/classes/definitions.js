@@ -17,4 +17,11 @@ export const CLASSES = {
         abilities: { z: 'Dismantle', x: 'Cleave', c: 'Fire Arrow', v: 'Malevolent Shrine', f: 'Dash' },
         abilityCooldowns: { z: 3000, x: 4000, c: 8000, v: 20000, f: 2500 }
     },
+    toji: {
+        name: 'Toji Fushiguro', type: 'assassin', maxHp: 140, speed: 4.0, attackRange: 40,
+        attackDamage: 20, attackSpeed: 200, attackType: 'melee', color: '#2a6e3f',
+        specialCooldown: 4000, specialName: 'Heavenly Restriction', weaponType: 'spear',
+        abilities: { z: 'Inverted Spear', x: 'Chain Strike', c: 'Playful Cloud', v: 'Heavenly Restriction', f: 'Flash Step' },
+        abilityCooldowns: { z: 3000, x: 3500, c: 7000, v: 18000, f: 2000 }
+    },
 };
