@@ -2457,6 +2457,401 @@ function fruitAbility(slot) {
             groundDecal(worldPx, worldPz, '#1a1a3e', 5, 6000);
         }
     }
+
+    // ══════ SUKUNA ══════
+    if (id === 'sukuna') {
+        if (slot === 'z') {
+            // ── DISMANTLE — invisible slicing slash wave that cuts everything in a line ──
+            // Sword swing animation
+            triggerSwordSwing(0);
+            screenShake(0.3, 150);
+
+            // Spawn a series of slash planes traveling forward
+            const spawnX = worldPx + fwdX * 1.5, spawnZ = worldPz + fwdZ * 1.5;
+            const fly = fpsCamera.flyHeight || 0;
+
+            // Multiple slash lines flying forward in quick succession
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const dist = 2 + i * 2.5;
+                    const sx = worldPx + fwdX * dist;
+                    const sz = worldPz + fwdZ * dist;
+
+                    // Thin red slash plane
+                    const slashGeo = new THREE.PlaneGeometry(3, 0.04);
+                    const slashMat = new THREE.MeshBasicMaterial({
+                        color: '#ff2244', transparent: true, opacity: 0.9,
+                        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+                    });
+                    const slash = new THREE.Mesh(slashGeo, slashMat);
+                    slash.position.set(sx, EYE_HEIGHT + fly, sz);
+                    slash.lookAt(camera.position);
+                    // Alternate diagonal angles
+                    slash.rotateZ(i % 2 === 0 ? 0.5 : -0.5);
+                    scene.add(slash);
+
+                    // Red sparks at the slash
+                    emitParticles(sx, EYE_HEIGHT + fly, sz, {
+                        color: ['#ff2244', '#ff0000', '#ff4466'],
+                        count: 6, speed: 3, spread: 1.5,
+                        gravity: -4, life: 10, size: 0.08, sizeEnd: 0, drag: 0.95
+                    });
+
+                    // Hit enemies along the path
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        const dx = e.data.x - (px + fwdX * dist / TILE);
+                        const dz = e.data.z - (pz + fwdZ * dist / TILE);
+                        if (Math.hypot(dx, dz) < 2) {
+                            dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                        }
+                    }
+
+                    // Fade and remove
+                    const start = performance.now();
+                    const fadeSlash = () => {
+                        const t = (performance.now() - start) / 300;
+                        if (t >= 1) { scene.remove(slash); slash.geometry.dispose(); slash.material.dispose(); return; }
+                        slashMat.opacity = (1 - t) * 0.9;
+                        slash.scale.x = 1 + t * 0.5;
+                        requestAnimationFrame(fadeSlash);
+                    };
+                    requestAnimationFrame(fadeSlash);
+                }, i * 60);
+            }
+
+            // Arm swing
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) {
+                pm._rightArm.rotation.set(-1.5, 0, -0.6);
+                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 400);
+            }
+
+            lightFlash(spawnX, EYE_HEIGHT, spawnZ, '#ff2244', 3, 200);
+        }
+
+        else if (slot === 'x') {
+            // ── CLEAVE — massive wide arc slash that hits everything in front ──
+            triggerSwordSwing(2); // horizontal sweep
+            screenShake(0.4, 200);
+            triggerHitstop(60);
+
+            const fly = fpsCamera.flyHeight || 0;
+
+            // Giant red arc slash visual
+            const arcGeo = new THREE.TorusGeometry(3, 0.04, 4, 32, Math.PI);
+            const arcMat = new THREE.MeshBasicMaterial({
+                color: '#ff2244', transparent: true, opacity: 0.9,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const arc = new THREE.Mesh(arcGeo, arcMat);
+            arc.position.set(worldPx + fwdX * 3, EYE_HEIGHT + fly, worldPz + fwdZ * 3);
+            arc.rotation.y = fpsCamera.yaw + Math.PI / 2;
+            arc.rotation.x = Math.PI / 2;
+            scene.add(arc);
+
+            // Second wider arc behind it
+            const arc2Geo = new THREE.TorusGeometry(3.5, 0.03, 4, 32, Math.PI);
+            const arc2Mat = new THREE.MeshBasicMaterial({
+                color: '#ff0000', transparent: true, opacity: 0.5,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const arc2 = new THREE.Mesh(arc2Geo, arc2Mat);
+            arc2.position.copy(arc.position);
+            arc2.rotation.copy(arc.rotation);
+            scene.add(arc2);
+
+            // Blood-red particles in the arc
+            emitParticles(worldPx + fwdX * 3, EYE_HEIGHT + fly, worldPz + fwdZ * 3, {
+                color: ['#ff2244', '#ff0000', '#cc0000', '#ff4466'],
+                count: 25, speed: 5, spread: 2,
+                gravity: -3, life: 15, size: 0.15, sizeEnd: 0, drag: 0.96, upward: 0.3
+            });
+
+            // Hit everything in a wide cone in front
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const dx = e.data.x - px, dz = e.data.z - pz;
+                const d = Math.hypot(dx, dz);
+                if (d > 5 || d < 0.1) continue;
+                const a = Math.atan2(-dx, -dz);
+                let ad = a - yaw;
+                while (ad > Math.PI) ad -= Math.PI * 2;
+                while (ad < -Math.PI) ad += Math.PI * 2;
+                if (Math.abs(ad) < Math.PI * 0.6) { // wider arc than M1
+                    dealDamageToEnemy(e, Math.round(player.damage * 3));
+                    // Big knockback
+                    e.data.x += (dx / d) * 2;
+                    e.data.z += (dz / d) * 2;
+                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                }
+            }
+
+            // Fade arcs
+            const start = performance.now();
+            const fadeArc = () => {
+                const t = (performance.now() - start) / 400;
+                if (t >= 1) {
+                    scene.remove(arc); arc.geometry.dispose(); arc.material.dispose();
+                    scene.remove(arc2); arc2.geometry.dispose(); arc2.material.dispose();
+                    return;
+                }
+                arcMat.opacity = (1 - t) * 0.9;
+                arc2Mat.opacity = (1 - t) * 0.5;
+                arc.scale.setScalar(1 + t * 0.3);
+                arc2.scale.setScalar(1 + t * 0.4);
+                requestAnimationFrame(fadeArc);
+            };
+            requestAnimationFrame(fadeArc);
+
+            // Arm pose
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) {
+                pm._rightArm.rotation.set(-0.3, 0, -1.2);
+                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 500);
+            }
+
+            lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#ff2244', 5, 300);
+            groundRing(worldPx + fwdX * 3, worldPz + fwdZ * 3, '#ff2244', 4, 600);
+            fovPunch(10, 0.15);
+        }
+
+        else if (slot === 'c') {
+            // ── FIRE ARROW — charge up then fire a blazing projectile from the sword ──
+            triggerSwordSwing(3); // overhead slam motion (charge up)
+
+            const fly = fpsCamera.flyHeight || 0;
+            const spawnX = worldPx + fwdX * 1.5, spawnZ = worldPz + fwdZ * 1.5;
+
+            // Charge-up: fire particles converge on sword tip
+            const chargeInt = setInterval(() => {
+                if (!fpsSword) { clearInterval(chargeInt); return; }
+                emitParticles(spawnX, EYE_HEIGHT + fly, spawnZ, {
+                    color: ['#ff6600', '#ff4400', '#ff8800', '#ffaa00'],
+                    count: 4, speed: 2, spread: 1.5,
+                    gravity: 0, life: 6, size: 0.1, sizeEnd: 0, drag: 0.9
+                });
+            }, 60);
+
+            // Arm raised
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) pm._rightArm.rotation.set(-2.0, 0, 0);
+
+            screenShake(0.15, 300);
+
+            // After 400ms — fire the arrow
+            setTimeout(() => {
+                clearInterval(chargeInt);
+
+                // Fire arrow projectile — flaming red/orange bolt
+                const arrowGeo = new THREE.ConeGeometry(0.15, 1.2, 6);
+                arrowGeo.rotateX(Math.PI / 2); // point forward
+                const arrowMat = new THREE.MeshBasicMaterial({
+                    color: '#ff4400', transparent: true, opacity: 0.9,
+                    blending: THREE.AdditiveBlending, depthWrite: false
+                });
+                const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+                arrow.position.set(spawnX, EYE_HEIGHT + fly, spawnZ);
+                arrow.rotation.y = fpsCamera.yaw + Math.PI;
+
+                // Inner white-hot core
+                arrow.add(new THREE.Mesh(
+                    new THREE.ConeGeometry(0.06, 0.8, 4),
+                    new THREE.MeshBasicMaterial({ color: '#ffcc00', blending: THREE.AdditiveBlending, transparent: true, opacity: 1, depthWrite: false })
+                ));
+                // Light
+                arrow.add(new THREE.PointLight('#ff4400', 6, TILE * 6, 2));
+                // Outer flame shell
+                arrow.add(new THREE.Mesh(
+                    new THREE.SphereGeometry(0.4, 6, 6),
+                    new THREE.MeshBasicMaterial({ color: '#ff6600', transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })
+                ));
+                scene.add(arrow);
+
+                projectiles3D.push({
+                    mesh: arrow, vx: fwdX * 18, vz: fwdZ * 18,
+                    damage: Math.round(player.damage * 4), owner: 'player',
+                    traveled: 0, range: 55, _isFireArrow: true
+                });
+
+                // Fire trail
+                const trailInt = setInterval(() => {
+                    if (!arrow.parent) { clearInterval(trailInt); return; }
+                    emitParticles(arrow.position.x, arrow.position.y, arrow.position.z, {
+                        color: ['#ff4400', '#ff6600', '#ff8800', '#ffaa00'],
+                        count: 5, speed: 2, spread: 0.3,
+                        gravity: -1, life: 10, size: 0.15, sizeEnd: 0, drag: 0.96, upward: 0.5
+                    });
+                }, 40);
+
+                screenShake(0.4, 200);
+                fovPunch(10, 0.12);
+                lightFlash(spawnX, EYE_HEIGHT, spawnZ, '#ff4400', 5, 300);
+
+                if (pm?._rightArm) {
+                    pm._rightArm.rotation.set(-0.5, 0, 0);
+                    setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 300);
+                }
+            }, 400);
+        }
+
+        else if (slot === 'v') {
+            // ── MALEVOLENT SHRINE — domain expansion, damages all enemies repeatedly ──
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) pm._rightArm.rotation.set(-0.8, 0, 0);
+            if (pm?._leftArm) pm._leftArm.rotation.set(-0.8, 0, 0);
+
+            // Dark red screen flash + text
+            screenFlash('rgba(100,0,0,0.8)', 1500);
+            screenShake(0.6, 1200);
+
+            // Shrine dome — dark red expanding sphere
+            const domeGeo = new THREE.SphereGeometry(1, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const domeMat = new THREE.MeshBasicMaterial({
+                color: '#3a0000', transparent: true, opacity: 0.4,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const dome = new THREE.Mesh(domeGeo, domeMat);
+            dome.position.set(worldPx, 0.1, worldPz);
+            scene.add(dome);
+
+            // Expand dome
+            const domeStart = performance.now();
+            const expandDome = () => {
+                const t = (performance.now() - domeStart) / 800;
+                if (t >= 1) return;
+                dome.scale.setScalar(1 + t * 8);
+                requestAnimationFrame(expandDome);
+            };
+            requestAnimationFrame(expandDome);
+
+            // Red slash lines appear all over the domain
+            const slashInterval = setInterval(() => {
+                for (let i = 0; i < 3; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 1 + Math.random() * 6;
+                    const sx = worldPx + Math.cos(angle) * dist;
+                    const sz = worldPz + Math.sin(angle) * dist;
+                    const slashGeo = new THREE.PlaneGeometry(1.5 + Math.random(), 0.03);
+                    const slashMat = new THREE.MeshBasicMaterial({
+                        color: '#ff2244', transparent: true, opacity: 0.8,
+                        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+                    });
+                    const slash = new THREE.Mesh(slashGeo, slashMat);
+                    slash.position.set(sx, 0.5 + Math.random() * 2, sz);
+                    slash.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                    scene.add(slash);
+                    setTimeout(() => { scene.remove(slash); slash.geometry.dispose(); slash.material.dispose(); }, 300);
+                }
+            }, 100);
+
+            // Damage all enemies every 400ms — Dismantle + Cleave combo
+            let ticks = 0;
+            const dmgInterval = setInterval(() => {
+                ticks++;
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - px, e.data.z - pz) < 8) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                        // Red flash on hit
+                        e.mesh.traverse(c => { if (c.isMesh && c.material?.emissive) c.material.emissive.set('#ff0000'); });
+                        setTimeout(() => {
+                            e.mesh.traverse(c => { if (c.isMesh && c.material?.emissive) c.material.emissive.set('#000000'); });
+                        }, 100);
+                    }
+                }
+                emitParticles(worldPx, 1.5, worldPz, {
+                    color: ['#ff2244', '#ff0000', '#cc0000'],
+                    count: 8, speed: 3, spread: 4,
+                    gravity: -2, life: 12, size: 0.1, sizeEnd: 0, drag: 0.97, upward: 0.5
+                });
+                if (ticks >= 12) {
+                    clearInterval(dmgInterval);
+                    clearInterval(slashInterval);
+                    // Domain collapse
+                    scene.remove(dome); domeGeo.dispose(); domeMat.dispose();
+                    // Final explosion
+                    emitParticles(worldPx, 2, worldPz, {
+                        color: ['#ff2244', '#ff0000', '#880000', '#ffffff'],
+                        count: 60, speed: 6, spread: 2,
+                        gravity: -3, life: 25, lifeVar: 15,
+                        size: 0.2, sizeEnd: 0, drag: 0.96, upward: 1.5
+                    });
+                    groundRing(worldPx, worldPz, '#ff2244', 8, 800);
+                    screenShake(0.5, 300);
+                    lightFlash(worldPx, 2, worldPz, '#ff2244', 8, 500);
+                    if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                    if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+                }
+            }, 400);
+
+            // Invincible during domain
+            player.invincible = performance.now() + 5500;
+            groundRing(worldPx, worldPz, '#ff0000', 6, 1000);
+            groundDecal(worldPx, worldPz, '#3a0000', 5, 6000);
+        }
+
+        else if (slot === 'f') {
+            // ── DASH — instant teleport forward with slash trail ──
+            const dashDist = 5;
+            const newX = px + fwdX * dashDist;
+            const newZ = pz + fwdZ * dashDist;
+
+            // Slash trail along the dash path
+            for (let i = 0; i < 4; i++) {
+                const t = (i + 1) / 4;
+                const tx = worldPx + fwdX * dashDist * t * TILE / TILE;
+                const tz = worldPz + fwdZ * dashDist * t * TILE / TILE;
+                const trailGeo = new THREE.PlaneGeometry(0.8, 2);
+                const trailMat = new THREE.MeshBasicMaterial({
+                    color: '#ff2244', transparent: true, opacity: 0.6 - i * 0.1,
+                    side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+                });
+                const trail = new THREE.Mesh(trailGeo, trailMat);
+                const fly = fpsCamera.flyHeight || 0;
+                trail.position.set(
+                    worldPx + fwdX * TILE * dashDist * t,
+                    EYE_HEIGHT + fly,
+                    worldPz + fwdZ * TILE * dashDist * t
+                );
+                trail.lookAt(camera.position);
+                scene.add(trail);
+                setTimeout(() => { scene.remove(trail); trail.geometry.dispose(); trail.material.dispose(); }, 200 + i * 50);
+            }
+
+            // Damage enemies along the dash path
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                // Check if enemy is within the dash corridor
+                const ex = e.data.x, ez = e.data.z;
+                const toEnemyX = ex - px, toEnemyZ = ez - pz;
+                const dot = toEnemyX * fwdX + toEnemyZ * fwdZ;
+                if (dot > 0 && dot < dashDist) {
+                    const perpDist = Math.abs(toEnemyX * fwdZ - toEnemyZ * fwdX);
+                    if (perpDist < 1.5) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 2));
+                    }
+                }
+            }
+
+            // Teleport
+            fpsCamera.posX = newX;
+            fpsCamera.posZ = newZ;
+
+            // VFX
+            screenShake(0.2, 100);
+            fovPunch(15, 0.1);
+            emitParticles(worldPx, EYE_HEIGHT, worldPz, {
+                color: ['#ff2244', '#ff0000'],
+                count: 10, speed: 3, spread: 0.5,
+                gravity: 0, life: 8, size: 0.1, sizeEnd: 0, drag: 0.95
+            });
+            triggerSwordSwing(1); // diagonal slash during dash
+
+            // Brief invincibility
+            player.invincible = performance.now() + 400;
+        }
+    }
 }
 
 function playerSpecial() { fruitAbility("z"); }
@@ -2989,6 +3384,27 @@ function update() {
                 const dist = Math.hypot(e.data.x - tileX, e.data.z - tileZ);
                 if (dist < e.data.radius + 0.3) {
                     dealDamageToEnemy(e, p.damage);
+                    // Fire Arrow explosion on impact
+                    if (p._isFireArrow) {
+                        const hx = p.mesh.position.x, hz = p.mesh.position.z;
+                        emitParticles(hx, EYE_HEIGHT, hz, {
+                            color: ['#ff4400', '#ff6600', '#ff8800', '#ffaa00', '#ff2200'],
+                            count: 35, speed: 5, spread: 1,
+                            gravity: -4, life: 20, lifeVar: 10,
+                            size: 0.25, sizeEnd: 0, drag: 0.96, upward: 1.5
+                        });
+                        lightFlash(hx, EYE_HEIGHT, hz, '#ff4400', 8, 400);
+                        groundDecal(hx, hz, '#ff4400', 2, 2000);
+                        groundRing(hx, hz, '#ff6600', 3, 500);
+                        screenShake(0.4, 200);
+                        // AoE splash damage to nearby enemies
+                        for (const e2 of enemies3D) {
+                            if (!e2.data.alive || e2 === e) continue;
+                            if (Math.hypot(e2.data.x - tileX, e2.data.z - tileZ) < 3) {
+                                dealDamageToEnemy(e2, Math.round(p.damage * 0.5));
+                            }
+                        }
+                    }
                     scene.remove(p.mesh); projectiles3D.splice(i, 1); break;
                 }
             }
