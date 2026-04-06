@@ -219,8 +219,8 @@ function init() {
             // Dodge
             if (e.code === 'KeyQ') playerDodge();
             if (e.code === 'Space') playerDodge();
-            // Basic attack — Numpad 0 or left click
-            if (e.code === 'Numpad0') playerAttack();
+            // Basic attack — E key or left click
+            if (e.code === 'KeyE') playerAttack();
             // ── P2 controls (numpad) ──
             if (coopMode && player2 && player2.alive) {
                 if (e.code === 'Numpad1') p2Attack();
