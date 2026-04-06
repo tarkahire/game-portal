@@ -980,6 +980,289 @@ function updateMeleeSlashes() {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  PARTICLE ENGINE + EFFECT PRESETS
+// ═══════════════════════════════════════════════════════════════
+
+// ── Particle Pool ──
+const PARTICLE_POOL_SIZE = 300;
+const particles = [];
+let particlePoolReady = false;
+
+function initParticlePool() {
+    if (particlePoolReady) return;
+    particlePoolReady = true;
+    const geo = new THREE.PlaneGeometry(1, 1);
+    for (let i = 0; i < PARTICLE_POOL_SIZE; i++) {
+        const mat = new THREE.MeshBasicMaterial({
+            color: '#ffffff', transparent: true, opacity: 0,
+            side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.visible = false;
+        scene.add(mesh);
+        particles.push({
+            mesh, vx: 0, vy: 0, vz: 0,
+            life: 0, maxLife: 0, size: 1, sizeEnd: 0,
+            gravity: 0, drag: 0
+        });
+    }
+}
+
+// Core emitter — config: { color, count, speed, spread, gravity, life, size, sizeEnd, drag, blending, yOffset }
+function emitParticles(x, y, z, config) {
+    initParticlePool();
+    const c = config;
+    const count = c.count || 10;
+    const colors = Array.isArray(c.color) ? c.color : [c.color || '#ff6600'];
+    for (let i = 0; i < count; i++) {
+        let p = null;
+        for (const pp of particles) { if (!pp.mesh.visible) { p = pp; break; } }
+        if (!p) continue;
+
+        const col = colors[Math.floor(Math.random() * colors.length)];
+        p.mesh.material.color.set(col);
+        p.mesh.material.blending = c.additive !== false ? THREE.AdditiveBlending : THREE.NormalBlending;
+        p.mesh.material.opacity = c.opacity || 1;
+        p.mesh.visible = true;
+
+        const spread = c.spread || 1;
+        p.mesh.position.set(
+            x + (Math.random() - 0.5) * spread,
+            y + (Math.random() - 0.5) * spread * 0.5 + (c.yOffset || 0),
+            z + (Math.random() - 0.5) * spread
+        );
+
+        const spd = c.speed || 3;
+        if (c.direction) {
+            // Directional emission
+            p.vx = c.direction.x * spd + (Math.random() - 0.5) * spd * 0.4;
+            p.vy = c.direction.y * spd + (Math.random() - 0.5) * spd * 0.3;
+            p.vz = c.direction.z * spd + (Math.random() - 0.5) * spd * 0.4;
+        } else {
+            // Radial burst
+            const angle = Math.random() * Math.PI * 2;
+            const upward = c.upward || 0.5;
+            p.vx = Math.cos(angle) * spd * (0.5 + Math.random() * 0.5);
+            p.vy = (Math.random() * upward + upward * 0.5) * spd;
+            p.vz = Math.sin(angle) * spd * (0.5 + Math.random() * 0.5);
+        }
+
+        const sz = c.size || 0.3;
+        p.size = sz + Math.random() * sz * 0.5;
+        p.sizeEnd = c.sizeEnd !== undefined ? c.sizeEnd : 0;
+        p.mesh.scale.setScalar(p.size);
+
+        p.life = (c.life || 20) + Math.random() * (c.lifeVar || 10);
+        p.maxLife = p.life;
+        p.gravity = c.gravity !== undefined ? c.gravity : -8;
+        p.drag = c.drag || 0.98;
+    }
+}
+
+function updateParticles(dt) {
+    for (const p of particles) {
+        if (!p.mesh.visible) continue;
+        p.life--;
+        if (p.life <= 0) { p.mesh.visible = false; continue; }
+
+        const t = p.life / p.maxLife; // 1 → 0
+        // Move
+        p.vx *= p.drag; p.vy *= p.drag; p.vz *= p.drag;
+        p.vy += p.gravity * dt;
+        p.mesh.position.x += p.vx * dt;
+        p.mesh.position.y += p.vy * dt;
+        p.mesh.position.z += p.vz * dt;
+        // Fade + shrink
+        p.mesh.material.opacity = t * (p.maxLife > 30 ? 0.7 : 1);
+        const s = p.sizeEnd + (p.size - p.sizeEnd) * t;
+        p.mesh.scale.setScalar(s);
+        // Billboard — face camera
+        p.mesh.lookAt(camera.position);
+    }
+}
+
+// ── EFFECT PRESETS ──────────────────────────────────────────
+
+// Fire burst at a point
+function fireEffect(x, y, z, intensity) {
+    const n = intensity || 1;
+    emitParticles(x, y, z, {
+        color: ['#ff6600', '#ff8800', '#ffaa00', '#ffcc00', '#ff4400'],
+        count: Math.round(20 * n), speed: 3 * n, spread: 0.5 * n,
+        gravity: -2, life: 20, lifeVar: 15, size: 0.3 * n, sizeEnd: 0.05,
+        upward: 1.5, drag: 0.96
+    });
+    // Embers (small, slower, longer lived)
+    emitParticles(x, y, z, {
+        color: ['#ff4400', '#cc2200'], count: Math.round(8 * n),
+        speed: 1.5, spread: 0.3, gravity: -1, life: 30, lifeVar: 20,
+        size: 0.1, sizeEnd: 0, upward: 2, drag: 0.99
+    });
+    // Light flash
+    lightFlash(x, y, z, '#ff6600', 3 * n, 300);
+}
+
+// Fire breath cone — particles streaming in a direction
+function fireBreathEffect(x, y, z, dirX, dirY, dirZ, duration, intensity) {
+    const n = intensity || 1;
+    const burstCount = Math.round(duration / 50);
+    for (let i = 0; i < burstCount; i++) {
+        setTimeout(() => {
+            emitParticles(x, y, z, {
+                color: ['#ff6600', '#ff8800', '#ffcc00', '#ffffff'],
+                count: Math.round(6 * n), speed: 10 * n, spread: 0.3,
+                direction: { x: dirX, y: dirY, z: dirZ },
+                gravity: -1, life: 12, lifeVar: 6, size: 0.25 * n, sizeEnd: 0.4 * n,
+                drag: 0.95
+            });
+        }, i * 50);
+    }
+    lightFlash(x, y, z, '#ff8800', 4 * n, duration);
+}
+
+// Beam effect — stretched glowing cylinder
+function beamEffect(startX, startY, startZ, endX, endY, endZ, color, duration, width) {
+    const dx = endX - startX, dy = endY - startY, dz = endZ - startZ;
+    const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const midX = (startX + endX) / 2, midY = (startY + endY) / 2, midZ = (startZ + endZ) / 2;
+
+    const geo = new THREE.CylinderGeometry(width || 0.15, width || 0.15, len, 6);
+    const mat = new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity: 0.9,
+        blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const beam = new THREE.Mesh(geo, mat);
+    beam.position.set(midX, midY, midZ);
+    beam.lookAt(endX, endY, endZ);
+    beam.rotateX(Math.PI / 2);
+    scene.add(beam);
+
+    // Glow
+    const glow = new THREE.PointLight(color, 3, TILE * 4, 2);
+    glow.position.set(midX, midY, midZ);
+    scene.add(glow);
+
+    // Outer glow cylinder
+    const outerGeo = new THREE.CylinderGeometry((width || 0.15) * 2.5, (width || 0.15) * 2.5, len, 6);
+    const outerMat = new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity: 0.2,
+        blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const outer = new THREE.Mesh(outerGeo, outerMat);
+    outer.position.copy(beam.position);
+    outer.rotation.copy(beam.rotation);
+    scene.add(outer);
+
+    // Particles along beam
+    const steps = Math.max(3, Math.round(len / 2));
+    for (let i = 0; i < steps; i++) {
+        const t = i / steps;
+        emitParticles(
+            startX + dx * t, startY + dy * t, startZ + dz * t,
+            { color: [color, '#ffffff'], count: 3, speed: 1.5, spread: 0.3,
+              gravity: 0, life: 10, size: 0.15, sizeEnd: 0, drag: 0.95 }
+        );
+    }
+
+    // Fade and remove
+    const dur = duration || 400;
+    const startTime = performance.now();
+    const animateBeam = () => {
+        const elapsed = performance.now() - startTime;
+        const t = 1 - elapsed / dur;
+        if (t <= 0) {
+            scene.remove(beam); scene.remove(outer); scene.remove(glow);
+            beam.geometry.dispose(); beam.material.dispose();
+            outer.geometry.dispose(); outer.material.dispose();
+            return;
+        }
+        mat.opacity = t * 0.9;
+        outerMat.opacity = t * 0.2;
+        glow.intensity = t * 3;
+        requestAnimationFrame(animateBeam);
+    };
+    requestAnimationFrame(animateBeam);
+}
+
+// Ground ring — expanding circle on the floor
+function groundRing(x, z, color, maxRadius, duration) {
+    const geo = new THREE.RingGeometry(0.1, 0.3, 24);
+    const mat = new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity: 0.8,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const ring = new THREE.Mesh(geo, mat);
+    ring.position.set(x, 0.08, z);
+    ring.rotation.x = -Math.PI / 2;
+    scene.add(ring);
+
+    const dur = duration || 600;
+    const startTime = performance.now();
+    const animateRing = () => {
+        const elapsed = performance.now() - startTime;
+        const t = elapsed / dur;
+        if (t >= 1) {
+            scene.remove(ring); ring.geometry.dispose(); ring.material.dispose();
+            return;
+        }
+        const r = t * (maxRadius || 3);
+        ring.scale.setScalar(r);
+        mat.opacity = (1 - t) * 0.8;
+        requestAnimationFrame(animateRing);
+    };
+    requestAnimationFrame(animateRing);
+}
+
+// Ground crack/decal — stays longer
+function groundDecal(x, z, color, radius, duration) {
+    const geo = new THREE.CircleGeometry(radius || 1.5, 16);
+    const mat = new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity: 0.5,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const decal = new THREE.Mesh(geo, mat);
+    decal.position.set(x, 0.06, z);
+    decal.rotation.x = -Math.PI / 2;
+    scene.add(decal);
+    const dur = duration || 2000;
+    setTimeout(() => {
+        const fadeStart = performance.now();
+        const fade = () => {
+            const t = (performance.now() - fadeStart) / 500;
+            if (t >= 1) { scene.remove(decal); decal.geometry.dispose(); decal.material.dispose(); return; }
+            mat.opacity = (1 - t) * 0.5;
+            requestAnimationFrame(fade);
+        };
+        fade();
+    }, dur);
+}
+
+// Light flash — brief bright point light
+function lightFlash(x, y, z, color, intensity, duration) {
+    const light = new THREE.PointLight(color, intensity || 3, TILE * 6, 2);
+    light.position.set(x, y, z);
+    scene.add(light);
+    const dur = duration || 200;
+    const startTime = performance.now();
+    const animateLight = () => {
+        const t = (performance.now() - startTime) / dur;
+        if (t >= 1) { scene.remove(light); return; }
+        light.intensity = (1 - t) * (intensity || 3);
+        requestAnimationFrame(animateLight);
+    };
+    requestAnimationFrame(animateLight);
+}
+
+// Screen flash overlay
+function screenFlash(color, duration) {
+    const flash = document.createElement('div');
+    flash.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:${color};opacity:0.4;z-index:5;pointer-events:none;transition:opacity ${duration || 300}ms;`;
+    document.body.appendChild(flash);
+    setTimeout(() => { flash.style.opacity = '0'; }, 20);
+    setTimeout(() => flash.remove(), (duration || 300) + 50);
+}
+
 // ── Walking Animation (3rd person leg/arm bob) ──
 let walkCycle = 0;
 
@@ -1083,14 +1366,32 @@ function playerAttack() {
 
     // Visual effects per step
     spawnMeleeSlash(player.cls.color);
+    const fly = fpsCamera.flyHeight || 0;
+    const hitX = px * TILE + fwdX * 2, hitY = EYE_HEIGHT + fly, hitZ = pz * TILE + fwdZ * 2;
+
+    // Per-fruit M1 VFX
+    if (player.classId === 'dragon') {
+        // Fire particles on each hit
+        emitParticles(hitX, hitY - 0.5, hitZ, {
+            color: ['#ff6600', '#ff8800', '#ffcc00'], count: 8 + step.dmgMult * 4,
+            speed: 2, spread: 0.5, gravity: -3, life: 10, lifeVar: 5,
+            size: 0.15, sizeEnd: 0, upward: 1, drag: 0.97,
+            direction: { x: fwdX, y: 0, z: fwdZ }
+        });
+        lightFlash(hitX, hitY, hitZ, '#ff6600', 1.5, 100);
+    }
 
     // Finisher (4th hit) — extra effects
     if (isFinisher) {
         screenShake(0.25, 100);
         triggerHitstop(50);
         fovPunch(8, 0.15);
-        // Double slash for impact
         setTimeout(() => spawnMeleeSlash(player.cls.color), 50);
+        // Big burst on finisher
+        if (player.classId === 'dragon') {
+            fireEffect(hitX, hitY * 0.5, hitZ, 1.5);
+            groundRing(hitX, hitZ, '#ff6600', 2, 400);
+        }
     }
 
     // Advance combo
@@ -1180,28 +1481,93 @@ function fruitAbility(slot) {
 
     // ══════ DRAGON ══════
     else if (id === 'dragon') {
-        if (slot === 'z') { // Fire Breath — cone of fire
-            coneHit(6, 0.5, 2); spawnMeleeSlash('#ff6600');
-            shootProj('#ff3d00', 12, player.damage, 3, 0.15);
-        } else if (slot === 'x') { // Dragon Claw — dash + claw swipe
-            doDash(player.speed * 4, 300, 2.5, 5);
-            spawnMeleeSlash('#ff6600');
-        } else if (slot === 'c') { // Fire Shower — rain fireballs in area
+        const fly = fpsCamera.flyHeight || 0;
+        const worldPx = px * TILE, worldPz = pz * TILE;
+        const worldY = EYE_HEIGHT + fly;
+
+        if (slot === 'z') { // Fire Breath — streaming fire cone from mouth
+            coneHit(6, 0.5, 2);
+            // Fire breath particle stream — 12 bursts over 600ms
+            fireBreathEffect(
+                worldPx + fwdX * 1.5, worldY - 0.3, worldPz + fwdZ * 1.5,
+                fwdX, -0.1, fwdZ, 600, 1.2
+            );
+            // Ground scorch where the breath lands
+            groundDecal((px + fwdX * 5) * TILE, (pz + fwdZ * 5) * TILE, '#ff3d00', 2, 3000);
+            groundRing((px + fwdX * 4) * TILE, (pz + fwdZ * 4) * TILE, '#ff6600', 2.5, 500);
+            screenShake(0.2, 200);
+
+        } else if (slot === 'x') { // Dragon Claw — dash forward with fire trail
+            doDash(player.speed * 4, 400, 2.5, 5);
+            // Fire trail behind the dash — spawn particles along path
             for (let i = 0; i < 8; i++) {
                 setTimeout(() => {
-                    const ox = (Math.random()-0.5)*6, oz = (Math.random()-0.5)*6;
-                    const m = new THREE.Mesh(projGeo, new THREE.MeshBasicMaterial({color:'#ff3d00'}));
-                    m.position.set((px+fwdX*4+ox)*TILE, 6, (pz+fwdZ*4+oz)*TILE);
-                    m.add(new THREE.PointLight('#ff6600',2,TILE*3,2));
-                    scene.add(m);
-                    projectiles3D.push({mesh:m, vx:0, vz:0, vy:-12, damage:Math.round(player.damage*1.5), owner:'player', traveled:0, range:20});
-                }, i * 100);
+                    const cx = fpsCamera.posX * TILE, cz = fpsCamera.posZ * TILE;
+                    fireEffect(cx, worldY * 0.5, cz, 0.5);
+                    groundDecal(cx, cz, '#ff4400', 0.8, 1500);
+                }, i * 50);
             }
+            // Claw slash VFX — 3 parallel diagonal lines
             spawnMeleeSlash('#ff6600');
+            setTimeout(() => spawnMeleeSlash('#ff8800'), 50);
+            setTimeout(() => spawnMeleeSlash('#ffaa00'), 100);
+            screenShake(0.3, 150);
+
+        } else if (slot === 'c') { // Fire Shower — fireballs rain from the sky
+            const targetX = (px + fwdX * 5) * TILE;
+            const targetZ = (pz + fwdZ * 5) * TILE;
+            // Warning ring on ground
+            groundRing(targetX, targetZ, '#ff6600', 4, 800);
+            groundDecal(targetX, targetZ, '#ff3d00', 3, 4000);
+            // 12 fireballs raining down with staggered timing
+            for (let i = 0; i < 12; i++) {
+                setTimeout(() => {
+                    const ox = (Math.random() - 0.5) * 6 * TILE;
+                    const oz = (Math.random() - 0.5) * 6 * TILE;
+                    const fx = targetX + ox, fz = targetZ + oz;
+                    // Fireball projectile
+                    const m = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.25, 6, 6),
+                        new THREE.MeshBasicMaterial({ color: '#ff6600', blending: THREE.AdditiveBlending, transparent: true, opacity: 0.9 })
+                    );
+                    m.position.set(fx, 8, fz);
+                    const glow = new THREE.PointLight('#ff6600', 2, TILE * 3, 2);
+                    m.add(glow);
+                    scene.add(m);
+                    projectiles3D.push({ mesh: m, vx: 0, vz: 0, vy: -14, damage: Math.round(player.damage * 1.5), owner: 'player', traveled: 0, range: 25 });
+                    // Fire trail as it falls
+                    emitParticles(fx, 6, fz, {
+                        color: ['#ff6600', '#ff8800', '#ffcc00'], count: 6, speed: 1,
+                        spread: 0.3, gravity: 2, life: 8, size: 0.2, sizeEnd: 0, upward: 0
+                    });
+                }, i * 80);
+            }
+            screenShake(0.4, 600);
+            // Impact effects when fireballs land (delayed)
+            setTimeout(() => {
+                fireEffect(targetX, 0.5, targetZ, 2);
+                screenShake(0.5, 200);
+                triggerHitstop(40);
+            }, 800);
+            // Damage in area (delayed to match fireball landing)
+            setTimeout(() => { aoeHit(5, 2); stunNear(5, 1500); }, 700);
+
         } else if (slot === 'v') { // Dragon Transform
-            beastTransform({dmg:1.8, hp:1.5, spd:1.3}, 2.0, '#ff6600', buildDragonModel);
-        } else if (slot === 'f') { // Dragon Flight
+            beastTransform({ dmg: 1.8, hp: 1.5, spd: 1.3 }, 0.6, '#ff6600', buildDragonModel);
+            // Massive fire explosion on transform
+            fireEffect(worldPx, worldY, worldPz, 3);
+            groundRing(worldPx, worldPz, '#ff6600', 5, 800);
+            groundRing(worldPx, worldPz, '#ff3d00', 3, 600);
+            screenFlash('rgba(255,100,0,0.5)', 400);
+            // Set Eastern dragon flags
+            if (fpsCamera.playerModel) fpsCamera.playerModel._isEasternDragon = true;
+            fpsCamera.flyHeight = 0.3;
+            player._flying = true;
+
+        } else if (slot === 'f') { // Dragon Flight — burst of fire + toggle
             toggleFlight();
+            fireEffect(worldPx, worldY * 0.3, worldPz, 1);
+            groundRing(worldPx, worldPz, '#ff6600', 2, 400);
         }
     }
 
@@ -1821,6 +2187,7 @@ function update() {
     updateTorchLights(torchLights, time);
     updateMeleeSlashes();
     updateDmgNumbers();
+    updateParticles(dt);
     updateWalkAnimation(dt);
     updateMinions(dt, now);
     // (old Katakuri portal update removed — Blox Fruits system)
