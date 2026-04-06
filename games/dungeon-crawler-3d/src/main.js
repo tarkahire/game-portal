@@ -3237,6 +3237,374 @@ function fruitAbility(slot) {
             player.invincible = performance.now() + 400;
         }
     }
+
+    // ══════ TOJI ══════
+    if (id === 'toji') {
+        if (slot === 'z') {
+            // ── INVERTED SPEAR OF HEAVEN — piercing thrust that goes through all enemies in a line ──
+            triggerSwordSwing(3); // big thrust motion
+            screenShake(0.3, 150);
+
+            const fly = fpsCamera.flyHeight || 0;
+            const range = 8;
+
+            // Spear thrust trail — a line of impact going forward
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const dist = 1.5 + i * 1.2;
+                    const sx = worldPx + fwdX * dist;
+                    const sz = worldPz + fwdZ * dist;
+
+                    // Green-white impact flash at each point
+                    const impactGeo = new THREE.PlaneGeometry(0.6, 0.6);
+                    const impactMat = new THREE.MeshBasicMaterial({
+                        color: '#aaffcc', transparent: true, opacity: 0.8,
+                        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+                    });
+                    const impact = new THREE.Mesh(impactGeo, impactMat);
+                    impact.position.set(sx, EYE_HEIGHT + fly, sz);
+                    impact.lookAt(camera.position);
+                    scene.add(impact);
+
+                    emitParticles(sx, EYE_HEIGHT + fly, sz, {
+                        color: ['#aaffcc', '#66ddaa', '#ffffff'],
+                        count: 4, speed: 2, spread: 0.5,
+                        gravity: -3, life: 8, size: 0.06, sizeEnd: 0, drag: 0.95
+                    });
+
+                    // Hit enemies along the line
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        const dx = e.data.x - (px + fwdX * dist / TILE);
+                        const dz = e.data.z - (pz + fwdZ * dist / TILE);
+                        if (Math.hypot(dx, dz) < 1.5) {
+                            dealDamageToEnemy(e, Math.round(player.damage * 2));
+                            // Pierce knockback — pushes enemies aside, not back
+                            const perpX = -fwdZ, perpZ = fwdX;
+                            const side = (dx * perpX + dz * perpZ) > 0 ? 1 : -1;
+                            e.data.x += perpX * side * 0.5;
+                            e.data.z += perpZ * side * 0.5;
+                            e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                        }
+                    }
+
+                    // Fade impact
+                    const start = performance.now();
+                    const fadeImpact = () => {
+                        const t = (performance.now() - start) / 200;
+                        if (t >= 1) { scene.remove(impact); impact.geometry.dispose(); impact.material.dispose(); return; }
+                        impactMat.opacity = (1 - t) * 0.8;
+                        impact.scale.setScalar(1 + t * 0.5);
+                        requestAnimationFrame(fadeImpact);
+                    };
+                    requestAnimationFrame(fadeImpact);
+                }, i * 40);
+            }
+
+            // Arm thrust
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) {
+                pm._rightArm.rotation.set(-1.6, 0, 0);
+                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 400);
+            }
+
+            // Small lunge forward
+            fpsCamera.posX += fwdX * 1.5;
+            fpsCamera.posZ += fwdZ * 1.5;
+            fovPunch(10, 0.1);
+            lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#aaffcc', 3, 200);
+        }
+
+        else if (slot === 'x') {
+            // ── CHAIN STRIKE — swing the chain in a wide arc, pulling enemies in ──
+            triggerSwordSwing(2); // horizontal sweep
+            screenShake(0.3, 200);
+
+            const fly = fpsCamera.flyHeight || 0;
+            const chainRange = 6;
+
+            // Chain whip visual — arc of segments
+            const chainParts = [];
+            for (let i = 0; i < 8; i++) {
+                const angle = fpsCamera.yaw + Math.PI + (i / 7 - 0.5) * Math.PI * 0.8;
+                const dist = 2 + i * 0.5;
+                const cx = worldPx + Math.sin(-angle) * dist;
+                const cz = worldPz + Math.cos(-angle) * dist;
+
+                const linkGeo = new THREE.SphereGeometry(0.08, 4, 4);
+                const linkMat = new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.7, roughness: 0.3 });
+                const link = new THREE.Mesh(linkGeo, linkMat);
+                link.position.set(cx, EYE_HEIGHT + fly - 0.3, cz);
+                scene.add(link);
+                chainParts.push(link);
+
+                // Chain line segment between links
+                if (i > 0) {
+                    const prev = chainParts[i - 1];
+                    const lineGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.6, 3);
+                    const lineMat = new THREE.MeshStandardMaterial({ color: '#666666', metalness: 0.6 });
+                    const line = new THREE.Mesh(lineGeo, lineMat);
+                    line.position.set(
+                        (cx + prev.position.x) / 2,
+                        EYE_HEIGHT + fly - 0.3,
+                        (cz + prev.position.z) / 2
+                    );
+                    line.lookAt(prev.position);
+                    line.rotateX(Math.PI / 2);
+                    scene.add(line);
+                    chainParts.push(line);
+                }
+            }
+
+            // Sparks along chain arc
+            emitParticles(worldPx + fwdX * 3, EYE_HEIGHT + fly, worldPz + fwdZ * 3, {
+                color: ['#ffffff', '#cccccc', '#888888'],
+                count: 15, speed: 4, spread: 3,
+                gravity: -5, life: 10, size: 0.06, sizeEnd: 0, drag: 0.96
+            });
+
+            // Hit enemies in wide arc and pull them toward player
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const dx = e.data.x - px, dz = e.data.z - pz;
+                const d = Math.hypot(dx, dz);
+                if (d > chainRange || d < 0.5) continue;
+                const a = Math.atan2(-dx, -dz);
+                let ad = a - yaw;
+                while (ad > Math.PI) ad -= Math.PI * 2;
+                while (ad < -Math.PI) ad += Math.PI * 2;
+                if (Math.abs(ad) < Math.PI * 0.55) {
+                    dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                    // Pull toward player
+                    e.data.x -= (dx / d) * 1.5;
+                    e.data.z -= (dz / d) * 1.5;
+                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                    // Stun briefly
+                    e.data.lastAttack = now + 800;
+                }
+            }
+
+            // Remove chain after 300ms
+            setTimeout(() => {
+                for (const p of chainParts) { scene.remove(p); if (p.geometry) p.geometry.dispose(); if (p.material) p.material.dispose(); }
+            }, 300);
+
+            // Arm sweep
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) {
+                pm._rightArm.rotation.set(-0.3, 0, -1.0);
+                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 400);
+            }
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ffffff', 3, 200);
+            groundRing(worldPx, worldPz, '#888888', 5, 500);
+        }
+
+        else if (slot === 'c') {
+            // ── PLAYFUL CLOUD — massive 3-section staff slam, huge AoE impact ──
+            triggerSwordSwing(3); // overhead slam
+
+            const fly = fpsCamera.flyHeight || 0;
+            const impactX = worldPx + fwdX * 3;
+            const impactZ = worldPz + fwdZ * 3;
+
+            // Brief wind-up
+            screenShake(0.2, 200);
+
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) pm._rightArm.rotation.set(-2.2, 0, 0);
+
+            setTimeout(() => {
+                // SLAM — massive ground impact
+                screenShake(0.7, 400);
+                triggerHitstop(100);
+                fovPunch(15, 0.2);
+
+                // Ground crack ring
+                groundRing(impactX, impactZ, '#ffffff', 5, 800);
+                groundDecal(impactX, impactZ, '#555555', 2.5, 3000);
+
+                // Impact shockwave particles — dust and debris
+                emitParticles(impactX, 0.5, impactZ, {
+                    color: ['#aaaaaa', '#888888', '#cccccc', '#666666'],
+                    count: 35, speed: 6, spread: 1,
+                    gravity: -8, life: 20, lifeVar: 10,
+                    size: 0.2, sizeEnd: 0.05, drag: 0.96, upward: 2
+                });
+                // Secondary ground dust
+                emitParticles(impactX, 0.2, impactZ, {
+                    color: ['#997755', '#886644'],
+                    count: 20, speed: 4, spread: 2,
+                    gravity: -3, life: 25, size: 0.15, sizeEnd: 0, drag: 0.97, upward: 0.3
+                });
+
+                // Hit everything in AoE — massive damage
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    const dx = e.data.x - (px + fwdX * 3 / TILE);
+                    const dz = e.data.z - (pz + fwdZ * 3 / TILE);
+                    const d = Math.hypot(dx, dz);
+                    if (d < 4) {
+                        const falloff = 1 - (d / 4) * 0.5; // more damage closer
+                        dealDamageToEnemy(e, Math.round(player.damage * 5 * falloff));
+                        // Massive knockback
+                        if (d > 0.3) {
+                            e.data.x += (dx / d) * 3;
+                            e.data.z += (dz / d) * 3;
+                            e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                        }
+                        // Bounce enemies up
+                        e.mesh.position.y = 1.5;
+                        setTimeout(() => { if (e.mesh) e.mesh.position.y = 0; }, 400);
+                    }
+                }
+
+                lightFlash(impactX, 1, impactZ, '#ffffff', 8, 400);
+                screenFlash('rgba(255,255,255,0.3)', 200);
+
+                if (pm?._rightArm) {
+                    pm._rightArm.rotation.set(0.3, 0, 0);
+                    setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 300);
+                }
+            }, 250);
+        }
+
+        else if (slot === 'v') {
+            // ── HEAVENLY RESTRICTION — buff transformation, superhuman physical boost ──
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) pm._rightArm.rotation.set(-0.5, 0, -0.3);
+            if (pm?._leftArm) pm._leftArm.rotation.set(-0.5, 0, 0.3);
+
+            screenFlash('rgba(40,110,60,0.6)', 1000);
+            screenShake(0.5, 800);
+
+            // Green energy burst from body
+            emitParticles(worldPx, EYE_HEIGHT, worldPz, {
+                color: ['#2a6e3f', '#44aa66', '#88ffaa', '#ffffff'],
+                count: 40, speed: 4, spread: 1,
+                gravity: -1, life: 25, lifeVar: 15,
+                size: 0.15, sizeEnd: 0, drag: 0.97, upward: 2
+            });
+            groundRing(worldPx, worldPz, '#2a6e3f', 4, 800);
+
+            // Buff: massive speed + damage boost for 8 seconds
+            const origSpeed = player.speed;
+            const origDamage = player.damage;
+            player.speed *= 1.8;
+            player.damage = Math.round(player.damage * 2.5);
+            fpsCamera.speed = player.speed;
+            player.invincible = performance.now() + 1000; // brief invincibility on activation
+
+            // Green aura effect around player during buff
+            const aura = new THREE.PointLight('#2a6e3f', 3, TILE * 5, 2);
+            aura.position.y = 1.2;
+            if (pm) pm.add(aura);
+
+            // Pulsing green particles while active
+            const buffParticles = setInterval(() => {
+                emitParticles(
+                    fpsCamera.posX * TILE, 0.5, fpsCamera.posZ * TILE,
+                    { color: ['#2a6e3f', '#44aa66'], count: 3, speed: 1.5, spread: 0.5,
+                      gravity: -1, life: 10, size: 0.06, sizeEnd: 0, drag: 0.97, upward: 2 }
+                );
+            }, 150);
+
+            // Speed lines effect (green tinted)
+            const speedLineInt = setInterval(() => {
+                const slGeo = new THREE.PlaneGeometry(0.02, 1.5);
+                const slMat = new THREE.MeshBasicMaterial({
+                    color: '#44aa66', transparent: true, opacity: 0.3,
+                    side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+                });
+                const sl = new THREE.Mesh(slGeo, slMat);
+                sl.position.set(
+                    fpsCamera.posX * TILE + (Math.random() - 0.5) * 4,
+                    1 + Math.random() * 2,
+                    fpsCamera.posZ * TILE + (Math.random() - 0.5) * 4
+                );
+                sl.lookAt(camera.position);
+                scene.add(sl);
+                setTimeout(() => { scene.remove(sl); sl.geometry.dispose(); sl.material.dispose(); }, 200);
+            }, 80);
+
+            // Revert after 8 seconds
+            setTimeout(() => {
+                player.speed = origSpeed;
+                player.damage = origDamage;
+                fpsCamera.speed = origSpeed;
+                clearInterval(buffParticles);
+                clearInterval(speedLineInt);
+                if (pm) pm.remove(aura);
+                // Deactivation flash
+                emitParticles(fpsCamera.posX * TILE, 1, fpsCamera.posZ * TILE, {
+                    color: ['#2a6e3f', '#44aa66', '#ffffff'],
+                    count: 20, speed: 3, spread: 1,
+                    gravity: -2, life: 15, size: 0.1, sizeEnd: 0, drag: 0.96, upward: 1
+                });
+                if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                if (pm?._leftArm) pm._leftArm.rotation.set(0.15, 0, 0.12);
+            }, 8000);
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#2a6e3f', 5, 400);
+            triggerHitstop(60);
+        }
+
+        else if (slot === 'f') {
+            // ── FLASH STEP — near-instant teleport forward, faster than Sukuna's dash ──
+            const dashDist = 7; // longer range than Sukuna
+            const newX = px + fwdX * dashDist;
+            const newZ = pz + fwdZ * dashDist;
+
+            // After-image at old position
+            const afterGeo = new THREE.CylinderGeometry(0.3, 0.25, 1.8, 6);
+            const afterMat = new THREE.MeshBasicMaterial({
+                color: '#2a6e3f', transparent: true, opacity: 0.4,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const afterImage = new THREE.Mesh(afterGeo, afterMat);
+            const fly = fpsCamera.flyHeight || 0;
+            afterImage.position.set(worldPx, 0.9 + fly, worldPz);
+            scene.add(afterImage);
+
+            // Fade after-image
+            const fadeStart = performance.now();
+            const fadeAfter = () => {
+                const t = (performance.now() - fadeStart) / 400;
+                if (t >= 1) { scene.remove(afterImage); afterImage.geometry.dispose(); afterImage.material.dispose(); return; }
+                afterMat.opacity = (1 - t) * 0.4;
+                requestAnimationFrame(fadeAfter);
+            };
+            requestAnimationFrame(fadeAfter);
+
+            // Damage enemies along path
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const ex = e.data.x, ez = e.data.z;
+                const toEnemyX = ex - px, toEnemyZ = ez - pz;
+                const dot = toEnemyX * fwdX + toEnemyZ * fwdZ;
+                if (dot > 0 && dot < dashDist) {
+                    const perpDist = Math.abs(toEnemyX * fwdZ - toEnemyZ * fwdX);
+                    if (perpDist < 1.5) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                    }
+                }
+            }
+
+            // Teleport
+            fpsCamera.posX = newX;
+            fpsCamera.posZ = newZ;
+
+            fovPunch(18, 0.08);
+            player.invincible = performance.now() + 350;
+
+            // Minimal VFX — Toji is so fast you barely see him move
+            emitParticles(worldPx, EYE_HEIGHT, worldPz, {
+                color: ['#2a6e3f', '#44aa66'],
+                count: 6, speed: 2, spread: 0.3,
+                gravity: 0, life: 6, size: 0.06, sizeEnd: 0, drag: 0.95
+            });
+        }
+    }
 }
 
 function playerSpecial() { fruitAbility("z"); }
