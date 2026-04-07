@@ -5490,6 +5490,468 @@ function fruitAbility(slot) {
             screenShake(0.15, 80);
         }
     }
+
+    // ══════ YOH ASAKURA ══════
+    if (id === 'yoh') {
+        if (slot === 'z') {
+            // ── SPIRIT BALL — Amidamaru spirit slash projectile ──
+            const spawnX = worldPx + fwdX * 1.5, spawnZ = worldPz + fwdZ * 1.5;
+            const fly = fpsCamera.flyHeight || 0;
+
+            screenShake(0.2, 150);
+            triggerHitstop(30);
+
+            // Arm swing forward
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) {
+                pm._rightArm.rotation.set(-1.4, 0, -0.2);
+                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 500);
+            }
+
+            // Ghost slash crescent — orange/golden energy arc
+            const slashGeo = new THREE.TorusGeometry(0.8, 0.08, 4, 16, Math.PI);
+            const slashMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.9,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const slash = new THREE.Mesh(slashGeo, slashMat);
+            slash.position.set(spawnX, EYE_HEIGHT + fly - 0.1, spawnZ);
+            slash.rotation.set(0, yaw + Math.PI / 2, Math.PI / 2);
+            // Inner glow core
+            const coreGlow = new THREE.Mesh(
+                new THREE.TorusGeometry(0.5, 0.15, 4, 12, Math.PI),
+                new THREE.MeshBasicMaterial({ color: '#ffe0b2', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+            );
+            slash.add(coreGlow);
+            slash.add(new THREE.PointLight('#ff9800', 5, TILE * 4, 2));
+            scene.add(slash);
+
+            // Spirit particles trailing behind
+            emitParticles(spawnX, EYE_HEIGHT + fly, spawnZ, {
+                color: ['#ff9800', '#ffb74d', '#ffe0b2', '#ffffff'],
+                count: 15, speed: 2, spread: 1,
+                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.92
+            });
+
+            // Fire as projectile
+            const proj = {
+                mesh: slash, vx: fwdX * 14, vz: fwdZ * 14,
+                damage: Math.round(player.damage * 2.5), owner: 'player',
+                traveled: 0, range: 45,
+                _isSpirit: true
+            };
+            projectiles3D.push(proj);
+
+            // Trail particles as it flies
+            const trailInt = setInterval(() => {
+                if (!slash.parent) { clearInterval(trailInt); return; }
+                emitParticles(slash.position.x, slash.position.y, slash.position.z, {
+                    color: ['#ff9800', '#ffb74d', '#ffe0b2'],
+                    count: 3, speed: 1, spread: 0.4,
+                    gravity: 0, life: 8, size: 0.08, sizeEnd: 0, drag: 0.94
+                });
+                // Spin the slash as it travels
+                slash.rotation.z += 0.15;
+            }, 50);
+
+            lightFlash(spawnX, EYE_HEIGHT, spawnZ, '#ff9800', 3, 200);
+            groundDecal(worldPx + fwdX * 2, worldPz + fwdZ * 2, '#ff9800', 1, 1500);
+        }
+
+        else if (slot === 'x') {
+            // ── SHOCKWAVE BUDDHA GIRI — dash forward with a massive downward slash ──
+            const pm = fpsCamera.playerModel;
+            const fly = fpsCamera.flyHeight || 0;
+            const dashDist = 5;
+
+            screenShake(0.5, 300);
+            triggerHitstop(60);
+            fovPunch(15, 0.2);
+            player.invincible = performance.now() + 500;
+
+            // Sword raised high then slammed down
+            if (pm?._rightArm) {
+                pm._rightArm.rotation.set(-2.0, 0, -0.3); // overhead
+                setTimeout(() => {
+                    if (pm?._rightArm) pm._rightArm.rotation.set(0.8, 0, 0); // slam down
+                }, 200);
+                setTimeout(() => {
+                    if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                }, 700);
+            }
+
+            // Dash forward
+            const newX = fpsCamera.posX + fwdX * dashDist;
+            const newZ = fpsCamera.posZ + fwdZ * dashDist;
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
+
+            // Giant vertical slash VFX at landing point
+            const landX = fpsCamera.posX * TILE, landZ = fpsCamera.posZ * TILE;
+            const slashGeo = new THREE.PlaneGeometry(0.3, 4);
+            const slashMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.9,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const slashMesh = new THREE.Mesh(slashGeo, slashMat);
+            slashMesh.position.set(landX + fwdX * 1.5, EYE_HEIGHT + fly, landZ + fwdZ * 1.5);
+            slashMesh.rotation.y = yaw;
+            scene.add(slashMesh);
+
+            // Shockwave ring expanding from impact
+            groundRing(landX, landZ, '#ff9800', 4, 600);
+            groundDecal(landX, landZ, '#e65100', 2, 2000);
+
+            // Impact particles — ground erupts
+            emitParticles(landX, 0.5, landZ, {
+                color: ['#ff9800', '#ffb74d', '#ffe0b2', '#ffffff'],
+                count: 30, speed: 5, spread: 2,
+                gravity: -6, life: 15, size: 0.12, sizeEnd: 0, drag: 0.94, upward: 3
+            });
+
+            // Amidamaru ghost flash — brief silhouette behind player
+            const ghostGeo = new THREE.PlaneGeometry(3, 4);
+            const ghostMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.4,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const ghost = new THREE.Mesh(ghostGeo, ghostMat);
+            ghost.position.set(landX - fwdX * 2, EYE_HEIGHT + fly + 1, landZ - fwdZ * 2);
+            ghost.rotation.y = yaw;
+            scene.add(ghost);
+
+            // Damage enemies in slash path
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const toX = e.data.x - px, toZ = e.data.z - pz;
+                const dot = toX * fwdX + toZ * fwdZ;
+                if (dot > 0 && dot < dashDist + 2) {
+                    const perp = Math.abs(toX * fwdZ - toZ * fwdX);
+                    if (perp < 2) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 3));
+                        // Knockback
+                        if (Math.hypot(toX, toZ) > 0.3) {
+                            e.data.x += fwdX * 1.2;
+                            e.data.z += fwdZ * 1.2;
+                            e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                        }
+                    }
+                }
+            }
+
+            // Fade slash and ghost
+            const fadeStart = performance.now();
+            const fadeOut = () => {
+                const t = (performance.now() - fadeStart) / 500;
+                if (t >= 1) {
+                    scene.remove(slashMesh); slashMesh.geometry.dispose(); slashMesh.material.dispose();
+                    scene.remove(ghost); ghost.geometry.dispose(); ghost.material.dispose();
+                    return;
+                }
+                slashMat.opacity = (1 - t) * 0.9;
+                ghostMat.opacity = (1 - t) * 0.4;
+                slashMesh.scale.x = 1 + t * 3;
+                ghost.scale.setScalar(1 + t * 0.5);
+                ghost.position.y += 0.02;
+                requestAnimationFrame(fadeOut);
+            };
+            requestAnimationFrame(fadeOut);
+
+            lightFlash(landX, EYE_HEIGHT, landZ, '#ff9800', 6, 300);
+        }
+
+        else if (slot === 'c') {
+            // ── SPIRIT OF SWORD — Amidamaru Oversoul: sword glows, rapid multi-slash AoE ──
+            const fly = fpsCamera.flyHeight || 0;
+            const pm = fpsCamera.playerModel;
+
+            screenShake(0.3, 800);
+            fovPunch(10, 0.3);
+            player.invincible = performance.now() + 2000;
+
+            // Spirit aura erupts around player — orange/gold pillar
+            const auraGeo = new THREE.CylinderGeometry(0.5, 2, 6, 8, 1, true);
+            const auraMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.3,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const aura = new THREE.Mesh(auraGeo, auraMat);
+            aura.position.set(worldPx, fly, worldPz);
+            scene.add(aura);
+
+            // Bright aura light
+            const auraLight = new THREE.PointLight('#ff9800', 8, TILE * 8, 2);
+            aura.add(auraLight);
+
+            emitParticles(worldPx, EYE_HEIGHT + fly, worldPz, {
+                color: ['#ff9800', '#ffb74d', '#ffe0b2', '#ffffff'],
+                count: 40, speed: 3, spread: 1.5,
+                gravity: 0, life: 20, size: 0.15, sizeEnd: 0, drag: 0.95, upward: 4
+            });
+
+            groundRing(worldPx, worldPz, '#ff9800', 5, 1200);
+
+            // 6 rapid slashes over 1.2 seconds
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const slashAngle = yaw + (i * Math.PI / 3);
+                    const sx = worldPx + Math.sin(slashAngle) * 2;
+                    const sz = worldPz + Math.cos(slashAngle) * 2;
+
+                    // Slash line VFX
+                    const sGeo = new THREE.PlaneGeometry(0.15, 3);
+                    const sMat = new THREE.MeshBasicMaterial({
+                        color: '#ffcc00', transparent: true, opacity: 0.9,
+                        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                    });
+                    const sMesh = new THREE.Mesh(sGeo, sMat);
+                    sMesh.position.set(sx, EYE_HEIGHT + fly, sz);
+                    sMesh.rotation.set(Math.random() * 0.5, slashAngle, Math.random() * Math.PI);
+                    scene.add(sMesh);
+
+                    emitParticles(sx, EYE_HEIGHT + fly, sz, {
+                        color: ['#ffcc00', '#ff9800', '#ffffff'],
+                        count: 6, speed: 3, spread: 0.5,
+                        gravity: 0, life: 8, size: 0.08, sizeEnd: 0, drag: 0.93
+                    });
+
+                    // AoE damage around player
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        if (Math.hypot(e.data.x - px, e.data.z - pz) < 4) {
+                            dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                        }
+                    }
+
+                    screenShake(0.2, 80);
+
+                    // Fade slash
+                    const start = performance.now();
+                    const fade = () => {
+                        const t = (performance.now() - start) / 300;
+                        if (t >= 1) { scene.remove(sMesh); sMesh.geometry.dispose(); sMesh.material.dispose(); return; }
+                        sMat.opacity = (1 - t) * 0.9;
+                        sMesh.scale.x = 1 + t * 4;
+                        requestAnimationFrame(fade);
+                    };
+                    requestAnimationFrame(fade);
+                }, i * 200);
+            }
+
+            // Arm slashing animation
+            if (pm?._rightArm) {
+                const slashArm = () => {
+                    let count = 0;
+                    const swingInt = setInterval(() => {
+                        if (count >= 6 || !pm?._rightArm) { clearInterval(swingInt); if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); return; }
+                        pm._rightArm.rotation.set(count % 2 === 0 ? -1.5 : 0.5, 0, count % 2 === 0 ? -0.3 : 0.3);
+                        count++;
+                    }, 200);
+                };
+                slashArm();
+            }
+
+            // Clean up aura after slashes finish
+            setTimeout(() => {
+                const fadeStart = performance.now();
+                const fadeAura = () => {
+                    const t = (performance.now() - fadeStart) / 600;
+                    if (t >= 1) { scene.remove(aura); aura.geometry.dispose(); aura.material.dispose(); return; }
+                    auraMat.opacity = (1 - t) * 0.3;
+                    aura.scale.setScalar(1 + t * 0.5);
+                    requestAnimationFrame(fadeAura);
+                };
+                requestAnimationFrame(fadeAura);
+            }, 1400);
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff9800', 8, 500);
+        }
+
+        else if (slot === 'v') {
+            // ── GIANT OVERSOUL — massive spirit warrior form, huge damage buff ──
+            const fly = fpsCamera.flyHeight || 0;
+            const pm = fpsCamera.playerModel;
+            const duration = 8000;
+
+            screenShake(0.6, 500);
+            triggerHitstop(100);
+            fovPunch(20, 0.4);
+            player.invincible = performance.now() + 2000;
+
+            // Massive orange pillar eruption
+            const pillarGeo = new THREE.CylinderGeometry(0.3, 3, 12, 8, 1, true);
+            const pillarMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.5,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+            pillar.position.set(worldPx, fly, worldPz);
+            scene.add(pillar);
+
+            const pillarLight = new THREE.PointLight('#ff9800', 12, TILE * 12, 2);
+            pillar.add(pillarLight);
+
+            // Explosion particles upward
+            emitParticles(worldPx, EYE_HEIGHT + fly, worldPz, {
+                color: ['#ff9800', '#ffb74d', '#ffe0b2', '#ffffff', '#ffcc00'],
+                count: 60, speed: 5, spread: 2,
+                gravity: 0, life: 25, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 6
+            });
+
+            groundRing(worldPx, worldPz, '#ff9800', 6, 800);
+            groundRing(worldPx, worldPz, '#ffcc00', 4, 1000);
+            groundDecal(worldPx, worldPz, '#e65100', 3, 5000);
+
+            // Giant ghostly samurai — tall spirit form surrounding player
+            const giantGroup = new THREE.Group();
+            giantGroup.position.set(worldPx, fly, worldPz);
+
+            // Spirit body — large translucent orange figure
+            const spiritBody = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.2, 0.8, 6, 8),
+                new THREE.MeshBasicMaterial({ color: '#ff9800', transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            spiritBody.position.y = 3;
+            giantGroup.add(spiritBody);
+
+            // Spirit head
+            const spiritHead = new THREE.Mesh(
+                new THREE.SphereGeometry(0.8, 8, 8),
+                new THREE.MeshBasicMaterial({ color: '#ffb74d', transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            spiritHead.position.y = 6.5;
+            giantGroup.add(spiritHead);
+
+            // Glowing eyes
+            const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+            const eyeGeo = new THREE.SphereGeometry(0.15, 4, 4);
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.3, 6.7, 0.6);
+            giantGroup.add(leftEye);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.3, 6.7, 0.6);
+            giantGroup.add(rightEye);
+
+            // Giant spirit sword — held to the side
+            const swordBlade = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15, 5, 0.4),
+                new THREE.MeshBasicMaterial({ color: '#ffcc00', transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            swordBlade.position.set(2, 4, 0);
+            swordBlade.rotation.z = -0.3;
+            giantGroup.add(swordBlade);
+
+            // Spirit aura light
+            const spiritLight = new THREE.PointLight('#ff9800', 6, TILE * 10, 2);
+            spiritLight.position.y = 4;
+            giantGroup.add(spiritLight);
+
+            scene.add(giantGroup);
+
+            // Damage buff
+            const savedDamage = player.damage;
+            const savedSpeed = player.speed;
+            player.damage = Math.round(savedDamage * 2.5);
+            player.speed = savedSpeed * 1.3;
+            fpsCamera.speed = player.speed;
+
+            // Heal on activation
+            player.hp = Math.min(player.hp + 40, player.maxHp);
+
+            // Stun nearby enemies on activation
+            stunNear(6, 2000);
+            aoeHit(5, 3);
+
+            // Pulsing aura particles during duration
+            const pulseInt = setInterval(() => {
+                if (!player || !player.alive) { clearInterval(pulseInt); return; }
+                emitParticles(fpsCamera.posX * TILE, EYE_HEIGHT, fpsCamera.posZ * TILE, {
+                    color: ['#ff9800', '#ffb74d'],
+                    count: 4, speed: 1.5, spread: 1.5,
+                    gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.95, upward: 2
+                });
+                // Move giant to follow player
+                giantGroup.position.set(fpsCamera.posX * TILE, fpsCamera.flyHeight || 0, fpsCamera.posZ * TILE);
+            }, 200);
+
+            // Remove pillar after 1s
+            setTimeout(() => {
+                const fadeStart = performance.now();
+                const fadePillar = () => {
+                    const t = (performance.now() - fadeStart) / 800;
+                    if (t >= 1) { scene.remove(pillar); pillar.geometry.dispose(); pillar.material.dispose(); return; }
+                    pillarMat.opacity = (1 - t) * 0.5;
+                    pillar.scale.x = 1 + t; pillar.scale.z = 1 + t;
+                    requestAnimationFrame(fadePillar);
+                };
+                requestAnimationFrame(fadePillar);
+            }, 1000);
+
+            // End oversoul after duration
+            setTimeout(() => {
+                clearInterval(pulseInt);
+                player.damage = savedDamage;
+                player.speed = savedSpeed;
+                fpsCamera.speed = player.speed;
+
+                // Fade out giant spirit
+                const fadeStart = performance.now();
+                const fadeGiant = () => {
+                    const t = (performance.now() - fadeStart) / 1000;
+                    if (t >= 1) {
+                        scene.remove(giantGroup);
+                        giantGroup.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); });
+                        return;
+                    }
+                    giantGroup.traverse(c => { if (c.material && c.material.opacity !== undefined) c.material.opacity *= 0.95; });
+                    giantGroup.position.y += 0.05;
+                    requestAnimationFrame(fadeGiant);
+                };
+                requestAnimationFrame(fadeGiant);
+            }, duration);
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff9800', 10, 600);
+        }
+
+        else if (slot === 'f') {
+            // ── SPIRIT DASH — Amidamaru-assisted quick movement ──
+            const dashDist = 4;
+            const fly = fpsCamera.flyHeight || 0;
+            const newX = fpsCamera.posX + fwdX * dashDist;
+            const newZ = fpsCamera.posZ + fwdZ * dashDist;
+
+            // Ghost trail along dash path
+            for (let i = 0; i < 5; i++) {
+                const t = i / 5;
+                const tx = worldPx + fwdX * TILE * t * dashDist;
+                const tz = worldPz + fwdZ * TILE * t * dashDist;
+                emitParticles(tx, EYE_HEIGHT + fly, tz, {
+                    color: ['#ff9800', '#ffb74d', '#ffe0b2'],
+                    count: 4, speed: 1, spread: 0.5,
+                    gravity: 0, life: 10, size: 0.08, sizeEnd: 0, drag: 0.92
+                });
+            }
+
+            // Damage enemies in path
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const toX = e.data.x - px, toZ = e.data.z - pz;
+                const dot = toX * fwdX + toZ * fwdZ;
+                if (dot > 0 && dot < dashDist) {
+                    const perp = Math.abs(toX * fwdZ - toZ * fwdX);
+                    if (perp < 1.2) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                    }
+                }
+            }
+
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
+            fovPunch(14, 0.1);
+            player.invincible = performance.now() + 350;
+            screenShake(0.15, 80);
+            showSpeedLines(250);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff9800', 3, 150);
+        }
+    }
 }
 
 function playerSpecial() { fruitAbility("z"); }

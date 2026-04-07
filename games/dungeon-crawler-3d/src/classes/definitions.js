@@ -45,4 +45,11 @@ export const CLASSES = {
         abilities: { z: 'Chain Rip', x: 'Buzzsaw', c: 'Devil Charge', v: 'Full Devil', f: 'Chain Dash' },
         abilityCooldowns: { z: 3000, x: 4000, c: 8000, v: 18000, f: 2500 }
     },
+    yoh: {
+        name: 'Yoh Asakura', type: 'shaman', maxHp: 130, speed: 3.6, attackRange: 38,
+        attackDamage: 16, attackSpeed: 220, attackType: 'melee', color: '#ff9800',
+        specialCooldown: 4000, specialName: 'Spirit of Sword', weaponType: 'sword',
+        abilities: { z: 'Spirit Ball', x: 'Buddha Giri', c: 'Spirit of Sword', v: 'Giant Oversoul', f: 'Spirit Dash' },
+        abilityCooldowns: { z: 3500, x: 4000, c: 9000, v: 20000, f: 2500 }
+    },
 };
