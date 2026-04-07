@@ -212,7 +212,7 @@ function init() {
             if (e.code === 'KeyC') fruitAbility('c');     // P1 ability 3
             if (e.code === 'KeyV') fruitAbility('v');     // P1 ability 4
             if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
-            if (e.code === 'KeyQ') playerDodge();         // P1 dodge
+            if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else playerDodge(); }
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
             // ── P2 controls ──
@@ -5713,6 +5713,245 @@ function buildYohModel() {
     pm._isSukuna = true; // reuse Sukuna's animation
 
     return pm;
+}
+
+// ─── YOH OVERSOUL TRANSFORMATION (Q key — permanent) ──────
+function yohOversoul() {
+    if (!player || !player.alive || player._yohOversoulsActive) return;
+    player._yohOversoulsActive = true;
+
+    const pm = fpsCamera.playerModel;
+    if (!pm) return;
+
+    const worldPx = fpsCamera.posX * TILE, worldPz = fpsCamera.posZ * TILE;
+    const fly = fpsCamera.flyHeight || 0;
+
+    // ── Transformation VFX burst ──
+    screenFlash('rgba(255,152,0,0.6)', 1000);
+    screenShake(0.6, 800);
+    triggerHitstop(80);
+    fovPunch(18, 0.35);
+    player.invincible = performance.now() + 2000;
+
+    // Energy pillar eruption
+    emitParticles(worldPx, EYE_HEIGHT + fly, worldPz, {
+        color: ['#ffffff', '#ff9800', '#e0e0e0', '#9c27b0', '#ffcc00'],
+        count: 60, speed: 5, spread: 2,
+        gravity: 0, life: 25, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 6
+    });
+    groundRing(worldPx, worldPz, '#ffffff', 5, 1000);
+    groundRing(worldPx, worldPz, '#9c27b0', 4, 1200);
+    lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ffffff', 10, 600);
+
+    // ── Permanent damage buff ──
+    player.damage = Math.round(player.damage * 2.5);
+    player.speed *= 1.2;
+    fpsCamera.speed = player.speed;
+    player.hp = Math.min(player.hp + 30, player.maxHp);
+
+    // ── Build oversoul armor parts and attach to model ──
+    const oversoulGroup = new THREE.Group();
+    oversoulGroup.name = 'yohOversoul';
+
+    const whiteMat = new THREE.MeshStandardMaterial({ color: '#e8e0e0', roughness: 0.3, metalness: 0.4 });
+    const purpleMat = new THREE.MeshStandardMaterial({ color: '#7b1fa2', roughness: 0.4, metalness: 0.3 });
+    const orangeMat = new THREE.MeshStandardMaterial({ color: '#ff9800', roughness: 0.5 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.6 });
+    const bladeWhiteMat = new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.8, roughness: 0.1 });
+    const bladeStripeMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.3 });
+    const glowMat = new THREE.MeshBasicMaterial({ color: '#ff9800', transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false });
+
+    // ── MASSIVE RIGHT ARM GAUNTLET (White Swan armor) ──
+    const gauntletGroup = new THREE.Group();
+
+    // Upper arm armor — large white plating
+    const upperArmor = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.15, 0.5, 6), whiteMat);
+    upperArmor.position.y = -0.25; gauntletGroup.add(upperArmor);
+
+    // Shoulder pauldron — large blocky white shield with purple trim
+    const pauldron = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.35), whiteMat);
+    pauldron.position.set(0.05, 0.05, 0); gauntletGroup.add(pauldron);
+    // Purple trim on pauldron edges
+    const trimTop = new THREE.Mesh(new THREE.BoxGeometry(0.47, 0.03, 0.37), purpleMat);
+    trimTop.position.set(0.05, 0.22, 0); gauntletGroup.add(trimTop);
+    const trimBot = new THREE.Mesh(new THREE.BoxGeometry(0.47, 0.03, 0.37), purpleMat);
+    trimBot.position.set(0.05, -0.12, 0); gauntletGroup.add(trimBot);
+    // Orange star emblem on shoulder
+    const emblem = new THREE.Mesh(new THREE.CircleGeometry(0.08, 6),
+        new THREE.MeshBasicMaterial({ color: '#ff9800', side: THREE.DoubleSide }));
+    emblem.position.set(0.05, 0.05, 0.18); gauntletGroup.add(emblem);
+
+    // Forearm armor — large blocky white section
+    const forearmArmor = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.45, 0.2), whiteMat);
+    forearmArmor.position.y = -0.7; gauntletGroup.add(forearmArmor);
+    // Purple joint ring at elbow
+    const elbowRing = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, 6, 8), purpleMat);
+    elbowRing.position.y = -0.48; elbowRing.rotation.x = Math.PI / 2;
+    gauntletGroup.add(elbowRing);
+
+    // Hand/fist armor — large white gauntlet fist
+    const fistArmor = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.15, 0.18), whiteMat);
+    fistArmor.position.set(0, -0.98, 0.02); gauntletGroup.add(fistArmor);
+    // Purple knuckle plate
+    const knucklePlate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.02), purpleMat);
+    knucklePlate.position.set(0, -0.94, 0.12); gauntletGroup.add(knucklePlate);
+
+    // Attach gauntlet to right arm pivot
+    if (pm._rightArm) pm._rightArm.add(gauntletGroup);
+
+    // ── GIANT SWORD (Spirit of Sword blade — massive white blade with black stripes) ──
+    const swordGroup = new THREE.Group();
+    swordGroup.position.set(0, -1.05, 0.15);
+    swordGroup.rotation.x = Math.PI / 2;
+
+    // Hilt — dark wrapped grip
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.25, 5), darkMat);
+    swordGroup.add(hilt);
+    // Cross-guard — wide white with purple gem
+    const crossGuard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.06), whiteMat);
+    crossGuard.position.y = 0.14; swordGroup.add(crossGuard);
+    const guardGem = new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 5), purpleMat);
+    guardGem.position.set(0, 0.14, 0.04); swordGroup.add(guardGem);
+
+    // Blade — massive white with black stripe down the center
+    const mainBlade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.4, 0.015), bladeWhiteMat);
+    mainBlade.position.y = 0.88; swordGroup.add(mainBlade);
+    // Black stripes on blade
+    const stripe1 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.25, 0.018), bladeStripeMat);
+    stripe1.position.set(0, 1.2, 0); swordGroup.add(stripe1);
+    const stripe2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.25, 0.018), bladeStripeMat);
+    stripe2.position.set(0, 0.85, 0); swordGroup.add(stripe2);
+    // Blade edge glow
+    const edgeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.005, 1.4, 0.02),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.4 }));
+    edgeGlow.position.set(0.042, 0.88, 0); swordGroup.add(edgeGlow);
+    // Blade tip — pointed and wide
+    const bladeTip = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.15, 4), bladeWhiteMat);
+    bladeTip.position.y = 1.62; swordGroup.add(bladeTip);
+    // Sub-blade prongs near guard (the forked base visible in the image)
+    for (let s = -1; s <= 1; s += 2) {
+        const prong = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.15, 3), bladeWhiteMat);
+        prong.position.set(s * 0.06, 0.28, 0);
+        prong.rotation.z = s * 0.4;
+        swordGroup.add(prong);
+    }
+
+    if (pm._rightArm) pm._rightArm.add(swordGroup);
+
+    // ── LEFT SHOULDER ARMOR (smaller purple-trimmed plate) ──
+    if (pm._leftArm) {
+        const lPauldron = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.25), whiteMat);
+        lPauldron.position.set(-0.05, 0.05, 0);
+        pm._leftArm.add(lPauldron);
+        const lTrim = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.025, 0.27), purpleMat);
+        lTrim.position.set(-0.05, 0.15, 0);
+        pm._leftArm.add(lTrim);
+        // Purple gem on left shoulder
+        const lGem = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), purpleMat);
+        lGem.position.set(-0.05, 0.05, 0.13);
+        pm._leftArm.add(lGem);
+    }
+
+    // ── ORANGE CAPE (flowing behind) ──
+    if (pm._torso) {
+        const capeMat = new THREE.MeshStandardMaterial({
+            color: '#ff9800', roughness: 0.6, side: THREE.DoubleSide,
+            transparent: true, opacity: 0.85
+        });
+        const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), capeMat);
+        cape.position.set(0, 0.6, -0.25);
+        cape.rotation.x = 0.15;
+        pm._torso.add(cape);
+        pm._yohCape = cape;
+
+        // Cape bottom flare
+        const capeBottom = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.4), capeMat);
+        capeBottom.position.set(0, -0.05, -0.3);
+        capeBottom.rotation.x = 0.3;
+        pm._torso.add(capeBottom);
+        pm._yohCapeBottom = capeBottom;
+    }
+
+    // ── ORANGE HEADBAND ──
+    if (pm._torso) {
+        const headband = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.23, 0.23, 0.04, 10),
+            new THREE.MeshStandardMaterial({ color: '#ff6600', roughness: 0.5 })
+        );
+        headband.position.y = 1.52;
+        pm._torso.add(headband);
+        // Headband tail (hanging strip on back)
+        const hbTail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.25, 0.015), orangeMat);
+        hbTail.position.set(0, 1.4, -0.22);
+        hbTail.rotation.x = 0.2;
+        pm._torso.add(hbTail);
+    }
+
+    // ── OVERSOUL AURA — permanent white/orange glow ──
+    const oversoulLight = new THREE.PointLight('#ffffff', 3, TILE * 5, 2);
+    oversoulLight.position.y = 1.2;
+    pm.add(oversoulLight);
+    pm._oversoulLight = oversoulLight;
+
+    // Boost existing aura
+    if (pm._auraLight) {
+        pm._auraLight.color.set('#ffffff');
+        pm._auraLight.intensity = 2;
+    }
+
+    // ── Permanent pulsing spirit particles ──
+    pm._oversoulParticleInt = setInterval(() => {
+        if (!player || !player.alive) return;
+        const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
+        // White spirit wisps
+        emitParticles(px, 1.5, pz, {
+            color: ['#ffffff', '#e0e0e0', '#ff9800', '#9c27b0'],
+            count: 3, speed: 1.2, spread: 1,
+            gravity: 0, life: 15, size: 0.08, sizeEnd: 0, drag: 0.95, upward: 1.5
+        });
+    }, 150);
+
+    // ── Cape flutter animation ──
+    pm._oversoulCapeInt = setInterval(() => {
+        if (pm._yohCape) {
+            const t = performance.now() * 0.003;
+            pm._yohCape.rotation.x = 0.15 + Math.sin(t) * 0.08;
+            pm._yohCape.position.z = -0.25 - Math.sin(t * 1.3) * 0.03;
+        }
+        if (pm._yohCapeBottom) {
+            const t = performance.now() * 0.004;
+            pm._yohCapeBottom.rotation.x = 0.3 + Math.sin(t + 1) * 0.1;
+        }
+    }, 50);
+
+    // ── FPS viewmodel — add oversoul sword to camera ──
+    if (!fpsSword) {
+        const fpsGroup = new THREE.Group();
+        const fpsHilt = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.14, 5),
+            new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.6 }));
+        fpsGroup.add(fpsHilt);
+        const fpsGuard = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.025, 0.04),
+            new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.5, roughness: 0.3 }));
+        fpsGuard.position.y = 0.08; fpsGroup.add(fpsGuard);
+        const fpsBlade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.7, 0.01),
+            new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.85, roughness: 0.1 }));
+        fpsBlade.position.y = 0.45; fpsGroup.add(fpsBlade);
+        // Black stripes
+        fpsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.15, 0.013),
+            new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.3 })).translateY(0.55));
+        fpsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.15, 0.013),
+            new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.3 })).translateY(0.3));
+        const fpsTip = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.1, 4),
+            new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.85, roughness: 0.1 }));
+        fpsTip.position.y = 0.83; fpsGroup.add(fpsTip);
+        // Edge glow
+        fpsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.7, 0.015),
+            new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.3 })).translateY(0.45).translateX(0.027));
+        fpsGroup.position.set(0.28, -0.35, -0.4);
+        fpsGroup.rotation.set(-0.3, 0, -0.15);
+        camera.add(fpsGroup);
+        fpsSword = fpsGroup;
+    }
 }
 
 // ─── PER-FRAME EFFECTS (clean slate) ────────────────────────────
