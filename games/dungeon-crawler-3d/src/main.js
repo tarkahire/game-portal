@@ -6046,75 +6046,7 @@ function yohOversoul() {
         }
     }, 50);
 
-    // ── FPS viewmodel — oversoul katana with energy rings ──
-    if (!fpsSword) {
-        const fpsGroup = new THREE.Group();
-        // Hilt
-        const fpsHilt = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.14, 6),
-            new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.6 }));
-        fpsGroup.add(fpsHilt);
-        // Wrap bands
-        for (let w = 0; w < 4; w++) {
-            fpsGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.008, 6),
-                new THREE.MeshStandardMaterial({ color: '#5a2a2a', roughness: 0.5 })).translateY(-0.05 + w * 0.03));
-        }
-        // Tsuba
-        const fpsTsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.008, 8),
-            new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.5, roughness: 0.3 }));
-        fpsTsuba.position.y = 0.08; fpsGroup.add(fpsTsuba);
-        const fpsTsubaInner = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.01, 8),
-            new THREE.MeshStandardMaterial({ color: '#7b1fa2', roughness: 0.4 }));
-        fpsTsubaInner.position.y = 0.08; fpsGroup.add(fpsTsubaInner);
-        // Blade — curved katana
-        const fpsBladeGeo = new THREE.BoxGeometry(0.028, 0.75, 0.006);
-        const fpos = fpsBladeGeo.attributes.position;
-        for (let i = 0; i < fpos.count; i++) {
-            const y = fpos.getY(i);
-            fpos.setZ(i, fpos.getZ(i) + Math.pow(Math.max(0, y) / 0.375, 2) * 0.03);
-        }
-        fpos.needsUpdate = true;
-        fpsBladeGeo.computeVertexNormals();
-        const fpsBlade = new THREE.Mesh(fpsBladeGeo,
-            new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.85, roughness: 0.1 }));
-        fpsBlade.position.y = 0.47; fpsGroup.add(fpsBlade);
-        // Edge glow
-        fpsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.002, 0.75, 0.01),
-            new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.3 })).translateY(0.47).translateX(0.016));
-        // Tip
-        fpsGroup.add(new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.06, 4),
-            new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.85, roughness: 0.1 })).translateY(0.87));
-        // Energy rings on FPS blade
-        const fpsRings = [];
-        for (let i = 0; i < 4; i++) {
-            const isPurple = i % 2 === 0;
-            const fpsRing = new THREE.Mesh(
-                new THREE.TorusGeometry(0.04 + i * 0.005, 0.004, 6, 14),
-                new THREE.MeshBasicMaterial({
-                    color: isPurple ? '#9c27b0' : '#ffffff',
-                    transparent: true, opacity: isPurple ? 0.2 : 0.15,
-                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
-                })
-            );
-            fpsRing.position.y = 0.25 + i * 0.18;
-            fpsGroup.add(fpsRing);
-            fpsRings.push(fpsRing);
-        }
-        // Animate FPS rings
-        pm._fpsRingsInt = setInterval(() => {
-            const t = performance.now() * 0.002;
-            for (let i = 0; i < fpsRings.length; i++) {
-                fpsRings[i].rotation.x = Math.sin(t + i * 1.5) * 0.6;
-                fpsRings[i].rotation.z = Math.cos(t * 0.8 + i) * 0.6;
-                fpsRings[i].rotation.y += 0.025;
-                fpsRings[i].material.opacity = (i % 2 === 0 ? 0.2 : 0.15) + Math.sin(t * 1.5 + i) * 0.06;
-            }
-        }, 30);
-
-        fpsGroup.position.set(0.28, -0.35, -0.4);
-        fpsGroup.rotation.set(-0.3, 0, -0.15);
-        camera.add(fpsGroup);
-        fpsSword = fpsGroup;
-    }
+    // No FPS viewmodel sword — the floating spirit arm IS the weapon, visible in both 1st and 3rd person
 }
 
 // ─── PER-FRAME EFFECTS (clean slate) ────────────────────────────
