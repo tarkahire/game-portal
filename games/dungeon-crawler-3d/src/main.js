@@ -3622,28 +3622,65 @@ function playerAttack() {
         const baseX = -Math.PI / 2; // upward-facing rest rotation
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
         const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        // Wind-up: arm angles down to one side, then slashes diagonally up to the other
-        const windUpDur = 100; // brief wind-up before the slash
+        const windUpDur = 120;
+        const comboHit = player._comboStep; // 0,1,2,3
         const animateSwing = () => {
             const elapsed = performance.now() - startTime;
             if (elapsed < windUpDur) {
-                // Wind-up — angle down to the starting side
                 const t = easeOut(elapsed / windUpDur);
-                arm.rotation.x = baseX + 0.4 * t;            // tilt down slightly
-                arm.rotation.y = swingDir * -0.8 * t;         // angle to starting side
-                arm.rotation.z = swingDir * 0.3 * t;          // lean into the wind-up
+                if (comboHit === 0) {
+                    // Low sweep from left — wind up high-left
+                    arm.rotation.x = baseX - 0.2 * t;
+                    arm.rotation.y = swingDir * -0.9 * t;
+                    arm.rotation.z = swingDir * 0.4 * t;
+                } else if (comboHit === 1) {
+                    // Low sweep from right — wind up high-right
+                    arm.rotation.x = baseX - 0.2 * t;
+                    arm.rotation.y = -swingDir * -0.9 * t;
+                    arm.rotation.z = -swingDir * 0.4 * t;
+                } else if (comboHit === 2) {
+                    // Wide horizontal low sweep — wind up far left
+                    arm.rotation.x = baseX + 0.6 * t;
+                    arm.rotation.y = swingDir * -1.0 * t;
+                    arm.rotation.z = swingDir * 0.5 * t;
+                } else {
+                    // Finisher — big overhead wind-up
+                    arm.rotation.x = baseX - 0.5 * t;
+                    arm.rotation.y = 0;
+                    arm.rotation.z = swingDir * 0.2 * t;
+                }
             } else if (elapsed < windUpDur + swingDur) {
-                // Slash — diagonal sweep from low-side to high-opposite
                 const t = easeOut((elapsed - windUpDur) / swingDur);
-                arm.rotation.x = baseX + 0.4 - 0.8 * t;      // swing upward
-                arm.rotation.y = swingDir * (-0.8 + 1.8 * t); // sweep across to other side
-                arm.rotation.z = swingDir * (0.3 - 0.6 * t);  // tilt through the slash
+                if (comboHit === 0) {
+                    // Low sweep left to right — blade stays low, sweeps across
+                    arm.rotation.x = baseX - 0.2 + 0.8 * t;
+                    arm.rotation.y = swingDir * (-0.9 + 2.0 * t);
+                    arm.rotation.z = swingDir * (0.4 - 0.8 * t);
+                } else if (comboHit === 1) {
+                    // Low sweep right to left — mirror
+                    arm.rotation.x = baseX - 0.2 + 0.8 * t;
+                    arm.rotation.y = -swingDir * (-0.9 + 2.0 * t);
+                    arm.rotation.z = -swingDir * (0.4 - 0.8 * t);
+                } else if (comboHit === 2) {
+                    // Wide horizontal low sweep — big arc across
+                    arm.rotation.x = baseX + 0.6 - 0.3 * t;
+                    arm.rotation.y = swingDir * (-1.0 + 2.2 * t);
+                    arm.rotation.z = swingDir * (0.5 - 1.0 * t);
+                } else {
+                    // Finisher — slam down hard from overhead
+                    arm.rotation.x = baseX - 0.5 + 1.4 * t;
+                    arm.rotation.y = swingDir * 0.6 * t;
+                    arm.rotation.z = swingDir * (0.2 - 0.4 * t);
+                }
             } else if (elapsed < windUpDur + swingDur + returnDur) {
-                // Return — ease back to idle
                 const t = easeInOut((elapsed - windUpDur - swingDur) / returnDur);
-                arm.rotation.x = baseX + (-0.4) * (1 - t);
-                arm.rotation.y = swingDir * 1.0 * (1 - t);
-                arm.rotation.z = swingDir * -0.3 * (1 - t);
+                // Return to idle from wherever the slash ended
+                const endX = arm.rotation.x, endY = arm.rotation.y, endZ = arm.rotation.z;
+                if (t === 0) { arm._endRx = endX; arm._endRy = endY; arm._endRz = endZ; }
+                const ex = arm._endRx || endX, ey = arm._endRy || endY, ez = arm._endRz || endZ;
+                arm.rotation.x = ex + (baseX - ex) * t;
+                arm.rotation.y = ey + (0 - ey) * t;
+                arm.rotation.z = ez + (0 - ez) * t;
             } else {
                 arm.rotation.x = baseX;
                 arm.rotation.y = 0;
@@ -3653,6 +3690,8 @@ function playerAttack() {
             }
             requestAnimationFrame(animateSwing);
         };
+        // Capture end positions on first return frame
+        arm._endRx = undefined; arm._endRy = undefined; arm._endRz = undefined;
         requestAnimationFrame(animateSwing);
     } else {
         spawnMeleeSlash(player.cls.color);
