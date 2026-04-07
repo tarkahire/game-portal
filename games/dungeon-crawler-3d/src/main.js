@@ -3675,7 +3675,7 @@ function playerAttack() {
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
         const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         const windUpDur = 200;
-        const comboHit = player._comboStep; // 0,1,2,3
+        // comboHit already declared above
         const animateSwing = () => {
             const elapsed = performance.now() - startTime;
             if (elapsed < windUpDur) {
