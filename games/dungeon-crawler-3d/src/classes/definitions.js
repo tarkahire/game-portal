@@ -52,4 +52,11 @@ export const CLASSES = {
         abilities: { z: 'Celestial Slash', x: 'Buddha Giri', c: 'Double Medium', v: 'Fumon Tonkou', f: 'Spirit Dash' },
         abilityCooldowns: { z: 3500, x: 4500, c: 9000, v: 20000, f: 2500 }
     },
+    ren: {
+        name: 'Tao Ren', type: 'shaman', maxHp: 140, speed: 3.8, attackRange: 40,
+        attackDamage: 18, attackSpeed: 210, attackType: 'melee', color: '#9c27b0',
+        specialCooldown: 4000, specialName: 'Spirit of Thunder', weaponType: 'fist',
+        abilities: {},
+        abilityCooldowns: {}
+    },
 };

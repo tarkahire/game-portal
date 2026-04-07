@@ -212,7 +212,7 @@ function init() {
             if (e.code === 'KeyC') fruitAbility('c');     // P1 ability 3
             if (e.code === 'KeyV') fruitAbility('v');     // P1 ability 4
             if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
-            if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else playerDodge(); }
+            if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else playerDodge(); }
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
             // ── P2 controls ──
@@ -2734,11 +2734,15 @@ function startGame() {
         pm = buildYohModel();
         pm.scale.setScalar(0.85);
         addPlayerLabel(pm, 'YOH', '#ff9800');
+    } else if (player.classId === 'ren') {
+        pm = buildRenModel();
+        pm.scale.setScalar(0.85);
+        addPlayerLabel(pm, 'REN', '#9c27b0');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
     fpsCamera.flyHeight = 0;
-    fpsCamera.eyeHeight = player.classId === 'yoh' ? 2.0 : EYE_HEIGHT;
+    fpsCamera.eyeHeight = (player.classId === 'yoh' || player.classId === 'ren') ? 2.0 : EYE_HEIGHT;
     pm.visible = false;
     scene.add(pm);
     fpsCamera.playerModel = pm;
@@ -2785,7 +2789,7 @@ function startGame() {
         };
         fpsCamera2.speed = cls2.speed;
         fpsCamera2.flyHeight = 0;
-        fpsCamera2.eyeHeight = player2.classId === 'yoh' ? 2.0 : EYE_HEIGHT;
+        fpsCamera2.eyeHeight = (player2.classId === 'yoh' || player2.classId === 'ren') ? 2.0 : EYE_HEIGHT;
 
         // Spawn P2 at start room but offset slightly
         const startRoom = dungeon.rooms[0];
@@ -2800,6 +2804,7 @@ function startGame() {
         else if (player2.classId === 'bakugo') { pm2 = buildBakugoModel(); addPlayerLabel(pm2, 'P2 BAKUGO', '#ff8800'); }
         else if (player2.classId === 'denji') { pm2 = buildDenjiModel(); addPlayerLabel(pm2, 'P2 DENJI', '#cc4400'); }
         else if (player2.classId === 'yoh') { pm2 = buildYohModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 YOH', '#ff9800'); }
+        else if (player2.classId === 'ren') { pm2 = buildRenModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 REN', '#9c27b0'); }
         else { pm2 = buildGenericPlayerModel(cls2); }
         pm2.visible = false;
         scene.add(pm2);
@@ -3541,7 +3546,8 @@ function playerAttack() {
     const isBrook = player.classId === 'brook';
     const isDenji = player.classId === 'denji';
     const isYoh = player.classId === 'yoh' && player._yohOversoulsActive;
-    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh;
+    const isRen = player.classId === 'ren' && player._renOversoulsActive;
+    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh || isRen;
     // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
     const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
     const isFinisher = player._comboStep === 3;
@@ -3602,7 +3608,7 @@ function playerAttack() {
             count: 8, speed: 5, spread: 0.8,
             gravity: -8, life: 6, size: 0.05, sizeEnd: 0, drag: 0.95
         });
-    } else if (isYoh && player._oversoulArm) {
+    } else if ((isYoh || isRen) && player._oversoulArm) {
         // Spirit arm swings the giant katana with big slash trails
         player._oversoulSwinging = true;
         const arm = player._oversoulArm;
@@ -3792,7 +3798,7 @@ function p2Attack() {
     const yaw = fpsCamera2.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const range = 3.0;
-    const hasWeap = ['sukuna','toji','brook','denji','yoh'].includes(player2.classId) && (player2.classId !== 'yoh' || player2._yohOversoulsActive);
+    const hasWeap = ['sukuna','toji','brook','denji','yoh','ren'].includes(player2.classId) && (player2.classId !== 'yoh' || player2._yohOversoulsActive) && (player2.classId !== 'ren' || player2._renOversoulsActive);
     const dmg = hasWeap ? Math.round(player2.damage * step.dmgMult * 0.25) : Math.round(player2.damage * step.dmgMult);
     const isFinisher = player2._comboStep === 3;
 
@@ -6297,6 +6303,314 @@ function buildYohModel() {
     return pm;
 }
 
+// ─── TAO REN 3D MODEL ──────────────────────────────────────
+function buildRenModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d0b0', roughness: 0.5 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#2a1a3a', roughness: 0.5 }); // dark purple-black hair
+    const outfitMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.6 }); // dark changshan
+    const outfitTrimMat = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.4 }); // gold trim
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.7 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.8 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#daa520' }); // golden eyes
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — dark mandarin collar outfit
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.22, 0.85, 8), outfitMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.22, 0.32), outfitMat);
+    shoulders.position.y = 0.82; torsoPivot.add(shoulders);
+    // Gold trim down the front
+    const frontTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.7, 0.02), outfitTrimMat);
+    frontTrim.position.set(0, 0.5, 0.16); torsoPivot.add(frontTrim);
+    // Mandarin collar
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.15, 6), outfitMat);
+    collar.position.y = 1.02; torsoPivot.add(collar);
+    const collarTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.185, 0.02, 6), outfitTrimMat);
+    collarTrim.position.y = 1.09; torsoPivot.add(collarTrim);
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.12, 6), skinMat);
+    neck.position.y = 1.12; torsoPivot.add(neck);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
+    head.position.y = 1.35; head.scale.set(1, 1.05, 0.95); torsoPivot.add(head);
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), skinMat);
+    chin.position.set(0, 1.2, 0.12); chin.scale.set(1.1, 0.6, 1); torsoPivot.add(chin);
+
+    // ── Hair — dark purple, signature tongari spike pointing straight up ──
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), hairMat);
+    hairBase.position.y = 1.45; hairBase.scale.set(1.05, 0.9, 1);
+    torsoPivot.add(hairBase);
+    // THE TONGARI — tall sharp spike going straight up
+    const tongari = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.6, 5), hairMat);
+    tongari.position.set(0, 1.85, -0.02);
+    torsoPivot.add(tongari);
+    // Secondary spikes around it
+    const hairSpikes = [
+        { x: 0.08, y: 1.62, z: 0, rx: 0, rz: 0.3, h: 0.25 },
+        { x: -0.08, y: 1.62, z: 0, rx: 0, rz: -0.3, h: 0.25 },
+        { x: 0, y: 1.6, z: -0.1, rx: 0.4, rz: 0, h: 0.2 },
+        { x: 0.12, y: 1.55, z: -0.05, rx: 0.2, rz: 0.5, h: 0.18 },
+        { x: -0.12, y: 1.55, z: -0.05, rx: 0.2, rz: -0.5, h: 0.18 },
+        // Front bangs — sharp
+        { x: 0.06, y: 1.52, z: 0.14, rx: -0.5, rz: 0.1, h: 0.15 },
+        { x: -0.06, y: 1.52, z: 0.14, rx: -0.5, rz: -0.1, h: 0.15 },
+    ];
+    for (const sp of hairSpikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.035, sp.h, 4), hairMat);
+        spike.position.set(sp.x, sp.y, sp.z); spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Eyes — golden ──
+    const eyeWhiteGeo = new THREE.SphereGeometry(0.04, 6, 6);
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    for (let s = -1; s <= 1; s += 2) {
+        torsoPivot.add(new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat).translateX(s * 0.08).translateY(1.38).translateZ(0.19));
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.022, 4, 4), eyeMat).translateX(s * 0.08).translateY(1.38).translateZ(0.225));
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4), pupilMat).translateX(s * 0.08).translateY(1.38).translateZ(0.235));
+    }
+    // Nose
+    torsoPivot.add(new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.05, 4), skinMat).translateY(1.32).translateZ(0.2).rotateX(Math.PI * 0.6));
+    // Mouth — slight frown
+    torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.01, 0.01), new THREE.MeshBasicMaterial({ color: '#bb8888' })).translateY(1.26).translateZ(0.19));
+    // Ears
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), skinMat);
+        ear.position.set(s * 0.2, 1.36, 0); ear.scale.set(0.6, 1, 0.6); torsoPivot.add(ear);
+    }
+
+    // ── Right arm ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.38, 0.8, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), outfitMat));
+    rightArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.42, 5), outfitMat).translateY(-0.26));
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
+    rightArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.38, 5), skinMat).translateY(-0.72));
+    rightArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.05), skinMat).translateY(-0.94).translateZ(0.02));
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.38, 0.8, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), outfitMat));
+    leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.42, 5), outfitMat).translateY(-0.26));
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
+    leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.38, 5), skinMat).translateY(-0.72));
+    leftArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.05), skinMat).translateY(-0.94).translateZ(0.02));
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Legs ──
+    for (let s = -1; s <= 1; s += 2) {
+        const legPivot = new THREE.Group();
+        legPivot.position.set(s * 0.1, 0.65, 0);
+        legPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat));
+        legPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.45, 5), pantsMat).translateY(-0.28));
+        legPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), pantsMat).translateY(-0.52));
+        legPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.42, 5), pantsMat).translateY(-0.75));
+        legPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 0.16), shoeMat).translateY(-0.98).translateZ(0.03));
+        pm.add(legPivot);
+        if (s === 1) pm._rightLeg = legPivot; else pm._leftLeg = legPivot;
+    }
+
+    // Belt with gold buckle
+    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.22, 0.05, 8), new THREE.MeshStandardMaterial({ color: '#2a2a2a', roughness: 0.5 })).translateY(0.63));
+    pm.add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.03), outfitTrimMat).translateY(0.63).translateZ(0.22));
+
+    // Purple aura
+    const aura = new THREE.PointLight('#9c27b0', 0.5, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isRen = true;
+    pm._isSukuna = true; // reuse Sukuna's animation
+
+    return pm;
+}
+
+// ─── REN OVERSOUL TRANSFORMATION (Q key — permanent) ──────
+function renOversoul() {
+    if (!player || !player.alive || player._renOversoulsActive) return;
+    player._renOversoulsActive = true;
+
+    const pm = fpsCamera.playerModel;
+    if (!pm) return;
+
+    const worldPx = fpsCamera.posX * TILE, worldPz = fpsCamera.posZ * TILE;
+    const fly = fpsCamera.flyHeight || 0;
+
+    // ── Transformation VFX ──
+    screenFlash('rgba(156,39,176,0.6)', 1000);
+    screenShake(0.6, 800);
+    triggerHitstop(80);
+    fovPunch(18, 0.35);
+    player.invincible = performance.now() + 2000;
+
+    emitParticles(worldPx, EYE_HEIGHT + fly, worldPz, {
+        color: ['#9c27b0', '#daa520', '#ffffff', '#ff6600'],
+        count: 60, speed: 5, spread: 2,
+        gravity: 0, life: 25, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 6
+    });
+    groundRing(worldPx, worldPz, '#daa520', 5, 1000);
+    groundRing(worldPx, worldPz, '#9c27b0', 4, 1200);
+    lightFlash(worldPx, EYE_HEIGHT, worldPz, '#daa520', 10, 600);
+
+    // ── Permanent damage buff ──
+    player.damage = Math.round(player.damage * 2.5);
+    player.speed *= 1.2;
+    fpsCamera.speed = player.speed;
+    player.hp = Math.min(player.hp + 30, player.maxHp);
+
+    // ── Materials ──
+    const goldMat = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.3, metalness: 0.6 });
+    const darkGoldMat = new THREE.MeshStandardMaterial({ color: '#8b6914', roughness: 0.4, metalness: 0.5 });
+    const redMat = new THREE.MeshStandardMaterial({ color: '#8b1a1a', roughness: 0.4, metalness: 0.3 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.6 });
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#c0c0c0', metalness: 0.85, roughness: 0.1 });
+    const ghostMat = new THREE.MeshBasicMaterial({ color: '#daa520', transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false });
+
+    // ── Floating spirit — Bason's armored form ──
+    const oversoul = new THREE.Group();
+    oversoul.scale.setScalar(1.545);
+    scene.add(oversoul);
+
+    const armGroup = new THREE.Group();
+
+    // Shoulder — golden warrior pauldron
+    const shoulder = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.0, 1.0), goldMat);
+    shoulder.position.y = 1.5; armGroup.add(shoulder);
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.08, 1.05), redMat).translateY(2.0));
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.08, 1.05), redMat).translateY(1.0));
+    // Chinese pattern emblem — circle with cross
+    const emblem = new THREE.Mesh(new THREE.CircleGeometry(0.25, 8), new THREE.MeshBasicMaterial({ color: '#ff4400', side: THREE.DoubleSide }));
+    emblem.position.set(0, 1.5, 0.52); armGroup.add(emblem);
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.01), new THREE.MeshBasicMaterial({ color: '#daa520' })).translateY(1.5).translateZ(0.53));
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.04, 0.01), new THREE.MeshBasicMaterial({ color: '#daa520' })).translateY(1.5).translateZ(0.53));
+
+    // Elbow — dark gold joint
+    armGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 8), darkGoldMat).translateY(0.2));
+
+    // Forearm — golden armor
+    const forearm = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.8, 0.8), goldMat);
+    forearm.position.y = -1.2; armGroup.add(forearm);
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.06, 0.85), redMat).translateY(-0.35));
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.06, 0.85), redMat).translateY(-2.05));
+
+    // Wrist
+    armGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), darkGoldMat).translateY(-2.3));
+
+    // Gauntlet fist
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.7), goldMat).translateY(-2.8));
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.1, 0.08), redMat).translateY(-2.55).translateZ(0.38));
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.35, 0.15), goldMat);
+        finger.position.set((f - 1.5) * 0.18, -3.15, 0.15); finger.rotation.x = 0.5;
+        armGroup.add(finger);
+    }
+    armGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.3, 0.15), goldMat).translateX(0.45).translateY(-2.85).translateZ(0.2).rotateZ(-0.6));
+
+    // Arm glow
+    const armLight = new THREE.PointLight('#daa520', 2, TILE * 6, 2);
+    armLight.position.y = -1; armGroup.add(armLight);
+    armGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.8, 5, 8, 1, true), ghostMat).translateY(-0.5));
+
+    oversoul.add(armGroup);
+
+    // ── KWAN DAO (Chinese halberd) held by the fist ──
+    const weaponGroup = new THREE.Group();
+    weaponGroup.position.set(0, -3.2, 0.3);
+    weaponGroup.rotation.x = Math.PI / 2;
+
+    // Long shaft
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 5, 6), darkMat);
+    shaft.position.y = 2; weaponGroup.add(shaft);
+    // Gold grip bands
+    for (let w = 0; w < 6; w++) {
+        weaponGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.03, 6), goldMat).translateY(0.5 + w * 0.6));
+    }
+    // Blade — wide curved Kwan Dao blade at the top
+    const bladeGeo = new THREE.BoxGeometry(0.2, 1.2, 0.02);
+    const bpos = bladeGeo.attributes.position;
+    for (let i = 0; i < bpos.count; i++) {
+        const y = bpos.getY(i);
+        bpos.setZ(i, bpos.getZ(i) + Math.pow(Math.max(0, y) / 0.6, 2) * 0.12);
+        if (y > 0) bpos.setX(i, bpos.getX(i) * (1 + y * 0.4));
+    }
+    bpos.needsUpdate = true; bladeGeo.computeVertexNormals();
+    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    blade.position.y = 5.0; weaponGroup.add(blade);
+    // Red tassel hanging below blade
+    const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.01, 0.4, 4), redMat);
+    tassel.position.set(0, 4.2, 0); weaponGroup.add(tassel);
+    // Blade tip
+    weaponGroup.add(new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.2, 4), bladeMat).translateY(5.65).translateZ(0.08));
+    // Butt spike
+    weaponGroup.add(new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.15, 4), bladeMat).translateY(-0.6));
+
+    // Energy rings — gold and purple
+    const weaponRings = [];
+    for (let i = 0; i < 7; i++) {
+        const isGold = i % 2 === 0;
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.2 + i * 0.02, 0.015, 6, 20),
+            new THREE.MeshBasicMaterial({
+                color: isGold ? '#daa520' : '#9c27b0',
+                transparent: true, opacity: isGold ? 0.2 : 0.15,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            })
+        );
+        ring.position.y = 1.2 + i * 0.7;
+        weaponGroup.add(ring); weaponRings.push(ring);
+    }
+    const bladeGlow = new THREE.PointLight('#daa520', 2.5, TILE * 5, 2);
+    bladeGlow.position.y = 5; weaponGroup.add(bladeGlow);
+
+    armGroup.add(weaponGroup);
+    armGroup.rotation.x = -Math.PI / 2; // face upward
+
+    oversoul.position.set(worldPx + 2, fly + 0.3, worldPz);
+
+    // Store refs
+    player._oversoulArm = armGroup;
+    player._oversoulSword = weaponGroup;
+    player._oversoulGroup = oversoul;
+    player._oversoulSwinging = false;
+    player._oversoulData = { oversoul, armGroup, swordGroup: weaponGroup, swordRings: weaponRings, bladeGlow, armLight };
+
+    // Permanent particles
+    pm._oversoulParticleInt = setInterval(() => {
+        if (!player || !player.alive) return;
+        const ppx = fpsCamera.posX * TILE, ppz = fpsCamera.posZ * TILE;
+        emitParticles(ppx, 1.5, ppz, {
+            color: ['#daa520', '#9c27b0', '#ffffff', '#ff6600'],
+            count: 3, speed: 1.2, spread: 1,
+            gravity: 0, life: 15, size: 0.08, sizeEnd: 0, drag: 0.95, upward: 1.5
+        });
+    }, 150);
+
+    // Boost aura
+    if (pm._auraLight) { pm._auraLight.color.set('#daa520'); pm._auraLight.intensity = 2; }
+    const oversoulLight = new THREE.PointLight('#daa520', 3, TILE * 5, 2);
+    oversoulLight.position.y = 1.2; pm.add(oversoulLight);
+
+    // Headband
+    if (pm._torso) {
+        pm._torso.add(new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.04, 10),
+            new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.4 })).translateY(1.52));
+    }
+}
+
 // ─── YOH OVERSOUL TRANSFORMATION (Q key — permanent) ──────
 function yohOversoul() {
     if (!player || !player.alive || player._yohOversoulsActive) return;
@@ -6547,7 +6861,7 @@ function yohOversoul() {
 // ─── PER-FRAME EFFECTS (clean slate) ────────────────────────────
 function updateFruitEffects(now, dt) {
     // ── Yoh oversoul smooth follow (runs every frame) ──
-    if (player?._yohOversoulsActive && player._oversoulData) {
+    if ((player?._yohOversoulsActive || player?._renOversoulsActive) && player._oversoulData) {
         const d = player._oversoulData;
         const t = now * 0.001;
         const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
