@@ -3620,20 +3620,23 @@ function playerAttack() {
         });
 
         const baseX = -Math.PI / 2; // upward-facing rest rotation
+        // Easing functions for smooth motion
+        const easeOut = (t) => 1 - Math.pow(1 - t, 3); // cubic ease out (fast start, slow end)
+        const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         const animateSwing = () => {
             const elapsed = performance.now() - startTime;
             if (elapsed < swingDur) {
-                // Swing phase — arm swings down from upward position
-                const t = elapsed / swingDur;
-                arm.rotation.x = baseX + 1.2 * t;
-                arm.rotation.z = swingDir * 0.6 * t;
-                sword.rotation.z = swingDir * 0.4 * t;
+                // Swing phase — eased for smooth acceleration
+                const t = easeOut(elapsed / swingDur);
+                arm.rotation.x = baseX + 1.0 * t;
+                arm.rotation.z = swingDir * 0.5 * t;
+                sword.rotation.z = swingDir * 0.3 * t;
             } else if (elapsed < swingDur + returnDur) {
-                // Return phase — ease back to upward
-                const t = (elapsed - swingDur) / returnDur;
-                arm.rotation.x = baseX + 1.2 * (1 - t);
-                arm.rotation.z = swingDir * 0.6 * (1 - t);
-                sword.rotation.z = swingDir * 0.4 * (1 - t);
+                // Return phase — ease in-out for gentle return
+                const t = easeInOut((elapsed - swingDur) / returnDur);
+                arm.rotation.x = baseX + 1.0 * (1 - t);
+                arm.rotation.z = swingDir * 0.5 * (1 - t);
+                sword.rotation.z = swingDir * 0.3 * (1 - t);
             } else {
                 arm.rotation.x = baseX;
                 arm.rotation.z = 0;
@@ -5938,41 +5941,8 @@ function yohOversoul() {
     player._oversoulGroup = oversoul;
     player._oversoulSwinging = false;
 
-    // ── Follow player, face same direction, gentle hover bob ──
-    pm._oversoulOrbitInt = setInterval(() => {
-        if (!player || !player.alive) return;
-        const t = performance.now() * 0.001;
-        const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
-        const fly = fpsCamera.flyHeight || 0;
-        const yaw = fpsCamera.yaw;
-
-        // Hover to the right side of the player, offset by ~2.5 units
-        const rightX = Math.cos(yaw) * 2.5;
-        const rightZ = -Math.sin(yaw) * 2.5;
-        const bobY = fly + 0.3 + Math.sin(t * 1.5) * 0.15;
-        oversoul.position.set(px + rightX, bobY, pz + rightZ);
-
-        // Face the same direction as the player
-        oversoul.rotation.y = yaw + Math.PI;
-
-        // Gentle idle sway when not swinging (base is -PI/2 = facing up)
-        if (!player._oversoulSwinging) {
-            armGroup.rotation.x = -Math.PI / 2 + Math.sin(t * 0.8) * 0.05;
-            armGroup.rotation.z = Math.sin(t * 0.6) * 0.03;
-            swordGroup.rotation.z = Math.sin(t * 0.7) * 0.02;
-        }
-
-        // Spin energy rings
-        for (let i = 0; i < swordRings.length; i++) {
-            const r = swordRings[i];
-            r.rotation.x = Math.sin(t * 2 + i * 1.2) * 0.8;
-            r.rotation.z = Math.cos(t * 1.4 + i * 0.9) * 0.8;
-            r.rotation.y += 0.03;
-            r.material.opacity = (i % 2 === 0 ? 0.2 : 0.15) + Math.sin(t * 1.5 + i) * 0.08;
-        }
-        bladeGlow.intensity = 2.5 + Math.sin(t * 2) * 0.8;
-        armLight.intensity = 2 + Math.sin(t * 1.5) * 0.5;
-    }, 30);
+    // Store data for smooth per-frame update in updateFruitEffects
+    player._oversoulData = { oversoul, armGroup, swordGroup, swordRings, bladeGlow, armLight };
 
     // ── ORANGE CAPE (flowing behind) ──
     if (pm._torso) {
@@ -6033,25 +6003,77 @@ function yohOversoul() {
         });
     }, 150);
 
-    // ── Cape flutter animation ──
-    pm._oversoulCapeInt = setInterval(() => {
-        if (pm._yohCape) {
-            const t = performance.now() * 0.003;
-            pm._yohCape.rotation.x = 0.15 + Math.sin(t) * 0.08;
-            pm._yohCape.position.z = -0.25 - Math.sin(t * 1.3) * 0.03;
-        }
-        if (pm._yohCapeBottom) {
-            const t = performance.now() * 0.004;
-            pm._yohCapeBottom.rotation.x = 0.3 + Math.sin(t + 1) * 0.1;
-        }
-    }, 50);
+    // Cape flutter is now handled in updateFruitEffects for smooth per-frame updates
+    player._yohCapeRef = pm._yohCape;
+    player._yohCapeBottomRef = pm._yohCapeBottom;
 
     // No FPS viewmodel sword — the floating spirit arm IS the weapon, visible in both 1st and 3rd person
 }
 
 // ─── PER-FRAME EFFECTS (clean slate) ────────────────────────────
 function updateFruitEffects(now, dt) {
-    // No character-specific effects yet
+    // ── Yoh oversoul smooth follow (runs every frame) ──
+    if (player?._yohOversoulsActive && player._oversoulData) {
+        const d = player._oversoulData;
+        const t = now * 0.001;
+        const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
+        const fly = fpsCamera.flyHeight || 0;
+        const yaw = fpsCamera.yaw;
+
+        // Target position: right side of player
+        const rightX = Math.cos(yaw) * 2.5;
+        const rightZ = -Math.sin(yaw) * 2.5;
+        const targetX = px + rightX;
+        const targetY = fly + 0.3 + Math.sin(t * 1.2) * 0.1;
+        const targetZ = pz + rightZ;
+
+        // Smooth lerp position (0.08 = very smooth, 0.15 = responsive)
+        const lerp = 0.1;
+        d.oversoul.position.x += (targetX - d.oversoul.position.x) * lerp;
+        d.oversoul.position.y += (targetY - d.oversoul.position.y) * lerp;
+        d.oversoul.position.z += (targetZ - d.oversoul.position.z) * lerp;
+
+        // Smooth lerp rotation to face same direction as player
+        let targetYaw = yaw + Math.PI;
+        // Handle angle wrapping for smooth rotation
+        let diff = targetYaw - d.oversoul.rotation.y;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        d.oversoul.rotation.y += diff * lerp;
+
+        // Gentle idle sway when not swinging
+        if (!player._oversoulSwinging) {
+            const baseX = -Math.PI / 2;
+            d.armGroup.rotation.x += (baseX + Math.sin(t * 0.8) * 0.04 - d.armGroup.rotation.x) * 0.08;
+            d.armGroup.rotation.z += (Math.sin(t * 0.6) * 0.02 - d.armGroup.rotation.z) * 0.08;
+            d.swordGroup.rotation.z += (Math.sin(t * 0.7) * 0.015 - d.swordGroup.rotation.z) * 0.08;
+        }
+
+        // Smooth energy ring spin
+        for (let i = 0; i < d.swordRings.length; i++) {
+            const r = d.swordRings[i];
+            r.rotation.x = Math.sin(t * 1.5 + i * 1.2) * 0.6;
+            r.rotation.z = Math.cos(t * 1.0 + i * 0.9) * 0.6;
+            r.rotation.y += 0.015 * dt * 60;
+            r.material.opacity = (i % 2 === 0 ? 0.18 : 0.12) + Math.sin(t * 1.2 + i) * 0.06;
+        }
+        d.bladeGlow.intensity = 2.5 + Math.sin(t * 1.5) * 0.5;
+        d.armLight.intensity = 2 + Math.sin(t * 1.2) * 0.4;
+
+        // Smooth cape flutter
+        if (player._yohCapeRef) {
+            const cape = player._yohCapeRef;
+            const targetRx = 0.15 + Math.sin(t * 0.9) * 0.06;
+            const targetZ = -0.25 - Math.sin(t * 1.1) * 0.02;
+            cape.rotation.x += (targetRx - cape.rotation.x) * 0.08;
+            cape.position.z += (targetZ - cape.position.z) * 0.08;
+        }
+        if (player._yohCapeBottomRef) {
+            const cb = player._yohCapeBottomRef;
+            const targetRx = 0.3 + Math.sin(t * 1.0 + 1) * 0.07;
+            cb.rotation.x += (targetRx - cb.rotation.x) * 0.08;
+        }
+    }
 }
 
 // ─── MINION SYSTEM ──────────────────────────────────────────
