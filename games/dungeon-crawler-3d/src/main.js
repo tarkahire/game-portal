@@ -2730,6 +2730,9 @@ function startGame() {
     } else if (player.classId === 'denji') {
         pm = buildDenjiModel();
         addPlayerLabel(pm, 'DENJI', '#cc4400');
+    } else if (player.classId === 'yoh') {
+        pm = buildYohModel();
+        addPlayerLabel(pm, 'YOH', '#ff9800');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
@@ -2754,6 +2757,9 @@ function startGame() {
         camera.add(fpsSword);
     } else if (player.classId === 'denji') {
         fpsSword = buildFPSChainsaws();
+        camera.add(fpsSword);
+    } else if (player.classId === 'yoh') {
+        fpsSword = buildFPSSword();
         camera.add(fpsSword);
     }
 
@@ -2793,6 +2799,7 @@ function startGame() {
         else if (player2.classId === 'brook') { pm2 = buildBrookModel(); addPlayerLabel(pm2, 'P2 BROOK', '#88ccff'); }
         else if (player2.classId === 'bakugo') { pm2 = buildBakugoModel(); addPlayerLabel(pm2, 'P2 BAKUGO', '#ff8800'); }
         else if (player2.classId === 'denji') { pm2 = buildDenjiModel(); addPlayerLabel(pm2, 'P2 DENJI', '#cc4400'); }
+        else if (player2.classId === 'yoh') { pm2 = buildYohModel(); addPlayerLabel(pm2, 'P2 YOH', '#ff9800'); }
         else { pm2 = buildGenericPlayerModel(cls2); }
         pm2.visible = false;
         scene.add(pm2);
@@ -2804,6 +2811,7 @@ function startGame() {
         else if (player2.classId === 'brook') { fpsSword2 = buildFPSCane(); camera2.add(fpsSword2); }
         else if (player2.classId === 'bakugo') { fpsSword2 = buildFPSFists(); camera2.add(fpsSword2); }
         else if (player2.classId === 'denji') { fpsSword2 = buildFPSChainsaws(); camera2.add(fpsSword2); }
+        else if (player2.classId === 'yoh') { fpsSword2 = buildFPSSword(); camera2.add(fpsSword2); }
     }
 }
 
@@ -5497,6 +5505,245 @@ function playerSpecial() { fruitAbility("z"); }
 function playerSecondary() { fruitAbility("x"); }
 function playerQAbility() { fruitAbility("c"); }
 function playerFAbility() { fruitAbility("v"); }
+
+// ─── YOH ASAKURA 3D MODEL ─────────────────────────────────
+function buildYohModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d0b0', roughness: 0.5 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#3a2a1a', roughness: 0.6 }); // dark brown hair
+    const shirtMat = new THREE.MeshStandardMaterial({ color: '#e8e0d8', roughness: 0.6 }); // open white shirt
+    const undershirtMat = new THREE.MeshStandardMaterial({ color: '#ff9800', roughness: 0.6 }); // orange undershirt
+    const jeansMat = new THREE.MeshStandardMaterial({ color: '#2a4a6a', roughness: 0.7 }); // blue jeans
+    const sandalMat = new THREE.MeshStandardMaterial({ color: '#8b6f47', roughness: 0.8 }); // wooden sandals
+    const headphoneMat = new THREE.MeshStandardMaterial({ color: '#ff6600', roughness: 0.4 }); // orange headphones
+    const headphonePadMat = new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.5 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' }); // dark eyes
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#3a2a00' }); // brown pupils
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — orange undershirt visible under open white shirt
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.22, 0.85, 8), undershirtMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    // Shoulders
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.22, 0.32), shirtMat);
+    shoulders.position.y = 0.82; torsoPivot.add(shoulders);
+    // Open shirt flaps (left and right sides)
+    for (let s = -1; s <= 1; s += 2) {
+        const flap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 0.05), shirtMat);
+        flap.position.set(s * 0.18, 0.5, 0.15);
+        flap.rotation.z = s * 0.1;
+        torsoPivot.add(flap);
+    }
+    // Shirt collar
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.12, 6), shirtMat);
+    collar.position.y = 1.0; torsoPivot.add(collar);
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.15, 6), skinMat);
+    neck.position.y = 1.1; torsoPivot.add(neck);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
+    head.position.y = 1.35; head.scale.set(1, 1.02, 0.95); torsoPivot.add(head);
+
+    // Jaw
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), skinMat);
+    chin.position.set(0, 1.2, 0.12); chin.scale.set(1.1, 0.6, 1); torsoPivot.add(chin);
+
+    // ── Hair — brown, long and spiky, with bangs ──
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), hairMat);
+    hairBase.position.y = 1.45; hairBase.scale.set(1.1, 0.9, 1.1);
+    torsoPivot.add(hairBase);
+    // Long spiky strands going backward and to sides
+    const hairSpikes = [
+        // Top spikes
+        { x: 0, y: 1.63, z: 0.02, rx: -0.2, rz: 0, h: 0.2 },
+        { x: 0.1, y: 1.6, z: 0.0, rx: -0.1, rz: 0.4, h: 0.18 },
+        { x: -0.1, y: 1.6, z: 0.0, rx: -0.1, rz: -0.4, h: 0.18 },
+        { x: 0.18, y: 1.55, z: -0.04, rx: 0.2, rz: 0.6, h: 0.16 },
+        { x: -0.18, y: 1.55, z: -0.04, rx: 0.2, rz: -0.6, h: 0.16 },
+        // Back spikes (longer, hanging down)
+        { x: 0, y: 1.4, z: -0.18, rx: 0.8, rz: 0, h: 0.25 },
+        { x: 0.1, y: 1.4, z: -0.16, rx: 0.7, rz: 0.2, h: 0.22 },
+        { x: -0.1, y: 1.4, z: -0.16, rx: 0.7, rz: -0.2, h: 0.22 },
+        { x: 0.16, y: 1.38, z: -0.12, rx: 0.6, rz: 0.4, h: 0.2 },
+        { x: -0.16, y: 1.38, z: -0.12, rx: 0.6, rz: -0.4, h: 0.2 },
+        // Front bangs
+        { x: 0.06, y: 1.52, z: 0.15, rx: -0.6, rz: 0.15, h: 0.14 },
+        { x: -0.06, y: 1.52, z: 0.15, rx: -0.6, rz: -0.15, h: 0.14 },
+        { x: 0, y: 1.54, z: 0.14, rx: -0.5, rz: 0, h: 0.12 },
+    ];
+    for (const sp of hairSpikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, sp.h, 4), hairMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Headphones (around neck) ──
+    // Headband arc behind head
+    const hbGeo = new THREE.TorusGeometry(0.18, 0.015, 6, 12, Math.PI);
+    const headband = new THREE.Mesh(hbGeo, headphoneMat);
+    headband.position.set(0, 1.12, 0);
+    headband.rotation.set(Math.PI / 2, 0, 0);
+    torsoPivot.add(headband);
+    // Left ear cup
+    const leftCup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.03, 8), headphonePadMat);
+    leftCup.position.set(-0.18, 1.12, 0);
+    leftCup.rotation.z = Math.PI / 2;
+    torsoPivot.add(leftCup);
+    const leftCupRing = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 6, 8), headphoneMat);
+    leftCupRing.position.set(-0.19, 1.12, 0);
+    leftCupRing.rotation.y = Math.PI / 2;
+    torsoPivot.add(leftCupRing);
+    // Right ear cup
+    const rightCup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.03, 8), headphonePadMat);
+    rightCup.position.set(0.18, 1.12, 0);
+    rightCup.rotation.z = Math.PI / 2;
+    torsoPivot.add(rightCup);
+    const rightCupRing = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 6, 8), headphoneMat);
+    rightCupRing.position.set(0.19, 1.12, 0);
+    rightCupRing.rotation.y = Math.PI / 2;
+    torsoPivot.add(rightCupRing);
+
+    // ── Eyes ──
+    const eyeWhiteGeo = new THREE.SphereGeometry(0.04, 6, 6);
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    for (let s = -1; s <= 1; s += 2) {
+        const eyeWhite = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+        eyeWhite.position.set(s * 0.08, 1.38, 0.19);
+        torsoPivot.add(eyeWhite);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.022, 4, 4), pupilMat);
+        pupil.position.set(s * 0.08, 1.38, 0.225);
+        torsoPivot.add(pupil);
+    }
+
+    // ── Nose ──
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.05, 4), skinMat);
+    nose.position.set(0, 1.32, 0.2); nose.rotation.x = Math.PI * 0.6;
+    torsoPivot.add(nose);
+
+    // ── Mouth — relaxed smile ──
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#cc9988' }));
+    mouth.position.set(0, 1.26, 0.19); torsoPivot.add(mouth);
+
+    // ── Ears ──
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), skinMat);
+        ear.position.set(s * 0.2, 1.36, 0);
+        ear.scale.set(0.6, 1, 0.6);
+        torsoPivot.add(ear);
+    }
+
+    // ── Right arm ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.38, 0.8, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), shirtMat));
+    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.42, 5), shirtMat);
+    rUpperArm.position.y = -0.26; rightArmPivot.add(rUpperArm);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.38, 5), skinMat);
+    rForearm.position.y = -0.72; rightArmPivot.add(rForearm);
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.05), skinMat);
+    rHand.position.set(0, -0.94, 0.02); rightArmPivot.add(rHand);
+    // ── Harusame katana in right hand ──
+    const swordGroup = new THREE.Group();
+    swordGroup.position.set(0, -1.0, 0.04);
+    swordGroup.rotation.x = Math.PI / 2;
+    // Hilt wrap — red/maroon
+    const hiltMat = new THREE.MeshStandardMaterial({ color: '#6a1a1a', roughness: 0.6 });
+    const swordHilt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.15, 5), hiltMat);
+    swordGroup.add(swordHilt);
+    // Guard — round golden tsuba
+    const tsubaMat = new THREE.MeshStandardMaterial({ color: '#c8a830', metalness: 0.6, roughness: 0.3 });
+    const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.01, 8), tsubaMat);
+    tsuba.position.y = 0.08; swordGroup.add(tsuba);
+    // Blade — silver katana
+    const katanaBladeMat = new THREE.MeshStandardMaterial({ color: '#c0c8d0', metalness: 0.85, roughness: 0.1 });
+    const katanaBlade = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.65, 0.006), katanaBladeMat);
+    katanaBlade.position.y = 0.42; swordGroup.add(katanaBlade);
+    // Blade edge highlight
+    const katanaEdge = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.65, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.3 }));
+    katanaEdge.position.set(0.012, 0.42, 0); swordGroup.add(katanaEdge);
+    // Tip
+    const katanaTip = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.06, 4), katanaBladeMat);
+    katanaTip.position.y = 0.78; swordGroup.add(katanaTip);
+    // Pommel cap
+    swordGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 5), tsubaMat).translateY(-0.085));
+    rightArmPivot.add(swordGroup);
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.38, 0.8, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), shirtMat));
+    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.42, 5), shirtMat);
+    lUpperArm.position.y = -0.26; leftArmPivot.add(lUpperArm);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.38, 5), skinMat);
+    lForearm.position.y = -0.72; leftArmPivot.add(lForearm);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.05), skinMat);
+    lHand.position.set(0, -0.94, 0.02); leftArmPivot.add(lHand);
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Right leg ──
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.1, 0.65, 0);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), jeansMat));
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.45, 5), jeansMat);
+    rThigh.position.y = -0.28; rightLegPivot.add(rThigh);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), jeansMat).translateY(-0.52));
+    const rShin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.42, 5), jeansMat);
+    rShin.position.y = -0.75; rightLegPivot.add(rShin);
+    const rSandal = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.16), sandalMat);
+    rSandal.position.set(0, -0.98, 0.03); rightLegPivot.add(rSandal);
+    // Sandal strap
+    rightLegPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.01),
+        new THREE.MeshStandardMaterial({ color: '#5a4030' })).translateY(-0.96).translateZ(0.06));
+    pm.add(rightLegPivot);
+    pm._rightLeg = rightLegPivot;
+
+    // ── Left leg ──
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.1, 0.65, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), jeansMat));
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.45, 5), jeansMat);
+    lThigh.position.y = -0.28; leftLegPivot.add(lThigh);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), jeansMat).translateY(-0.52));
+    const lShin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.42, 5), jeansMat);
+    lShin.position.y = -0.75; leftLegPivot.add(lShin);
+    const lSandal = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.16), sandalMat);
+    lSandal.position.set(0, -0.98, 0.03); leftLegPivot.add(lSandal);
+    leftLegPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.01),
+        new THREE.MeshStandardMaterial({ color: '#5a4030' })).translateY(-0.96).translateZ(0.06));
+    pm.add(leftLegPivot);
+    pm._leftLeg = leftLegPivot;
+
+    // ── Belt ──
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.22, 0.05, 8),
+        new THREE.MeshStandardMaterial({ color: '#3a3030', roughness: 0.5 }));
+    belt.position.y = 0.63; pm.add(belt);
+
+    // ── Spirit aura (warm orange glow) ──
+    const aura = new THREE.PointLight('#ff9800', 0.5, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isYoh = true;
+    pm._isSukuna = true; // reuse Sukuna's animation
+
+    return pm;
+}
 
 // ─── PER-FRAME EFFECTS (clean slate) ────────────────────────────
 function updateFruitEffects(now, dt) {
