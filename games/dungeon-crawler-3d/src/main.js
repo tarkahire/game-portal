@@ -5861,7 +5861,7 @@ function yohOversoul() {
 
     oversoul.add(armGroup);
 
-    // ── MASSIVE KATANA (held by the fist, extending forward) ──
+    // ── MASSIVE KATANA (child of armGroup — held in the fist) ──
     const swordGroup = new THREE.Group();
     swordGroup.position.set(0, -3.2, 0.3);
     swordGroup.rotation.x = Math.PI / 2;
@@ -5924,7 +5924,7 @@ function yohOversoul() {
     const bladeGlow = new THREE.PointLight('#9c27b0', 2.5, TILE * 5, 2);
     bladeGlow.position.y = 3; swordGroup.add(bladeGlow);
 
-    oversoul.add(swordGroup);
+    armGroup.add(swordGroup);
 
     // Rotate arm 90 degrees up so it faces upward
     armGroup.rotation.x = -Math.PI / 2;
