@@ -3553,7 +3553,8 @@ function playerAttack() {
     const isDenji = player.classId === 'denji';
     const isYoh = player.classId === 'yoh' && player._yohOversoulsActive;
     const isRen = player.classId === 'ren' && player._renOversoulsActive;
-    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh || isRen;
+    const isHoro = player.classId === 'horohoro' && player._horoOversoulsActive;
+    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh || isRen || isHoro;
     // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
     const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
     const isFinisher = player._comboStep === 3;
@@ -3757,6 +3758,79 @@ function playerAttack() {
         // Capture end positions on first return frame
         arm._endRx = undefined; arm._endRy = undefined; arm._endRz = undefined;
         requestAnimationFrame(animateSwing);
+    } else if (isHoro && player._horoData) {
+        // Dual ice fists — alternating punches, one at a time
+        player._oversoulSwinging = true;
+        if (!player._horoPunchSide) player._horoPunchSide = 0;
+        const isRight = player._horoPunchSide % 2 === 0;
+        player._horoPunchSide++;
+        const punchSide = isRight ? player._horoData.right : player._horoData.left;
+        const punchArm = punchSide.arm;
+        const baseRx = -Math.PI / 2;
+        const startTime = performance.now();
+        const windUp = 120, punchDur = 180, returnDur = 250;
+
+        // Ice impact particles at hit point
+        emitParticles(hitX, hitY, hitZ, {
+            color: ['#42a5f5', '#90caf9', '#ffffff', '#e3f2fd'],
+            count: 15, speed: 5, spread: 1.5,
+            gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.93
+        });
+
+        // Screen effects
+        screenShake(0.2, 100);
+        if (player._comboStep === 3) { triggerHitstop(50); fovPunch(10, 0.15); }
+
+        const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+        const easeInOut = (t) => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
+
+        const animatePunch = () => {
+            const elapsed = performance.now() - startTime;
+            if (elapsed < windUp) {
+                // Wind up — pull fist back
+                const t = easeOut(elapsed / windUp);
+                punchArm.rotation.x = baseRx - 0.4 * t;
+                punchArm.rotation.y = (isRight ? 0.2 : -0.2) * t;
+            } else if (elapsed < windUp + punchDur) {
+                // Punch forward — thrust arm out
+                const t = easeOut((elapsed - windUp) / punchDur);
+                punchArm.rotation.x = baseRx - 0.4 + 1.2 * t;
+                punchArm.rotation.y = (isRight ? 0.2 : -0.2) * (1 - t);
+            } else if (elapsed < windUp + punchDur + returnDur) {
+                // Return — ease back to idle
+                const t = easeInOut((elapsed - windUp - punchDur) / returnDur);
+                punchArm.rotation.x = baseRx + 0.8 * (1 - t);
+                punchArm.rotation.y = 0;
+            } else {
+                punchArm.rotation.x = baseRx;
+                punchArm.rotation.y = 0;
+                player._oversoulSwinging = false;
+                return;
+            }
+            requestAnimationFrame(animatePunch);
+        };
+        requestAnimationFrame(animatePunch);
+
+        // Fist impact VFX — ice shockwave at hit point
+        const impactGeo = new THREE.RingGeometry(0.1, 1.5, 12);
+        const impactMat = new THREE.MeshBasicMaterial({
+            color: '#42a5f5', transparent: true, opacity: 0.7,
+            blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+        });
+        const impactRing = new THREE.Mesh(impactGeo, impactMat);
+        impactRing.position.set(hitX, hitY, hitZ);
+        impactRing.rotation.y = yaw;
+        scene.add(impactRing);
+        const impactStart = performance.now();
+        const fadeImpact = () => {
+            const ft = (performance.now() - impactStart) / 350;
+            if (ft >= 1) { scene.remove(impactRing); impactRing.geometry.dispose(); impactRing.material.dispose(); return; }
+            impactMat.opacity = (1 - ft) * 0.7;
+            impactRing.scale.setScalar(1 + ft * 2);
+            requestAnimationFrame(fadeImpact);
+        };
+        requestAnimationFrame(fadeImpact);
+
     } else {
         spawnMeleeSlash(player.cls.color);
     }
@@ -3804,7 +3878,7 @@ function p2Attack() {
     const yaw = fpsCamera2.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const range = 3.0;
-    const hasWeap = ['sukuna','toji','brook','denji','yoh','ren'].includes(player2.classId) && (player2.classId !== 'yoh' || player2._yohOversoulsActive) && (player2.classId !== 'ren' || player2._renOversoulsActive);
+    const hasWeap = ['sukuna','toji','brook','denji','yoh','ren','horohoro'].includes(player2.classId) && (player2.classId !== 'yoh' || player2._yohOversoulsActive) && (player2.classId !== 'ren' || player2._renOversoulsActive) && (player2.classId !== 'horohoro' || player2._horoOversoulsActive);
     const dmg = hasWeap ? Math.round(player2.damage * step.dmgMult * 0.25) : Math.round(player2.damage * step.dmgMult);
     const isFinisher = player2._comboStep === 3;
 
