@@ -6796,6 +6796,274 @@ function fruitAbility(slot) {
             requestAnimationFrame(animateJump);
         }
 
+        else if (slot === 'x') {
+            // ── ICE BARRAGE — rapid-fire ice fist projectiles, alternating left/right ──
+            const fly = fpsCamera.flyHeight || 0;
+            triggerHitstop(60);
+            fovPunch(15, 0.3);
+            screenFlash('rgba(66,165,245,0.4)', 400);
+            player.invincible = performance.now() + 2000;
+
+            const rFist = player._horoData?.right;
+            const lFist = player._horoData?.left;
+
+            // 8 ice fist projectiles fired alternating left/right
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    const isRight = i % 2 === 0;
+                    const punchArm = isRight ? rFist?.arm : lFist?.arm;
+                    const baseRx = -Math.PI / 2;
+
+                    // Quick punch animation on the firing fist
+                    if (punchArm) {
+                        punchArm.rotation.y = isRight ? 0.7 : -0.7;
+                        setTimeout(() => { if (punchArm) punchArm.rotation.y = 0; }, 120);
+                    }
+
+                    // Spawn ice fist projectile
+                    const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+                    const side = isRight ? 1 : -1;
+                    const spX = worldPx + fwdX * 2 + perpX * side * 1.5;
+                    const spZ = worldPz + fwdZ * 2 + perpZ * side * 1.5;
+
+                    const fistGeo = new THREE.BoxGeometry(0.8, 0.6, 0.8);
+                    const fistMat = new THREE.MeshBasicMaterial({
+                        color: '#42a5f5', transparent: true, opacity: 0.8,
+                        blending: THREE.AdditiveBlending, depthWrite: false
+                    });
+                    const fistProj = new THREE.Mesh(fistGeo, fistMat);
+                    fistProj.position.set(spX, EYE_HEIGHT + fly, spZ);
+                    // Inner bright core
+                    fistProj.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.5),
+                        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })));
+                    fistProj.add(new THREE.PointLight('#42a5f5', 4, TILE * 4, 2));
+                    scene.add(fistProj);
+
+                    projectiles3D.push({
+                        mesh: fistProj, vx: fwdX * 16, vz: fwdZ * 16,
+                        damage: Math.round(player.damage * 2), owner: 'player',
+                        traveled: 0, range: 40
+                    });
+
+                    // Trail
+                    const trailInt = setInterval(() => {
+                        if (!fistProj.parent) { clearInterval(trailInt); return; }
+                        emitParticles(fistProj.position.x, fistProj.position.y, fistProj.position.z, {
+                            color: ['#42a5f5', '#90caf9', '#ffffff'],
+                            count: 3, speed: 1.5, spread: 0.4,
+                            gravity: 0, life: 8, size: 0.08, sizeEnd: 0, drag: 0.94
+                        });
+                    }, 40);
+
+                    emitParticles(spX, EYE_HEIGHT + fly, spZ, {
+                        color: ['#42a5f5', '#ffffff'],
+                        count: 8, speed: 4, spread: 1,
+                        gravity: 0, life: 8, size: 0.1, sizeEnd: 0, drag: 0.93
+                    });
+                }, i * 150);
+            }
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#42a5f5', 6, 400);
+        }
+
+        else if (slot === 'c') {
+            // ── BLIZZARD — whirling ice storm surrounds player, shreds everything nearby ──
+            const fly = fpsCamera.flyHeight || 0;
+            triggerHitstop(100);
+            fovPunch(20, 0.4);
+            screenFlash('rgba(144,202,249,0.6)', 800);
+            player.invincible = performance.now() + 4000;
+
+            const rFist = player._horoData?.right;
+            const lFist = player._horoData?.left;
+
+            // Both fists spin around the player
+            if (rFist || lFist) {
+                player._oversoulSwinging = true;
+                let spinTicks = 0;
+                const spinInt = setInterval(() => {
+                    spinTicks++;
+                    const t = performance.now() * 0.004;
+                    // Orbit the fists around the player
+                    if (rFist) {
+                        const rx = Math.cos(t) * 3.5, rz = Math.sin(t) * 3.5;
+                        rFist.oversoul.position.set(fpsCamera.posX * TILE + rx, (fpsCamera.flyHeight || 0) + 0.3, fpsCamera.posZ * TILE + rz);
+                    }
+                    if (lFist) {
+                        const lx = Math.cos(t + Math.PI) * 3.5, lz = Math.sin(t + Math.PI) * 3.5;
+                        lFist.oversoul.position.set(fpsCamera.posX * TILE + lx, (fpsCamera.flyHeight || 0) + 0.3, fpsCamera.posZ * TILE + lz);
+                    }
+
+                    if (spinTicks >= 60) {
+                        clearInterval(spinInt);
+                        player._oversoulSwinging = false;
+                    }
+                }, 50);
+            }
+
+            // Blizzard particles swirling around player
+            let blizzTicks = 0;
+            const blizzInt = setInterval(() => {
+                blizzTicks++;
+                const ppx = fpsCamera.posX * TILE, ppz = fpsCamera.posZ * TILE;
+                const bt = performance.now() * 0.003;
+
+                // Swirling ice particles in a ring
+                for (let p = 0; p < 6; p++) {
+                    const angle = bt + (p / 6) * Math.PI * 2;
+                    const r = 2 + Math.random() * 4;
+                    emitParticles(ppx + Math.cos(angle) * r, 1 + Math.random() * 3, ppz + Math.sin(angle) * r, {
+                        color: ['#42a5f5', '#90caf9', '#ffffff', '#e3f2fd', '#bbdefb'],
+                        count: 3, speed: 4, spread: 1,
+                        gravity: 0, life: 15, size: 0.12, sizeEnd: 0, drag: 0.95
+                    });
+                }
+
+                // Damage enemies in the blizzard
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - fpsCamera.posX, e.data.z - fpsCamera.posZ) < 6) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                        e.data.lastAttack = performance.now() + 500; // slow them
+                    }
+                }
+
+                if (blizzTicks >= 60) clearInterval(blizzInt);
+            }, 50);
+
+            // Ice tornado pillar
+            const tornadoGeo = new THREE.CylinderGeometry(0.5, 4, 12, 8, 1, true);
+            const tornadoMat = new THREE.MeshBasicMaterial({
+                color: '#90caf9', transparent: true, opacity: 0.2,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const tornado = new THREE.Mesh(tornadoGeo, tornadoMat);
+            tornado.position.set(worldPx, fly, worldPz);
+            scene.add(tornado);
+            tornado.add(new THREE.PointLight('#42a5f5', 8, TILE * 8, 2));
+
+            // Spin and follow player
+            let tornTicks = 0;
+            const tornInt = setInterval(() => {
+                tornTicks++;
+                tornado.rotation.y += 0.1;
+                tornado.position.set(fpsCamera.posX * TILE, fpsCamera.flyHeight || 0, fpsCamera.posZ * TILE);
+                if (tornTicks >= 60) {
+                    clearInterval(tornInt);
+                    const fadeStart = performance.now();
+                    const fadeTorn = () => {
+                        const ft = (performance.now() - fadeStart) / 1000;
+                        if (ft >= 1) { scene.remove(tornado); tornado.geometry.dispose(); tornado.material.dispose(); return; }
+                        tornadoMat.opacity = (1 - ft) * 0.2;
+                        requestAnimationFrame(fadeTorn);
+                    };
+                    requestAnimationFrame(fadeTorn);
+                }
+            }, 50);
+
+            groundRing(worldPx, worldPz, '#42a5f5', 6, 1000);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#90caf9', 10, 600);
+        }
+
+        else if (slot === 'v') {
+            // ── AVALANCHE — ultimate: massive ice wall crashes forward, obliterating everything ──
+            const fly = fpsCamera.flyHeight || 0;
+            triggerHitstop(250);
+            fovPunch(40, 0.6);
+            screenFlash('rgba(255,255,255,1.0)', 1500);
+            player.invincible = performance.now() + 4000;
+
+            const rFist = player._horoData?.right;
+            const lFist = player._horoData?.left;
+
+            // Both fists slam forward together
+            if (rFist) { rFist.arm.rotation.y = 0.8; setTimeout(() => { rFist.arm.rotation.y = 0; }, 2000); }
+            if (lFist) { lFist.arm.rotation.y = -0.8; setTimeout(() => { lFist.arm.rotation.y = 0; }, 2000); }
+
+            // MASSIVE ice wall — row of giant spikes traveling forward
+            const wallMeshes = [];
+            const wallWidth = 10;
+            const wallDepth = 20;
+
+            for (let row = 0; row < wallDepth; row++) {
+                setTimeout(() => {
+                    const rowDist = 2 + row * 1.5;
+                    for (let col = 0; col < wallWidth; col++) {
+                        const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+                        const colOffset = (col - wallWidth / 2 + 0.5) * 1.2;
+                        const sx = worldPx + fwdX * rowDist + perpX * colOffset;
+                        const sz = worldPz + fwdZ * rowDist + perpZ * colOffset;
+
+                        const h = 3 + Math.random() * 6;
+                        const spikeGeo = new THREE.ConeGeometry(0.4 + Math.random() * 0.3, h, 4);
+                        const spikeMat = new THREE.MeshStandardMaterial({
+                            color: Math.random() > 0.5 ? '#90caf9' : '#e3f2fd',
+                            roughness: 0.1, metalness: 0.3,
+                            transparent: true, opacity: 0.8
+                        });
+                        const spike = new THREE.Mesh(spikeGeo, spikeMat);
+                        spike.position.set(sx, h / 2, sz);
+                        spike.rotation.set(0, Math.random() * Math.PI, (Math.random() - 0.5) * 0.3);
+                        scene.add(spike);
+                        wallMeshes.push({ mesh: spike, mat: spikeMat });
+                    }
+
+                    // Damage enemies at this row
+                    const rowX = fpsCamera.posX + fwdX * rowDist / TILE;
+                    const rowZ = fpsCamera.posZ + fwdZ * rowDist / TILE;
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        const perpDist = Math.abs((e.data.x - rowX) * fwdZ - (e.data.z - rowZ) * fwdX);
+                        const fwdDist = (e.data.x - rowX) * fwdX + (e.data.z - rowZ) * fwdZ;
+                        if (perpDist < wallWidth * 0.8 && Math.abs(fwdDist) < 2) {
+                            dealDamageToEnemy(e, Math.round(player.damage * 3));
+                            e.data.lastAttack = performance.now() + 3000;
+                            // Knock forward
+                            e.data.x += fwdX * 2; e.data.z += fwdZ * 2;
+                            e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                        }
+                    }
+
+                    // Frost eruption particles at this row
+                    const rx = worldPx + fwdX * rowDist, rz = worldPz + fwdZ * rowDist;
+                    emitParticles(rx, 1, rz, {
+                        color: ['#42a5f5', '#90caf9', '#ffffff', '#e3f2fd'],
+                        count: 20, speed: 6, spread: 3,
+                        gravity: 0, life: 15, size: 0.15, sizeEnd: 0, drag: 0.95, upward: 4
+                    });
+                    groundRing(rx, rz, '#42a5f5', 4, 500);
+                }, row * 80); // each row erupts in sequence
+            }
+
+            // Massive particles at start
+            emitParticles(worldPx, 2 + fly, worldPz, {
+                color: ['#42a5f5', '#90caf9', '#ffffff', '#e3f2fd', '#bbdefb'],
+                count: 100, speed: 8, spread: 4,
+                gravity: 0, life: 25, size: 0.25, sizeEnd: 0, drag: 0.96, upward: 5
+            });
+
+            // Expanding rings at origin
+            for (let r = 0; r < 6; r++) {
+                setTimeout(() => groundRing(worldPx, worldPz, r % 2 === 0 ? '#42a5f5' : '#ffffff', 4 + r * 2, 800), r * 100);
+            }
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ffffff', 25, 1200);
+
+            // Fade wall after 6 seconds
+            setTimeout(() => {
+                for (const { mesh, mat } of wallMeshes) {
+                    const fadeStart = performance.now();
+                    const fadeSpike = () => {
+                        const ft = (performance.now() - fadeStart) / 2000;
+                        if (ft >= 1) { scene.remove(mesh); mesh.geometry.dispose(); mat.dispose(); return; }
+                        mat.opacity = (1 - ft) * 0.8;
+                        requestAnimationFrame(fadeSpike);
+                    };
+                    requestAnimationFrame(fadeSpike);
+                }
+            }, 6000);
+        }
+
         else if (slot === 'f') {
             // ── ICE DASH ──
             const dashDist = 7;
