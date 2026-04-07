@@ -5642,6 +5642,403 @@ function fruitAbility(slot) {
         }
     }
 
+    // ══════ YOH ASAKURA ══════
+    if (id === 'yoh') {
+        if (slot === 'z') {
+            // ── CELESTIAL SLASH — giant spirit energy wave projectile ──
+            const fly = fpsCamera.flyHeight || 0;
+            screenShake(0.3, 200);
+            triggerHitstop(40);
+            fovPunch(12, 0.2);
+
+            // Oversoul arm does a big horizontal sweep
+            if (player._oversoulArm) {
+                player._oversoulSwinging = true;
+                const arm = player._oversoulArm;
+                const baseRx = -Math.PI / 2;
+                arm.rotation.y = -1.0;
+                const sweepStart = performance.now();
+                const sweepAnim = () => {
+                    const t = Math.min((performance.now() - sweepStart) / 350, 1);
+                    arm.rotation.y = -1.0 + 2.0 * t;
+                    if (t >= 1) { arm.rotation.y = 0; player._oversoulSwinging = false; return; }
+                    requestAnimationFrame(sweepAnim);
+                };
+                requestAnimationFrame(sweepAnim);
+            }
+
+            // Giant crescent wave projectile
+            const waveGeo = new THREE.TorusGeometry(1.5, 0.1, 4, 20, Math.PI);
+            const waveMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.85,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const wave = new THREE.Mesh(waveGeo, waveMat);
+            const spawnX = worldPx + fwdX * 2, spawnZ = worldPz + fwdZ * 2;
+            wave.position.set(spawnX, EYE_HEIGHT + fly, spawnZ);
+            wave.rotation.set(0, yaw + Math.PI / 2, Math.PI / 2);
+            // Inner bright core
+            const coreWave = new THREE.Mesh(
+                new THREE.TorusGeometry(1.0, 0.2, 4, 16, Math.PI),
+                new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+            );
+            wave.add(coreWave);
+            wave.add(new THREE.PointLight('#ff9800', 6, TILE * 6, 2));
+            scene.add(wave);
+
+            // Launch as projectile
+            projectiles3D.push({
+                mesh: wave, vx: fwdX * 12, vz: fwdZ * 12,
+                damage: Math.round(player.damage * 3), owner: 'player',
+                traveled: 0, range: 50
+            });
+
+            // Trail particles
+            const trailInt = setInterval(() => {
+                if (!wave.parent) { clearInterval(trailInt); return; }
+                emitParticles(wave.position.x, wave.position.y, wave.position.z, {
+                    color: ['#ff9800', '#ffb74d', '#ffffff', '#9c27b0'],
+                    count: 5, speed: 1.5, spread: 1,
+                    gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.94
+                });
+            }, 50);
+
+            emitParticles(spawnX, EYE_HEIGHT + fly, spawnZ, {
+                color: ['#ff9800', '#ffffff', '#9c27b0'],
+                count: 20, speed: 3, spread: 1.5,
+                gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.93
+            });
+            lightFlash(spawnX, EYE_HEIGHT, spawnZ, '#ff9800', 5, 300);
+            groundRing(worldPx, worldPz, '#ff9800', 3, 500);
+        }
+
+        else if (slot === 'x') {
+            // ── SHINKUU BUDDHA GIRI — spirit dash + massive diagonal slash ──
+            const fly = fpsCamera.flyHeight || 0;
+            const dashDist = 6;
+            screenShake(0.5, 400);
+            triggerHitstop(60);
+            fovPunch(18, 0.25);
+            player.invincible = performance.now() + 600;
+
+            // Dash forward
+            const newX = fpsCamera.posX + fwdX * dashDist;
+            const newZ = fpsCamera.posZ + fwdZ * dashDist;
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
+            showSpeedLines(400);
+
+            const landX = fpsCamera.posX * TILE, landZ = fpsCamera.posZ * TILE;
+
+            // Oversoul arm does a huge diagonal slash
+            if (player._oversoulArm) {
+                player._oversoulSwinging = true;
+                const arm = player._oversoulArm;
+                const baseRx = -Math.PI / 2;
+                arm.rotation.set(baseRx - 0.3, -0.8, 0.5);
+                const slashStart = performance.now();
+                const slashAnim = () => {
+                    const t = Math.min((performance.now() - slashStart) / 300, 1);
+                    const ease = 1 - Math.pow(1 - t, 3);
+                    arm.rotation.x = (baseRx - 0.3) + 1.0 * ease;
+                    arm.rotation.y = -0.8 + 1.8 * ease;
+                    arm.rotation.z = 0.5 - 1.0 * ease;
+                    if (t >= 1) {
+                        setTimeout(() => {
+                            arm.rotation.set(baseRx, 0, 0);
+                            player._oversoulSwinging = false;
+                        }, 300);
+                        return;
+                    }
+                    requestAnimationFrame(slashAnim);
+                };
+                requestAnimationFrame(slashAnim);
+            }
+
+            // Giant X slash VFX at landing
+            for (let i = 0; i < 2; i++) {
+                const slashGeo = new THREE.PlaneGeometry(5, 0.2);
+                const slashMat = new THREE.MeshBasicMaterial({
+                    color: i === 0 ? '#ffffff' : '#9c27b0', transparent: true, opacity: 0.8,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                });
+                const slash = new THREE.Mesh(slashGeo, slashMat);
+                slash.position.set(landX, EYE_HEIGHT + fly, landZ);
+                slash.rotation.set(0, yaw + Math.PI / 2, i === 0 ? 0.5 : -0.5);
+                scene.add(slash);
+                const fadeStart = performance.now();
+                const fadeSlash = () => {
+                    const ft = (performance.now() - fadeStart) / 500;
+                    if (ft >= 1) { scene.remove(slash); slash.geometry.dispose(); slash.material.dispose(); return; }
+                    slashMat.opacity = (1 - ft) * 0.8;
+                    slash.scale.set(1 + ft * 0.5, 1 + ft * 4, 1);
+                    requestAnimationFrame(fadeSlash);
+                };
+                requestAnimationFrame(fadeSlash);
+            }
+
+            // Damage enemies in path
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const toX = e.data.x - px, toZ = e.data.z - pz;
+                const dot = toX * fwdX + toZ * fwdZ;
+                if (dot > 0 && dot < dashDist + 2) {
+                    const perp = Math.abs(toX * fwdZ - toZ * fwdX);
+                    if (perp < 2.5) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 3.5));
+                        e.data.x += fwdX * 1.5; e.data.z += fwdZ * 1.5;
+                        e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                    }
+                }
+            }
+
+            emitParticles(landX, EYE_HEIGHT + fly, landZ, {
+                color: ['#ffffff', '#ff9800', '#9c27b0'],
+                count: 30, speed: 5, spread: 2,
+                gravity: 0, life: 15, size: 0.15, sizeEnd: 0, drag: 0.94, upward: 2
+            });
+            groundRing(landX, landZ, '#ffffff', 5, 600);
+            groundDecal(landX, landZ, '#ff9800', 2.5, 2000);
+            lightFlash(landX, EYE_HEIGHT, landZ, '#ffffff', 8, 400);
+        }
+
+        else if (slot === 'c') {
+            // ── DOUBLE MEDIUM — Amidamaru possesses Yoh, rapid 8-hit flurry ──
+            const fly = fpsCamera.flyHeight || 0;
+            screenShake(0.3, 1200);
+            fovPunch(10, 0.3);
+            player.invincible = performance.now() + 2000;
+
+            // Spirit aura burst
+            emitParticles(worldPx, EYE_HEIGHT + fly, worldPz, {
+                color: ['#ff9800', '#ffffff', '#9c27b0'],
+                count: 40, speed: 3, spread: 1.5,
+                gravity: 0, life: 20, size: 0.15, sizeEnd: 0, drag: 0.95, upward: 3
+            });
+            groundRing(worldPx, worldPz, '#ff9800', 4, 1000);
+
+            // 8 rapid slashes over 1.6 seconds
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    const dir = i % 2 === 0 ? 1 : -1;
+                    const hitDist = 2 + Math.random();
+                    const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+                    const sx = worldPx + fwdX * hitDist + perpX * dir * 0.5;
+                    const sy = EYE_HEIGHT + fly - 0.5 + Math.random() * 1;
+                    const sz = worldPz + fwdZ * hitDist + perpZ * dir * 0.5;
+
+                    // Slash arc VFX
+                    const sGeo = new THREE.PlaneGeometry(3, 0.12);
+                    const sMat = new THREE.MeshBasicMaterial({
+                        color: i % 3 === 0 ? '#9c27b0' : '#ffffff',
+                        transparent: true, opacity: 0.85,
+                        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                    });
+                    const sMesh = new THREE.Mesh(sGeo, sMat);
+                    sMesh.position.set(sx, sy, sz);
+                    sMesh.rotation.set(Math.random() * 0.4 - 0.2, yaw + Math.PI / 2, dir * (0.3 + Math.random() * 0.4));
+                    scene.add(sMesh);
+
+                    const fadeStart = performance.now();
+                    const fade = () => {
+                        const ft = (performance.now() - fadeStart) / 250;
+                        if (ft >= 1) { scene.remove(sMesh); sMesh.geometry.dispose(); sMesh.material.dispose(); return; }
+                        sMat.opacity = (1 - ft) * 0.85;
+                        sMesh.scale.set(1 + ft * 0.3, 1 + ft * 3, 1);
+                        requestAnimationFrame(fade);
+                    };
+                    requestAnimationFrame(fade);
+
+                    emitParticles(sx, sy, sz, {
+                        color: ['#ffffff', '#9c27b0', '#ff9800'],
+                        count: 4, speed: 3, spread: 0.5,
+                        gravity: 0, life: 6, size: 0.06, sizeEnd: 0, drag: 0.94
+                    });
+
+                    // Damage nearby enemies
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        if (Math.hypot(e.data.x - px, e.data.z - pz) < 4) {
+                            dealDamageToEnemy(e, Math.round(player.damage * 1.2));
+                        }
+                    }
+
+                    screenShake(0.15, 60);
+
+                    // Oversoul arm alternating slashes
+                    if (player._oversoulArm && !player._oversoulSwinging) {
+                        const arm = player._oversoulArm;
+                        arm.rotation.y = dir * 0.8;
+                        arm.rotation.z = dir * 0.3;
+                        setTimeout(() => { arm.rotation.y = 0; arm.rotation.z = 0; }, 150);
+                    }
+                }, i * 200);
+            }
+
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff9800', 6, 500);
+        }
+
+        else if (slot === 'v') {
+            // ── FUMON TONKOU — sword plants in ground, massive spirit energy eruption ──
+            const fly = fpsCamera.flyHeight || 0;
+            screenShake(0.7, 1000);
+            triggerHitstop(100);
+            fovPunch(22, 0.4);
+            player.invincible = performance.now() + 2500;
+
+            // Oversoul arm slams sword down
+            if (player._oversoulArm) {
+                player._oversoulSwinging = true;
+                const arm = player._oversoulArm;
+                const baseRx = -Math.PI / 2;
+                arm.rotation.x = baseRx - 0.5;
+                const slamStart = performance.now();
+                const slamAnim = () => {
+                    const t = Math.min((performance.now() - slamStart) / 400, 1);
+                    const ease = 1 - Math.pow(1 - t, 3);
+                    arm.rotation.x = (baseRx - 0.5) + 2.0 * ease;
+                    if (t >= 1) {
+                        setTimeout(() => {
+                            arm.rotation.x = baseRx;
+                            player._oversoulSwinging = false;
+                        }, 2000);
+                        return;
+                    }
+                    requestAnimationFrame(slamAnim);
+                };
+                requestAnimationFrame(slamAnim);
+            }
+
+            // Energy pillar erupting from ground
+            const pillarGeo = new THREE.CylinderGeometry(0.5, 3.5, 14, 8, 1, true);
+            const pillarMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.4,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+            pillar.position.set(worldPx, fly, worldPz);
+            scene.add(pillar);
+            const pillarLight = new THREE.PointLight('#ff9800', 12, TILE * 12, 2);
+            pillar.add(pillarLight);
+
+            // Second purple pillar
+            const pillar2Geo = new THREE.CylinderGeometry(0.3, 2.5, 12, 8, 1, true);
+            const pillar2Mat = new THREE.MeshBasicMaterial({
+                color: '#9c27b0', transparent: true, opacity: 0.3,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const pillar2 = new THREE.Mesh(pillar2Geo, pillar2Mat);
+            pillar2.position.set(worldPx, fly, worldPz);
+            scene.add(pillar2);
+
+            // Expanding ground shockwaves
+            for (let r = 0; r < 4; r++) {
+                setTimeout(() => {
+                    groundRing(worldPx, worldPz, r % 2 === 0 ? '#ff9800' : '#9c27b0', 4 + r * 2, 800);
+                }, r * 200);
+            }
+
+            // Massive particle burst
+            emitParticles(worldPx, 2 + fly, worldPz, {
+                color: ['#ff9800', '#ffffff', '#9c27b0', '#ffcc00'],
+                count: 80, speed: 6, spread: 3,
+                gravity: 0, life: 30, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 5
+            });
+
+            // Damage + stun all enemies on the floor
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const d = Math.hypot(e.data.x - px, e.data.z - pz);
+                if (d < 8) {
+                    dealDamageToEnemy(e, Math.round(player.damage * 4));
+                    e.data.lastAttack = now + 2000; // stun
+                } else if (d < 15) {
+                    dealDamageToEnemy(e, Math.round(player.damage * 2));
+                    e.data.lastAttack = now + 1000;
+                }
+            }
+
+            // Continued damage ticks
+            let ticks = 0;
+            const dmgInt = setInterval(() => {
+                ticks++;
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - px, e.data.z - pz) < 10) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1));
+                    }
+                }
+                emitParticles(worldPx, 1 + fly, worldPz, {
+                    color: ['#ff9800', '#9c27b0', '#ffffff'],
+                    count: 8, speed: 4, spread: 2.5,
+                    gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.95, upward: 3
+                });
+                if (ticks >= 6) clearInterval(dmgInt);
+            }, 400);
+
+            // Fade pillars after 2.5s
+            setTimeout(() => {
+                const fadeStart = performance.now();
+                const fadePillars = () => {
+                    const ft = (performance.now() - fadeStart) / 1000;
+                    if (ft >= 1) {
+                        scene.remove(pillar); pillar.geometry.dispose(); pillar.material.dispose();
+                        scene.remove(pillar2); pillar2.geometry.dispose(); pillar2.material.dispose();
+                        return;
+                    }
+                    pillarMat.opacity = (1 - ft) * 0.4;
+                    pillar2Mat.opacity = (1 - ft) * 0.3;
+                    pillar.scale.x = 1 + ft * 0.5; pillar.scale.z = 1 + ft * 0.5;
+                    pillar2.scale.x = 1 + ft * 0.3; pillar2.scale.z = 1 + ft * 0.3;
+                    requestAnimationFrame(fadePillars);
+                };
+                requestAnimationFrame(fadePillars);
+            }, 2500);
+
+            groundDecal(worldPx, worldPz, '#ff9800', 4, 5000);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ffffff', 12, 800);
+        }
+
+        else if (slot === 'f') {
+            // ── SPIRIT DASH — Amidamaru-boosted quick movement ──
+            const dashDist = 5;
+            const fly = fpsCamera.flyHeight || 0;
+            const newX = fpsCamera.posX + fwdX * dashDist;
+            const newZ = fpsCamera.posZ + fwdZ * dashDist;
+
+            // Ghost trail
+            for (let i = 0; i < 6; i++) {
+                const t = i / 6;
+                const tx = worldPx + fwdX * TILE * t * dashDist;
+                const tz = worldPz + fwdZ * TILE * t * dashDist;
+                emitParticles(tx, EYE_HEIGHT + fly, tz, {
+                    color: ['#ff9800', '#ffffff', '#9c27b0'],
+                    count: 3, speed: 1, spread: 0.5,
+                    gravity: 0, life: 10, size: 0.08, sizeEnd: 0, drag: 0.92
+                });
+            }
+
+            // Damage enemies in path
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const toX = e.data.x - px, toZ = e.data.z - pz;
+                const dot = toX * fwdX + toZ * fwdZ;
+                if (dot > 0 && dot < dashDist) {
+                    const perp = Math.abs(toX * fwdZ - toZ * fwdX);
+                    if (perp < 1.5) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                    }
+                }
+            }
+
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
+            fovPunch(14, 0.12);
+            player.invincible = performance.now() + 400;
+            screenShake(0.15, 80);
+            showSpeedLines(300);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff9800', 3, 150);
+        }
+    }
+
 }
 
 function playerSpecial() { fruitAbility("z"); }

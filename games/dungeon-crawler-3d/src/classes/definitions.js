@@ -49,7 +49,7 @@ export const CLASSES = {
         name: 'Yoh Asakura', type: 'shaman', maxHp: 130, speed: 3.6, attackRange: 38,
         attackDamage: 16, attackSpeed: 220, attackType: 'melee', color: '#ff9800',
         specialCooldown: 4000, specialName: 'Spirit of Sword', weaponType: 'fist',
-        abilities: {},
-        abilityCooldowns: {}
+        abilities: { z: 'Celestial Slash', x: 'Buddha Giri', c: 'Double Medium', v: 'Fumon Tonkou', f: 'Spirit Dash' },
+        abilityCooldowns: { z: 3500, x: 4500, c: 9000, v: 20000, f: 2500 }
     },
 };
