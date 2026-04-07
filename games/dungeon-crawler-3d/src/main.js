@@ -2758,9 +2758,6 @@ function startGame() {
     } else if (player.classId === 'denji') {
         fpsSword = buildFPSChainsaws();
         camera.add(fpsSword);
-    } else if (player.classId === 'yoh') {
-        fpsSword = buildFPSSword();
-        camera.add(fpsSword);
     }
 
     // ── P2 setup (split-screen coop) ──
@@ -2811,7 +2808,6 @@ function startGame() {
         else if (player2.classId === 'brook') { fpsSword2 = buildFPSCane(); camera2.add(fpsSword2); }
         else if (player2.classId === 'bakugo') { fpsSword2 = buildFPSFists(); camera2.add(fpsSword2); }
         else if (player2.classId === 'denji') { fpsSword2 = buildFPSChainsaws(); camera2.add(fpsSword2); }
-        else if (player2.classId === 'yoh') { fpsSword2 = buildFPSSword(); camera2.add(fpsSword2); }
     }
 }
 
@@ -5650,32 +5646,6 @@ function buildYohModel() {
     rForearm.position.y = -0.72; rightArmPivot.add(rForearm);
     const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.05), skinMat);
     rHand.position.set(0, -0.94, 0.02); rightArmPivot.add(rHand);
-    // ── Harusame katana in right hand ──
-    const swordGroup = new THREE.Group();
-    swordGroup.position.set(0, -1.0, 0.04);
-    swordGroup.rotation.x = Math.PI / 2;
-    // Hilt wrap — red/maroon
-    const hiltMat = new THREE.MeshStandardMaterial({ color: '#6a1a1a', roughness: 0.6 });
-    const swordHilt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.15, 5), hiltMat);
-    swordGroup.add(swordHilt);
-    // Guard — round golden tsuba
-    const tsubaMat = new THREE.MeshStandardMaterial({ color: '#c8a830', metalness: 0.6, roughness: 0.3 });
-    const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.01, 8), tsubaMat);
-    tsuba.position.y = 0.08; swordGroup.add(tsuba);
-    // Blade — silver katana
-    const katanaBladeMat = new THREE.MeshStandardMaterial({ color: '#c0c8d0', metalness: 0.85, roughness: 0.1 });
-    const katanaBlade = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.65, 0.006), katanaBladeMat);
-    katanaBlade.position.y = 0.42; swordGroup.add(katanaBlade);
-    // Blade edge highlight
-    const katanaEdge = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.65, 0.01),
-        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.3 }));
-    katanaEdge.position.set(0.012, 0.42, 0); swordGroup.add(katanaEdge);
-    // Tip
-    const katanaTip = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.06, 4), katanaBladeMat);
-    katanaTip.position.y = 0.78; swordGroup.add(katanaTip);
-    // Pommel cap
-    swordGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 5), tsubaMat).translateY(-0.085));
-    rightArmPivot.add(swordGroup);
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
 

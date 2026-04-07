@@ -48,7 +48,7 @@ export const CLASSES = {
     yoh: {
         name: 'Yoh Asakura', type: 'shaman', maxHp: 130, speed: 3.6, attackRange: 38,
         attackDamage: 16, attackSpeed: 220, attackType: 'melee', color: '#ff9800',
-        specialCooldown: 4000, specialName: 'Spirit of Sword', weaponType: 'sword',
+        specialCooldown: 4000, specialName: 'Spirit of Sword', weaponType: 'fist',
         abilities: {},
         abilityCooldowns: {}
     },
