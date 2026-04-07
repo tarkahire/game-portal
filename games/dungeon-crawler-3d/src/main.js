@@ -3610,7 +3610,7 @@ function playerAttack() {
         const sword = player._oversoulSword;
         const swingDir = (player._comboStep % 2 === 0) ? 1 : -1;
         const startTime = performance.now();
-        const swingDur = 200, returnDur = 250;
+        const swingDur = 400, returnDur = 350;
 
         // Spirit slash particles at hit point
         emitParticles(hitX, hitY, hitZ, {
@@ -3622,7 +3622,7 @@ function playerAttack() {
         const baseX = -Math.PI / 2; // upward-facing rest rotation
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
         const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        const windUpDur = 120;
+        const windUpDur = 200;
         const comboHit = player._comboStep; // 0,1,2,3
         const animateSwing = () => {
             const elapsed = performance.now() - startTime;
