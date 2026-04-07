@@ -5799,44 +5799,100 @@ function yohOversoul() {
     // Attach gauntlet to right arm pivot
     if (pm._rightArm) pm._rightArm.add(gauntletGroup);
 
-    // ── GIANT SWORD (Spirit of Sword blade — massive white blade with black stripes) ──
+    // ── OVERSOUL KATANA (curved blade, purple/white energy rings) ──
     const swordGroup = new THREE.Group();
     swordGroup.position.set(0, -1.05, 0.15);
     swordGroup.rotation.x = Math.PI / 2;
 
-    // Hilt — dark wrapped grip
-    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.25, 5), darkMat);
+    // Hilt — wrapped dark with red-brown accent
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.22, 6), darkMat);
     swordGroup.add(hilt);
-    // Cross-guard — wide white with purple gem
-    const crossGuard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.06), whiteMat);
-    crossGuard.position.y = 0.14; swordGroup.add(crossGuard);
-    const guardGem = new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 5), purpleMat);
-    guardGem.position.set(0, 0.14, 0.04); swordGroup.add(guardGem);
+    // Hilt wrap bands
+    for (let w = 0; w < 5; w++) {
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.012, 6),
+            new THREE.MeshStandardMaterial({ color: '#5a2a2a', roughness: 0.5 }));
+        wrap.position.y = -0.08 + w * 0.04;
+        swordGroup.add(wrap);
+    }
+    // Tsuba — round guard with purple inlay
+    const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.012, 8), whiteMat);
+    tsuba.position.y = 0.12; swordGroup.add(tsuba);
+    const tsubaInlay = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.014, 8), purpleMat);
+    tsubaInlay.position.y = 0.12; swordGroup.add(tsubaInlay);
+    // Pommel
+    swordGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 5), whiteMat).translateY(-0.12));
 
-    // Blade — massive white with black stripe down the center
-    const mainBlade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.4, 0.015), bladeWhiteMat);
-    mainBlade.position.y = 0.88; swordGroup.add(mainBlade);
-    // Black stripes on blade
-    const stripe1 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.25, 0.018), bladeStripeMat);
-    stripe1.position.set(0, 1.2, 0); swordGroup.add(stripe1);
-    const stripe2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.25, 0.018), bladeStripeMat);
-    stripe2.position.set(0, 0.85, 0); swordGroup.add(stripe2);
-    // Blade edge glow
-    const edgeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.005, 1.4, 0.02),
-        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.4 }));
-    edgeGlow.position.set(0.042, 0.88, 0); swordGroup.add(edgeGlow);
-    // Blade tip — pointed and wide
-    const bladeTip = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.15, 4), bladeWhiteMat);
-    bladeTip.position.y = 1.62; swordGroup.add(bladeTip);
-    // Sub-blade prongs near guard (the forked base visible in the image)
-    for (let s = -1; s <= 1; s += 2) {
-        const prong = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.15, 3), bladeWhiteMat);
-        prong.position.set(s * 0.06, 0.28, 0);
-        prong.rotation.z = s * 0.4;
-        swordGroup.add(prong);
+    // Blade — long curved katana shape (slightly wider near tip, tapering from guard)
+    // Use a tapered box for the main blade body
+    const bladeGeo = new THREE.BoxGeometry(0.04, 1.5, 0.008);
+    // Slight curve: shift top vertices forward to simulate katana curvature
+    const pos = bladeGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+        const y = pos.getY(i);
+        const curve = Math.pow(Math.max(0, y) / 0.75, 2) * 0.06;
+        pos.setZ(i, pos.getZ(i) + curve);
+    }
+    pos.needsUpdate = true;
+    bladeGeo.computeVertexNormals();
+    const blade = new THREE.Mesh(bladeGeo, bladeWhiteMat);
+    blade.position.y = 0.9; swordGroup.add(blade);
+
+    // Blade spine (dark line along back of katana)
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.005, 1.5, 0.01),
+        new THREE.MeshStandardMaterial({ color: '#888888', metalness: 0.6, roughness: 0.2 }));
+    spine.position.set(-0.019, 0.9, 0.02); swordGroup.add(spine);
+
+    // Hamon line (wavy temper line on blade — white glow)
+    const hamon = new THREE.Mesh(new THREE.BoxGeometry(0.035, 1.5, 0.002),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.15 }));
+    hamon.position.set(0.003, 0.9, 0.005); swordGroup.add(hamon);
+
+    // Cutting edge glow
+    const katanaEdge = new THREE.Mesh(new THREE.BoxGeometry(0.003, 1.5, 0.012),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.35 }));
+    katanaEdge.position.set(0.022, 0.9, 0.03); swordGroup.add(katanaEdge);
+
+    // Tip — angled kissaki
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.1, 4), bladeWhiteMat);
+    tip.position.set(0, 1.68, 0.06); swordGroup.add(tip);
+
+    // ── ENERGY RINGS — purple and white torus rings floating around blade ──
+    const ringMat1 = new THREE.MeshBasicMaterial({ color: '#9c27b0', transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const ringMat2 = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const swordRings = [];
+    for (let i = 0; i < 5; i++) {
+        const isPurple = i % 2 === 0;
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.06 + i * 0.008, 0.006, 6, 16),
+            isPurple ? ringMat1.clone() : ringMat2.clone()
+        );
+        ring.position.y = 0.4 + i * 0.3;
+        ring.rotation.set(Math.random() * 0.5, Math.random() * Math.PI, Math.random() * 0.5);
+        swordGroup.add(ring);
+        swordRings.push(ring);
     }
 
+    // Faint glow light on the blade
+    const bladeGlow = new THREE.PointLight('#9c27b0', 1.5, TILE * 3, 2);
+    bladeGlow.position.y = 0.9;
+    swordGroup.add(bladeGlow);
+
     if (pm._rightArm) pm._rightArm.add(swordGroup);
+
+    // ── Animate energy rings spinning around blade ──
+    pm._swordRingsInt = setInterval(() => {
+        const t = performance.now() * 0.002;
+        for (let i = 0; i < swordRings.length; i++) {
+            const r = swordRings[i];
+            r.rotation.x = Math.sin(t + i * 1.2) * 0.8;
+            r.rotation.z = Math.cos(t * 0.7 + i * 0.9) * 0.8;
+            r.rotation.y += 0.03;
+            // Pulse opacity
+            r.material.opacity = (i % 2 === 0 ? 0.2 : 0.15) + Math.sin(t * 1.5 + i) * 0.08;
+        }
+        // Pulse blade glow
+        bladeGlow.intensity = 1.5 + Math.sin(t * 2) * 0.5;
+    }, 30);
 
     // ── LEFT SHOULDER ARMOR (smaller purple-trimmed plate) ──
     if (pm._leftArm) {
@@ -5924,29 +5980,70 @@ function yohOversoul() {
         }
     }, 50);
 
-    // ── FPS viewmodel — add oversoul sword to camera ──
+    // ── FPS viewmodel — oversoul katana with energy rings ──
     if (!fpsSword) {
         const fpsGroup = new THREE.Group();
-        const fpsHilt = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.14, 5),
+        // Hilt
+        const fpsHilt = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.14, 6),
             new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.6 }));
         fpsGroup.add(fpsHilt);
-        const fpsGuard = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.025, 0.04),
+        // Wrap bands
+        for (let w = 0; w < 4; w++) {
+            fpsGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.008, 6),
+                new THREE.MeshStandardMaterial({ color: '#5a2a2a', roughness: 0.5 })).translateY(-0.05 + w * 0.03));
+        }
+        // Tsuba
+        const fpsTsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.008, 8),
             new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.5, roughness: 0.3 }));
-        fpsGuard.position.y = 0.08; fpsGroup.add(fpsGuard);
-        const fpsBlade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.7, 0.01),
+        fpsTsuba.position.y = 0.08; fpsGroup.add(fpsTsuba);
+        const fpsTsubaInner = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.01, 8),
+            new THREE.MeshStandardMaterial({ color: '#7b1fa2', roughness: 0.4 }));
+        fpsTsubaInner.position.y = 0.08; fpsGroup.add(fpsTsubaInner);
+        // Blade — curved katana
+        const fpsBladeGeo = new THREE.BoxGeometry(0.028, 0.75, 0.006);
+        const fpos = fpsBladeGeo.attributes.position;
+        for (let i = 0; i < fpos.count; i++) {
+            const y = fpos.getY(i);
+            fpos.setZ(i, fpos.getZ(i) + Math.pow(Math.max(0, y) / 0.375, 2) * 0.03);
+        }
+        fpos.needsUpdate = true;
+        fpsBladeGeo.computeVertexNormals();
+        const fpsBlade = new THREE.Mesh(fpsBladeGeo,
             new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.85, roughness: 0.1 }));
-        fpsBlade.position.y = 0.45; fpsGroup.add(fpsBlade);
-        // Black stripes
-        fpsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.15, 0.013),
-            new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.3 })).translateY(0.55));
-        fpsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.15, 0.013),
-            new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.3 })).translateY(0.3));
-        const fpsTip = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.1, 4),
-            new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.85, roughness: 0.1 }));
-        fpsTip.position.y = 0.83; fpsGroup.add(fpsTip);
+        fpsBlade.position.y = 0.47; fpsGroup.add(fpsBlade);
         // Edge glow
-        fpsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.7, 0.015),
-            new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.3 })).translateY(0.45).translateX(0.027));
+        fpsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.002, 0.75, 0.01),
+            new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.3 })).translateY(0.47).translateX(0.016));
+        // Tip
+        fpsGroup.add(new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.06, 4),
+            new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.85, roughness: 0.1 })).translateY(0.87));
+        // Energy rings on FPS blade
+        const fpsRings = [];
+        for (let i = 0; i < 4; i++) {
+            const isPurple = i % 2 === 0;
+            const fpsRing = new THREE.Mesh(
+                new THREE.TorusGeometry(0.04 + i * 0.005, 0.004, 6, 14),
+                new THREE.MeshBasicMaterial({
+                    color: isPurple ? '#9c27b0' : '#ffffff',
+                    transparent: true, opacity: isPurple ? 0.2 : 0.15,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                })
+            );
+            fpsRing.position.y = 0.25 + i * 0.18;
+            fpsGroup.add(fpsRing);
+            fpsRings.push(fpsRing);
+        }
+        // Animate FPS rings
+        pm._fpsRingsInt = setInterval(() => {
+            const t = performance.now() * 0.002;
+            for (let i = 0; i < fpsRings.length; i++) {
+                fpsRings[i].rotation.x = Math.sin(t + i * 1.5) * 0.6;
+                fpsRings[i].rotation.z = Math.cos(t * 0.8 + i) * 0.6;
+                fpsRings[i].rotation.y += 0.025;
+                fpsRings[i].material.opacity = (i % 2 === 0 ? 0.2 : 0.15) + Math.sin(t * 1.5 + i) * 0.06;
+            }
+        }, 30);
+
         fpsGroup.position.set(0.28, -0.35, -0.4);
         fpsGroup.rotation.set(-0.3, 0, -0.15);
         camera.add(fpsGroup);
