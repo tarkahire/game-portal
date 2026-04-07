@@ -3777,8 +3777,7 @@ function playerAttack() {
             gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.93
         });
 
-        // Screen effects
-        screenShake(0.2, 100);
+        // Finisher effects only
         if (player._comboStep === 3) { triggerHitstop(50); fovPunch(10, 0.15); }
 
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
