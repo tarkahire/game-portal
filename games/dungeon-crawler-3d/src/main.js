@@ -212,7 +212,7 @@ function init() {
             if (e.code === 'KeyC') fruitAbility('c');     // P1 ability 3
             if (e.code === 'KeyV') fruitAbility('v');     // P1 ability 4
             if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
-            if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else playerDodge(); }
+            if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else if (player?.classId === 'horohoro') horohoroOversoul(); else playerDodge(); }
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
             // ── P2 controls ──
@@ -224,7 +224,7 @@ function init() {
                 if (e.code === 'Slash') p2Ability('v');
                 if (e.code === 'KeyN') p2Ability('f');
                 if (e.code === 'Numpad0') p2Dodge();
-                if (e.code === 'Digit4') { if (player2.classId === 'yoh') yohOversoulP2(); else if (player2.classId === 'ren') renOversoulP2(); }
+                if (e.code === 'Digit4') { if (player2.classId === 'yoh') yohOversoulP2(); else if (player2.classId === 'ren') renOversoulP2(); else if (player2.classId === 'horohoro') horohoroOversoulP2(); }
             }
         }
     });
@@ -2739,11 +2739,15 @@ function startGame() {
         pm = buildRenModel();
         pm.scale.setScalar(0.85);
         addPlayerLabel(pm, 'REN', '#9c27b0');
+    } else if (player.classId === 'horohoro') {
+        pm = buildHorohoroModel();
+        pm.scale.setScalar(0.85);
+        addPlayerLabel(pm, 'HOROHORO', '#42a5f5');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
     fpsCamera.flyHeight = 0;
-    fpsCamera.eyeHeight = (player.classId === 'yoh' || player.classId === 'ren') ? 2.0 : EYE_HEIGHT;
+    fpsCamera.eyeHeight = (player.classId === 'yoh' || player.classId === 'ren' || player.classId === 'horohoro') ? 2.0 : EYE_HEIGHT;
     pm.visible = false;
     scene.add(pm);
     fpsCamera.playerModel = pm;
@@ -2790,7 +2794,7 @@ function startGame() {
         };
         fpsCamera2.speed = cls2.speed;
         fpsCamera2.flyHeight = 0;
-        fpsCamera2.eyeHeight = (player2.classId === 'yoh' || player2.classId === 'ren') ? 2.0 : EYE_HEIGHT;
+        fpsCamera2.eyeHeight = (player2.classId === 'yoh' || player2.classId === 'ren' || player2.classId === 'horohoro') ? 2.0 : EYE_HEIGHT;
 
         // Spawn P2 at start room but offset slightly
         const startRoom = dungeon.rooms[0];
@@ -2806,6 +2810,7 @@ function startGame() {
         else if (player2.classId === 'denji') { pm2 = buildDenjiModel(); addPlayerLabel(pm2, 'P2 DENJI', '#cc4400'); }
         else if (player2.classId === 'yoh') { pm2 = buildYohModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 YOH', '#ff9800'); }
         else if (player2.classId === 'ren') { pm2 = buildRenModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 REN', '#9c27b0'); }
+        else if (player2.classId === 'horohoro') { pm2 = buildHorohoroModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 HORO', '#42a5f5'); }
         else { pm2 = buildGenericPlayerModel(cls2); }
         pm2.visible = false;
         scene.add(pm2);
@@ -6755,6 +6760,263 @@ function buildYohModel() {
     return pm;
 }
 
+// ─── HOROHORO 3D MODEL ─────────────────────────────────────
+function buildHorohoroModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d0b0', roughness: 0.5 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#1a6aaa', roughness: 0.5 }); // blue hair
+    const jacketMat = new THREE.MeshStandardMaterial({ color: '#1565c0', roughness: 0.6 }); // blue jacket
+    const innerMat = new THREE.MeshStandardMaterial({ color: '#e0e0e0', roughness: 0.6 }); // white inner
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#2a2a2a', roughness: 0.7 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.8 });
+    const headbandMat = new THREE.MeshStandardMaterial({ color: '#42a5f5', roughness: 0.4 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
+
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — blue jacket
+    torsoPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.23, 0.85, 8), jacketMat).translateY(0.5));
+    torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.24, 0.34), jacketMat).translateY(0.84));
+    // White inner visible at collar
+    torsoPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.06, 6), innerMat).translateY(1.0).translateZ(0.08));
+    // Collar
+    torsoPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.19, 0.14, 6), jacketMat).translateY(1.02));
+
+    // Neck
+    torsoPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.12, 6), skinMat).translateY(1.12));
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
+    head.position.y = 1.35; head.scale.set(1, 1.02, 0.95); torsoPivot.add(head);
+    torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), skinMat).translateY(1.2).translateZ(0.12).scale.set(1.1, 0.6, 1));
+
+    // Hair — spiky blue, standing up wild
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), hairMat);
+    hairBase.position.y = 1.47; hairBase.scale.set(1.1, 0.95, 1.05); torsoPivot.add(hairBase);
+    const spikes = [
+        { x: 0, y: 1.72, z: 0, rx: -0.1, rz: 0, h: 0.3 },
+        { x: 0.1, y: 1.68, z: 0.02, rx: -0.1, rz: 0.4, h: 0.25 },
+        { x: -0.1, y: 1.68, z: 0.02, rx: -0.1, rz: -0.4, h: 0.25 },
+        { x: 0.06, y: 1.7, z: -0.05, rx: 0.2, rz: 0.2, h: 0.22 },
+        { x: -0.06, y: 1.7, z: -0.05, rx: 0.2, rz: -0.2, h: 0.22 },
+        { x: 0.16, y: 1.6, z: 0, rx: 0, rz: 0.7, h: 0.2 },
+        { x: -0.16, y: 1.6, z: 0, rx: 0, rz: -0.7, h: 0.2 },
+        { x: 0, y: 1.65, z: -0.12, rx: 0.5, rz: 0, h: 0.2 },
+        { x: 0.12, y: 1.62, z: -0.08, rx: 0.3, rz: 0.5, h: 0.18 },
+        { x: -0.12, y: 1.62, z: -0.08, rx: 0.3, rz: -0.5, h: 0.18 },
+        // Front bangs
+        { x: 0.05, y: 1.55, z: 0.16, rx: -0.6, rz: 0.1, h: 0.14 },
+        { x: -0.05, y: 1.55, z: 0.16, rx: -0.6, rz: -0.1, h: 0.14 },
+    ];
+    for (const sp of spikes) {
+        const s = new THREE.Mesh(new THREE.ConeGeometry(0.04, sp.h, 4), hairMat);
+        s.position.set(sp.x, sp.y, sp.z); s.rotation.set(sp.rx, 0, sp.rz); torsoPivot.add(s);
+    }
+
+    // Headband — blue band across forehead
+    const headband = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.06, 0.22), headbandMat);
+    headband.position.set(0, 1.48, 0.06); torsoPivot.add(headband);
+    // Headband tail
+    torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.2, 0.015), headbandMat).translateY(1.38).translateZ(-0.2).rotateX(0.2));
+
+    // Eyes
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    for (let s = -1; s <= 1; s += 2) {
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), eyeWhiteMat).translateX(s * 0.08).translateY(1.38).translateZ(0.19));
+        torsoPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.022, 4, 4), eyeMat).translateX(s * 0.08).translateY(1.38).translateZ(0.225));
+    }
+    // Nose + mouth
+    torsoPivot.add(new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.05, 4), skinMat).translateY(1.32).translateZ(0.2).rotateX(Math.PI * 0.6));
+    torsoPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.01), new THREE.MeshBasicMaterial({ color: '#cc9988' })).translateY(1.26).translateZ(0.19));
+    // Ears
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), skinMat);
+        ear.position.set(s * 0.2, 1.36, 0); ear.scale.set(0.6, 1, 0.6); torsoPivot.add(ear);
+    }
+
+    // Arms
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.38, 0.8, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), jacketMat));
+    rightArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.42, 5), jacketMat).translateY(-0.26));
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
+    rightArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.38, 5), skinMat).translateY(-0.72));
+    rightArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.05), skinMat).translateY(-0.94).translateZ(0.02));
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.38, 0.8, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), jacketMat));
+    leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.42, 5), jacketMat).translateY(-0.26));
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
+    leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.38, 5), skinMat).translateY(-0.72));
+    leftArmPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.05), skinMat).translateY(-0.94).translateZ(0.02));
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // Legs
+    for (let s = -1; s <= 1; s += 2) {
+        const leg = new THREE.Group();
+        leg.position.set(s * 0.1, 0.65, 0);
+        leg.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat));
+        leg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.45, 5), pantsMat).translateY(-0.28));
+        leg.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), pantsMat).translateY(-0.52));
+        leg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.42, 5), pantsMat).translateY(-0.75));
+        leg.add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 0.16), shoeMat).translateY(-0.98).translateZ(0.03));
+        pm.add(leg);
+        if (s === 1) pm._rightLeg = leg; else pm._leftLeg = leg;
+    }
+
+    // Belt
+    pm.add(new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.22, 0.05, 8), new THREE.MeshStandardMaterial({ color: '#333', roughness: 0.5 })).translateY(0.63));
+
+    // Ice aura
+    const aura = new THREE.PointLight('#42a5f5', 0.5, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isHorohoro = true;
+    pm._isSukuna = true; // reuse Sukuna's walk animation
+
+    return pm;
+}
+
+// ─── HOROHORO OVERSOUL (Q key — permanent, two big ice fists) ──
+function horohoroOversoul() {
+    if (!player || !player.alive || player._horoOversoulsActive) return;
+    player._horoOversoulsActive = true;
+
+    const pm = fpsCamera.playerModel;
+    if (!pm) return;
+    const wpx = fpsCamera.posX * TILE, wpz = fpsCamera.posZ * TILE;
+    const fly = fpsCamera.flyHeight || 0;
+
+    // Transformation VFX
+    screenFlash('rgba(66,165,245,0.6)', 1000);
+    screenShake(0.6, 800);
+    triggerHitstop(80);
+    fovPunch(18, 0.35);
+    player.invincible = performance.now() + 2000;
+
+    emitParticles(wpx, EYE_HEIGHT + fly, wpz, {
+        color: ['#42a5f5', '#90caf9', '#ffffff', '#e3f2fd'],
+        count: 60, speed: 5, spread: 2,
+        gravity: 0, life: 25, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 6
+    });
+    groundRing(wpx, wpz, '#42a5f5', 5, 1000);
+    groundRing(wpx, wpz, '#ffffff', 4, 1200);
+    lightFlash(wpx, EYE_HEIGHT, wpz, '#42a5f5', 10, 600);
+
+    // Damage buff
+    player.damage = Math.round(player.damage * 2.5);
+    player.speed *= 1.2;
+    fpsCamera.speed = player.speed;
+    player.hp = Math.min(player.hp + 30, player.maxHp);
+
+    // Materials
+    const iceMat = new THREE.MeshStandardMaterial({ color: '#90caf9', roughness: 0.2, metalness: 0.3 });
+    const iceDeepMat = new THREE.MeshStandardMaterial({ color: '#42a5f5', roughness: 0.3, metalness: 0.4 });
+    const iceDarkMat = new THREE.MeshStandardMaterial({ color: '#1565c0', roughness: 0.4, metalness: 0.3 });
+    const whiteMat = new THREE.MeshStandardMaterial({ color: '#e3f2fd', roughness: 0.2, metalness: 0.2 });
+    const ghostMat = new THREE.MeshBasicMaterial({ color: '#42a5f5', transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false });
+
+    // Build a single fist arm
+    function buildIceFist() {
+        const ag = new THREE.Group();
+        // Shoulder
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 0.9), iceMat).translateY(1.3));
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.07, 0.95), iceDeepMat).translateY(1.75));
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.07, 0.95), iceDeepMat).translateY(0.85));
+        // Elbow
+        ag.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), iceDarkMat).translateY(0.15));
+        // Forearm
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.7), iceMat).translateY(-1.1));
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.06, 0.75), iceDeepMat).translateY(-0.3));
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.06, 0.75), iceDeepMat).translateY(-1.9));
+        // Wrist
+        ag.add(new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), iceDarkMat).translateY(-2.1));
+        // BIG FIST
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.8), iceMat).translateY(-2.7));
+        // Knuckle ridge
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.12, 0.1), whiteMat).translateY(-2.4).translateZ(0.42));
+        // Fingers — thick and chunky
+        for (let f = 0; f < 4; f++) {
+            const finger = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.4, 0.18), iceMat);
+            finger.position.set((f - 1.5) * 0.2, -3.1, 0.18);
+            finger.rotation.x = 0.5;
+            ag.add(finger);
+        }
+        // Thumb
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 0.18), iceMat).translateX(0.5).translateY(-2.75).translateZ(0.2).rotateZ(-0.6));
+        // Glow
+        const light = new THREE.PointLight('#42a5f5', 2, TILE * 5, 2);
+        light.position.y = -1; ag.add(light);
+        // Ghost aura
+        ag.add(new THREE.Mesh(new THREE.CylinderGeometry(1.0, 0.7, 4.5, 8, 1, true), ghostMat).translateY(-0.5));
+        // Energy rings on fist
+        const rings = [];
+        for (let i = 0; i < 4; i++) {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(0.15 + i * 0.02, 0.012, 6, 16),
+                new THREE.MeshBasicMaterial({
+                    color: i % 2 === 0 ? '#42a5f5' : '#ffffff',
+                    transparent: true, opacity: 0.2,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                })
+            );
+            ring.position.y = -2.2 - i * 0.3;
+            ag.add(ring); rings.push(ring);
+        }
+        ag.rotation.x = -Math.PI / 2; // face upward
+        return { group: ag, light, rings };
+    }
+
+    // RIGHT fist oversoul
+    const rightOS = new THREE.Group();
+    rightOS.scale.setScalar(1.545);
+    scene.add(rightOS);
+    const rightFist = buildIceFist();
+    rightOS.add(rightFist.group);
+    rightOS.position.set(wpx + 2.5, fly + 0.3, wpz);
+
+    // LEFT fist oversoul
+    const leftOS = new THREE.Group();
+    leftOS.scale.setScalar(1.545);
+    scene.add(leftOS);
+    const leftFist = buildIceFist();
+    leftFist.group.scale.x = -1; // mirror
+    leftOS.add(leftFist.group);
+    leftOS.position.set(wpx - 2.5, fly + 0.3, wpz);
+
+    // Store refs for follow + M1
+    player._oversoulRight = { oversoul: rightOS, arm: rightFist.group, light: rightFist.light, rings: rightFist.rings };
+    player._oversoulLeft = { oversoul: leftOS, arm: leftFist.group, light: leftFist.light, rings: leftFist.rings };
+    player._oversoulSwinging = false;
+
+    // Store combined data for updateFruitEffects
+    player._horoData = { right: player._oversoulRight, left: player._oversoulLeft };
+
+    // Particles
+    pm._oversoulParticleInt = setInterval(() => {
+        if (!player || !player.alive) return;
+        const ppx = fpsCamera.posX * TILE, ppz = fpsCamera.posZ * TILE;
+        emitParticles(ppx, 1.5, ppz, {
+            color: ['#42a5f5', '#90caf9', '#ffffff', '#e3f2fd'],
+            count: 3, speed: 1.2, spread: 1,
+            gravity: 0, life: 15, size: 0.08, sizeEnd: 0, drag: 0.95, upward: 1.5
+        });
+    }, 150);
+
+    // Boost aura
+    if (pm._auraLight) { pm._auraLight.color.set('#42a5f5'); pm._auraLight.intensity = 2; }
+    pm.add(new THREE.PointLight('#42a5f5', 3, TILE * 5, 2).translateY(1.2));
+}
+
 // ─── TAO REN 3D MODEL ──────────────────────────────────────
 function buildRenModel() {
     const pm = new THREE.Group();
@@ -7405,6 +7667,48 @@ function renOversoulP2() {
     if (pm._auraLight) { pm._auraLight.color.set('#daa520'); pm._auraLight.intensity = 2; }
 }
 
+function horohoroOversoulP2() {
+    if (!player2 || !player2.alive || player2._horoOversoulsActive) return;
+    player2._horoOversoulsActive = true;
+    const pm = fpsCamera2.playerModel;
+    if (!pm) return;
+    const wpx = fpsCamera2.posX * TILE, wpz = fpsCamera2.posZ * TILE;
+    screenShake(0.6, 800); triggerHitstop(80); fovPunch(18, 0.35);
+    screenFlash('rgba(66,165,245,0.6)', 1000);
+    player2.invincible = performance.now() + 2000;
+    player2.damage = Math.round(player2.damage * 2.5);
+    player2.speed *= 1.2; fpsCamera2.speed = player2.speed;
+    player2.hp = Math.min(player2.hp + 30, player2.maxHp);
+    emitParticles(wpx, EYE_HEIGHT, wpz, { color: ['#42a5f5','#90caf9','#ffffff'], count: 60, speed: 5, spread: 2, gravity: 0, life: 25, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 6 });
+    groundRing(wpx, wpz, '#42a5f5', 5, 1000);
+    lightFlash(wpx, EYE_HEIGHT, wpz, '#42a5f5', 10, 600);
+    // Simplified dual fists for P2
+    const iceMat = new THREE.MeshStandardMaterial({ color: '#90caf9', roughness: 0.2, metalness: 0.3 });
+    const iceDeepMat = new THREE.MeshStandardMaterial({ color: '#42a5f5', roughness: 0.3, metalness: 0.4 });
+    const iceDarkMat = new THREE.MeshStandardMaterial({ color: '#1565c0', roughness: 0.4, metalness: 0.3 });
+    function buildP2Fist() {
+        const ag = new THREE.Group();
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.2,0.9,0.9), iceMat).translateY(1.3));
+        ag.add(new THREE.Mesh(new THREE.SphereGeometry(0.4,8,8), iceDarkMat).translateY(0.15));
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.8,1.6,0.7), iceMat).translateY(-1.1));
+        ag.add(new THREE.Mesh(new THREE.SphereGeometry(0.32,8,8), iceDarkMat).translateY(-2.1));
+        ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,0.8), iceMat).translateY(-2.7));
+        for (let f=0;f<4;f++) { ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.18,0.4,0.18), iceMat).translateX((f-1.5)*0.2).translateY(-3.1).translateZ(0.18).rotateX(0.5)); }
+        const l = new THREE.PointLight('#42a5f5', 2, TILE*5, 2); l.position.y=-1; ag.add(l);
+        const rings = [];
+        for (let i=0;i<4;i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.15+i*0.02,0.012,6,16), new THREE.MeshBasicMaterial({ color: i%2===0?'#42a5f5':'#ffffff', transparent:true, opacity:0.2, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide })); r.position.y=-2.2-i*0.3; ag.add(r); rings.push(r); }
+        ag.rotation.x = -Math.PI/2;
+        return { group: ag, light: l, rings };
+    }
+    const rOS = new THREE.Group(); rOS.scale.setScalar(1.545); scene.add(rOS);
+    const rF = buildP2Fist(); rOS.add(rF.group); rOS.position.set(wpx+2.5, 0.3, wpz);
+    const lOS = new THREE.Group(); lOS.scale.setScalar(1.545); scene.add(lOS);
+    const lF = buildP2Fist(); lF.group.scale.x=-1; lOS.add(lF.group); lOS.position.set(wpx-2.5, 0.3, wpz);
+    player2._horoData = { right: { oversoul: rOS, arm: rF.group, light: rF.light, rings: rF.rings }, left: { oversoul: lOS, arm: lF.group, light: lF.light, rings: lF.rings } };
+    player2._oversoulSwinging = false;
+    if (pm._auraLight) { pm._auraLight.color.set('#42a5f5'); pm._auraLight.intensity = 2; }
+}
+
 // ─── PER-FRAME EFFECTS (clean slate) ────────────────────────────
 function updateFruitEffects(now, dt) {
     // ── Yoh oversoul smooth follow (runs every frame) ──
@@ -7503,6 +7807,85 @@ function updateFruitEffects(now, dt) {
         }
         d.bladeGlow.intensity = 2.5 + Math.sin(t * 1.5) * 0.5;
         d.armLight.intensity = 2 + Math.sin(t * 1.2) * 0.4;
+    }
+
+    // ── Horohoro dual fists smooth follow (P1) ──
+    if (player?._horoOversoulsActive && player._horoData) {
+        const t = now * 0.001;
+        const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
+        const fly = fpsCamera.flyHeight || 0;
+        const yaw = fpsCamera.yaw;
+        const lerp = 0.1;
+        const rightX = Math.cos(yaw) * 2.5, rightZ = -Math.sin(yaw) * 2.5;
+        const leftX = -Math.cos(yaw) * 2.5, leftZ = Math.sin(yaw) * 2.5;
+
+        // Right fist
+        const rOS = player._horoData.right.oversoul;
+        rOS.position.x += (px + rightX - rOS.position.x) * lerp;
+        rOS.position.y += (fly + 0.3 + Math.sin(t * 1.2) * 0.1 - rOS.position.y) * lerp;
+        rOS.position.z += (pz + rightZ - rOS.position.z) * lerp;
+        let rDiff = yaw + Math.PI - rOS.rotation.y;
+        while (rDiff > Math.PI) rDiff -= Math.PI * 2; while (rDiff < -Math.PI) rDiff += Math.PI * 2;
+        rOS.rotation.y += rDiff * lerp;
+
+        // Left fist
+        const lOS = player._horoData.left.oversoul;
+        lOS.position.x += (px + leftX - lOS.position.x) * lerp;
+        lOS.position.y += (fly + 0.3 + Math.sin(t * 1.2 + 1) * 0.1 - lOS.position.y) * lerp;
+        lOS.position.z += (pz + leftZ - lOS.position.z) * lerp;
+        let lDiff = yaw + Math.PI - lOS.rotation.y;
+        while (lDiff > Math.PI) lDiff -= Math.PI * 2; while (lDiff < -Math.PI) lDiff += Math.PI * 2;
+        lOS.rotation.y += lDiff * lerp;
+
+        // Idle sway + energy rings for both
+        for (const side of [player._horoData.right, player._horoData.left]) {
+            if (!player._oversoulSwinging) {
+                const baseX = -Math.PI / 2;
+                side.arm.rotation.x += (baseX + Math.sin(t * 0.8) * 0.04 - side.arm.rotation.x) * 0.08;
+                side.arm.rotation.z += (Math.sin(t * 0.6) * 0.02 - side.arm.rotation.z) * 0.08;
+            }
+            for (let i = 0; i < side.rings.length; i++) {
+                const r = side.rings[i];
+                r.rotation.x = Math.sin(t * 1.5 + i * 1.2) * 0.6;
+                r.rotation.z = Math.cos(t * 1.0 + i * 0.9) * 0.6;
+                r.rotation.y += 0.015 * dt * 60;
+                r.material.opacity = (i % 2 === 0 ? 0.18 : 0.12) + Math.sin(t * 1.2 + i) * 0.06;
+            }
+            side.light.intensity = 2 + Math.sin(t * 1.2) * 0.4;
+        }
+    }
+
+    // ── Horohoro dual fists smooth follow (P2) ──
+    if (player2?._horoOversoulsActive && player2._horoData) {
+        const t = now * 0.001;
+        const px = fpsCamera2.posX * TILE, pz = fpsCamera2.posZ * TILE;
+        const fly = fpsCamera2.flyHeight || 0;
+        const yaw = fpsCamera2.yaw;
+        const lerp = 0.1;
+        const rightX = Math.cos(yaw) * 2.5, rightZ = -Math.sin(yaw) * 2.5;
+        const leftX = -Math.cos(yaw) * 2.5, leftZ = Math.sin(yaw) * 2.5;
+        const rOS = player2._horoData.right.oversoul;
+        rOS.position.x += (px + rightX - rOS.position.x) * lerp;
+        rOS.position.y += (fly + 0.3 + Math.sin(t * 1.2) * 0.1 - rOS.position.y) * lerp;
+        rOS.position.z += (pz + rightZ - rOS.position.z) * lerp;
+        let rDiff = yaw + Math.PI - rOS.rotation.y;
+        while (rDiff > Math.PI) rDiff -= Math.PI * 2; while (rDiff < -Math.PI) rDiff += Math.PI * 2;
+        rOS.rotation.y += rDiff * lerp;
+        const lOS = player2._horoData.left.oversoul;
+        lOS.position.x += (px + leftX - lOS.position.x) * lerp;
+        lOS.position.y += (fly + 0.3 + Math.sin(t * 1.2 + 1) * 0.1 - lOS.position.y) * lerp;
+        lOS.position.z += (pz + leftZ - lOS.position.z) * lerp;
+        let lDiff = yaw + Math.PI - lOS.rotation.y;
+        while (lDiff > Math.PI) lDiff -= Math.PI * 2; while (lDiff < -Math.PI) lDiff += Math.PI * 2;
+        lOS.rotation.y += lDiff * lerp;
+        for (const side of [player2._horoData.right, player2._horoData.left]) {
+            if (!player2._oversoulSwinging) {
+                side.arm.rotation.x += (-Math.PI/2 + Math.sin(t*0.8)*0.04 - side.arm.rotation.x) * 0.08;
+                side.arm.rotation.z += (Math.sin(t*0.6)*0.02 - side.arm.rotation.z) * 0.08;
+            }
+            for (let i=0;i<side.rings.length;i++) { const r=side.rings[i]; r.rotation.x=Math.sin(t*1.5+i*1.2)*0.6; r.rotation.z=Math.cos(t*1.0+i*0.9)*0.6; r.rotation.y+=0.015*dt*60; r.material.opacity=(i%2===0?0.18:0.12)+Math.sin(t*1.2+i)*0.06; }
+            side.light.intensity = 2 + Math.sin(t*1.2)*0.4;
+        }
     }
 }
 

@@ -59,4 +59,11 @@ export const CLASSES = {
         abilities: { z: 'Rapid Tempo Assault', x: 'Eleki Bang', c: 'Heaven Shaking Thunder', v: 'Golden Thunder', f: 'Thunder Dash' },
         abilityCooldowns: { z: 3000, x: 4500, c: 9000, v: 20000, f: 2500 }
     },
+    horohoro: {
+        name: 'Horohoro', type: 'shaman', maxHp: 135, speed: 3.5, attackRange: 38,
+        attackDamage: 15, attackSpeed: 230, attackType: 'melee', color: '#42a5f5',
+        specialCooldown: 4000, specialName: 'Spirit of Ice', weaponType: 'fist',
+        abilities: {},
+        abilityCooldowns: {}
+    },
 };
