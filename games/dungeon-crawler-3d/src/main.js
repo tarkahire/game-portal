@@ -3540,7 +3540,8 @@ function playerAttack() {
     const isToji = player.classId === 'toji';
     const isBrook = player.classId === 'brook';
     const isDenji = player.classId === 'denji';
-    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji;
+    const isYoh = player.classId === 'yoh' && player._yohOversoulsActive;
+    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh;
     // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
     const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
     const isFinisher = player._comboStep === 3;
@@ -3601,6 +3602,47 @@ function playerAttack() {
             count: 8, speed: 5, spread: 0.8,
             gravity: -8, life: 6, size: 0.05, sizeEnd: 0, drag: 0.95
         });
+    } else if (isYoh && player._oversoulArm) {
+        // Spirit arm swings the giant katana
+        spawnMeleeSlash('#ffffff');
+        player._oversoulSwinging = true;
+        const arm = player._oversoulArm;
+        const sword = player._oversoulSword;
+        const swingDir = (player._comboStep % 2 === 0) ? 1 : -1;
+        const startTime = performance.now();
+        const swingDur = 200, returnDur = 250;
+
+        // Spirit slash particles at hit point
+        emitParticles(hitX, hitY, hitZ, {
+            color: ['#ffffff', '#9c27b0', '#e0e0e0', '#ff9800'],
+            count: 12, speed: 4, spread: 1,
+            gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
+        });
+
+        const animateSwing = () => {
+            const elapsed = performance.now() - startTime;
+            if (elapsed < swingDur) {
+                // Swing phase — arm rotates forward and sword sweeps
+                const t = elapsed / swingDur;
+                arm.rotation.x = -1.2 * t;
+                arm.rotation.z = swingDir * 0.6 * t;
+                sword.rotation.z = swingDir * 0.4 * t;
+            } else if (elapsed < swingDur + returnDur) {
+                // Return phase — ease back to idle
+                const t = (elapsed - swingDur) / returnDur;
+                arm.rotation.x = -1.2 * (1 - t);
+                arm.rotation.z = swingDir * 0.6 * (1 - t);
+                sword.rotation.z = swingDir * 0.4 * (1 - t);
+            } else {
+                arm.rotation.x = 0;
+                arm.rotation.z = 0;
+                sword.rotation.z = 0;
+                player._oversoulSwinging = false;
+                return;
+            }
+            requestAnimationFrame(animateSwing);
+        };
+        requestAnimationFrame(animateSwing);
     } else {
         spawnMeleeSlash(player.cls.color);
     }
@@ -3648,7 +3690,7 @@ function p2Attack() {
     const yaw = fpsCamera2.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const range = 3.0;
-    const hasWeap = ['sukuna','toji','brook','denji'].includes(player2.classId);
+    const hasWeap = ['sukuna','toji','brook','denji','yoh'].includes(player2.classId) && (player2.classId !== 'yoh' || player2._yohOversoulsActive);
     const dmg = hasWeap ? Math.round(player2.damage * step.dmgMult * 0.25) : Math.round(player2.damage * step.dmgMult);
     const isFinisher = player2._comboStep === 3;
 
@@ -5883,30 +5925,38 @@ function yohOversoul() {
 
     oversoul.add(swordGroup);
 
-    // Position the whole oversoul to the right side, floating
-    armGroup.rotation.z = -0.2; // arm tilted slightly outward
-    oversoul.position.set(worldPx + 3, fly + 3, worldPz); // float above and to the side
+    // Position: hover next to Yoh's right side, facing forward with him
+    oversoul.position.set(worldPx + 2, fly + 0.3, worldPz);
 
-    // ── Animate: float, bob, orbit around player, spin energy rings ──
+    // Store reference for M1 slash animation
+    player._oversoulArm = armGroup;
+    player._oversoulSword = swordGroup;
+    player._oversoulGroup = oversoul;
+    player._oversoulSwinging = false;
+
+    // ── Follow player, face same direction, gentle hover bob ──
     pm._oversoulOrbitInt = setInterval(() => {
         if (!player || !player.alive) return;
         const t = performance.now() * 0.001;
         const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
         const fly = fpsCamera.flyHeight || 0;
+        const yaw = fpsCamera.yaw;
 
-        // Orbit around player at radius 3, floating at height 2.5
-        const orbitR = 3;
-        const orbitX = px + Math.sin(t * 0.5) * orbitR;
-        const orbitZ = pz + Math.cos(t * 0.5) * orbitR;
-        const bobY = fly + 2.5 + Math.sin(t * 1.2) * 0.4;
-        oversoul.position.set(orbitX, bobY, orbitZ);
+        // Hover to the right side of the player, offset by ~2.5 units
+        const rightX = Math.cos(yaw) * 2.5;
+        const rightZ = -Math.sin(yaw) * 2.5;
+        const bobY = fly + 0.3 + Math.sin(t * 1.5) * 0.15;
+        oversoul.position.set(px + rightX, bobY, pz + rightZ);
 
-        // Rotate arm to always face outward from player
-        oversoul.rotation.y = t * 0.5 + Math.PI;
+        // Face the same direction as the player
+        oversoul.rotation.y = yaw + Math.PI;
 
-        // Gentle tilt wobble
-        armGroup.rotation.x = Math.sin(t * 0.8) * 0.1;
-        armGroup.rotation.z = -0.2 + Math.sin(t * 0.6) * 0.05;
+        // Gentle idle sway when not swinging
+        if (!player._oversoulSwinging) {
+            armGroup.rotation.x = Math.sin(t * 0.8) * 0.05;
+            armGroup.rotation.z = Math.sin(t * 0.6) * 0.03;
+            swordGroup.rotation.z = Math.sin(t * 0.7) * 0.02;
+        }
 
         // Spin energy rings
         for (let i = 0; i < swordRings.length; i++) {
