@@ -224,6 +224,7 @@ function init() {
                 if (e.code === 'Slash') p2Ability('v');
                 if (e.code === 'KeyN') p2Ability('f');
                 if (e.code === 'Numpad0') p2Dodge();
+                if (e.code === 'Digit4') { if (player2.classId === 'yoh') yohOversoulP2(); else if (player2.classId === 'ren') renOversoulP2(); }
             }
         }
     });
@@ -6858,6 +6859,101 @@ function yohOversoul() {
     // No FPS viewmodel sword — the floating spirit arm IS the weapon, visible in both 1st and 3rd person
 }
 
+// ─── P2 OVERSOUL FUNCTIONS (mirror P1 but for player2/fpsCamera2) ──
+function yohOversoulP2() {
+    if (!player2 || !player2.alive || player2._yohOversoulsActive) return;
+    player2._yohOversoulsActive = true;
+    const pm = fpsCamera2.playerModel;
+    if (!pm) return;
+    const wpx = fpsCamera2.posX * TILE, wpz = fpsCamera2.posZ * TILE;
+    screenShake(0.6, 800); triggerHitstop(80); fovPunch(18, 0.35);
+    screenFlash('rgba(255,152,0,0.6)', 1000);
+    player2.invincible = performance.now() + 2000;
+    player2.damage = Math.round(player2.damage * 2.5);
+    player2.speed *= 1.2; fpsCamera2.speed = player2.speed;
+    player2.hp = Math.min(player2.hp + 30, player2.maxHp);
+    emitParticles(wpx, EYE_HEIGHT, wpz, { color: ['#ffffff','#ff9800','#9c27b0'], count: 60, speed: 5, spread: 2, gravity: 0, life: 25, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 6 });
+    groundRing(wpx, wpz, '#ff9800', 5, 1000);
+    lightFlash(wpx, EYE_HEIGHT, wpz, '#ffffff', 10, 600);
+    // Reuse Yoh's oversoul builder logic — attach to P2
+    const whiteMat = new THREE.MeshStandardMaterial({ color: '#e8e0e0', roughness: 0.3, metalness: 0.4 });
+    const purpleMat = new THREE.MeshStandardMaterial({ color: '#7b1fa2', roughness: 0.4, metalness: 0.3 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.6 });
+    const bladeWhiteMat = new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.8, roughness: 0.1 });
+    const ghostMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false });
+    const os = new THREE.Group(); os.scale.setScalar(1.545); scene.add(os);
+    const ag = new THREE.Group();
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.4,1,1), whiteMat).translateY(1.5));
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.45,0.08,1.05), purpleMat).translateY(2));
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.45,0.08,1.05), purpleMat).translateY(1));
+    ag.add(new THREE.Mesh(new THREE.SphereGeometry(0.45,8,8), purpleMat).translateY(0.2));
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.9,1.8,0.8), whiteMat).translateY(-1.2));
+    ag.add(new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8), purpleMat).translateY(-2.3));
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.8,0.6,0.7), whiteMat).translateY(-2.8));
+    const al = new THREE.PointLight('#ffffff', 2, TILE*6, 2); al.position.y = -1; ag.add(al);
+    os.add(ag);
+    const sg = new THREE.Group(); sg.position.set(0,-3.2,0.3); sg.rotation.x = Math.PI/2;
+    sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.8,6), darkMat));
+    sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,0.04,8), whiteMat).translateY(0.44));
+    const bg2 = new THREE.BoxGeometry(0.14,5,0.025);
+    sg.add(new THREE.Mesh(bg2, bladeWhiteMat).translateY(3));
+    sg.add(new THREE.Mesh(new THREE.ConeGeometry(0.075,0.3,4), bladeWhiteMat).translateY(5.55));
+    const sr = [];
+    for (let i=0;i<7;i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.2+i*0.02,0.015,6,20), new THREE.MeshBasicMaterial({ color: i%2===0?'#9c27b0':'#ffffff', transparent:true, opacity:0.18, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide })); r.position.y=1.2+i*0.7; sg.add(r); sr.push(r); }
+    const bgl = new THREE.PointLight('#9c27b0', 2.5, TILE*5, 2); bgl.position.y=3; sg.add(bgl);
+    ag.add(sg); ag.rotation.x = -Math.PI/2;
+    os.position.set(wpx+2, 0.3, wpz);
+    player2._oversoulArm = ag; player2._oversoulSword = sg; player2._oversoulGroup = os; player2._oversoulSwinging = false;
+    player2._oversoulData = { oversoul: os, armGroup: ag, swordGroup: sg, swordRings: sr, bladeGlow: bgl, armLight: al, cam: fpsCamera2 };
+    if (pm._auraLight) { pm._auraLight.color.set('#ffffff'); pm._auraLight.intensity = 2; }
+}
+
+function renOversoulP2() {
+    if (!player2 || !player2.alive || player2._renOversoulsActive) return;
+    player2._renOversoulsActive = true;
+    const pm = fpsCamera2.playerModel;
+    if (!pm) return;
+    const wpx = fpsCamera2.posX * TILE, wpz = fpsCamera2.posZ * TILE;
+    screenShake(0.6, 800); triggerHitstop(80); fovPunch(18, 0.35);
+    screenFlash('rgba(156,39,176,0.6)', 1000);
+    player2.invincible = performance.now() + 2000;
+    player2.damage = Math.round(player2.damage * 2.5);
+    player2.speed *= 1.2; fpsCamera2.speed = player2.speed;
+    player2.hp = Math.min(player2.hp + 30, player2.maxHp);
+    emitParticles(wpx, EYE_HEIGHT, wpz, { color: ['#9c27b0','#daa520','#ffffff'], count: 60, speed: 5, spread: 2, gravity: 0, life: 25, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 6 });
+    groundRing(wpx, wpz, '#daa520', 5, 1000);
+    lightFlash(wpx, EYE_HEIGHT, wpz, '#daa520', 10, 600);
+    const goldMat = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.3, metalness: 0.6 });
+    const redMat = new THREE.MeshStandardMaterial({ color: '#8b1a1a', roughness: 0.4, metalness: 0.3 });
+    const darkGoldMat = new THREE.MeshStandardMaterial({ color: '#8b6914', roughness: 0.4, metalness: 0.5 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.6 });
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#c0c0c0', metalness: 0.85, roughness: 0.1 });
+    const os = new THREE.Group(); os.scale.setScalar(1.545); scene.add(os);
+    const ag = new THREE.Group();
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.3,1,1), goldMat).translateY(1.5));
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.35,0.08,1.05), redMat).translateY(2));
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(1.35,0.08,1.05), redMat).translateY(1));
+    ag.add(new THREE.Mesh(new THREE.SphereGeometry(0.45,8,8), darkGoldMat).translateY(0.2));
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.9,1.8,0.8), goldMat).translateY(-1.2));
+    ag.add(new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8), darkGoldMat).translateY(-2.3));
+    ag.add(new THREE.Mesh(new THREE.BoxGeometry(0.8,0.6,0.7), goldMat).translateY(-2.8));
+    const al = new THREE.PointLight('#daa520', 2, TILE*6, 2); al.position.y = -1; ag.add(al);
+    os.add(ag);
+    const wg = new THREE.Group(); wg.position.set(0,-3.2,0.3); wg.rotation.x = Math.PI/2;
+    wg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,5,6), darkMat).translateY(2));
+    wg.add(new THREE.Mesh(new THREE.BoxGeometry(0.2,1.2,0.02), bladeMat).translateY(5));
+    wg.add(new THREE.Mesh(new THREE.ConeGeometry(0.12,0.2,4), bladeMat).translateY(5.65));
+    wg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.01,0.4,4), redMat).translateY(4.2));
+    const wr = [];
+    for (let i=0;i<7;i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.2+i*0.02,0.015,6,20), new THREE.MeshBasicMaterial({ color: i%2===0?'#daa520':'#9c27b0', transparent:true, opacity:0.18, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide })); r.position.y=1.2+i*0.7; wg.add(r); wr.push(r); }
+    const bgl = new THREE.PointLight('#daa520', 2.5, TILE*5, 2); bgl.position.y=5; wg.add(bgl);
+    ag.add(wg); ag.rotation.x = -Math.PI/2;
+    os.position.set(wpx+2, 0.3, wpz);
+    player2._oversoulArm = ag; player2._oversoulSword = wg; player2._oversoulGroup = os; player2._oversoulSwinging = false;
+    player2._oversoulData = { oversoul: os, armGroup: ag, swordGroup: wg, swordRings: wr, bladeGlow: bgl, armLight: al, cam: fpsCamera2 };
+    if (pm._auraLight) { pm._auraLight.color.set('#daa520'); pm._auraLight.intensity = 2; }
+}
+
 // ─── PER-FRAME EFFECTS (clean slate) ────────────────────────────
 function updateFruitEffects(now, dt) {
     // ── Yoh oversoul smooth follow (runs every frame) ──
@@ -6921,6 +7017,41 @@ function updateFruitEffects(now, dt) {
             const targetRx = 0.3 + Math.sin(t * 1.0 + 1) * 0.07;
             cb.rotation.x += (targetRx - cb.rotation.x) * 0.08;
         }
+    }
+
+    // ── P2 oversoul smooth follow ──
+    if ((player2?._yohOversoulsActive || player2?._renOversoulsActive) && player2._oversoulData) {
+        const d = player2._oversoulData;
+        const t = now * 0.001;
+        const cam = fpsCamera2;
+        const px = cam.posX * TILE, pz = cam.posZ * TILE;
+        const fly = cam.flyHeight || 0;
+        const yaw = cam.yaw;
+        const rightX = Math.cos(yaw) * 2.5, rightZ = -Math.sin(yaw) * 2.5;
+        const lerp = 0.1;
+        d.oversoul.position.x += (px + rightX - d.oversoul.position.x) * lerp;
+        d.oversoul.position.y += (fly + 0.3 + Math.sin(t * 1.2) * 0.1 - d.oversoul.position.y) * lerp;
+        d.oversoul.position.z += (pz + rightZ - d.oversoul.position.z) * lerp;
+        let targetYaw = yaw + Math.PI;
+        let diff = targetYaw - d.oversoul.rotation.y;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        d.oversoul.rotation.y += diff * lerp;
+        if (!player2._oversoulSwinging) {
+            const baseX = -Math.PI / 2;
+            d.armGroup.rotation.x += (baseX + Math.sin(t * 0.8) * 0.04 - d.armGroup.rotation.x) * 0.08;
+            d.armGroup.rotation.z += (Math.sin(t * 0.6) * 0.02 - d.armGroup.rotation.z) * 0.08;
+            d.swordGroup.rotation.z += (Math.sin(t * 0.7) * 0.015 - d.swordGroup.rotation.z) * 0.08;
+        }
+        for (let i = 0; i < d.swordRings.length; i++) {
+            const r = d.swordRings[i];
+            r.rotation.x = Math.sin(t * 1.5 + i * 1.2) * 0.6;
+            r.rotation.z = Math.cos(t * 1.0 + i * 0.9) * 0.6;
+            r.rotation.y += 0.015 * dt * 60;
+            r.material.opacity = (i % 2 === 0 ? 0.18 : 0.12) + Math.sin(t * 1.2 + i) * 0.06;
+        }
+        d.bladeGlow.intensity = 2.5 + Math.sin(t * 1.5) * 0.5;
+        d.armLight.intensity = 2 + Math.sin(t * 1.2) * 0.4;
     }
 }
 
