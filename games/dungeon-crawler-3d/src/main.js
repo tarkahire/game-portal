@@ -3603,20 +3603,72 @@ function playerAttack() {
             gravity: -8, life: 6, size: 0.05, sizeEnd: 0, drag: 0.95
         });
     } else if (isYoh && player._oversoulArm) {
-        // Spirit arm swings the giant katana
-        spawnMeleeSlash('#ffffff');
+        // Spirit arm swings the giant katana with big slash trails
         player._oversoulSwinging = true;
         const arm = player._oversoulArm;
         const sword = player._oversoulSword;
         const swingDir = (player._comboStep % 2 === 0) ? 1 : -1;
         const startTime = performance.now();
         const swingDur = 400, returnDur = 350;
+        const comboHit = player._comboStep;
 
-        // Spirit slash particles at hit point
+        // Spawn multiple big slash arcs during the swing for a proper sword trail
+        const slashColors = ['#ffffff', '#e0d0ff', '#9c27b0'];
+        const yawVal = fpsCamera.yaw;
+        const slashFwdX = -Math.sin(yawVal), slashFwdZ = -Math.cos(yawVal);
+        const oversoulPos = player._oversoulGroup.position;
+
+        for (let s = 0; s < 5; s++) {
+            setTimeout(() => {
+                // Position slash arcs at the oversoul sword tip area
+                const swingT = s / 4;
+                const perpX = Math.cos(yawVal), perpZ = -Math.sin(yawVal);
+                const sideOffset = swingDir * (-1.5 + swingT * 3.0); // arc from one side to the other
+                const sx = oversoulPos.x + slashFwdX * 3 + perpX * sideOffset;
+                const sy = oversoulPos.y + 2 - swingT * 1.5; // slight downward arc
+                const sz = oversoulPos.z + slashFwdZ * 3 + perpZ * sideOffset;
+
+                // Big slash arc mesh — curved plane
+                const arcGeo = new THREE.PlaneGeometry(3.5, 0.15);
+                const arcMat = new THREE.MeshBasicMaterial({
+                    color: slashColors[s % 3], transparent: true, opacity: 0.8,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                });
+                const arc = new THREE.Mesh(arcGeo, arcMat);
+                arc.position.set(sx, sy, sz);
+                // Rotate to face camera direction and tilt with the slash angle
+                arc.rotation.set(
+                    -0.3 + swingT * 0.4,
+                    yawVal + Math.PI / 2,
+                    swingDir * (-0.6 + swingT * 1.2)
+                );
+                scene.add(arc);
+
+                // Fade and expand the slash trail
+                const fadeStart = performance.now();
+                const fadeSlash = () => {
+                    const ft = (performance.now() - fadeStart) / 350;
+                    if (ft >= 1) { scene.remove(arc); arc.geometry.dispose(); arc.material.dispose(); return; }
+                    arcMat.opacity = (1 - ft) * 0.8;
+                    arc.scale.set(1 + ft * 0.5, 1 + ft * 3, 1);
+                    requestAnimationFrame(fadeSlash);
+                };
+                requestAnimationFrame(fadeSlash);
+
+                // Sparks along the slash
+                emitParticles(sx, sy, sz, {
+                    color: ['#ffffff', '#9c27b0', '#e0d0ff'],
+                    count: 4, speed: 3, spread: 0.8,
+                    gravity: 0, life: 8, size: 0.06, sizeEnd: 0, drag: 0.94
+                });
+            }, s * 70); // stagger throughout the swing
+        }
+
+        // Big impact particles at hit point
         emitParticles(hitX, hitY, hitZ, {
             color: ['#ffffff', '#9c27b0', '#e0e0e0', '#ff9800'],
-            count: 12, speed: 4, spread: 1,
-            gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
+            count: 15, speed: 5, spread: 1.5,
+            gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.93
         });
 
         const baseX = -Math.PI / 2; // upward-facing rest rotation
