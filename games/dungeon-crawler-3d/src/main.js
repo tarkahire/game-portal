@@ -3629,46 +3629,46 @@ function playerAttack() {
             if (elapsed < windUpDur) {
                 const t = easeOut(elapsed / windUpDur);
                 if (comboHit === 0) {
-                    // Low sweep from left — wind up high-left
-                    arm.rotation.x = baseX - 0.2 * t;
+                    // Low sweep from left — wind up to the side, arm angled down
+                    arm.rotation.x = baseX + 0.5 * t;
                     arm.rotation.y = swingDir * -0.9 * t;
-                    arm.rotation.z = swingDir * 0.4 * t;
-                } else if (comboHit === 1) {
-                    // Low sweep from right — wind up high-right
-                    arm.rotation.x = baseX - 0.2 * t;
-                    arm.rotation.y = -swingDir * -0.9 * t;
-                    arm.rotation.z = -swingDir * 0.4 * t;
-                } else if (comboHit === 2) {
-                    // Wide horizontal low sweep — wind up far left
-                    arm.rotation.x = baseX + 0.6 * t;
-                    arm.rotation.y = swingDir * -1.0 * t;
                     arm.rotation.z = swingDir * 0.5 * t;
+                } else if (comboHit === 1) {
+                    // Low sweep from right — mirror, arm angled down
+                    arm.rotation.x = baseX + 0.5 * t;
+                    arm.rotation.y = -swingDir * -0.9 * t;
+                    arm.rotation.z = -swingDir * 0.5 * t;
+                } else if (comboHit === 2) {
+                    // Wide low sweep — arm drops low to one side
+                    arm.rotation.x = baseX + 0.9 * t;
+                    arm.rotation.y = swingDir * -1.0 * t;
+                    arm.rotation.z = swingDir * 0.6 * t;
                 } else {
-                    // Finisher — big overhead wind-up
-                    arm.rotation.x = baseX - 0.5 * t;
+                    // Finisher — wind up slightly then slam
+                    arm.rotation.x = baseX - 0.3 * t;
                     arm.rotation.y = 0;
                     arm.rotation.z = swingDir * 0.2 * t;
                 }
             } else if (elapsed < windUpDur + swingDur) {
                 const t = easeOut((elapsed - windUpDur) / swingDur);
                 if (comboHit === 0) {
-                    // Low sweep left to right — blade stays low, sweeps across
-                    arm.rotation.x = baseX - 0.2 + 0.8 * t;
+                    // Low sweep left to right — blade drags low across
+                    arm.rotation.x = baseX + 0.5 + 0.5 * t;
                     arm.rotation.y = swingDir * (-0.9 + 2.0 * t);
-                    arm.rotation.z = swingDir * (0.4 - 0.8 * t);
-                } else if (comboHit === 1) {
-                    // Low sweep right to left — mirror
-                    arm.rotation.x = baseX - 0.2 + 0.8 * t;
-                    arm.rotation.y = -swingDir * (-0.9 + 2.0 * t);
-                    arm.rotation.z = -swingDir * (0.4 - 0.8 * t);
-                } else if (comboHit === 2) {
-                    // Wide horizontal low sweep — big arc across
-                    arm.rotation.x = baseX + 0.6 - 0.3 * t;
-                    arm.rotation.y = swingDir * (-1.0 + 2.2 * t);
                     arm.rotation.z = swingDir * (0.5 - 1.0 * t);
+                } else if (comboHit === 1) {
+                    // Low sweep right to left — mirror, blade low
+                    arm.rotation.x = baseX + 0.5 + 0.5 * t;
+                    arm.rotation.y = -swingDir * (-0.9 + 2.0 * t);
+                    arm.rotation.z = -swingDir * (0.5 - 1.0 * t);
+                } else if (comboHit === 2) {
+                    // Wide low sweep — big arc staying low
+                    arm.rotation.x = baseX + 0.9 + 0.2 * t;
+                    arm.rotation.y = swingDir * (-1.0 + 2.4 * t);
+                    arm.rotation.z = swingDir * (0.6 - 1.2 * t);
                 } else {
-                    // Finisher — slam down hard from overhead
-                    arm.rotation.x = baseX - 0.5 + 1.4 * t;
+                    // Finisher — slam down hard
+                    arm.rotation.x = baseX - 0.3 + 1.8 * t;
                     arm.rotation.y = swingDir * 0.6 * t;
                     arm.rotation.z = swingDir * (0.2 - 0.4 * t);
                 }
