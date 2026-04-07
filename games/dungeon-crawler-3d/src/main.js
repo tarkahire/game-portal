@@ -3619,22 +3619,23 @@ function playerAttack() {
             gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
         });
 
+        const baseX = -Math.PI / 2; // upward-facing rest rotation
         const animateSwing = () => {
             const elapsed = performance.now() - startTime;
             if (elapsed < swingDur) {
-                // Swing phase — arm rotates forward and sword sweeps
+                // Swing phase — arm swings down from upward position
                 const t = elapsed / swingDur;
-                arm.rotation.x = -1.2 * t;
+                arm.rotation.x = baseX + 1.2 * t;
                 arm.rotation.z = swingDir * 0.6 * t;
                 sword.rotation.z = swingDir * 0.4 * t;
             } else if (elapsed < swingDur + returnDur) {
-                // Return phase — ease back to idle
+                // Return phase — ease back to upward
                 const t = (elapsed - swingDur) / returnDur;
-                arm.rotation.x = -1.2 * (1 - t);
+                arm.rotation.x = baseX + 1.2 * (1 - t);
                 arm.rotation.z = swingDir * 0.6 * (1 - t);
                 sword.rotation.z = swingDir * 0.4 * (1 - t);
             } else {
-                arm.rotation.x = 0;
+                arm.rotation.x = baseX;
                 arm.rotation.z = 0;
                 sword.rotation.z = 0;
                 player._oversoulSwinging = false;
@@ -5925,6 +5926,9 @@ function yohOversoul() {
 
     oversoul.add(swordGroup);
 
+    // Rotate arm 90 degrees up so it faces upward
+    armGroup.rotation.x = -Math.PI / 2;
+
     // Position: hover next to Yoh's right side, facing forward with him
     oversoul.position.set(worldPx + 2, fly + 0.3, worldPz);
 
@@ -5951,9 +5955,9 @@ function yohOversoul() {
         // Face the same direction as the player
         oversoul.rotation.y = yaw + Math.PI;
 
-        // Gentle idle sway when not swinging
+        // Gentle idle sway when not swinging (base is -PI/2 = facing up)
         if (!player._oversoulSwinging) {
-            armGroup.rotation.x = Math.sin(t * 0.8) * 0.05;
+            armGroup.rotation.x = -Math.PI / 2 + Math.sin(t * 0.8) * 0.05;
             armGroup.rotation.z = Math.sin(t * 0.6) * 0.03;
             swordGroup.rotation.z = Math.sin(t * 0.7) * 0.02;
         }
