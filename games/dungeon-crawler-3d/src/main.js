@@ -6614,6 +6614,224 @@ function fruitAbility(slot) {
         }
     }
 
+    // ══════ HOROHORO ══════
+    if (id === 'horohoro') {
+        if (slot === 'z') {
+            // ── FIST SLAM — jump up, both fists slam down, ice spikes erupt in 15-tile radius ──
+            const fly = fpsCamera.flyHeight || 0;
+            triggerHitstop(200);
+            fovPunch(35, 0.5);
+            screenFlash('rgba(66,165,245,0.7)', 1000);
+            player.invincible = performance.now() + 3000;
+            player._cutsceneActive = true;
+
+            // ── PHASE 1: Jump up high (camera rises) ──
+            const jumpHeight = 15;
+            const jumpDur = 600;
+            const hangDur = 400;
+            const slamDur = 300;
+            const jumpStart = performance.now();
+            const startY = fpsCamera.eyeHeight;
+
+            // Both oversoul fists raise up with the player
+            const rFist = player._horoData?.right;
+            const lFist = player._horoData?.left;
+
+            const animateJump = () => {
+                const elapsed = performance.now() - jumpStart;
+                if (elapsed < jumpDur) {
+                    // Rising — smooth ease out
+                    const t = 1 - Math.pow(1 - elapsed / jumpDur, 2);
+                    fpsCamera.eyeHeight = startY + jumpHeight * t;
+                    // Fists rise alongside player, arms raised up
+                    if (rFist) rFist.arm.rotation.x = -Math.PI / 2 - 0.5 * t;
+                    if (lFist) lFist.arm.rotation.x = -Math.PI / 2 - 0.5 * t;
+                } else if (elapsed < jumpDur + hangDur) {
+                    // Hang at peak — fists wind up overhead
+                    fpsCamera.eyeHeight = startY + jumpHeight;
+                    const t = (elapsed - jumpDur) / hangDur;
+                    if (rFist) rFist.arm.rotation.x = -Math.PI / 2 - 0.5 - 0.3 * t;
+                    if (lFist) lFist.arm.rotation.x = -Math.PI / 2 - 0.5 - 0.3 * t;
+                } else if (elapsed < jumpDur + hangDur + slamDur) {
+                    // SLAM DOWN — fast drop
+                    const t = Math.pow((elapsed - jumpDur - hangDur) / slamDur, 2);
+                    fpsCamera.eyeHeight = startY + jumpHeight * (1 - t);
+                    // Fists slam down hard
+                    if (rFist) rFist.arm.rotation.x = -Math.PI / 2 - 0.8 + 2.0 * t;
+                    if (lFist) lFist.arm.rotation.x = -Math.PI / 2 - 0.8 + 2.0 * t;
+                } else {
+                    // IMPACT — back to ground
+                    fpsCamera.eyeHeight = startY;
+                    if (rFist) rFist.arm.rotation.x = -Math.PI / 2;
+                    if (lFist) lFist.arm.rotation.x = -Math.PI / 2;
+                    player._cutsceneActive = false;
+
+                    // ── ICE SPIKE ERUPTION — 15 tile radius ──
+                    const impactX = fpsCamera.posX * TILE, impactZ = fpsCamera.posZ * TILE;
+
+                    // Screen flash on impact
+                    screenFlash('rgba(255,255,255,0.8)', 600);
+                    triggerHitstop(150);
+                    fovPunch(25, 0.3);
+
+                    // Massive ice particle burst
+                    emitParticles(impactX, 0.5, impactZ, {
+                        color: ['#42a5f5', '#90caf9', '#ffffff', '#e3f2fd', '#bbdefb'],
+                        count: 150, speed: 10, spread: 5,
+                        gravity: -2, life: 30, size: 0.25, sizeEnd: 0, drag: 0.96, upward: 6
+                    });
+
+                    // Ground rings expanding
+                    for (let r = 0; r < 8; r++) {
+                        setTimeout(() => {
+                            groundRing(impactX, impactZ, r % 2 === 0 ? '#42a5f5' : '#ffffff', 4 + r * 3, 1000);
+                        }, r * 80);
+                    }
+
+                    // ── SPIKY ICE PILLARS erupting from ground in radius ──
+                    const spikeMeshes = [];
+                    const spikeCount = 40;
+                    const spikeRadius = 15 * TILE;
+                    for (let s = 0; s < spikeCount; s++) {
+                        setTimeout(() => {
+                            const angle = (s / spikeCount) * Math.PI * 2 + Math.random() * 0.3;
+                            const dist = 2 + Math.random() * spikeRadius * 0.9;
+                            const sx = impactX + Math.cos(angle) * dist;
+                            const sz = impactZ + Math.sin(angle) * dist;
+
+                            // Spike — tall jagged ice cone
+                            const spikeH = 2 + Math.random() * 5;
+                            const spikeW = 0.3 + Math.random() * 0.5;
+                            const spikeGeo = new THREE.ConeGeometry(spikeW, spikeH, 4 + Math.floor(Math.random() * 3));
+                            const spikeMat = new THREE.MeshStandardMaterial({
+                                color: Math.random() > 0.3 ? '#90caf9' : '#e3f2fd',
+                                roughness: 0.15, metalness: 0.3,
+                                transparent: true, opacity: 0.85
+                            });
+                            const spike = new THREE.Mesh(spikeGeo, spikeMat);
+                            spike.position.set(sx, spikeH / 2, sz);
+                            // Tilt spikes slightly outward from center
+                            const tiltAngle = Math.atan2(sz - impactZ, sx - impactX);
+                            spike.rotation.set(0, tiltAngle, (Math.random() - 0.3) * 0.4);
+                            scene.add(spike);
+                            spikeMeshes.push({ mesh: spike, mat: spikeMat });
+
+                            // Secondary smaller spike next to main
+                            if (Math.random() > 0.4) {
+                                const subH = 1 + Math.random() * 2;
+                                const subSpike = new THREE.Mesh(
+                                    new THREE.ConeGeometry(0.2, subH, 3),
+                                    spikeMat.clone()
+                                );
+                                subSpike.position.set(sx + (Math.random() - 0.5) * 1.5, subH / 2, sz + (Math.random() - 0.5) * 1.5);
+                                subSpike.rotation.set(0, Math.random() * Math.PI, (Math.random() - 0.5) * 0.6);
+                                scene.add(subSpike);
+                                spikeMeshes.push({ mesh: subSpike, mat: subSpike.material });
+                            }
+
+                            // Frost particles at spike base
+                            emitParticles(sx, 0.5, sz, {
+                                color: ['#42a5f5', '#90caf9', '#ffffff'],
+                                count: 5, speed: 3, spread: 0.5,
+                                gravity: 0, life: 10, size: 0.08, sizeEnd: 0, drag: 0.94, upward: 2
+                            });
+
+                            // Light at spike
+                            const spikeLight = new THREE.PointLight('#42a5f5', 2, TILE * 3, 2);
+                            spikeLight.position.set(sx, spikeH, sz);
+                            scene.add(spikeLight);
+                            setTimeout(() => scene.remove(spikeLight), 5000);
+
+                        }, s * 30); // stagger eruption outward
+                    }
+
+                    // Damage + freeze all enemies in 15 tiles
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        const d = Math.hypot(e.data.x - fpsCamera.posX, e.data.z - fpsCamera.posZ);
+                        if (d < 15) {
+                            dealDamageToEnemy(e, Math.round(player.damage * 5));
+                            e.data.lastAttack = performance.now() + 4000; // frozen 4 seconds
+                            // Ice encase VFX on enemy
+                            const iceCase = new THREE.Mesh(
+                                new THREE.BoxGeometry(1.5, 2.5, 1.5),
+                                new THREE.MeshStandardMaterial({ color: '#90caf9', transparent: true, opacity: 0.4, roughness: 0.1, metalness: 0.3 })
+                            );
+                            iceCase.position.copy(e.mesh.position);
+                            iceCase.position.y = 1.2;
+                            scene.add(iceCase);
+                            setTimeout(() => {
+                                const fadeStart = performance.now();
+                                const fadeIce = () => {
+                                    const ft = (performance.now() - fadeStart) / 1000;
+                                    if (ft >= 1) { scene.remove(iceCase); iceCase.geometry.dispose(); iceCase.material.dispose(); return; }
+                                    iceCase.material.opacity = (1 - ft) * 0.4;
+                                    requestAnimationFrame(fadeIce);
+                                };
+                                requestAnimationFrame(fadeIce);
+                            }, 3500);
+                        }
+                    }
+
+                    lightFlash(impactX, 2, impactZ, '#42a5f5', 20, 1000);
+
+                    // Fade ice spikes after 5 seconds
+                    setTimeout(() => {
+                        for (const { mesh, mat } of spikeMeshes) {
+                            const fadeStart = performance.now();
+                            const fadeSpike = () => {
+                                const ft = (performance.now() - fadeStart) / 2000;
+                                if (ft >= 1) { scene.remove(mesh); mesh.geometry.dispose(); mat.dispose(); return; }
+                                mat.opacity = (1 - ft) * 0.85;
+                                requestAnimationFrame(fadeSpike);
+                            };
+                            requestAnimationFrame(fadeSpike);
+                        }
+                    }, 5000);
+
+                    return; // done with animation
+                }
+                requestAnimationFrame(animateJump);
+            };
+            requestAnimationFrame(animateJump);
+        }
+
+        else if (slot === 'f') {
+            // ── ICE DASH ──
+            const dashDist = 7;
+            const fly = fpsCamera.flyHeight || 0;
+            const newX = fpsCamera.posX + fwdX * dashDist;
+            const newZ = fpsCamera.posZ + fwdZ * dashDist;
+
+            fovPunch(20, 0.15);
+            screenFlash('rgba(66,165,245,0.3)', 200);
+
+            for (let i = 0; i < 10; i++) {
+                const t = i / 10;
+                emitParticles(worldPx + fwdX * TILE * t * dashDist, EYE_HEIGHT + fly, worldPz + fwdZ * TILE * t * dashDist, {
+                    color: ['#42a5f5', '#90caf9', '#ffffff'],
+                    count: 6, speed: 2, spread: 0.8,
+                    gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.92
+                });
+            }
+
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const toX = e.data.x - px, toZ = e.data.z - pz;
+                const dot = toX * fwdX + toZ * fwdZ;
+                if (dot > 0 && dot < dashDist) {
+                    if (Math.abs(toX * fwdZ - toZ * fwdX) < 2) dealDamageToEnemy(e, Math.round(player.damage * 2));
+                }
+            }
+
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
+            player.invincible = performance.now() + 500;
+            showSpeedLines(500);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#42a5f5', 5, 250);
+            groundRing(worldPx, worldPz, '#42a5f5', 3, 300);
+        }
+    }
+
 }
 
 function playerSpecial() { fruitAbility("z"); }

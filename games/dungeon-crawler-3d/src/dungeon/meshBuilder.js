@@ -143,10 +143,7 @@ export function buildDungeonMesh(dungeon) {
             fg.translate(x, 0, z);
             floorGeos.push(fg);
 
-            // Ceiling
-            const cg = ceilGeo.clone();
-            cg.translate(x, WALL_HEIGHT, z);
-            ceilGeos.push(cg);
+            // Ceiling — removed for open sky
 
             // Walls — check each neighbor
             const neighbors = [

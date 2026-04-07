@@ -63,7 +63,7 @@ export const CLASSES = {
         name: 'Horohoro', type: 'shaman', maxHp: 135, speed: 3.5, attackRange: 38,
         attackDamage: 15, attackSpeed: 230, attackType: 'melee', color: '#42a5f5',
         specialCooldown: 4000, specialName: 'Spirit of Ice', weaponType: 'fist',
-        abilities: {},
-        abilityCooldowns: {}
+        abilities: { z: 'Fist Slam', x: 'Ice Barrage', c: 'Blizzard', v: 'Avalanche', f: 'Ice Dash' },
+        abilityCooldowns: { z: 4000, x: 5000, c: 10000, v: 20000, f: 2500 }
     },
 };
