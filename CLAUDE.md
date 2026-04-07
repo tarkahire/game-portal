@@ -53,44 +53,43 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 - **Recent additions**: Katakuri 16-portal ring system with dough fist M1s + Fusillade + Haki (blue); Senor Pink (Sui Sui) walk-through-walls + dive + whirlpool; Ink class with puddle resource system + Draw Soldier + Masterpiece golem; Dog class (OP) with permanent pack + puppy spawn + fetch frenzy + alpha howl; Kitsune with tails meter transformation (human -> nine-tailed fox with cyan arc slashes)
 - **Full docs**: See `games/dungeon-crawler/docs/` for architecture, classes, gameplay, network, controls
 
-### Dungeon Crawler 3D (Blox Fruits Edition)
+### Dungeon Crawler 3D
 - **Path**: `games/dungeon-crawler-3d/`
 - **Tech**: Three.js v0.162.0 (CDN via jsdelivr importmap), ES modules, PeerJS (WebRTC multiplayer)
-- **Features**: First-person 3D dungeon crawler with Blox Fruits class system; 15 playable fruits (Dough, Dragon, Leopard, Buddha, Light, Dark, Flame, Ice, Magma, Phoenix, Rumble, Quake, Venom, Spirit, Sound); Blox Fruits-style controls (Z/X/C/V/F abilities, Q dash, M1 4-hit combo); Beast fruit transformations (Dragon, Leopard, Buddha, Phoenix, Venom); procedural dungeon generation; cyberpunk neon visual style; screen shake, hitstop, floating damage numbers, speed lines; boss encounters; 5-slot ability cooldown HUD; 1st/3rd person camera toggle (T key)
-- **Controls** (Blox Fruits style):
+- **Features**: First-person 3D dungeon crawler with anime character system; 10 playable characters with custom 3D models, unique abilities, and detailed VFX; Z/X/C/V/F abilities + Q oversoul/dash; M1 4-hit melee combo (4th hit = bisect finisher); procedural dungeon generation (120x120 map, rooms 9-16 tiles, 3-wide corridors); cyberpunk neon visual style; hitstop, floating damage numbers, speed lines, FOV punch; boss encounters; 5-slot ability cooldown HUD; 1st/3rd person camera toggle (T key); no ceiling (open sky); no screen shake; no dash cooldown
+- **Controls**:
   - WASD / Arrow keys: move
   - Mouse: look around (pointer lock)
-  - Left click (M1): 4-hit melee combo (4th hit = finisher with extra knockback + screen shake)
-  - Z: Ability 1, X: Ability 2, C: Ability 3, V: Ability 4 (transform for Beast fruits), F: Ability 5 (flight/mobility)
-  - Q / Space: Dash (300ms invincibility + 3x speed + speed lines + FOV punch)
+  - Left click (M1): 4-hit melee combo (4th hit = finisher)
+  - Z: Ability 1, X: Ability 2, C: Ability 3, V: Ability 4, F: Ability 5 (mobility)
+  - Q: Dash (no cooldown, 300ms invincibility) OR Oversoul activation (Shaman King characters)
   - T: toggle 1st/3rd person camera, ESC: pause
-- **Fruits (15)**:
-  - **Dough** (Special): Roller Donut projectile, Restless Barrage, Fusillade channeled 16-hit barrage with pull, Unstoppable AoE slam, flight
-  - **Dragon** (Beast): Fire Breath cone, Dragon Claw dash, Fire Shower rain, Dragon Transform (2x scale, wings, 1.8x dmg), flight
-  - **Leopard** (Beast): Prowl Punch dash, Spiraling Frenzy multi-hit, Predator Leap, Leopard Transform (1.3x, speed aura, 1.8x speed), rush
-  - **Buddha** (Beast): Impact Fist shockwave, Shift teleport, Heavenly Stomp, Buddha Transform (3x golden giant, 2.5x HP, 50% dmg reduction), zen dash
-  - **Light** (Elemental): Light Beam, Barrage of Light 5-shot, Light Speed Kick dash, Divine Arrow mega beam, flight
-  - **Dark** (Elemental): Dimensional Slash, Dark Vortex pull+AoE, Black Hole massive pull, World of Darkness screen-wide, flight
-  - **Flame** (Elemental): Fire Bullets 3-shot, Fire Column AoE, Fire Fist big projectile, Flame Destroyer AoE, flight
-  - **Ice** (Elemental): Ice Spears + freeze, Glacial Surge freeze wave, Ice Bird projectile, Absolute Zero freeze-all, flight
-  - **Magma** (Elemental): Magma Fist, Magma Eruption cone, Magma Hound tracking, Volcanic Storm AoE, flight
-  - **Phoenix** (Beast): Blue Flames heal+attack, Flame Gatling 8-shot, Regeneration Flame big heal, Phoenix Transform (wings, heal-over-time), flight
-  - **Rumble** (Elemental): Thunder Bolt + stun, Lightning Storm AoE, Sky Judgement big strike, Thunderstorm massive, flight
-  - **Quake** (Natural): Quake Punch shockwave, Quake Erupt ground smash, Sea Quake massive, Tsunami screen-wide destruction, quake dash
-  - **Venom** (Natural): Poison Daggers, Toxic Fog DOT cloud, Venom Shower rain, Hydra Transform (3-headed, 1.7x dmg), dash
-  - **Spirit** (Natural): Fire Spirit proj, Ice Spirit proj+freeze, Fire Spirit AoE, Spirit Convergence dual-element mega, flight
-  - **Sound** (Natural): Sound Blast cone+stun, Rhythmic Barrage multi-hit, Tempo Charge speed/dmg buff, Fortissimo AoE, dash
+  - P2: Arrow keys move, Backslash attack, M/,/./Slash abilities, N mobility, Numpad0 dodge, 4 oversoul
+- **Characters (10)**:
+  - **Gojo Satoru** (Sorcerer, 120HP): Blue gravitational pull, Red repulsion blast, Hollow Purple cutscene, Domain Expansion freeze, Teleport
+  - **Ryomen Sukuna** (Sorcerer, 150HP): Dismantle, Cleave, Fire Arrow, Malevolent Shrine domain, Dash — custom detailed model with tattoos, 4 eyes, pink hair, cursed sword
+  - **Toji Fushiguro** (Assassin, 140HP): Inverted Spear, Chain Strike, Playful Cloud, Heavenly Restriction buff, Flash Step — muscular build, lip scar, spear weapon
+  - **Brook** (Swordsman, 100HP): Hanauta Sancho, Soul Solid, Blizzard Slice, Soul King, Dash — skeleton with cane sword
+  - **Bakugo** (Brawler, 130HP): AP Shot, Stun Grenade, Howitzer Impact, Cluster Bomb, Blast Rush — explosive fist combat
+  - **Denji** (Devil, 160HP, 6.0 speed): Chain Rip, Buzzsaw, Devil Charge, Full Devil transform (3x dmg), Chain Dash — chainsaw arms, fastest character, fiery aura trail
+  - **Yoh Asakura** (Shaman, 130HP): Celestial Slash wave, Buddha Giri dash-slash, Double Medium 12-hit flurry, Fumon Tonkou eruption, Spirit Dash — brown hair, headphones, orange outfit, open shirt. Q activates permanent Spirit of Sword oversoul: massive floating white spirit arm with curved katana + purple/white energy rings, smooth lerped follow, low sweeping sword slash M1s with slash trail VFX
+  - **Tao Ren** (Shaman, 140HP): Rapid Tempo Assault 6-thrust, Eleki Bang electric shockwave, Heaven Shaking Thunder triple pillar, Golden Thunder 5-pillar ultimate, Thunder Dash — purple tongari hair spike, golden eyes, mandarin collar outfit. Q activates permanent Bason oversoul: golden armored spirit arm with Kwan Dao halberd + gold/purple energy rings
+  - **Horohoro** (Shaman, 135HP): Fist Slam jump+ice spikes, Ice Barrage 8-fist projectiles, Blizzard whirling ice storm, Avalanche 200-spike ice wall, Ice Dash — blue spiky hair, blue jacket, headband. Q activates permanent dual ice fists: two big blue armored spirit fists floating on both sides, alternating punch M1s with ice impact rings
+- **Shaman King Oversoul System**: Q key activates permanent armored oversoul for Yoh/Ren/Horohoro (P2 uses key 4). Oversouls are scene-level Three.js groups that smoothly lerp-follow the player per frame. Include: segmented armored arms, energy rings, glow lights, ghost aura shells. Oversoul characters use the weapon combo system (reduced M1 dmg, 4th-hit bisect finisher). FPS viewmodel swords hidden — the floating oversoul IS the visible weapon in both 1st/3rd person.
+- **Map**: 120x120 tiles, rooms 9-16 tiles, 3-wide corridors, no ceiling (open sky)
 - **File structure**:
   - `index.html` — entry point with Three.js importmap, HUD with 5-slot ability bar
   - `style.css` — cyberpunk neon HUD + menu styling
-  - `src/main.js` — game loop, M1 combo system, fruitAbility() dispatcher, VFX (screen shake, hitstop, damage numbers, slash trails, speed lines), beast transform models, minion system, HUD
-  - `src/classes/definitions.js` — 15 Blox Fruit definitions with stats + ability metadata + cooldowns
-  - `src/player/fpsCamera.js` — FPS controls, pointer lock, WASD, wall collision, 1st/3rd person toggle (T key)
-  - `src/dungeon/generator.js` — dungeon generation
-  - `src/dungeon/meshBuilder.js` — 3D walls/floors/ceilings
+  - `src/main.js` — game loop, M1 combo system, fruitAbility() dispatcher, character model builders (Gojo/Sukuna/Toji/Brook/Bakugo/Denji/Yoh/Ren/Horohoro), oversoul system, VFX (hitstop, damage numbers, slash trails, speed lines, FOV punch), minion system, HUD, minimap with enemy dots
+  - `src/classes/definitions.js` — 10 character definitions with stats + ability metadata + cooldowns
+  - `src/constants.js` — tile size, map dimensions (120x120), eye height, colors
+  - `src/player/fpsCamera.js` — FPS controls, pointer lock, WASD, wall collision, 1st/3rd person toggle (T key), per-character eyeHeight override
+  - `src/dungeon/generator.js` — procedural dungeon generation (rooms + 3-wide corridors)
+  - `src/dungeon/meshBuilder.js` — 3D walls/floors (no ceiling)
   - `src/dungeon/torchLights.js` — torch lighting
-  - `src/enemies/meshFactory.js` — 3D enemy mesh builders
+  - `src/enemies/meshFactory.js` — 3D enemy mesh builders (skeleton, archer, slime, bat, dark knight, necromancer)
   - `src/network/network.js` — PeerJS multiplayer
+  - `todo.md` — next session priorities (performance optimization, Horohoro fist slam check)
 
 ## Adding a New Game
 
