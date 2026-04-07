@@ -3620,23 +3620,30 @@ function playerAttack() {
         });
 
         const baseX = -Math.PI / 2; // upward-facing rest rotation
-        // Easing functions for smooth motion
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
         const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        // Wind-up: arm angles down to one side, then slashes diagonally up to the other
+        const windUpDur = 100; // brief wind-up before the slash
         const animateSwing = () => {
             const elapsed = performance.now() - startTime;
-            if (elapsed < swingDur) {
-                // Swing phase — horizontal sweep (side to side on Y axis)
-                const t = easeOut(elapsed / swingDur);
-                arm.rotation.x = baseX;
-                arm.rotation.y = swingDir * 1.2 * t;
-                arm.rotation.z = swingDir * 0.2 * t;
-            } else if (elapsed < swingDur + returnDur) {
-                // Return phase — sweep back
-                const t = easeInOut((elapsed - swingDur) / returnDur);
-                arm.rotation.x = baseX;
-                arm.rotation.y = swingDir * 1.2 * (1 - t);
-                arm.rotation.z = swingDir * 0.2 * (1 - t);
+            if (elapsed < windUpDur) {
+                // Wind-up — angle down to the starting side
+                const t = easeOut(elapsed / windUpDur);
+                arm.rotation.x = baseX + 0.4 * t;            // tilt down slightly
+                arm.rotation.y = swingDir * -0.8 * t;         // angle to starting side
+                arm.rotation.z = swingDir * 0.3 * t;          // lean into the wind-up
+            } else if (elapsed < windUpDur + swingDur) {
+                // Slash — diagonal sweep from low-side to high-opposite
+                const t = easeOut((elapsed - windUpDur) / swingDur);
+                arm.rotation.x = baseX + 0.4 - 0.8 * t;      // swing upward
+                arm.rotation.y = swingDir * (-0.8 + 1.8 * t); // sweep across to other side
+                arm.rotation.z = swingDir * (0.3 - 0.6 * t);  // tilt through the slash
+            } else if (elapsed < windUpDur + swingDur + returnDur) {
+                // Return — ease back to idle
+                const t = easeInOut((elapsed - windUpDur - swingDur) / returnDur);
+                arm.rotation.x = baseX + (-0.4) * (1 - t);
+                arm.rotation.y = swingDir * 1.0 * (1 - t);
+                arm.rotation.z = swingDir * -0.3 * (1 - t);
             } else {
                 arm.rotation.x = baseX;
                 arm.rotation.y = 0;
