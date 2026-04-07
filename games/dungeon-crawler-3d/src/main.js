@@ -3964,8 +3964,7 @@ function p2Ability(slot) {
 function p2Dodge() {
     if (!player2 || !player2.alive) return;
     const now = performance.now();
-    if (now - (player2.dodgeCd || 0) < 800) return;
-    player2.dodgeCd = now;
+    player2.dodgeCd = 0;
     const fwdX = -Math.sin(fpsCamera2.yaw);
     const fwdZ = -Math.cos(fpsCamera2.yaw);
     fpsCamera2.safeMove(fpsCamera2.posX + fwdX * 2, fpsCamera2.posZ + fwdZ * 2, dungeon.map);
@@ -8082,8 +8081,7 @@ function updateMinions(dt, now) {
 function playerDodge() {
     if (!player || !player.alive) return;
     const now = performance.now();
-    if (now < player.dodgeCd) return;
-    player.dodgeCd = now + 800;
+    player.dodgeCd = 0;
     player.invincible = now + 300;
     fpsCamera.speed = player.speed * 3;
     setTimeout(() => { fpsCamera.speed = player.speed; }, 300);
