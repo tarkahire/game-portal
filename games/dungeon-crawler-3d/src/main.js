@@ -6766,6 +6766,8 @@ function gameLoop() {
         const halfW = Math.floor(w / 2);
         if (p1Model && !fpsCamera.thirdPerson) p1Model.visible = false;
         if (p2Model) p2Model.visible = true; // P2 always visible to P1
+        if (fpsSword) fpsSword.visible = !fpsCamera.thirdPerson; // P1 sees own viewmodel
+        if (fpsSword2) fpsSword2.visible = false; // P1 cannot see P2's viewmodel
         camera.aspect = halfW / h;
         camera.updateProjectionMatrix();
         renderer.setViewport(0, 0, halfW, h);
@@ -6776,6 +6778,8 @@ function gameLoop() {
         // P2 view — right half: hide own model, show P1's model
         if (p2Model && !fpsCamera2.thirdPerson) p2Model.visible = false;
         if (p1Model) p1Model.visible = true; // P1 always visible to P2
+        if (fpsSword) fpsSword.visible = false; // P2 cannot see P1's viewmodel
+        if (fpsSword2) fpsSword2.visible = !fpsCamera2.thirdPerson; // P2 sees own viewmodel
         camera2.aspect = (w - halfW) / h;
         camera2.updateProjectionMatrix();
         renderer.setViewport(halfW, 0, w - halfW, h);
