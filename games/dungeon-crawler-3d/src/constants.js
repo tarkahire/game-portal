@@ -4,8 +4,8 @@
 
 export const TILE = 4;          // 3D world units per tile
 export const WALL_HEIGHT = 4;   // wall height in world units
-export const ROOM_MIN = 5, ROOM_MAX = 9;
-export const MAP_COLS = 60, MAP_ROWS = 60;
+export const ROOM_MIN = 9, ROOM_MAX = 16;
+export const MAP_COLS = 120, MAP_ROWS = 120;
 export const MAX_FLOORS = Infinity;
 export const EYE_HEIGHT = 2.4;  // camera Y position
 export const PLAYER_RADIUS = 0.4; // collision radius in tile units

@@ -25,6 +25,7 @@ export class FPSCamera {
 
         this.playerModel = null;
         this.flyHeight = 0;
+        this.eyeHeight = EYE_HEIGHT; // can be overridden per character
 
         this.posX = 0;
         this.posZ = 0;
@@ -178,14 +179,14 @@ export class FPSCamera {
             const behindZ = Math.cos(this.yaw) * this.tpDistance;
             this.camera.position.set(
                 worldX + behindX,
-                EYE_HEIGHT + this.tpHeight + fly,
+                this.eyeHeight + this.tpHeight + fly,
                 worldZ + behindZ
             );
-            this.camera.lookAt(worldX, EYE_HEIGHT + fly, worldZ);
+            this.camera.lookAt(worldX, this.eyeHeight + fly, worldZ);
 
             if (this.playerModel) this.playerModel.visible = true;
         } else {
-            this.camera.position.set(worldX, EYE_HEIGHT + fly, worldZ);
+            this.camera.position.set(worldX, this.eyeHeight + fly, worldZ);
             const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
             this.camera.quaternion.setFromEuler(euler);
 

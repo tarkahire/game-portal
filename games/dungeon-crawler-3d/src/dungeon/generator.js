@@ -42,16 +42,22 @@ export function generateDungeon(floor) {
                 map[ry][rx] = 1; // 1=floor
     }
 
-    // Connect rooms with corridors
+    // Connect rooms with wide corridors (3 tiles wide)
     for (let i = 1; i < rooms.length; i++) {
         const a = rooms[i - 1], b = rooms[i];
         let cx = a.cx, cy = a.cy;
         while (cx !== b.cx) {
-            if (cy >= 0 && cy < MAP_ROWS && cx >= 0 && cx < MAP_COLS) map[cy][cx] = 1;
+            for (let offset = -1; offset <= 1; offset++) {
+                const oy = cy + offset;
+                if (oy >= 0 && oy < MAP_ROWS && cx >= 0 && cx < MAP_COLS) map[oy][cx] = 1;
+            }
             cx += cx < b.cx ? 1 : -1;
         }
         while (cy !== b.cy) {
-            if (cy >= 0 && cy < MAP_ROWS && cx >= 0 && cx < MAP_COLS) map[cy][cx] = 1;
+            for (let offset = -1; offset <= 1; offset++) {
+                const ox = cx + offset;
+                if (cy >= 0 && cy < MAP_ROWS && ox >= 0 && ox < MAP_COLS) map[cy][ox] = 1;
+            }
             cy += cy < b.cy ? 1 : -1;
         }
     }

@@ -2732,11 +2732,13 @@ function startGame() {
         addPlayerLabel(pm, 'DENJI', '#cc4400');
     } else if (player.classId === 'yoh') {
         pm = buildYohModel();
+        pm.scale.setScalar(0.55); // dwarf-sized
         addPlayerLabel(pm, 'YOH', '#ff9800');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
     fpsCamera.flyHeight = 0;
+    fpsCamera.eyeHeight = player.classId === 'yoh' ? 1.3 : EYE_HEIGHT;
     pm.visible = false;
     scene.add(pm);
     fpsCamera.playerModel = pm;
@@ -2783,6 +2785,7 @@ function startGame() {
         };
         fpsCamera2.speed = cls2.speed;
         fpsCamera2.flyHeight = 0;
+        fpsCamera2.eyeHeight = player2.classId === 'yoh' ? 1.3 : EYE_HEIGHT;
 
         // Spawn P2 at start room but offset slightly
         const startRoom = dungeon.rooms[0];
@@ -2796,7 +2799,7 @@ function startGame() {
         else if (player2.classId === 'brook') { pm2 = buildBrookModel(); addPlayerLabel(pm2, 'P2 BROOK', '#88ccff'); }
         else if (player2.classId === 'bakugo') { pm2 = buildBakugoModel(); addPlayerLabel(pm2, 'P2 BAKUGO', '#ff8800'); }
         else if (player2.classId === 'denji') { pm2 = buildDenjiModel(); addPlayerLabel(pm2, 'P2 DENJI', '#cc4400'); }
-        else if (player2.classId === 'yoh') { pm2 = buildYohModel(); addPlayerLabel(pm2, 'P2 YOH', '#ff9800'); }
+        else if (player2.classId === 'yoh') { pm2 = buildYohModel(); pm2.scale.setScalar(0.55); addPlayerLabel(pm2, 'P2 YOH', '#ff9800'); }
         else { pm2 = buildGenericPlayerModel(cls2); }
         pm2.visible = false;
         scene.add(pm2);
