@@ -2976,9 +2976,7 @@ let shakeDuration = 0;
 let shakeTime = 0;
 
 function screenShake(intensity, duration) {
-    shakeIntensity = Math.max(shakeIntensity, intensity);
-    shakeDuration = Math.max(shakeDuration, duration);
-    shakeTime = 0;
+    // Disabled — no screen shake
 }
 
 function updateScreenShake(dt) {
