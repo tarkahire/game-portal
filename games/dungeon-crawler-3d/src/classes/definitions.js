@@ -56,7 +56,7 @@ export const CLASSES = {
         name: 'Tao Ren', type: 'shaman', maxHp: 140, speed: 3.8, attackRange: 40,
         attackDamage: 18, attackSpeed: 210, attackType: 'melee', color: '#9c27b0',
         specialCooldown: 4000, specialName: 'Spirit of Thunder', weaponType: 'fist',
-        abilities: {},
-        abilityCooldowns: {}
+        abilities: { z: 'Rapid Tempo Assault', x: 'Eleki Bang', c: 'Heaven Shaking Thunder', v: 'Golden Thunder', f: 'Thunder Dash' },
+        abilityCooldowns: { z: 3000, x: 4500, c: 9000, v: 20000, f: 2500 }
     },
 };

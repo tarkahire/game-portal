@@ -6084,6 +6084,457 @@ function fruitAbility(slot) {
         }
     }
 
+    // ══════ TAO REN ══════
+    if (id === 'ren') {
+        if (slot === 'z') {
+            // ── RAPID TEMPO ASSAULT — lightning-fast Kwan Dao thrust barrage ──
+            const fly = fpsCamera.flyHeight || 0;
+            screenShake(0.5, 800);
+            triggerHitstop(80);
+            fovPunch(15, 0.3);
+            screenFlash('rgba(218,165,32,0.4)', 500);
+            player.invincible = performance.now() + 1500;
+
+            // Oversoul arm rapid thrusting
+            if (player._oversoulArm) {
+                player._oversoulSwinging = true;
+                const arm = player._oversoulArm;
+                const baseRx = -Math.PI / 2;
+                let thrustCount = 0;
+                const thrustInt = setInterval(() => {
+                    thrustCount++;
+                    const dir = thrustCount % 2 === 0 ? 1 : -1;
+                    arm.rotation.x = baseRx + 0.6;
+                    arm.rotation.y = dir * 0.3;
+                    setTimeout(() => { arm.rotation.x = baseRx; arm.rotation.y = 0; }, 80);
+                    if (thrustCount >= 6) { clearInterval(thrustInt); player._oversoulSwinging = false; }
+                }, 120);
+            }
+
+            // 6 rapid thrust VFX in a line ahead
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const dist = 2 + i * 0.8;
+                    const tx = worldPx + fwdX * dist, tz = worldPz + fwdZ * dist;
+                    const ty = EYE_HEIGHT + fly - 0.3 + Math.random() * 0.6;
+
+                    // Thrust line
+                    const tGeo = new THREE.PlaneGeometry(0.1, 3);
+                    const tMat = new THREE.MeshBasicMaterial({
+                        color: i % 2 === 0 ? '#daa520' : '#ffee00',
+                        transparent: true, opacity: 0.9,
+                        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                    });
+                    const tMesh = new THREE.Mesh(tGeo, tMat);
+                    tMesh.position.set(tx, ty, tz);
+                    tMesh.rotation.y = yaw;
+                    scene.add(tMesh);
+
+                    const fadeStart = performance.now();
+                    const fade = () => {
+                        const ft = (performance.now() - fadeStart) / 300;
+                        if (ft >= 1) { scene.remove(tMesh); tMesh.geometry.dispose(); tMesh.material.dispose(); return; }
+                        tMat.opacity = (1 - ft) * 0.9;
+                        tMesh.scale.set(1 + ft * 5, 1 + ft * 0.3, 1);
+                        requestAnimationFrame(fade);
+                    };
+                    requestAnimationFrame(fade);
+
+                    // Electric sparks
+                    emitParticles(tx, ty, tz, {
+                        color: ['#daa520', '#ffee00', '#ffffff', '#9c27b0'],
+                        count: 8, speed: 5, spread: 0.8,
+                        gravity: 0, life: 8, size: 0.08, sizeEnd: 0, drag: 0.93
+                    });
+
+                    // Damage
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        const d = Math.hypot(e.data.x - (px + fwdX * dist / TILE), e.data.z - (pz + fwdZ * dist / TILE));
+                        if (d < 2) dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                    }
+                    screenShake(0.15, 50);
+                }, i * 120);
+            }
+
+            lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#daa520', 6, 400);
+            groundRing(worldPx, worldPz, '#daa520', 3, 500);
+        }
+
+        else if (slot === 'x') {
+            // ── ELEKI BANG — massive electric shockwave explosion ──
+            const fly = fpsCamera.flyHeight || 0;
+            screenShake(0.8, 800);
+            triggerHitstop(150);
+            fovPunch(28, 0.4);
+            screenFlash('rgba(255,238,0,0.7)', 800);
+            player.invincible = performance.now() + 1000;
+
+            // Oversoul arm slams Kwan Dao into the ground
+            if (player._oversoulArm) {
+                player._oversoulSwinging = true;
+                const arm = player._oversoulArm;
+                const baseRx = -Math.PI / 2;
+                arm.rotation.x = baseRx - 0.4;
+                const slamStart = performance.now();
+                const slam = () => {
+                    const t = Math.min((performance.now() - slamStart) / 300, 1);
+                    arm.rotation.x = (baseRx - 0.4) + 1.5 * (1 - Math.pow(1 - t, 3));
+                    if (t >= 1) { setTimeout(() => { arm.rotation.x = baseRx; player._oversoulSwinging = false; }, 600); return; }
+                    requestAnimationFrame(slam);
+                };
+                requestAnimationFrame(slam);
+            }
+
+            // Electric explosion sphere expanding outward
+            const elekiGeo = new THREE.SphereGeometry(0.5, 10, 10);
+            const elekiMat = new THREE.MeshBasicMaterial({
+                color: '#ffee00', transparent: true, opacity: 0.7,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const elekiSphere = new THREE.Mesh(elekiGeo, elekiMat);
+            elekiSphere.position.set(worldPx, EYE_HEIGHT + fly - 0.5, worldPz);
+            scene.add(elekiSphere);
+            elekiSphere.add(new THREE.PointLight('#ffee00', 15, TILE * 10, 2));
+
+            // Purple inner sphere
+            const innerSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(0.3, 8, 8),
+                new THREE.MeshBasicMaterial({ color: '#9c27b0', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            elekiSphere.add(innerSphere);
+
+            // Expand and fade
+            const expandStart = performance.now();
+            const expandEleki = () => {
+                const ft = (performance.now() - expandStart) / 800;
+                if (ft >= 1) { scene.remove(elekiSphere); elekiSphere.geometry.dispose(); elekiSphere.material.dispose(); return; }
+                const s = 0.5 + ft * 12;
+                elekiSphere.scale.setScalar(s);
+                elekiMat.opacity = (1 - ft) * 0.7;
+                requestAnimationFrame(expandEleki);
+            };
+            requestAnimationFrame(expandEleki);
+
+            // Lightning bolt VFX — jagged lines radiating outward
+            for (let b = 0; b < 8; b++) {
+                const angle = (b / 8) * Math.PI * 2;
+                const boltLen = 6 + Math.random() * 3;
+                setTimeout(() => {
+                    for (let seg = 0; seg < 5; seg++) {
+                        const t = seg / 5;
+                        const bx = worldPx + Math.cos(angle) * boltLen * t + (Math.random() - 0.5) * 1;
+                        const bz = worldPz + Math.sin(angle) * boltLen * t + (Math.random() - 0.5) * 1;
+                        const by = EYE_HEIGHT + fly - 0.5 + (Math.random() - 0.5) * 1;
+                        emitParticles(bx, by, bz, {
+                            color: ['#ffee00', '#ffffff', '#daa520'],
+                            count: 4, speed: 6, spread: 0.5,
+                            gravity: 0, life: 6, size: 0.1, sizeEnd: 0, drag: 0.92
+                        });
+                    }
+                }, b * 40);
+            }
+
+            // Multiple ground rings
+            for (let r = 0; r < 5; r++) {
+                setTimeout(() => {
+                    groundRing(worldPx, worldPz, r % 2 === 0 ? '#ffee00' : '#9c27b0', 3 + r * 2, 700);
+                }, r * 100);
+            }
+
+            // Damage everything in range
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const d = Math.hypot(e.data.x - px, e.data.z - pz);
+                if (d < 8) {
+                    dealDamageToEnemy(e, Math.round(player.damage * 4));
+                    e.data.lastAttack = now + 1500; // stun
+                    // Knockback outward
+                    const dx = e.data.x - px, dz = e.data.z - pz;
+                    if (d > 0.3) { e.data.x += (dx / d) * 2; e.data.z += (dz / d) * 2; e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE); }
+                }
+            }
+
+            emitParticles(worldPx, EYE_HEIGHT + fly, worldPz, {
+                color: ['#ffee00', '#ffffff', '#daa520', '#9c27b0'],
+                count: 80, speed: 7, spread: 3,
+                gravity: 0, life: 20, size: 0.18, sizeEnd: 0, drag: 0.95, upward: 2
+            });
+            groundDecal(worldPx, worldPz, '#daa520', 4, 3000);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ffee00', 15, 600);
+        }
+
+        else if (slot === 'c') {
+            // ── HEAVEN SHAKING THUNDER — colossal lightning pillar from the sky ──
+            const fly = fpsCamera.flyHeight || 0;
+            screenShake(1.0, 1500);
+            triggerHitstop(200);
+            fovPunch(35, 0.5);
+            screenFlash('rgba(255,255,255,0.9)', 1200);
+            player.invincible = performance.now() + 3000;
+
+            // Oversoul arm raises weapon to the sky
+            if (player._oversoulArm) {
+                player._oversoulSwinging = true;
+                const arm = player._oversoulArm;
+                const baseRx = -Math.PI / 2;
+                arm.rotation.x = baseRx - 0.8;
+                setTimeout(() => { arm.rotation.x = baseRx; player._oversoulSwinging = false; }, 3000);
+            }
+
+            // Massive lightning pillar — yellow/white beam from sky
+            const pillarGeo = new THREE.CylinderGeometry(0.3, 2.5, 25, 8, 1, true);
+            const pillarMat = new THREE.MeshBasicMaterial({
+                color: '#ffee00', transparent: true, opacity: 0.6,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+            pillar.position.set(worldPx, fly + 5, worldPz);
+            scene.add(pillar);
+            pillar.add(new THREE.PointLight('#ffee00', 25, TILE * 15, 2));
+
+            // Inner white core pillar
+            const pillar2 = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.2, 1.5, 25, 8, 1, true),
+                new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+            );
+            pillar2.position.set(worldPx, fly + 5, worldPz);
+            scene.add(pillar2);
+
+            // Purple crackling pillar
+            const pillar3 = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 3, 25, 8, 1, true),
+                new THREE.MeshBasicMaterial({ color: '#9c27b0', transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+            );
+            pillar3.position.set(worldPx, fly + 5, worldPz);
+            scene.add(pillar3);
+
+            // Crackling lightning particles up the pillar
+            for (let i = 0; i < 10; i++) {
+                setTimeout(() => {
+                    const ly = fly + Math.random() * 20;
+                    emitParticles(worldPx + (Math.random() - 0.5) * 3, ly, worldPz + (Math.random() - 0.5) * 3, {
+                        color: ['#ffee00', '#ffffff', '#daa520'],
+                        count: 10, speed: 8, spread: 2,
+                        gravity: 0, life: 10, size: 0.12, sizeEnd: 0, drag: 0.93, upward: 3
+                    });
+                    screenShake(0.3, 100);
+                }, i * 120);
+            }
+
+            // 8 expanding shockwave rings
+            for (let r = 0; r < 8; r++) {
+                setTimeout(() => {
+                    groundRing(worldPx, worldPz, r % 3 === 0 ? '#ffffff' : r % 3 === 1 ? '#ffee00' : '#9c27b0', 3 + r * 2, 1000);
+                }, r * 120);
+            }
+
+            // Massive ground particle burst
+            emitParticles(worldPx, 2 + fly, worldPz, {
+                color: ['#ffee00', '#ffffff', '#daa520', '#9c27b0', '#ff6600'],
+                count: 120, speed: 8, spread: 4,
+                gravity: 0, life: 30, size: 0.25, sizeEnd: 0, drag: 0.96, upward: 6
+            });
+
+            // Second delayed burst
+            setTimeout(() => {
+                screenFlash('rgba(218,165,32,0.5)', 600);
+                emitParticles(worldPx, 1 + fly, worldPz, {
+                    color: ['#9c27b0', '#ffee00', '#ffffff'],
+                    count: 60, speed: 6, spread: 3,
+                    gravity: 0, life: 20, size: 0.2, sizeEnd: 0, drag: 0.96, upward: 4
+                });
+            }, 600);
+
+            // Damage everything — massive AoE
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const d = Math.hypot(e.data.x - px, e.data.z - pz);
+                if (d < 10) {
+                    dealDamageToEnemy(e, Math.round(player.damage * 6));
+                    e.data.lastAttack = now + 3000;
+                } else if (d < 20) {
+                    dealDamageToEnemy(e, Math.round(player.damage * 3));
+                    e.data.lastAttack = now + 1500;
+                }
+            }
+
+            // DOT ticks with electric crackling
+            let ticks = 0;
+            const dmgInt = setInterval(() => {
+                ticks++;
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - px, e.data.z - pz) < 12) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                    }
+                }
+                emitParticles(worldPx + (Math.random() - 0.5) * 4, 1 + fly, worldPz + (Math.random() - 0.5) * 4, {
+                    color: ['#ffee00', '#daa520', '#ffffff'],
+                    count: 10, speed: 5, spread: 2,
+                    gravity: 0, life: 8, size: 0.1, sizeEnd: 0, drag: 0.95, upward: 3
+                });
+                screenShake(0.2, 80);
+                if (ticks >= 8) clearInterval(dmgInt);
+            }, 300);
+
+            // Fade pillars
+            setTimeout(() => {
+                const fadeStart = performance.now();
+                const fadePillars = () => {
+                    const ft = (performance.now() - fadeStart) / 1500;
+                    if (ft >= 1) {
+                        scene.remove(pillar); pillar.geometry.dispose(); pillar.material.dispose();
+                        scene.remove(pillar2); pillar2.geometry.dispose(); pillar2.material.dispose();
+                        scene.remove(pillar3); pillar3.geometry.dispose(); pillar3.material.dispose();
+                        return;
+                    }
+                    pillarMat.opacity = (1 - ft) * 0.6;
+                    pillar2.material.opacity = (1 - ft) * 0.5;
+                    pillar3.material.opacity = (1 - ft) * 0.25;
+                    pillar.scale.x = 1 + ft; pillar.scale.z = 1 + ft;
+                    requestAnimationFrame(fadePillars);
+                };
+                requestAnimationFrame(fadePillars);
+            }, 3000);
+
+            groundDecal(worldPx, worldPz, '#daa520', 6, 8000);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ffffff', 25, 1200);
+        }
+
+        else if (slot === 'v') {
+            // ── GOLDEN THUNDER — ultimate: Bason's full power, screen-wide devastation ──
+            const fly = fpsCamera.flyHeight || 0;
+            screenShake(1.2, 2500);
+            triggerHitstop(250);
+            fovPunch(40, 0.6);
+            screenFlash('rgba(255,255,255,1.0)', 1500);
+            player.invincible = performance.now() + 4000;
+
+            // Oversoul arm raised to full height
+            if (player._oversoulArm) {
+                player._oversoulSwinging = true;
+                const arm = player._oversoulArm;
+                arm.rotation.x = -Math.PI / 2 - 1.0;
+                setTimeout(() => { arm.rotation.x = -Math.PI / 2; player._oversoulSwinging = false; }, 4000);
+            }
+
+            // GOLDEN lightning storm — multiple pillars raining down
+            const pillarMeshes = [];
+            for (let p = 0; p < 5; p++) {
+                setTimeout(() => {
+                    const ox = worldPx + (Math.random() - 0.5) * 12;
+                    const oz = worldPz + (Math.random() - 0.5) * 12;
+                    const pg = new THREE.CylinderGeometry(0.2, 1.5 + Math.random(), 20, 6, 1, true);
+                    const pmat = new THREE.MeshBasicMaterial({
+                        color: p % 2 === 0 ? '#daa520' : '#ffee00',
+                        transparent: true, opacity: 0.6,
+                        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                    });
+                    const pmesh = new THREE.Mesh(pg, pmat);
+                    pmesh.position.set(ox, fly + 5, oz);
+                    scene.add(pmesh);
+                    pmesh.add(new THREE.PointLight('#ffee00', 15, TILE * 8, 2));
+                    pillarMeshes.push({ mesh: pmesh, mat: pmat });
+
+                    emitParticles(ox, 1, oz, {
+                        color: ['#ffee00', '#daa520', '#ffffff', '#9c27b0'],
+                        count: 40, speed: 7, spread: 2.5,
+                        gravity: 0, life: 20, size: 0.2, sizeEnd: 0, drag: 0.95, upward: 5
+                    });
+                    groundRing(ox, oz, '#ffee00', 4 + Math.random() * 2, 800);
+                    screenShake(0.5, 200);
+                    screenFlash('rgba(218,165,32,0.3)', 200);
+
+                    // Damage at each pillar strike
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        const d = Math.hypot(e.data.x - ox / TILE, e.data.z - oz / TILE);
+                        if (d < 6) dealDamageToEnemy(e, Math.round(player.damage * 3));
+                    }
+                }, p * 350);
+            }
+
+            // Central mega-burst after all pillars
+            setTimeout(() => {
+                screenFlash('rgba(255,238,0,0.8)', 1000);
+                screenShake(0.8, 500);
+                triggerHitstop(100);
+                emitParticles(worldPx, 3 + fly, worldPz, {
+                    color: ['#daa520', '#ffee00', '#ffffff', '#9c27b0', '#ff6600'],
+                    count: 200, speed: 10, spread: 5,
+                    gravity: 0, life: 35, size: 0.3, sizeEnd: 0, drag: 0.96, upward: 8
+                });
+                for (let r = 0; r < 6; r++) {
+                    setTimeout(() => groundRing(worldPx, worldPz, r % 2 === 0 ? '#daa520' : '#ffffff', 5 + r * 2, 1000), r * 80);
+                }
+                // Final damage to everything
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    dealDamageToEnemy(e, Math.round(player.damage * 5));
+                    e.data.lastAttack = now + 3000;
+                }
+                lightFlash(worldPx, EYE_HEIGHT, worldPz, '#daa520', 30, 1500);
+            }, 5 * 350 + 200);
+
+            // Fade all pillars
+            setTimeout(() => {
+                for (const { mesh, mat } of pillarMeshes) {
+                    const fadeStart = performance.now();
+                    const fadePillar = () => {
+                        const ft = (performance.now() - fadeStart) / 1200;
+                        if (ft >= 1) { scene.remove(mesh); mesh.geometry.dispose(); mat.dispose(); return; }
+                        mat.opacity = (1 - ft) * 0.6;
+                        requestAnimationFrame(fadePillar);
+                    };
+                    requestAnimationFrame(fadePillar);
+                }
+            }, 5 * 350 + 1500);
+
+            groundDecal(worldPx, worldPz, '#daa520', 8, 10000);
+        }
+
+        else if (slot === 'f') {
+            // ── THUNDER DASH — electric burst movement ──
+            const dashDist = 7;
+            const fly = fpsCamera.flyHeight || 0;
+            const newX = fpsCamera.posX + fwdX * dashDist;
+            const newZ = fpsCamera.posZ + fwdZ * dashDist;
+
+            screenShake(0.3, 150);
+            fovPunch(22, 0.15);
+            screenFlash('rgba(218,165,32,0.3)', 200);
+
+            // Electric trail
+            for (let i = 0; i < 10; i++) {
+                const t = i / 10;
+                const tx = worldPx + fwdX * TILE * t * dashDist;
+                const tz = worldPz + fwdZ * TILE * t * dashDist;
+                emitParticles(tx, EYE_HEIGHT + fly, tz, {
+                    color: ['#ffee00', '#daa520', '#ffffff', '#9c27b0'],
+                    count: 6, speed: 3, spread: 0.8,
+                    gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.92
+                });
+            }
+
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const toX = e.data.x - px, toZ = e.data.z - pz;
+                const dot = toX * fwdX + toZ * fwdZ;
+                if (dot > 0 && dot < dashDist) {
+                    const perp = Math.abs(toX * fwdZ - toZ * fwdX);
+                    if (perp < 2) dealDamageToEnemy(e, Math.round(player.damage * 2));
+                }
+            }
+
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
+            player.invincible = performance.now() + 500;
+            showSpeedLines(500);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#daa520', 5, 250);
+            groundRing(worldPx, worldPz, '#ffee00', 3, 300);
+        }
+    }
+
 }
 
 function playerSpecial() { fruitAbility("z"); }
