@@ -7267,7 +7267,7 @@ function updateHUD() {
 function drawMinimap() {
     const canvas = document.getElementById('minimap-canvas');
     const ctx = canvas.getContext('2d');
-    const size = 120, scale = size / 60;
+    const size = 120, scale = size / MAP_COLS;
 
     ctx.fillStyle = 'rgba(10,10,15,0.85)';
     ctx.fillRect(0, 0, size, size);
@@ -7281,19 +7281,32 @@ function drawMinimap() {
         ctx.fillRect(rm.x * scale, rm.y * scale, rm.w * scale, rm.h * scale);
     }
 
-    // Enemy dots
+    // Enemy dots — red for normal, bright pink for bosses
     for (const e of enemies3D) {
         if (!e.data.alive) continue;
-        ctx.fillStyle = e.data.isBoss ? '#ff0055' : '#ff4444';
-        ctx.fillRect(e.data.x * scale - 1, e.data.z * scale - 1, e.data.isBoss ? 3 : 2, e.data.isBoss ? 3 : 2);
+        const ex = e.data.x * scale, ez = e.data.z * scale;
+        if (e.data.isBoss) {
+            // Boss — larger pulsing dot
+            ctx.fillStyle = '#ff0055';
+            const pulse = 2 + Math.sin(performance.now() * 0.005) * 1;
+            ctx.beginPath(); ctx.arc(ex, ez, pulse, 0, Math.PI * 2); ctx.fill();
+            // Glow ring
+            ctx.strokeStyle = 'rgba(255,0,85,0.4)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(ex, ez, pulse + 2, 0, Math.PI * 2); ctx.stroke();
+        } else {
+            ctx.fillStyle = '#ff4444';
+            ctx.fillRect(ex - 1, ez - 1, 2, 2);
+        }
     }
 
+    // Player dot — white with cyan direction indicator
+    const px = fpsCamera.posX * scale, pz = fpsCamera.posZ * scale;
     ctx.fillStyle = '#fff';
-    ctx.fillRect(fpsCamera.posX * scale - 1.5, fpsCamera.posZ * scale - 1.5, 3, 3);
-    ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(px, pz, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(fpsCamera.posX * scale, fpsCamera.posZ * scale);
-    ctx.lineTo(fpsCamera.posX * scale - Math.sin(fpsCamera.yaw) * 6, fpsCamera.posZ * scale - Math.cos(fpsCamera.yaw) * 6);
+    ctx.moveTo(px, pz);
+    ctx.lineTo(px - Math.sin(fpsCamera.yaw) * 6, pz - Math.cos(fpsCamera.yaw) * 6);
     ctx.stroke();
 }
 
