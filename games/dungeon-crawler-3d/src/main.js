@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import * as THREE from 'three';
-import { TILE, WALL_HEIGHT, EYE_HEIGHT, PAL } from './constants.js';
+import { TILE, WALL_HEIGHT, EYE_HEIGHT, PAL, MAP_COLS } from './constants.js';
 import { generateDungeon, getRoomAt, isWalkable } from './dungeon/generator.js';
 import { buildDungeonMesh } from './dungeon/meshBuilder.js';
 import { createTorchLights, updateTorchLights, syncTorchVisibility } from './dungeon/torchLights.js';
