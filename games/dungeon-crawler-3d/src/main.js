@@ -3787,23 +3787,27 @@ function playerAttack() {
         const animatePunch = () => {
             const elapsed = performance.now() - startTime;
             if (elapsed < windUp) {
-                // Wind up — pull fist back
+                // Wind up — pull fist back (rotate on Y to cock back)
                 const t = easeOut(elapsed / windUp);
-                punchArm.rotation.x = baseRx - 0.4 * t;
-                punchArm.rotation.y = (isRight ? 0.2 : -0.2) * t;
+                punchArm.rotation.x = baseRx;
+                punchArm.rotation.y = (isRight ? -0.5 : 0.5) * t;
+                punchArm.rotation.z = (isRight ? 0.15 : -0.15) * t;
             } else if (elapsed < windUp + punchDur) {
-                // Punch forward — thrust arm out
+                // Punch forward — thrust on Y axis toward player's facing direction
                 const t = easeOut((elapsed - windUp) / punchDur);
-                punchArm.rotation.x = baseRx - 0.4 + 1.2 * t;
-                punchArm.rotation.y = (isRight ? 0.2 : -0.2) * (1 - t);
+                punchArm.rotation.x = baseRx;
+                punchArm.rotation.y = (isRight ? -0.5 : 0.5) + (isRight ? 1.2 : -1.2) * t;
+                punchArm.rotation.z = (isRight ? 0.15 : -0.15) * (1 - t);
             } else if (elapsed < windUp + punchDur + returnDur) {
                 // Return — ease back to idle
                 const t = easeInOut((elapsed - windUp - punchDur) / returnDur);
-                punchArm.rotation.x = baseRx + 0.8 * (1 - t);
-                punchArm.rotation.y = 0;
+                punchArm.rotation.x = baseRx;
+                punchArm.rotation.y = (isRight ? 0.7 : -0.7) * (1 - t);
+                punchArm.rotation.z = 0;
             } else {
                 punchArm.rotation.x = baseRx;
                 punchArm.rotation.y = 0;
+                punchArm.rotation.z = 0;
                 player._oversoulSwinging = false;
                 return;
             }
