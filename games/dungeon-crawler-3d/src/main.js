@@ -3621,26 +3621,26 @@ function playerAttack() {
 
         const baseX = -Math.PI / 2; // upward-facing rest rotation
         // Easing functions for smooth motion
-        const easeOut = (t) => 1 - Math.pow(1 - t, 3); // cubic ease out (fast start, slow end)
+        const easeOut = (t) => 1 - Math.pow(1 - t, 3);
         const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         const animateSwing = () => {
             const elapsed = performance.now() - startTime;
             if (elapsed < swingDur) {
-                // Swing phase — eased for smooth acceleration
+                // Swing phase — horizontal sweep (side to side on Y axis)
                 const t = easeOut(elapsed / swingDur);
-                arm.rotation.x = baseX + 1.0 * t;
-                arm.rotation.z = swingDir * 0.5 * t;
-                sword.rotation.z = swingDir * 0.3 * t;
+                arm.rotation.x = baseX;
+                arm.rotation.y = swingDir * 1.2 * t;
+                arm.rotation.z = swingDir * 0.2 * t;
             } else if (elapsed < swingDur + returnDur) {
-                // Return phase — ease in-out for gentle return
+                // Return phase — sweep back
                 const t = easeInOut((elapsed - swingDur) / returnDur);
-                arm.rotation.x = baseX + 1.0 * (1 - t);
-                arm.rotation.z = swingDir * 0.5 * (1 - t);
-                sword.rotation.z = swingDir * 0.3 * (1 - t);
+                arm.rotation.x = baseX;
+                arm.rotation.y = swingDir * 1.2 * (1 - t);
+                arm.rotation.z = swingDir * 0.2 * (1 - t);
             } else {
                 arm.rotation.x = baseX;
+                arm.rotation.y = 0;
                 arm.rotation.z = 0;
-                sword.rotation.z = 0;
                 player._oversoulSwinging = false;
                 return;
             }
