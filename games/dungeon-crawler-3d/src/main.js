@@ -7144,26 +7144,24 @@ function fruitAbility(slot) {
                 attackRange: 1.8, attackSpeed: 600, hp: 9999, maxHp: 9999, life: Infinity, _owner: player,
             };
 
-            // White divine dog
-            const whiteX = px + perpX * 1.5 + fwdX * 1;
-            const whiteZ = pz + perpZ * 1.5 + fwdZ * 1;
-            spawnMinion('divineDog', whiteX, whiteZ, { ...dogStats, color: '#e8e0d8', _isWhite: true });
-            // White dog spawn VFX
+            // White divine dog — right flank
+            const whiteX = px + perpX * 3 + fwdX * 1;
+            const whiteZ = pz + perpZ * 3 + fwdZ * 1;
+            spawnMinion('divineDog', whiteX, whiteZ, { ...dogStats, color: '#e8e0d8', _isWhite: true, _dogSide: 1 });
             emitParticles(whiteX * TILE, 0.5, whiteZ * TILE, {
                 color: ['#ffffff', '#e0e0e0', '#c0c0c0'],
-                count: 15, speed: 2, spread: 1,
-                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.93, upward: 2
+                count: 20, speed: 3, spread: 1.5,
+                gravity: 0, life: 15, size: 0.15, sizeEnd: 0, drag: 0.93, upward: 3
             });
 
-            // Black divine dog
-            const blackX = px - perpX * 1.5 + fwdX * 1;
-            const blackZ = pz - perpZ * 1.5 + fwdZ * 1;
-            spawnMinion('divineDog', blackX, blackZ, { ...dogStats, _isWhite: false });
-            // Black dog spawn VFX
+            // Black divine dog — left flank
+            const blackX = px - perpX * 3 + fwdX * 1;
+            const blackZ = pz - perpZ * 3 + fwdZ * 1;
+            spawnMinion('divineDog', blackX, blackZ, { ...dogStats, _isWhite: false, _dogSide: -1 });
             emitParticles(blackX * TILE, 0.5, blackZ * TILE, {
                 color: ['#1a237e', '#ff2244', '#0d1b5e'],
-                count: 15, speed: 2, spread: 1,
-                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.93, upward: 2
+                count: 20, speed: 3, spread: 1.5,
+                gravity: 0, life: 15, size: 0.15, sizeEnd: 0, drag: 0.93, upward: 3
             });
 
             triggerHitstop(40);
@@ -9059,10 +9057,13 @@ function spawnMinion(type, tileX, tileZ, data) {
             color: '#1a237e', transparent: true, opacity: 0.3,
             blending: THREE.AdditiveBlending, depthWrite: false
         });
-        const shadowDisc = new THREE.Mesh(new THREE.CircleGeometry(0.3, 8), shadowMat);
+        const shadowDisc = new THREE.Mesh(new THREE.CircleGeometry(0.5, 8), shadowMat);
         shadowDisc.rotation.x = -Math.PI / 2;
         shadowDisc.position.y = 0.02;
         group.add(shadowDisc);
+
+        // Scale the whole dog up — big imposing wolf
+        group.scale.setScalar(2.8);
 
     } else {
         // ── Default humanoid minion ──
@@ -9124,6 +9125,117 @@ function updateMinions(dt, now) {
         // Clones are immortal
         if (m.data.type === 'clone') m.data.hp = m.data.maxHp || 9999;
 
+        // ── Divine Dog separate AI ──
+        if (m.data.type === 'divineDog') {
+            const side = m.data._dogSide || 1; // +1 = right flank, -1 = left flank
+
+            // Find nearest enemy to THIS dog
+            let nearestEnemy = null, nearestDist = Infinity;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
+                if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
+            }
+
+            // Find the OTHER divine dog to avoid it
+            let otherDog = null;
+            for (const o of minions3D) {
+                if (o !== m && o.data.type === 'divineDog' && o.data._owner === m.data._owner) {
+                    otherDog = o; break;
+                }
+            }
+
+            let targetX, targetZ;
+            if (nearestEnemy && nearestDist < 10) {
+                // ── ATTACK MODE — flank the enemy from this dog's side ──
+                const ex = nearestEnemy.data.x, ez = nearestEnemy.data.z;
+                // Direction from enemy to player
+                const eToPx = px - ex, eToPz = pz - ez;
+                const eToPd = Math.hypot(eToPx, eToPz) || 1;
+                // Perpendicular direction for flanking
+                const perpX = -eToPz / eToPd, perpZ = eToPx / eToPd;
+                const flankDist = 1.5;
+                targetX = ex + perpX * flankDist * side;
+                targetZ = ez + perpZ * flankDist * side;
+
+                // Attack if in range
+                if (nearestDist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
+                    m.data.lastAttack = now;
+                    dealDamageToEnemy(nearestEnemy, m.data.damage);
+                    // Bite VFX
+                    emitParticles(nearestEnemy.data.x * TILE, 1.5, nearestEnemy.data.z * TILE, {
+                        color: m.data._isWhite ? ['#ffffff', '#e0e0e0'] : ['#ff2244', '#1a237e'],
+                        count: 6, speed: 3, spread: 0.8,
+                        gravity: -3, life: 8, size: 0.08, sizeEnd: 0, drag: 0.93
+                    });
+                }
+            } else {
+                // ── FOLLOW MODE — walk beside the player on this dog's side ──
+                // Get player's facing direction for side offset
+                const playerYaw = fpsCamera.yaw;
+                const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
+                const pPerpX = Math.cos(playerYaw), pPerpZ = -Math.sin(playerYaw);
+                const sideOffset = 2.5; // how far to the side
+                const backOffset = 1.0; // slightly behind player
+                targetX = px + pPerpX * sideOffset * side - pFwdX * backOffset;
+                targetZ = pz + pPerpZ * sideOffset * side - pFwdZ * backOffset;
+            }
+
+            // Separation from other dog — push apart if too close
+            if (otherDog) {
+                const odx = m.data.x - otherDog.data.x;
+                const odz = m.data.z - otherDog.data.z;
+                const odist = Math.hypot(odx, odz);
+                if (odist < 3 && odist > 0.01) {
+                    // Push away from the other dog
+                    const pushStrength = (3 - odist) * 0.3;
+                    targetX += (odx / odist) * pushStrength;
+                    targetZ += (odz / odist) * pushStrength;
+                }
+            }
+
+            // Move toward target
+            const dx = targetX - m.data.x, dz = targetZ - m.data.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist > 0.5) {
+                const spd = Math.min(m.data.speed * dt, dist * 0.2);
+                m.data.x += (dx / dist) * spd;
+                m.data.z += (dz / dist) * spd;
+            }
+
+            // Teleport if too far from player
+            const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
+            if (playerDist > 15) {
+                const playerYaw = fpsCamera.yaw;
+                const pPerpX = Math.cos(playerYaw), pPerpZ = -Math.sin(playerYaw);
+                m.data.x = px + pPerpX * 2.5 * side;
+                m.data.z = pz + pPerpZ * 2.5 * side;
+            }
+
+            m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
+
+            // Face movement direction
+            if (dist > 0.3) {
+                const faceAngle = Math.atan2(dx, dz);
+                m.mesh.rotation.y = faceAngle;
+            }
+            // Leg walk animation
+            const legs = m.mesh.userData._legPivots;
+            if (legs && dist > 0.5) {
+                const wt = now * 0.01;
+                const stride = 0.6;
+                legs[0].rotation.x = Math.sin(wt) * stride;
+                legs[1].rotation.x = Math.sin(wt + Math.PI) * stride;
+                legs[2].rotation.x = Math.sin(wt + Math.PI) * stride;
+                legs[3].rotation.x = Math.sin(wt) * stride;
+            } else if (legs) {
+                for (const lp of legs) lp.rotation.x *= 0.9; // ease to idle
+            }
+            continue; // skip default logic below
+        }
+
+        // ── Default minion AI ──
+
         // Find nearest enemy
         let nearestEnemy = null, nearestDist = Infinity;
         for (const e of enemies3D) {
@@ -9167,25 +9279,7 @@ function updateMinions(dt, now) {
 
         m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
 
-        if (m.data.type === 'divineDog') {
-            // Face movement direction instead of camera
-            if (dist > 0.3) {
-                const faceAngle = Math.atan2(dx, dz);
-                m.mesh.rotation.y = faceAngle;
-            }
-            // Leg walk animation
-            const legs = m.mesh.userData._legPivots;
-            if (legs && dist > 0.3) {
-                const wt = now * 0.008;
-                const stride = 0.5;
-                legs[0].rotation.x = Math.sin(wt) * stride;         // FL
-                legs[1].rotation.x = Math.sin(wt + Math.PI) * stride; // FR
-                legs[2].rotation.x = Math.sin(wt + Math.PI) * stride; // BL
-                legs[3].rotation.x = Math.sin(wt) * stride;         // BR
-            } else if (legs) {
-                for (const lp of legs) lp.rotation.x = 0;
-            }
-        } else {
+        {
             // Billboard toward camera
             m.mesh.lookAt(camera.position.x, m.mesh.position.y, camera.position.z);
         }
