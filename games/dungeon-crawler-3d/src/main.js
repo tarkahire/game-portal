@@ -2743,11 +2743,14 @@ function startGame() {
         pm = buildHorohoroModel();
         pm.scale.setScalar(0.85);
         addPlayerLabel(pm, 'HOROHORO', '#42a5f5');
+    } else if (player.classId === 'megumi') {
+        pm = buildMegumiModel();
+        addPlayerLabel(pm, 'MEGUMI', '#1a237e');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
     fpsCamera.flyHeight = 0;
-    fpsCamera.eyeHeight = (player.classId === 'yoh' || player.classId === 'ren' || player.classId === 'horohoro') ? 2.0 : EYE_HEIGHT;
+    fpsCamera.eyeHeight = (player.classId === 'yoh' || player.classId === 'ren' || player.classId === 'horohoro' || player.classId === 'megumi') ? 2.0 : EYE_HEIGHT;
     pm.visible = false;
     scene.add(pm);
     fpsCamera.playerModel = pm;
@@ -2794,7 +2797,7 @@ function startGame() {
         };
         fpsCamera2.speed = cls2.speed;
         fpsCamera2.flyHeight = 0;
-        fpsCamera2.eyeHeight = (player2.classId === 'yoh' || player2.classId === 'ren' || player2.classId === 'horohoro') ? 2.0 : EYE_HEIGHT;
+        fpsCamera2.eyeHeight = (player2.classId === 'yoh' || player2.classId === 'ren' || player2.classId === 'horohoro' || player2.classId === 'megumi') ? 2.0 : EYE_HEIGHT;
 
         // Spawn P2 at start room but offset slightly
         const startRoom = dungeon.rooms[0];
@@ -2811,6 +2814,7 @@ function startGame() {
         else if (player2.classId === 'yoh') { pm2 = buildYohModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 YOH', '#ff9800'); }
         else if (player2.classId === 'ren') { pm2 = buildRenModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 REN', '#9c27b0'); }
         else if (player2.classId === 'horohoro') { pm2 = buildHorohoroModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 HORO', '#42a5f5'); }
+        else if (player2.classId === 'megumi') { pm2 = buildMegumiModel(); addPlayerLabel(pm2, 'P2 MEGUMI', '#1a237e'); }
         else { pm2 = buildGenericPlayerModel(cls2); }
         pm2.visible = false;
         scene.add(pm2);
@@ -3506,6 +3510,7 @@ function updateWalkAnimation(dt) {
     if (updateBrookAnimation(pm, dt, moving, walkCycle)) return;
     if (updateBakugoAnimation(pm, dt, moving, walkCycle)) return;
     if (updateDenjiAnimation(pm, dt, moving, walkCycle)) return;
+    if (updateMegumiAnimation(pm, dt, moving, walkCycle)) return;
 
     // Generic walk bob
     if (moving) {
@@ -7100,6 +7105,29 @@ function fruitAbility(slot) {
         }
     }
 
+    // ══════ MEGUMI ══════
+    if (id === 'megumi') {
+        if (slot === 'f') { // Shadow Dash — phase through shadows forward
+            const dashDist = 5;
+            const newX = px + fwdX * dashDist;
+            const newZ = pz + fwdZ * dashDist;
+
+            // Dark shadow trail
+            emitParticles(worldPx, EYE_HEIGHT, worldPz, {
+                color: ['#1a237e', '#0d1b5e', '#283593', '#000000'],
+                count: 20, speed: 3, spread: 1,
+                gravity: 0, life: 15, size: 0.12, sizeEnd: 0, drag: 0.93
+            });
+
+            fpsCamera.safeMove(newX, newZ, dungeon.map);
+            player.invincible = performance.now() + 500;
+            showSpeedLines(400);
+            fovPunch(10, 0.15);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#1a237e', 4, 250);
+            groundRing(worldPx, worldPz, '#1a237e', 3, 300);
+        }
+    }
+
 }
 
 function playerSpecial() { fruitAbility("z"); }
@@ -7444,6 +7472,328 @@ function buildHorohoroModel() {
     pm._isSukuna = true; // reuse Sukuna's walk animation
 
     return pm;
+}
+
+// ─── MEGUMI FUSHIGURO 3D MODEL ──────────────────────────────
+function buildMegumiModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d5b8', roughness: 0.5 });
+    const jacketMat = new THREE.MeshStandardMaterial({ color: '#0a0a1e', roughness: 0.6 }); // dark navy Jujutsu High uniform
+    const innerMat = new THREE.MeshStandardMaterial({ color: '#1a1a30', roughness: 0.6 }); // slightly lighter inner
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#0a0a18', roughness: 0.7 }); // very dark pants
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#080810', roughness: 0.8 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#0a0a12', roughness: 0.55 }); // jet black hair
+    const hairHighlightMat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.5 }); // slight blue-black sheen
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#e8e8e8' });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#1a5e3a' }); // dark green eyes (Megumi's eye color)
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Upper body — Jujutsu High uniform jacket
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.23, 0.9, 8), jacketMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    // Shoulders — lean athletic build (not as broad as Toji/Sukuna)
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.24, 0.34), jacketMat);
+    shoulders.position.y = 0.85; torsoPivot.add(shoulders);
+    // High collar of the uniform
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.17, 0.18, 6), jacketMat);
+    collar.position.y = 1.03; torsoPivot.add(collar);
+    // Inner shirt visible at collar opening
+    const innerShirt = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.06, 6), innerMat);
+    innerShirt.position.set(0, 0.98, 0.07); torsoPivot.add(innerShirt);
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.14, 6), skinMat);
+    neck.position.y = 1.13; torsoPivot.add(neck);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
+    head.position.y = 1.38; head.scale.set(1, 1.04, 0.95); torsoPivot.add(head);
+
+    // Jaw / chin — angular but youthful
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat);
+    chin.position.set(0, 1.24, 0.12); chin.scale.set(1.2, 0.65, 1); torsoPivot.add(chin);
+
+    // ── Eyes — dark green, sharp, slightly narrow ──
+    const eyeGeo = new THREE.SphereGeometry(0.032, 6, 6);
+    const pupilGeo = new THREE.SphereGeometry(0.017, 4, 4);
+    const eyeWhiteGeo = new THREE.SphereGeometry(0.038, 6, 6);
+    for (let s = -1; s <= 1; s += 2) {
+        // Eye whites
+        const eyeWhite = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+        eyeWhite.position.set(s * 0.085, 1.42, 0.19);
+        eyeWhite.scale.set(1, 0.7, 0.5); // slightly narrow/sharp
+        torsoPivot.add(eyeWhite);
+        // Iris
+        const eye = new THREE.Mesh(eyeGeo, eyeMat);
+        eye.position.set(s * 0.085, 1.42, 0.2);
+        torsoPivot.add(eye);
+        // Pupil
+        const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+        pupil.position.set(s * 0.085, 1.42, 0.225);
+        torsoPivot.add(pupil);
+    }
+
+    // Brow ridge — slightly furrowed, serious expression
+    for (let s = -1; s <= 1; s += 2) {
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.02), skinMat);
+        brow.position.set(s * 0.085, 1.455, 0.185);
+        brow.rotation.z = s * -0.12;
+        torsoPivot.add(brow);
+    }
+
+    // ── Nose ──
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.06, 4), skinMat);
+    nose.position.set(0, 1.37, 0.21);
+    nose.rotation.x = Math.PI * 0.6;
+    torsoPivot.add(nose);
+
+    // ── Mouth — neutral/serious thin line ──
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.008, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#cc9988' }));
+    mouth.position.set(0, 1.3, 0.2); torsoPivot.add(mouth);
+
+    // ── Ears ──
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), skinMat);
+        ear.position.set(s * 0.2, 1.4, -0.01);
+        ear.scale.set(0.6, 1, 0.6);
+        torsoPivot.add(ear);
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  HAIR — Megumi's signature black spiky hair
+    //  Heavily spiked upward and backward, asymmetric, messy
+    //  Key features: spikes fan out from the crown, some hang
+    //  over the forehead, sides are shorter
+    // ════════════════════════════════════════════════════════════
+
+    // Base hair volume — covers the top/back of the head
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), hairMat);
+    hairBase.position.set(0, 1.48, -0.02);
+    hairBase.scale.set(1.1, 0.95, 1.05);
+    torsoPivot.add(hairBase);
+
+    // Secondary volume — gives more mass to the top
+    const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), hairMat);
+    hairTop.position.set(0, 1.58, 0.0);
+    hairTop.scale.set(1.0, 0.7, 0.9);
+    torsoPivot.add(hairTop);
+
+    // ── Main upward spikes (the big dramatic ones) ──
+    const mainSpikes = [
+        // Center-top — tallest spike, angled slightly forward
+        { x: 0,     y: 1.62, z: 0.02,  rx: -0.25, rz: 0,     h: 0.32, r: 0.045 },
+        // Slightly right of center — second tallest
+        { x: 0.06,  y: 1.61, z: 0.01,  rx: -0.15, rz: 0.2,   h: 0.28, r: 0.04 },
+        // Slightly left of center
+        { x: -0.06, y: 1.61, z: 0.01,  rx: -0.15, rz: -0.2,  h: 0.28, r: 0.04 },
+        // Right spike — angled outward
+        { x: 0.12,  y: 1.58, z: -0.01, rx: -0.05, rz: 0.45,  h: 0.26, r: 0.038 },
+        // Left spike — angled outward
+        { x: -0.12, y: 1.58, z: -0.01, rx: -0.05, rz: -0.45, h: 0.26, r: 0.038 },
+        // Far right — shorter, more angled
+        { x: 0.17,  y: 1.54, z: -0.03, rx: 0.05,  rz: 0.7,   h: 0.2,  r: 0.035 },
+        // Far left
+        { x: -0.17, y: 1.54, z: -0.03, rx: 0.05,  rz: -0.7,  h: 0.2,  r: 0.035 },
+        // Back-center — angled backward
+        { x: 0,     y: 1.58, z: -0.1,  rx: 0.5,   rz: 0,     h: 0.22, r: 0.038 },
+        // Back-right
+        { x: 0.1,   y: 1.55, z: -0.08, rx: 0.4,   rz: 0.3,   h: 0.2,  r: 0.035 },
+        // Back-left
+        { x: -0.1,  y: 1.55, z: -0.08, rx: 0.4,   rz: -0.3,  h: 0.2,  r: 0.035 },
+    ];
+
+    for (const sp of mainSpikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(sp.r, sp.h, 5), hairMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Forehead fringe spikes (hanging down over forehead, signature look) ──
+    const fringeSpikes = [
+        // Center fringe — hangs down between the eyes
+        { x: 0.02,  y: 1.52, z: 0.15,  rx: -1.1,  rz: 0.1,   h: 0.18, r: 0.03 },
+        // Left fringe spike
+        { x: -0.04, y: 1.52, z: 0.14,  rx: -1.0,  rz: -0.15, h: 0.16, r: 0.028 },
+        // Right fringe spike
+        { x: 0.07,  y: 1.51, z: 0.13,  rx: -0.9,  rz: 0.2,   h: 0.15, r: 0.025 },
+        // Far left fringe — along the side
+        { x: -0.1,  y: 1.5,  z: 0.11,  rx: -0.8,  rz: -0.3,  h: 0.14, r: 0.025 },
+        // Far right fringe
+        { x: 0.12,  y: 1.5,  z: 0.1,   rx: -0.7,  rz: 0.35,  h: 0.13, r: 0.023 },
+    ];
+
+    for (const sp of fringeSpikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(sp.r, sp.h, 4), hairMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Secondary/fill spikes (in-between to add density) ──
+    const fillSpikes = [
+        { x: 0.04,  y: 1.6,  z: 0.04,  rx: -0.2,  rz: 0.12,  h: 0.18, r: 0.03 },
+        { x: -0.03, y: 1.6,  z: 0.03,  rx: -0.18, rz: -0.08, h: 0.17, r: 0.028 },
+        { x: 0.09,  y: 1.57, z: 0.02,  rx: -0.1,  rz: 0.35,  h: 0.16, r: 0.028 },
+        { x: -0.09, y: 1.57, z: 0.02,  rx: -0.1,  rz: -0.35, h: 0.16, r: 0.028 },
+        { x: 0.15,  y: 1.52, z: -0.05, rx: 0.1,   rz: 0.55,  h: 0.15, r: 0.025 },
+        { x: -0.15, y: 1.52, z: -0.05, rx: 0.1,   rz: -0.55, h: 0.15, r: 0.025 },
+        // Small spikes near the temples
+        { x: 0.19,  y: 1.48, z: 0.04,  rx: -0.3,  rz: 0.8,   h: 0.12, r: 0.022 },
+        { x: -0.19, y: 1.48, z: 0.04,  rx: -0.3,  rz: -0.8,  h: 0.12, r: 0.022 },
+        // Back fill
+        { x: 0.05,  y: 1.53, z: -0.12, rx: 0.6,   rz: 0.15,  h: 0.16, r: 0.028 },
+        { x: -0.05, y: 1.53, z: -0.12, rx: 0.6,   rz: -0.15, h: 0.16, r: 0.028 },
+    ];
+
+    for (const sp of fillSpikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(sp.r, sp.h, 4), hairHighlightMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        torsoPivot.add(spike);
+    }
+
+    // ── Side hair (shorter spikes around the temples/sides) ──
+    for (let s = -1; s <= 1; s += 2) {
+        // Sideburn area — short hair near ears
+        const sideburn = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.06), hairMat);
+        sideburn.position.set(s * 0.2, 1.42, 0.03);
+        torsoPivot.add(sideburn);
+    }
+
+    // ── Right arm ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.38, 0.82, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), jacketMat));
+    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.45, 5), jacketMat);
+    rUpperArm.position.y = -0.28; rightArmPivot.add(rUpperArm);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), jacketMat).translateY(-0.52));
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.4, 5), jacketMat);
+    rForearm.position.y = -0.75; rightArmPivot.add(rForearm);
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.055, 0.055), skinMat);
+    rHand.position.set(0, -0.98, 0.02); rightArmPivot.add(rHand);
+    for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.05, 3), skinMat);
+        finger.position.set((f - 1.5) * 0.016, -1.04, 0.03);
+        rightArmPivot.add(finger);
+    }
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.38, 0.82, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), jacketMat));
+    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.45, 5), jacketMat);
+    lUpperArm.position.y = -0.28; leftArmPivot.add(lUpperArm);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), jacketMat).translateY(-0.52));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.4, 5), jacketMat);
+    lForearm.position.y = -0.75; leftArmPivot.add(lForearm);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.055, 0.055), skinMat);
+    lHand.position.set(0, -0.98, 0.02); leftArmPivot.add(lHand);
+    for (let f = 0; f < 4; f++) {
+        leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.05, 3), skinMat).translateX((f-1.5)*0.016).translateY(-1.04).translateZ(0.03));
+    }
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Right leg ──
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.1, 0.65, 0);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), pantsMat));
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.06, 0.45, 5), pantsMat);
+    rThigh.position.y = -0.28; rightLegPivot.add(rThigh);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), pantsMat).translateY(-0.52));
+    const rShin = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.42, 5), pantsMat);
+    rShin.position.y = -0.75; rightLegPivot.add(rShin);
+    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.055, 0.15), shoeMat);
+    rShoe.position.set(0, -0.98, 0.03); rightLegPivot.add(rShoe);
+    pm.add(rightLegPivot);
+    pm._rightLeg = rightLegPivot;
+
+    // ── Left leg ──
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.1, 0.65, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), pantsMat));
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.06, 0.45, 5), pantsMat);
+    lThigh.position.y = -0.28; leftLegPivot.add(lThigh);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), pantsMat).translateY(-0.52));
+    const lShin = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.42, 5), pantsMat);
+    lShin.position.y = -0.75; leftLegPivot.add(lShin);
+    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.055, 0.15), shoeMat);
+    lShoe.position.set(0, -0.98, 0.03); leftLegPivot.add(lShoe);
+    pm.add(leftLegPivot);
+    pm._leftLeg = leftLegPivot;
+
+    // ── Belt ──
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.22, 0.05, 8),
+        new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.5 }));
+    belt.position.y = 0.62; pm.add(belt);
+
+    // ── Shadow aura (subtle dark-blue glow) ──
+    const aura = new THREE.PointLight('#1a237e', 0.6, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isMegumi = true;
+
+    return pm;
+}
+
+// ─── MEGUMI WALK/IDLE ANIMATION ─────────────────────────────
+function updateMegumiAnimation(pm, dt, moving, walkCycle) {
+    if (!pm._isMegumi) return false;
+
+    const t = walkCycle;
+
+    if (moving) {
+        const stride = 0.55;
+        const armSwing = 0.45;
+        const bodyBob = Math.abs(Math.sin(t * 2)) * 0.05;
+
+        if (pm._rightLeg) pm._rightLeg.rotation.x = Math.sin(t) * stride;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = Math.sin(t + Math.PI) * stride;
+
+        if (pm._rightArm) pm._rightArm.rotation.x = Math.sin(t + Math.PI) * armSwing;
+        if (pm._leftArm) pm._leftArm.rotation.x = Math.sin(t) * armSwing;
+
+        if (pm._torso) {
+            pm._torso.rotation.x = 0.04;
+            pm._torso.rotation.z = Math.sin(t) * 0.025;
+        }
+
+        pm.position.y = (fpsCamera.flyHeight || 0) + bodyBob;
+
+        if (pm._auraLight) pm._auraLight.intensity = 0.6 + Math.sin(t * 3) * 0.2;
+    } else {
+        const breath = Math.sin(t * 0.5) * 0.015;
+        const idleSway = Math.sin(t * 0.3) * 0.008;
+
+        if (pm._rightArm) pm._rightArm.rotation.x = breath + 0.04;
+        if (pm._leftArm) pm._leftArm.rotation.x = breath + 0.04;
+
+        if (pm._rightLeg) pm._rightLeg.rotation.x = 0;
+        if (pm._leftLeg) pm._leftLeg.rotation.x = 0;
+
+        if (pm._torso) {
+            pm._torso.rotation.x = breath;
+            pm._torso.rotation.z = idleSway;
+        }
+
+        pm.position.y = fpsCamera.flyHeight || 0;
+
+        if (pm._auraLight) pm._auraLight.intensity = 0.5 + Math.sin(t * 0.4) * 0.15;
+    }
+
+    return true;
 }
 
 // ─── HOROHORO OVERSOUL (Q key — permanent, two big ice fists) ──

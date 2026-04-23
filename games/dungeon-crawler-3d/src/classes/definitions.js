@@ -66,4 +66,11 @@ export const CLASSES = {
         abilities: { z: 'Fist Slam', x: 'Ice Barrage', c: 'Blizzard', v: 'Avalanche', f: 'Ice Dash' },
         abilityCooldowns: { z: 4000, x: 5000, c: 10000, v: 20000, f: 2500 }
     },
+    megumi: {
+        name: 'Megumi Fushiguro', type: 'sorcerer', maxHp: 130, speed: 3.5, attackRange: 35,
+        attackDamage: 16, attackSpeed: 240, attackType: 'melee', color: '#1a237e',
+        specialCooldown: 5000, specialName: 'Ten Shadows', weaponType: 'fist',
+        abilities: { z: 'Divine Dog', x: 'Nue', c: 'Toad', v: 'Chimera Shadow Garden', f: 'Shadow Dash' },
+        abilityCooldowns: { z: 4000, x: 5000, c: 8000, v: 20000, f: 2500 }
+    },
 };
