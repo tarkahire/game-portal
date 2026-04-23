@@ -7107,7 +7107,69 @@ function fruitAbility(slot) {
 
     // ══════ MEGUMI ══════
     if (id === 'megumi') {
-        if (slot === 'f') { // Shadow Dash — phase through shadows forward
+        if (slot === 'z') { // Divine Dogs — summon white & black divine dogs
+            // Remove any existing divine dogs first
+            for (let i = minions3D.length - 1; i >= 0; i--) {
+                if (minions3D[i].data.type === 'divineDog' && minions3D[i].data._owner === player) {
+                    scene.remove(minions3D[i].mesh);
+                    minions3D.splice(i, 1);
+                }
+            }
+
+            // Summon VFX — shadow pool on the ground
+            groundRing(worldPx, worldPz, '#1a237e', 4, 800);
+            groundDecal(worldPx, worldPz, '#0d1b5e', 3, 2000);
+            screenFlash('rgba(26,35,126,0.3)', 300);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#1a237e', 5, 400);
+
+            // Shadow particles rising from the ground
+            emitParticles(worldPx, 0.2, worldPz, {
+                color: ['#1a237e', '#0d1b5e', '#283593', '#000000'],
+                count: 30, speed: 3, spread: 2,
+                gravity: 0, life: 20, size: 0.15, sizeEnd: 0, drag: 0.94, upward: 3
+            });
+
+            // Hand sign pose
+            if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(-1.0, 0, -0.3);
+            if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.set(-1.0, 0, 0.3);
+            setTimeout(() => {
+                if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(0.04, 0, 0);
+                if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.set(0.04, 0, 0);
+            }, 800);
+
+            // Spawn white dog (left side) and black dog (right side)
+            const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+            const dogStats = {
+                color: '#1a1a22', radius: 0.5, speed: 5, damage: Math.round(player.damage * 1.2),
+                attackRange: 1.8, attackSpeed: 600, hp: 9999, maxHp: 9999, life: Infinity, _owner: player,
+            };
+
+            // White divine dog
+            const whiteX = px + perpX * 1.5 + fwdX * 1;
+            const whiteZ = pz + perpZ * 1.5 + fwdZ * 1;
+            spawnMinion('divineDog', whiteX, whiteZ, { ...dogStats, color: '#e8e0d8', _isWhite: true });
+            // White dog spawn VFX
+            emitParticles(whiteX * TILE, 0.5, whiteZ * TILE, {
+                color: ['#ffffff', '#e0e0e0', '#c0c0c0'],
+                count: 15, speed: 2, spread: 1,
+                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.93, upward: 2
+            });
+
+            // Black divine dog
+            const blackX = px - perpX * 1.5 + fwdX * 1;
+            const blackZ = pz - perpZ * 1.5 + fwdZ * 1;
+            spawnMinion('divineDog', blackX, blackZ, { ...dogStats, _isWhite: false });
+            // Black dog spawn VFX
+            emitParticles(blackX * TILE, 0.5, blackZ * TILE, {
+                color: ['#1a237e', '#ff2244', '#0d1b5e'],
+                count: 15, speed: 2, spread: 1,
+                gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.93, upward: 2
+            });
+
+            triggerHitstop(40);
+        }
+
+        else if (slot === 'f') { // Shadow Dash — phase through shadows forward
             const dashDist = 5;
             const newX = px + fwdX * dashDist;
             const newZ = pz + fwdZ * dashDist;
@@ -8840,41 +8902,204 @@ function spawnMinion(type, tileX, tileZ, data) {
     const S = data.radius * 2;
     const color = data.color;
 
-    // Body
-    const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(S * 0.4, S * 0.35, S * 1.5, 6), bodyMat);
-    body.position.y = S * 0.9;
-    group.add(body);
+    if (type === 'divineDog') {
+        // ── Divine Dog — full 3D wolf/dog model ──
+        const isWhite = data._isWhite;
+        const furColor = isWhite ? '#e8e0d8' : '#1a1a22';
+        const furAccent = isWhite ? '#d0c8c0' : '#0d0d14';
+        const eyeColor = isWhite ? '#ffffff' : '#ff2244';
+        const furMat = new THREE.MeshStandardMaterial({ color: furColor, roughness: 0.7 });
+        const accentMat = new THREE.MeshStandardMaterial({ color: furAccent, roughness: 0.7 });
+        const noseMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.5 });
+        const dogEyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
+        const glowColor = isWhite ? '#e0e0e0' : '#ff2244';
 
-    // Head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(S * 0.3, 6, 6), bodyMat);
-    head.position.y = S * 1.8;
-    group.add(head);
+        // ── Torso — long oval body ──
+        const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 0.9, 8), furMat);
+        torso.rotation.x = Math.PI / 2; // lay horizontal
+        torso.position.set(0, 0.55, 0);
+        group.add(torso);
 
-    // Glowing eyes
-    const eyeColor = type === 'shadow' ? '#448aff' : type === 'imp' ? '#ff0000' : '#ffffff';
-    const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
-    const eyeGeo = new THREE.SphereGeometry(S * 0.08, 4, 4);
-    group.add(new THREE.Mesh(eyeGeo, eyeMat).translateX(-S * 0.12).translateY(S * 1.85).translateZ(S * 0.2));
-    group.add(new THREE.Mesh(eyeGeo, eyeMat).translateX(S * 0.12).translateY(S * 1.85).translateZ(S * 0.2));
+        // Chest — broader front
+        const chest = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 8), furMat);
+        chest.position.set(0, 0.55, 0.35);
+        chest.scale.set(1, 1, 0.8);
+        group.add(chest);
 
-    // Type-specific details
-    if (type === 'shadow') {
-        // Hood
-        const hood = new THREE.Mesh(new THREE.ConeGeometry(S * 0.35, S * 0.5, 6), new THREE.MeshStandardMaterial({ color: '#1a1040' }));
-        hood.position.y = S * 2.1;
-        group.add(hood);
-        // Blue flame aura
-        const aura = new THREE.PointLight('#448aff', 1, TILE * 2, 2);
-        aura.position.y = S * 1.5;
+        // Haunches — rear
+        const rear = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), furMat);
+        rear.position.set(0, 0.52, -0.4);
+        rear.scale.set(1, 1, 0.8);
+        group.add(rear);
+
+        // ── Neck ──
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.25, 6), furMat);
+        neck.position.set(0, 0.7, 0.5);
+        neck.rotation.x = -0.5;
+        group.add(neck);
+
+        // ── Head ──
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), furMat);
+        head.position.set(0, 0.85, 0.65);
+        head.scale.set(1, 0.9, 1.15); // slightly elongated snout shape
+        group.add(head);
+
+        // Snout — protruding muzzle
+        const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 0.2, 6), furMat);
+        snout.position.set(0, 0.8, 0.85);
+        snout.rotation.x = Math.PI / 2;
+        group.add(snout);
+
+        // Nose tip
+        const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), noseMat);
+        noseTip.position.set(0, 0.82, 0.95);
+        group.add(noseTip);
+
+        // ── Mouth — slight jaw gap ──
+        const upperJaw = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 0.12), accentMat);
+        upperJaw.position.set(0, 0.77, 0.88);
+        group.add(upperJaw);
+        const lowerJaw = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.02, 0.1), accentMat);
+        lowerJaw.position.set(0, 0.74, 0.86);
+        group.add(lowerJaw);
+
+        // Teeth — small fangs visible
+        const toothMat = new THREE.MeshStandardMaterial({ color: '#f0f0e0', roughness: 0.3 });
+        for (let s = -1; s <= 1; s += 2) {
+            const fang = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.04, 3), toothMat);
+            fang.position.set(s * 0.03, 0.74, 0.9);
+            fang.rotation.x = Math.PI;
+            group.add(fang);
+        }
+
+        // ── Eyes ──
+        for (let s = -1; s <= 1; s += 2) {
+            const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6),
+                new THREE.MeshBasicMaterial({ color: '#e0e0e0' }));
+            eyeWhite.position.set(s * 0.1, 0.9, 0.75);
+            eyeWhite.scale.set(0.8, 0.7, 0.5);
+            group.add(eyeWhite);
+
+            const iris = new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 5), dogEyeMat);
+            iris.position.set(s * 0.1, 0.9, 0.78);
+            group.add(iris);
+
+            const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4),
+                new THREE.MeshBasicMaterial({ color: '#000000' }));
+            pupil.position.set(s * 0.1, 0.9, 0.8);
+            group.add(pupil);
+        }
+
+        // ── Ears — pointed upward (wolf-like) ──
+        for (let s = -1; s <= 1; s += 2) {
+            const ear = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.15, 4), furMat);
+            ear.position.set(s * 0.12, 1.02, 0.6);
+            ear.rotation.z = s * 0.2;
+            ear.rotation.x = -0.15;
+            group.add(ear);
+            // Inner ear
+            const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.1, 4),
+                new THREE.MeshStandardMaterial({ color: isWhite ? '#d4a8a0' : '#3a1a1a', roughness: 0.5 }));
+            innerEar.position.set(s * 0.12, 1.0, 0.62);
+            innerEar.rotation.z = s * 0.2;
+            innerEar.rotation.x = -0.15;
+            group.add(innerEar);
+        }
+
+        // ── Legs (4 legs) ──
+        const legPositions = [
+            { x: 0.12, z: 0.25, label: 'FL' },  // front-left
+            { x: -0.12, z: 0.25, label: 'FR' },  // front-right
+            { x: 0.1, z: -0.35, label: 'BL' },   // back-left
+            { x: -0.1, z: -0.35, label: 'BR' },   // back-right
+        ];
+        const legPivots = [];
+        for (const lp of legPositions) {
+            const legPivot = new THREE.Group();
+            legPivot.position.set(lp.x, 0.45, lp.z);
+
+            // Upper leg
+            const upperLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.25, 5), furMat);
+            upperLeg.position.y = -0.12;
+            legPivot.add(upperLeg);
+
+            // Lower leg
+            const lowerLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.025, 0.22, 5), furMat);
+            lowerLeg.position.y = -0.32;
+            legPivot.add(lowerLeg);
+
+            // Paw
+            const paw = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), accentMat);
+            paw.position.set(0, -0.44, 0.01);
+            paw.scale.set(1, 0.5, 1.3);
+            legPivot.add(paw);
+
+            group.add(legPivot);
+            legPivots.push(legPivot);
+        }
+        group.userData._legPivots = legPivots;
+
+        // ── Tail — curves upward ──
+        const tailBase = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.02, 0.25, 5), furMat);
+        tailBase.position.set(0, 0.65, -0.55);
+        tailBase.rotation.x = 0.8;
+        group.add(tailBase);
+        const tailTip = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.008, 0.18, 4), furMat);
+        tailTip.position.set(0, 0.8, -0.65);
+        tailTip.rotation.x = 1.2;
+        group.add(tailTip);
+
+        // ── Glow aura ──
+        const aura = new THREE.PointLight(glowColor, 1.2, TILE * 3, 2);
+        aura.position.y = 0.7;
         group.add(aura);
-    }
-    if (type === 'imp') {
-        // Horns
-        const hornGeo = new THREE.ConeGeometry(S * 0.08, S * 0.3, 4);
-        const hornMat = new THREE.MeshStandardMaterial({ color: '#880000' });
-        group.add(new THREE.Mesh(hornGeo, hornMat).translateX(-S * 0.15).translateY(S * 2.1));
-        group.add(new THREE.Mesh(hornGeo, hornMat).translateX(S * 0.15).translateY(S * 2.1));
+
+        // Shadow wisps at feet (dark energy)
+        const shadowMat = new THREE.MeshBasicMaterial({
+            color: '#1a237e', transparent: true, opacity: 0.3,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const shadowDisc = new THREE.Mesh(new THREE.CircleGeometry(0.3, 8), shadowMat);
+        shadowDisc.rotation.x = -Math.PI / 2;
+        shadowDisc.position.y = 0.02;
+        group.add(shadowDisc);
+
+    } else {
+        // ── Default humanoid minion ──
+
+        // Body
+        const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(S * 0.4, S * 0.35, S * 1.5, 6), bodyMat);
+        body.position.y = S * 0.9;
+        group.add(body);
+
+        // Head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(S * 0.3, 6, 6), bodyMat);
+        head.position.y = S * 1.8;
+        group.add(head);
+
+        // Glowing eyes
+        const eyeColor = type === 'shadow' ? '#448aff' : type === 'imp' ? '#ff0000' : '#ffffff';
+        const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
+        const eyeGeo = new THREE.SphereGeometry(S * 0.08, 4, 4);
+        group.add(new THREE.Mesh(eyeGeo, eyeMat).translateX(-S * 0.12).translateY(S * 1.85).translateZ(S * 0.2));
+        group.add(new THREE.Mesh(eyeGeo, eyeMat).translateX(S * 0.12).translateY(S * 1.85).translateZ(S * 0.2));
+
+        // Type-specific details
+        if (type === 'shadow') {
+            const hood = new THREE.Mesh(new THREE.ConeGeometry(S * 0.35, S * 0.5, 6), new THREE.MeshStandardMaterial({ color: '#1a1040' }));
+            hood.position.y = S * 2.1;
+            group.add(hood);
+            const aura = new THREE.PointLight('#448aff', 1, TILE * 2, 2);
+            aura.position.y = S * 1.5;
+            group.add(aura);
+        }
+        if (type === 'imp') {
+            const hornGeo = new THREE.ConeGeometry(S * 0.08, S * 0.3, 4);
+            const hornMat = new THREE.MeshStandardMaterial({ color: '#880000' });
+            group.add(new THREE.Mesh(hornGeo, hornMat).translateX(-S * 0.15).translateY(S * 2.1));
+            group.add(new THREE.Mesh(hornGeo, hornMat).translateX(S * 0.15).translateY(S * 2.1));
+        }
     }
 
     group.position.set(tileX * TILE, 0, tileZ * TILE);
@@ -8942,8 +9167,28 @@ function updateMinions(dt, now) {
 
         m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
 
-        // Billboard toward camera
-        m.mesh.lookAt(camera.position.x, m.mesh.position.y, camera.position.z);
+        if (m.data.type === 'divineDog') {
+            // Face movement direction instead of camera
+            if (dist > 0.3) {
+                const faceAngle = Math.atan2(dx, dz);
+                m.mesh.rotation.y = faceAngle;
+            }
+            // Leg walk animation
+            const legs = m.mesh.userData._legPivots;
+            if (legs && dist > 0.3) {
+                const wt = now * 0.008;
+                const stride = 0.5;
+                legs[0].rotation.x = Math.sin(wt) * stride;         // FL
+                legs[1].rotation.x = Math.sin(wt + Math.PI) * stride; // FR
+                legs[2].rotation.x = Math.sin(wt + Math.PI) * stride; // BL
+                legs[3].rotation.x = Math.sin(wt) * stride;         // BR
+            } else if (legs) {
+                for (const lp of legs) lp.rotation.x = 0;
+            }
+        } else {
+            // Billboard toward camera
+            m.mesh.lookAt(camera.position.x, m.mesh.position.y, camera.position.z);
+        }
     }
 }
 
