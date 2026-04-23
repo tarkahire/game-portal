@@ -7517,31 +7517,66 @@ function buildMegumiModel() {
     const chin = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat);
     chin.position.set(0, 1.24, 0.12); chin.scale.set(1.2, 0.65, 1); torsoPivot.add(chin);
 
-    // ── Eyes — dark green, sharp, slightly narrow ──
-    const eyeGeo = new THREE.SphereGeometry(0.032, 6, 6);
-    const pupilGeo = new THREE.SphereGeometry(0.017, 4, 4);
-    const eyeWhiteGeo = new THREE.SphereGeometry(0.038, 6, 6);
+    // ── Eyes — dark green, sharp, clearly visible ──
+    const eyeWhiteGeo = new THREE.SphereGeometry(0.055, 8, 8);
+    const eyeGeo = new THREE.SphereGeometry(0.04, 6, 6);
+    const pupilGeo = new THREE.SphereGeometry(0.022, 5, 5);
     for (let s = -1; s <= 1; s += 2) {
-        // Eye whites
+        // Eye socket shadow — dark recess behind the eye for depth
+        const socket = new THREE.Mesh(
+            new THREE.SphereGeometry(0.06, 6, 6),
+            new THREE.MeshStandardMaterial({ color: '#c8a898', roughness: 0.7 })
+        );
+        socket.position.set(s * 0.09, 1.42, 0.17);
+        socket.scale.set(1.1, 0.65, 0.4);
+        torsoPivot.add(socket);
+
+        // Eye whites — bigger and more protruding so they pop
         const eyeWhite = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
-        eyeWhite.position.set(s * 0.085, 1.42, 0.19);
-        eyeWhite.scale.set(1, 0.7, 0.5); // slightly narrow/sharp
+        eyeWhite.position.set(s * 0.09, 1.42, 0.19);
+        eyeWhite.scale.set(1.0, 0.6, 0.7);
         torsoPivot.add(eyeWhite);
-        // Iris
+
+        // Iris — dark green, large
         const eye = new THREE.Mesh(eyeGeo, eyeMat);
-        eye.position.set(s * 0.085, 1.42, 0.2);
+        eye.position.set(s * 0.09, 1.42, 0.22);
         torsoPivot.add(eye);
-        // Pupil
+
+        // Pupil — black center
         const pupil = new THREE.Mesh(pupilGeo, pupilMat);
-        pupil.position.set(s * 0.085, 1.42, 0.225);
+        pupil.position.set(s * 0.09, 1.42, 0.24);
         torsoPivot.add(pupil);
+
+        // Eye shine — small white highlight dot for life
+        const shine = new THREE.Mesh(
+            new THREE.SphereGeometry(0.008, 4, 4),
+            new THREE.MeshBasicMaterial({ color: '#ffffff' })
+        );
+        shine.position.set(s * 0.09 + 0.015, 1.43, 0.25);
+        torsoPivot.add(shine);
+
+        // Upper eyelid line — dark thin line above the eye
+        const eyelid = new THREE.Mesh(
+            new THREE.BoxGeometry(0.07, 0.008, 0.015),
+            new THREE.MeshBasicMaterial({ color: '#2a1a10' })
+        );
+        eyelid.position.set(s * 0.09, 1.455, 0.2);
+        torsoPivot.add(eyelid);
+
+        // Lower eyelid — subtler
+        const lowerLid = new THREE.Mesh(
+            new THREE.BoxGeometry(0.06, 0.005, 0.012),
+            new THREE.MeshBasicMaterial({ color: '#c0a090' })
+        );
+        lowerLid.position.set(s * 0.09, 1.395, 0.2);
+        torsoPivot.add(lowerLid);
     }
 
     // Brow ridge — slightly furrowed, serious expression
     for (let s = -1; s <= 1; s += 2) {
-        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.02), skinMat);
-        brow.position.set(s * 0.085, 1.455, 0.185);
-        brow.rotation.z = s * -0.12;
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.018, 0.025), skinMat);
+        brow.position.set(s * 0.09, 1.465, 0.185);
+        brow.rotation.z = s * -0.15;
         torsoPivot.add(brow);
     }
 
@@ -7614,18 +7649,18 @@ function buildMegumiModel() {
         torsoPivot.add(spike);
     }
 
-    // ── Forehead fringe spikes (hanging down over forehead, signature look) ──
+    // ── Forehead fringe spikes (hanging over forehead but above the eyes) ──
     const fringeSpikes = [
-        // Center fringe — hangs down between the eyes
-        { x: 0.02,  y: 1.52, z: 0.15,  rx: -1.1,  rz: 0.1,   h: 0.18, r: 0.03 },
+        // Center fringe — hangs down toward the brow but not over the eyes
+        { x: 0.02,  y: 1.55, z: 0.16,  rx: -0.85, rz: 0.1,   h: 0.16, r: 0.03 },
         // Left fringe spike
-        { x: -0.04, y: 1.52, z: 0.14,  rx: -1.0,  rz: -0.15, h: 0.16, r: 0.028 },
+        { x: -0.04, y: 1.55, z: 0.15,  rx: -0.75, rz: -0.15, h: 0.14, r: 0.028 },
         // Right fringe spike
-        { x: 0.07,  y: 1.51, z: 0.13,  rx: -0.9,  rz: 0.2,   h: 0.15, r: 0.025 },
+        { x: 0.07,  y: 1.54, z: 0.14,  rx: -0.7,  rz: 0.2,   h: 0.14, r: 0.025 },
         // Far left fringe — along the side
-        { x: -0.1,  y: 1.5,  z: 0.11,  rx: -0.8,  rz: -0.3,  h: 0.14, r: 0.025 },
+        { x: -0.1,  y: 1.53, z: 0.12,  rx: -0.6,  rz: -0.3,  h: 0.13, r: 0.025 },
         // Far right fringe
-        { x: 0.12,  y: 1.5,  z: 0.1,   rx: -0.7,  rz: 0.35,  h: 0.13, r: 0.023 },
+        { x: 0.12,  y: 1.53, z: 0.11,  rx: -0.55, rz: 0.35,  h: 0.12, r: 0.023 },
     ];
 
     for (const sp of fringeSpikes) {
