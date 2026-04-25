@@ -2880,8 +2880,28 @@ function spawnMeleeSlash(color, forP2) {
 function spawnPunchImpact(wx, wy, wz, color) {
     const palette = color || '#ffffff';
 
-    // Bright impact ring facing the camera
-    const ringGeo = new THREE.RingGeometry(0.06, 0.35, 18);
+    // Inner bright filled disc — the bright "POW" flash core
+    const coreGeo = new THREE.CircleGeometry(0.4, 16);
+    const coreMat = new THREE.MeshBasicMaterial({
+        color: '#ffffff', transparent: true, opacity: 1,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    core.position.set(wx, wy, wz);
+    core.lookAt(camera.position);
+    scene.add(core);
+    const coreStart = performance.now();
+    const animateCore = () => {
+        const t = (performance.now() - coreStart) / 220;
+        if (t >= 1) { scene.remove(core); coreGeo.dispose(); coreMat.dispose(); return; }
+        core.scale.setScalar(1 + t * 2.2);
+        coreMat.opacity = (1 - t) * 1;
+        requestAnimationFrame(animateCore);
+    };
+    requestAnimationFrame(animateCore);
+
+    // Bright impact ring (color-tinted), expanding outward
+    const ringGeo = new THREE.RingGeometry(0.2, 0.55, 24);
     const ringMat = new THREE.MeshBasicMaterial({
         color: palette, transparent: true, opacity: 0.95,
         blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
@@ -2892,64 +2912,142 @@ function spawnPunchImpact(wx, wy, wz, color) {
     scene.add(ring);
     const ringStart = performance.now();
     const animateRing = () => {
-        const t = (performance.now() - ringStart) / 220;
+        const t = (performance.now() - ringStart) / 350;
         if (t >= 1) { scene.remove(ring); ringGeo.dispose(); ringMat.dispose(); return; }
-        ring.scale.setScalar(1 + t * 4);
+        ring.scale.setScalar(1 + t * 5);
         ringMat.opacity = (1 - t) * 0.95;
         requestAnimationFrame(animateRing);
     };
     requestAnimationFrame(animateRing);
 
-    // Star-burst speed lines radiating outward from the impact
-    for (let i = 0; i < 6; i++) {
-        const angle = (i / 6) * Math.PI * 2 + Math.random() * 0.3;
-        const lineGeo = new THREE.PlaneGeometry(0.55, 0.04);
+    // Second outer ring — slower, fuller comic-book shockwave
+    const ring2Geo = new THREE.RingGeometry(0.1, 0.18, 24);
+    const ring2Mat = new THREE.MeshBasicMaterial({
+        color: '#ffffff', transparent: true, opacity: 0.6,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    });
+    const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+    ring2.position.set(wx, wy, wz);
+    ring2.lookAt(camera.position);
+    scene.add(ring2);
+    const ring2Start = performance.now();
+    const animateRing2 = () => {
+        const t = (performance.now() - ring2Start) / 420;
+        if (t >= 1) { scene.remove(ring2); ring2Geo.dispose(); ring2Mat.dispose(); return; }
+        ring2.scale.setScalar(1 + t * 8);
+        ring2Mat.opacity = (1 - t) * 0.6;
+        requestAnimationFrame(animateRing2);
+    };
+    requestAnimationFrame(animateRing2);
+
+    // Star-burst speed lines radiating outward from the impact (longer + more)
+    for (let i = 0; i < 9; i++) {
+        const angle = (i / 9) * Math.PI * 2 + Math.random() * 0.3;
+        const lineGeo = new THREE.PlaneGeometry(0.9, 0.07);
         const lineMat = new THREE.MeshBasicMaterial({
-            color: '#ffffff', transparent: true, opacity: 0.9,
+            color: '#ffffff', transparent: true, opacity: 0.95,
             blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
         });
         const line = new THREE.Mesh(lineGeo, lineMat);
         line.position.set(wx, wy, wz);
         line.lookAt(camera.position);
         line.rotateZ(angle);
-        line.translateX(0.25);
+        line.translateX(0.55);
         scene.add(line);
         const lStart = performance.now();
         const animateLine = () => {
-            const t = (performance.now() - lStart) / 180;
+            const t = (performance.now() - lStart) / 260;
             if (t >= 1) { scene.remove(line); lineGeo.dispose(); lineMat.dispose(); return; }
-            line.scale.x = 1 + t * 2;
-            lineMat.opacity = (1 - t) * 0.9;
+            line.scale.x = 1 + t * 3;
+            lineMat.opacity = (1 - t) * 0.95;
             requestAnimationFrame(animateLine);
         };
         requestAnimationFrame(animateLine);
     }
 
-    // Small sparks burst forward
+    // Bigger spark burst
     emitParticles(wx, wy, wz, {
-        color: ['#ffffff', palette, '#ffeecc'],
-        count: 10, speed: 5, spread: 0.4,
-        gravity: -3, life: 8, size: 0.09, sizeEnd: 0, drag: 0.93
+        color: ['#ffffff', palette, '#ffeecc', '#ffaa55'],
+        count: 18, speed: 7, spread: 0.5,
+        gravity: -3, life: 12, size: 0.13, sizeEnd: 0, drag: 0.92
     });
 
-    // Brief flash light
-    lightFlash(wx, wy, wz, palette, 2.5, 140);
+    // Bright flash light
+    lightFlash(wx, wy, wz, palette, 4, 200);
 }
 
-// Forward fist-thrust on a character model for ~180ms.
-// Works for both player models (which expose pivots as direct properties)
-// and the Mahoraga mesh (which exposes them on userData).
+// Over-dramatic 3-phase punch swing (windup → snap forward → recovery).
+// Active swings are tracked in a registry and updated AFTER walk/AI animations
+// each frame so the swing isn't overwritten by per-character idle/run anims.
+// arm._punchUntil is a timestamp the per-char anims check to skip writing.
+const activePunches = [];
 function triggerPunchArm(pm, side) {
     if (!pm) return;
     const arm = side > 0
         ? (pm._rightArm || (pm.userData && pm.userData._rightArm))
         : (pm._leftArm || (pm.userData && pm.userData._leftArm));
     if (!arm) return;
-    arm.rotation.x = -1.6;
-    arm.rotation.z = side > 0 ? -0.18 : 0.18;
-    setTimeout(() => {
-        if (arm) { arm.rotation.x = 0.05; arm.rotation.z = 0; }
-    }, 180);
+    const start = performance.now();
+    const windup = 110, swing = 170, recover = 230;
+    arm._punchUntil = start + windup + swing + recover;
+    // Cancel any prior punch on this arm
+    for (let i = activePunches.length - 1; i >= 0; i--) {
+        if (activePunches[i].arm === arm) activePunches.splice(i, 1);
+    }
+    activePunches.push({
+        arm, side, start, windup, swing, recover,
+        // Big windup back/up + slight inward twist
+        windupRx: 0.95,
+        windupRz: side > 0 ? 0.55 : -0.55,
+        windupRy: side > 0 ? -0.4 : 0.4,
+        // Massive forward extension at peak — almost straight out
+        swingRx: -2.55,
+        swingRz: side > 0 ? -0.7 : 0.7,
+        swingRy: side > 0 ? 0.3 : -0.3,
+    });
+}
+
+// Apply active punch swings every frame (called LAST in update() so other
+// animations have already written their rotations and we override them).
+function updatePunchArms() {
+    const now = performance.now();
+    for (let i = activePunches.length - 1; i >= 0; i--) {
+        const p = activePunches[i];
+        const arm = p.arm;
+        if (!arm) { activePunches.splice(i, 1); continue; }
+        const elapsed = now - p.start;
+        const total = p.windup + p.swing + p.recover;
+        if (elapsed >= total) {
+            arm.rotation.x = 0.05;
+            arm.rotation.y = 0;
+            arm.rotation.z = 0;
+            arm._punchUntil = 0;
+            activePunches.splice(i, 1);
+            continue;
+        }
+        if (elapsed < p.windup) {
+            // Windup — pull back/up
+            const t = elapsed / p.windup;
+            const ease = 1 - Math.pow(1 - t, 2);
+            arm.rotation.x = p.windupRx * ease;
+            arm.rotation.y = p.windupRy * ease;
+            arm.rotation.z = p.windupRz * ease;
+        } else if (elapsed < p.windup + p.swing) {
+            // Snap forward — explosive ease-out cubic
+            const t = (elapsed - p.windup) / p.swing;
+            const ease = 1 - Math.pow(1 - t, 3);
+            arm.rotation.x = p.windupRx + (p.swingRx - p.windupRx) * ease;
+            arm.rotation.y = p.windupRy + (p.swingRy - p.windupRy) * ease;
+            arm.rotation.z = p.windupRz + (p.swingRz - p.windupRz) * ease;
+        } else {
+            // Recover back to neutral
+            const t = (elapsed - p.windup - p.swing) / p.recover;
+            const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+            arm.rotation.x = p.swingRx + (0.05 - p.swingRx) * ease;
+            arm.rotation.y = p.swingRy + (0 - p.swingRy) * ease;
+            arm.rotation.z = p.swingRz + (0 - p.swingRz) * ease;
+        }
+    }
 }
 
 function updateMeleeSlashes() {
@@ -8820,22 +8918,27 @@ function buildMahoragaMesh() {
     const sashTail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.04), sash);
     sashTail.position.set(0.18, 1.55, 0.5); sashTail.rotation.z = 0.15; group.add(sashTail);
 
-    // ── Torso ──
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 1.3, 8), skin);
+    // ── Torso ── (broader, more imposing build)
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.62, 1.35, 10), skin);
     torso.position.y = 2.4; group.add(torso);
-    // Chest plate (wider)
-    const chest = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.55, 0.7), skin);
-    chest.position.y = 2.85; group.add(chest);
-    // Pec definition
+    // Chest plate — wider and deeper
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.7, 0.85), skin);
+    chest.position.y = 2.92; group.add(chest);
+    // Lats — slabs at the sides
     for (let s = -1; s <= 1; s += 2) {
-        const pec = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.32, 0.1), skinShade);
-        pec.position.set(s * 0.24, 2.9, 0.36); group.add(pec);
+        const lat = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.5), skinShade);
+        lat.position.set(s * 0.7, 2.65, 0); group.add(lat);
     }
-    // Abs (3 rows × 2 cols)
+    // Pec definition (larger)
+    for (let s = -1; s <= 1; s += 2) {
+        const pec = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.4, 0.12), skinShade);
+        pec.position.set(s * 0.3, 2.95, 0.42); group.add(pec);
+    }
+    // Abs (3 rows × 2 cols, larger)
     for (let r = 0; r < 3; r++) {
         for (let s = -1; s <= 1; s += 2) {
-            const ab = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.13, 0.05), skinShade);
-            ab.position.set(s * 0.14, 2.55 - r * 0.2, 0.36); group.add(ab);
+            const ab = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.06), skinShade);
+            ab.position.set(s * 0.16, 2.55 - r * 0.22, 0.42); group.add(ab);
         }
     }
 
@@ -8851,35 +8954,65 @@ function buildMahoragaMesh() {
         cap.position.set(i * 0.2, 3.12, 0.42); group.add(cap);
     }
 
-    // ── Shoulders ──
+    // ── Riding seat on the upper back (visible whether ridden or not) ──
+    const seatPadMat = new THREE.MeshStandardMaterial({ color: '#3a2820', roughness: 0.7 });
+    const seatPad = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.14, 0.55), seatPadMat);
+    seatPad.position.set(0, 3.0, -0.45); group.add(seatPad);
+    // Saddle skirt — drapes a bit
+    const seatSkirt = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.22, 0.05), seatPadMat);
+    seatSkirt.position.set(0, 2.85, -0.7); seatSkirt.rotation.x = -0.2; group.add(seatSkirt);
+    // Front grip-bar for the rider to hold
+    const gripMat = new THREE.MeshStandardMaterial({ color: '#222', metalness: 0.6, roughness: 0.4 });
+    const gripBar = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.6, 8), gripMat);
+    gripBar.rotation.z = Math.PI / 2;
+    gripBar.position.set(0, 3.18, -0.18); group.add(gripBar);
     for (let s = -1; s <= 1; s += 2) {
-        const sh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), skin);
-        sh.position.set(s * 0.6, 3.1, 0); group.add(sh);
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.2, 6), gripMat);
+        post.position.set(s * 0.3, 3.09, -0.18); group.add(post);
     }
 
-    // ── Arms ── (each on a shoulder pivot so they can swing)
+    // ── Arms ── BUFF and articulated, each on a shoulder pivot so they can swing
     function buildArm(side) {
         const arm = new THREE.Group();
-        // Upper arm — bare skin (hangs straight down from pivot)
-        const up = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.75, 8), skin);
-        up.position.y = -0.45; arm.add(up);
-        // Elbow
-        const el = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), skin);
-        el.position.y = -0.83; arm.add(el);
-        // Forearm — wrapped in mummy bandages
-        const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 0.7, 8), wrap);
-        fore.position.y = -1.22; arm.add(fore);
-        for (let b = 0; b < 5; b++) {
-            const bd = new THREE.Mesh(new THREE.CylinderGeometry(0.185, 0.185, 0.04, 8), wrapBand);
-            bd.position.y = -0.95 - b * 0.14; arm.add(bd);
+        // Deltoid / shoulder cap — covers pivot point
+        const delt = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 10), skin);
+        delt.scale.set(1.1, 0.85, 1.1); arm.add(delt);
+        // Bicep bulge
+        const bicep = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), skin);
+        bicep.position.set(0, -0.32, 0.07); bicep.scale.set(1.05, 1.5, 1.05); arm.add(bicep);
+        // Tricep — back of upper arm
+        const tricep = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), skinShade);
+        tricep.position.set(0, -0.4, -0.08); tricep.scale.set(1, 1.45, 0.9); arm.add(tricep);
+        // Upper arm cylinder fills between deltoid and elbow
+        const up = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.25, 0.85, 12), skin);
+        up.position.y = -0.5; arm.add(up);
+        // Elbow joint — chunky
+        const el = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 10), skin);
+        el.position.y = -0.96; arm.add(el);
+        // Forearm — thick, wrapped in mummy bandages
+        const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.23, 0.82, 12), wrap);
+        fore.position.y = -1.42; arm.add(fore);
+        // Forearm muscle bulge under wraps
+        const fmuscle = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 8), wrap);
+        fmuscle.position.set(0, -1.18, 0.08); fmuscle.scale.set(1.05, 1.3, 1.05); arm.add(fmuscle);
+        // Wrap bands — more of them
+        for (let b = 0; b < 7; b++) {
+            const bd = new THREE.Mesh(new THREE.CylinderGeometry(0.275, 0.275, 0.04, 12), wrapBand);
+            bd.position.y = -1.08 - b * 0.13; arm.add(bd);
         }
-        // Wrist cuff
-        const wc = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.07, 8), cuff);
-        wc.position.y = -1.6; arm.add(wc);
-        // Hand
-        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), skin);
-        hand.position.y = -1.72; hand.scale.set(1, 1.1, 0.7); arm.add(hand);
-        arm.position.set(side * 0.68, 3.1, 0);
+        // Wrist cuff — heavy iron band
+        const wc = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.1, 12), cuff);
+        wc.position.y = -1.9; arm.add(wc);
+        // Closed fist — chunky cube with knuckle ridge
+        const fist = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.36, 0.34), skin);
+        fist.position.y = -2.13; arm.add(fist);
+        // Knuckle plate (pronounced when punching forward)
+        const knuckles = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.06), skinShade);
+        knuckles.position.set(0, -2.06, 0.18); arm.add(knuckles);
+        // Thumb bump
+        const thumb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), skin);
+        thumb.position.set(side * 0.18, -2.05, 0.04); arm.add(thumb);
+        arm.position.set(side * 0.78, 3.15, 0);
         return arm;
     }
     const rightArm = buildArm(1); group.add(rightArm);
@@ -9014,6 +9147,9 @@ function buildMahoragaMesh() {
     // ── Aura ──
     const aura = new THREE.PointLight('#e8e0d0', 1.6, TILE * 4, 1.5);
     aura.position.y = 2.5; group.add(aura);
+
+    // Scale up — taller and more imposing than the dogs
+    group.scale.setScalar(1.45);
 
     return group;
 }
@@ -9596,43 +9732,41 @@ function updateMinions(dt, now) {
                 else bar._fgMat.color.set('#ff2244');
             }
 
-            // Determine "moving" so the run animation runs in both AI and ride mode.
+            // Enemy detection + attack — runs whether ridden or AI-walking,
+            // so Mahoraga keeps fighting on his own while you sit on his back.
+            let nearestEnemy = null, nearestDist = Infinity;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
+                if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
+            }
+            if (nearestEnemy && nearestDist < m.data.attackRange &&
+                now - m.data.lastAttack > m.data.attackSpeed) {
+                m.data.lastAttack = now;
+                dealDamageToEnemy(nearestEnemy, m.data.damage);
+                m.data._punchSide = (m.data._punchSide || 1) * -1;
+                triggerPunchArm(m.mesh, m.data._punchSide);
+                spawnPunchImpact(
+                    nearestEnemy.data.x * TILE,
+                    1.8,
+                    nearestEnemy.data.z * TILE,
+                    '#f0e8dc'
+                );
+                screenShake(0.18, 80);
+            }
+
+            // Movement is conditional — rider drives Mahoraga manually
             let isMoving = false;
             const ridden = (player && player._riding === m);
 
             if (ridden) {
-                // Ride state — position/facing already set in update();
-                // animate run cycle if W/S held this frame.
                 isMoving = !!(fpsCamera.keys['KeyW'] || fpsCamera.keys['KeyS']);
             } else {
-                // Find nearest enemy
-                let nearestEnemy = null, nearestDist = Infinity;
-                for (const e of enemies3D) {
-                    if (!e.data.alive) continue;
-                    const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
-                    if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
-                }
-
                 let targetX, targetZ;
-                let isAttacking = false;
-                if (nearestEnemy && nearestDist < 9) {
-                    isAttacking = true;
+                let isAttacking = (nearestEnemy && nearestDist < 9);
+                if (isAttacking) {
                     targetX = nearestEnemy.data.x;
                     targetZ = nearestEnemy.data.z;
-                    if (nearestDist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
-                        m.data.lastAttack = now;
-                        dealDamageToEnemy(nearestEnemy, m.data.damage);
-                        // Alternating boxing-style punch — thrust arm forward + impact ring
-                        m.data._punchSide = (m.data._punchSide || 1) * -1;
-                        triggerPunchArm(m.mesh, m.data._punchSide);
-                        spawnPunchImpact(
-                            nearestEnemy.data.x * TILE,
-                            1.8,
-                            nearestEnemy.data.z * TILE,
-                            '#f0e8dc'
-                        );
-                        screenShake(0.18, 80);
-                    }
                 } else {
                     // Heel mode — walk directly behind Megumi
                     const playerYaw = fpsCamera.yaw;
@@ -10165,9 +10299,13 @@ function update() {
             }
             m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
             m.mesh.rotation.y = yaw + Math.PI;
-            // Snap player to Mahoraga and re-place camera (overriding fpsCamera.update output)
-            fpsCamera.posX = m.data.x;
-            fpsCamera.posZ = m.data.z;
+            // Snap rider to the saddle on Mahoraga's upper back (behind his center).
+            // The seat mesh sits at local z ≈ -0.45 (unscaled); after the 1.45x scale
+            // that's ~0.65 world units behind, which is ~0.16 tiles.
+            const backOffX = Math.sin(yaw) * 0.18;
+            const backOffZ = Math.cos(yaw) * 0.18;
+            fpsCamera.posX = m.data.x + backOffX;
+            fpsCamera.posZ = m.data.z + backOffZ;
             const wx = fpsCamera.posX * TILE, wz = fpsCamera.posZ * TILE;
             if (fpsCamera.thirdPerson) {
                 const behindX = Math.sin(fpsCamera.yaw) * fpsCamera.tpDistance;
@@ -10270,6 +10408,8 @@ function update() {
     updateMinions(dt, now);
     // (old Katakuri portal update removed — Blox Fruits system)
     updateFruitEffects(now, dt);
+    // Punch swings — applied LAST so other animations can't overwrite them
+    updatePunchArms();
 
     // Dash speed restore
     if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }
