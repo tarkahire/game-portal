@@ -42,6 +42,7 @@ let _lastNetSendMs = 0;
 let _pendingDungeon = null;
 const NET_SEND_INTERVAL_MS = 33; // ~30Hz position broadcasts
 let _debugEl = null;
+let _rideDebugEl = null;
 let _fpsAvg = 60, _lastFrameTime = 0, _lastStateRecvAt = 0;
 
 // Player state
@@ -9907,13 +9908,14 @@ function updateMinions(dt, now) {
                 // Stop near the target — for chase, stop just inside attack range
                 const stopDist = chasing ? Math.max(m.data.attackRange * 0.65, 1.4) : 0.3;
                 if (dist > stopDist) {
-                    const moveSpeed = m.data.speed * dt * (ridden ? 1.3 : 1.0);
+                    const moveSpeed = m.data.speed * dt * (ridden ? 1.5 : 1.0);
                     const dirX = dx / dist, dirZ = dz / dist;
-                    // Smaller movement collision radius (his visual is 0.7 but
-                    // wall fitting needs to allow for 1-tile doorways)
-                    const r = 0.45;
-                    // Try direct, then ±30°, ±60°, ±90° — slides around walls/corners
-                    const angles = [0, 0.5, -0.5, 1.0, -1.0, Math.PI / 2, -Math.PI / 2];
+                    // Small movement collision radius — his visual is much bigger
+                    // (he'll clip into walls slightly), but this prevents him from
+                    // freezing on tile-edge collision boxes.
+                    const r = 0.3;
+                    // Try direct, then ±45°, ±90°, ±135° — covers all 8 directions
+                    const angles = [0, 0.4, -0.4, 0.9, -0.9, Math.PI / 2, -Math.PI / 2, 2.1, -2.1];
                     for (const dAng of angles) {
                         const cosA = Math.cos(dAng), sinA = Math.sin(dAng);
                         const tryX = dirX * cosA - dirZ * sinA;
@@ -9931,6 +9933,15 @@ function updateMinions(dt, now) {
                         if (okX && okZ) { m.data.x = newX; m.data.z = newZ; isMoving = true; break; }
                         else if (okX) { m.data.x = newX; isMoving = true; break; }
                         else if (okZ) { m.data.z = newZ; isMoving = true; break; }
+                    }
+                    // Final fallback — point-collision (centre tile only). If even
+                    // this fails we're truly boxed in. This guarantees forward
+                    // progress when his AABB is jammed against a tile-edge.
+                    if (!isMoving) {
+                        const newX = m.data.x + dirX * moveSpeed;
+                        const newZ = m.data.z + dirZ * moveSpeed;
+                        if (isWalkable(dungeon.map, newX, m.data.z)) { m.data.x = newX; isMoving = true; }
+                        if (isWalkable(dungeon.map, m.data.x, newZ)) { m.data.z = newZ; isMoving = true; }
                     }
                 }
 
@@ -10543,7 +10554,38 @@ function update() {
                 camera.position.set(wx, fpsCamera.eyeHeight, wz);
             }
             if (fpsCamera.playerModel) fpsCamera.playerModel.visible = false;
+
+            // Ride debug overlay — shows what Mahoraga is doing while you're on him
+            if (!_rideDebugEl) {
+                _rideDebugEl = document.createElement('div');
+                _rideDebugEl.style.cssText = 'position:fixed;top:12px;right:12px;background:rgba(0,0,0,0.85);color:#0ff;padding:8px 12px;font-size:12px;font-family:monospace;border:1px solid #2a3a4a;z-index:60;white-space:pre;line-height:1.4;pointer-events:none;';
+                document.body.appendChild(_rideDebugEl);
+            }
+            _rideDebugEl.style.display = 'block';
+            // Find nearest enemy from Mahoraga's perspective (mirrors AI)
+            let dbgN = null, dbgD = Infinity;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
+                if (d < dbgD) { dbgD = d; dbgN = e; }
+            }
+            const aliveCount = enemies3D.filter(e => e.data.alive).length;
+            const lastDx = (m.data._lastX != null) ? (m.data.x - m.data._lastX) : 0;
+            const lastDz = (m.data._lastZ != null) ? (m.data.z - m.data._lastZ) : 0;
+            const moved = Math.hypot(lastDx, lastDz) > 0.001;
+            m.data._lastX = m.data.x; m.data._lastZ = m.data.z;
+            const pathLen = m.data._path ? m.data._path.length : 0;
+            const pathIdx = m.data._pathIdx || 0;
+            _rideDebugEl.textContent =
+                `[RIDING MAHORAGA]\n` +
+                `pos: (${m.data.x.toFixed(1)}, ${m.data.z.toFixed(1)})\n` +
+                `enemies alive: ${aliveCount}\n` +
+                `nearest: ${dbgN ? `${dbgN.data.name || dbgN.data.enemyType} @ (${dbgN.data.x.toFixed(1)}, ${dbgN.data.z.toFixed(1)}) d=${dbgD.toFixed(1)}` : 'NONE'}\n` +
+                `path: ${pathLen ? `${pathIdx}/${pathLen}` : 'none'}\n` +
+                `moved last frame: ${moved ? 'YES' : 'NO'} (d=${Math.hypot(lastDx, lastDz).toFixed(3)})`;
         }
+    } else if (_rideDebugEl) {
+        _rideDebugEl.style.display = 'none';
     }
 
     // Punch swings — applied LAST so other animations can't overwrite them
