@@ -56,16 +56,16 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 ### Dungeon Crawler 3D
 - **Path**: `games/dungeon-crawler-3d/`
 - **Tech**: Three.js v0.162.0 (CDN via jsdelivr importmap), ES modules, PeerJS (WebRTC multiplayer)
-- **Features**: First-person 3D dungeon crawler with anime character system; 10 playable characters with custom 3D models, unique abilities, and detailed VFX; Z/X/C/V/F abilities + Q oversoul/dash; M1 4-hit melee combo (4th hit = bisect finisher); procedural dungeon generation (120x120 map, rooms 9-16 tiles, 3-wide corridors); cyberpunk neon visual style; hitstop, floating damage numbers, speed lines, FOV punch; boss encounters; 5-slot ability cooldown HUD; 1st/3rd person camera toggle (T key); no ceiling (open sky); no screen shake; no dash cooldown
+- **Features**: First-person 3D dungeon crawler with anime character system; 11 playable characters with custom 3D models, unique abilities, and detailed VFX; Z/X/C/V/F abilities + Q oversoul/dash; M1 4-hit melee combo (4th hit = bisect finisher); procedural dungeon generation (120x120 map, rooms 9-16 tiles, 3-wide corridors); cyberpunk neon visual style with **brightened ambient/hemisphere/torch lighting and reduced fog density** for visibility; hitstop, floating damage numbers, speed lines, FOV punch; boss encounters; 5-slot ability cooldown HUD; 1st/3rd person camera toggle (T key); no ceiling (open sky); no screen shake; no dash cooldown; summoned divine dog wolves (Megumi); **fleshy organic horror enemies** with drool/tendrils/glowing-cracks/exposed-ribcages; **online co-op MVP** (full-screen view per device, see other players as 3D meshes, ~30Hz position sync with interpolation, host-authoritative dungeon, debug overlay)
 - **Controls**:
   - WASD / Arrow keys: move
   - Mouse: look around (pointer lock)
   - Left click (M1): 4-hit melee combo (4th hit = finisher)
   - Z: Ability 1, X: Ability 2, C: Ability 3, V: Ability 4, F: Ability 5 (mobility)
   - Q: Dash (no cooldown, 300ms invincibility) OR Oversoul activation (Shaman King characters)
-  - T: toggle 1st/3rd person camera, ESC: pause
-  - P2: Arrow keys move, Backslash attack, M/,/./Slash abilities, N mobility, Numpad0 dodge, 4 oversoul
-- **Characters (10)**:
+  - T: toggle 1st/3rd person camera, ESC: pause, F3: toggle debug overlay
+  - P2 (local co-op only — disabled in online): Arrow keys move, Backslash attack, M/,/./Slash abilities, N mobility, Numpad0 dodge, 4 oversoul
+- **Characters (11)**:
   - **Gojo Satoru** (Sorcerer, 120HP): Blue gravitational pull, Red repulsion blast, Hollow Purple cutscene, Domain Expansion freeze, Teleport
   - **Ryomen Sukuna** (Sorcerer, 150HP): Dismantle, Cleave, Fire Arrow, Malevolent Shrine domain, Dash — custom detailed model with tattoos, 4 eyes, pink hair, cursed sword
   - **Toji Fushiguro** (Assassin, 140HP): Inverted Spear, Chain Strike, Playful Cloud, Heavenly Restriction buff, Flash Step — muscular build, lip scar, spear weapon
@@ -75,21 +75,27 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
   - **Yoh Asakura** (Shaman, 130HP): Celestial Slash wave, Buddha Giri dash-slash, Double Medium 12-hit flurry, Fumon Tonkou eruption, Spirit Dash — brown hair, headphones, orange outfit, open shirt. Q activates permanent Spirit of Sword oversoul: massive floating white spirit arm with curved katana + purple/white energy rings, smooth lerped follow, low sweeping sword slash M1s with slash trail VFX
   - **Tao Ren** (Shaman, 140HP): Rapid Tempo Assault 6-thrust, Eleki Bang electric shockwave, Heaven Shaking Thunder triple pillar, Golden Thunder 5-pillar ultimate, Thunder Dash — purple tongari hair spike, golden eyes, mandarin collar outfit. Q activates permanent Bason oversoul: golden armored spirit arm with Kwan Dao halberd + gold/purple energy rings
   - **Horohoro** (Shaman, 135HP): Fist Slam jump+ice spikes, Ice Barrage 8-fist projectiles, Blizzard whirling ice storm, Avalanche 200-spike ice wall, Ice Dash — blue spiky hair, blue jacket, headband. Q activates permanent dual ice fists: two big blue armored spirit fists floating on both sides, alternating punch M1s with ice impact rings
+  - **Megumi Fushiguro** (Sorcerer, 130HP): Divine Dogs summon (2 big 3D wolves — white+black, permanent, independent flanking AI, bite attacks), Nue, Toad, Chimera Shadow Garden, Shadow Dash — black spiky hair, dark green eyes, Jujutsu High uniform, dark navy color, shadow aura
 - **Shaman King Oversoul System**: Q key activates permanent armored oversoul for Yoh/Ren/Horohoro (P2 uses key 4). Oversouls are scene-level Three.js groups that smoothly lerp-follow the player per frame. Include: segmented armored arms, energy rings, glow lights, ghost aura shells. Oversoul characters use the weapon combo system (reduced M1 dmg, 4th-hit bisect finisher). FPS viewmodel swords hidden — the floating oversoul IS the visible weapon in both 1st/3rd person.
 - **Map**: 120x120 tiles, rooms 9-16 tiles, 3-wide corridors, no ceiling (open sky)
+- **Online co-op (MVP)**: Each player on own device, **full-screen** view (no split), sees other players as 3D meshes with bright per-slot aura lights and minimap dots. Host-authoritative dungeon synced via `_pendingDungeon`. Position sync at 30Hz with per-frame lerp (~55ms time constant) and yaw-wrap-aware interpolation. Heavy console logging with `[net/host]`/`[net/client]` prefixes. On-screen debug overlay (top-left) shows role, room code, my player index, connection state, remote players with ms-since-last-update, and live FPS. Join retries on `peer-unavailable` (5 attempts, 2s delay). Host's room code hidden as `....` until peer registered. **Known limits**: enemies/projectiles/HP/floor-transitions are NOT synced — combat is local on each device.
+- **Enemy aesthetic**: All enemies redesigned as visceral organic horror creatures — pale veiny flesh, oversized fanged or grinning mouths, beady black or glowing eyes, drool strings, writhing tendrils, hooked claws, bone spikes, exposed ribcages with raw red meat, pulsing red emissive cracks (heartbeat), inner red point lights, head-jitter animation. Skeleton→Gaunt Stalker, archerSkeleton→Spire Wretch, slime→Fleshmound (3 mouths + 5+ eyes), bat→Maw Wing, darkKnight→Brute (most upgraded — drool, lolling tongue, bone spikes, 5 claws per fist, 4 tendrils), necromancer→Lich Crawler (orbiting purple runes).
+- **Performance**: Enemies further than 12 tiles from camera skip per-frame `billboardEnemy` and `animateEnemyMesh` (largest single perf hit identified).
+- **Divine Dog wolves** (Megumi Z): Single-mesh lofted-body wolves built via custom `buildLoftedBody` (Catmull-Rom spline + cross-section ring sampling, oval cross-section). One smooth flowing surface from snout through forehead, neck, shoulder, slim hunting waist, hip — no visible joints. Belly + bushy tail are separate flowing pieces. ~50 cone fur tufts radially outward. Sleek capsule legs with paws + claws. Amber/blood-red glowing iris with vertical slit predator pupils. Heel mode (sideOffset 1.4, backOffset 0.4) and flank mode (1.0). Axis-separated `isWalkable` wall collision (radius 0.4). Tail wags faster during attack.
 - **File structure**:
   - `index.html` — entry point with Three.js importmap, HUD with 5-slot ability bar
   - `style.css` — cyberpunk neon HUD + menu styling
-  - `src/main.js` — game loop, M1 combo system, fruitAbility() dispatcher, character model builders (Gojo/Sukuna/Toji/Brook/Bakugo/Denji/Yoh/Ren/Horohoro), oversoul system, VFX (hitstop, damage numbers, slash trails, speed lines, FOV punch), minion system, HUD, minimap with enemy dots
-  - `src/classes/definitions.js` — 10 character definitions with stats + ability metadata + cooldowns
+  - `src/main.js` — game loop, M1 combo, fruitAbility() dispatcher, character model builders, oversoul system, divine-dog wolf minions, VFX, minion system, HUD, minimap with enemy + remote-player dots, `netUpdatePlayers` (online sync), `updateDebugOverlay`
+  - `src/classes/definitions.js` — 11 character definitions with stats + ability metadata + cooldowns
   - `src/constants.js` — tile size, map dimensions (120x120), eye height, colors
   - `src/player/fpsCamera.js` — FPS controls, pointer lock, WASD, wall collision, 1st/3rd person toggle (T key), per-character eyeHeight override
   - `src/dungeon/generator.js` — procedural dungeon generation (rooms + 3-wide corridors)
-  - `src/dungeon/meshBuilder.js` — 3D walls/floors (no ceiling)
-  - `src/dungeon/torchLights.js` — torch lighting
-  - `src/enemies/meshFactory.js` — 3D enemy mesh builders (skeleton, archer, slime, bat, dark knight, necromancer)
-  - `src/network/network.js` — PeerJS multiplayer
-  - `todo.md` — next session priorities (performance optimization, Horohoro fist slam check)
+  - `src/dungeon/meshBuilder.js` — 3D walls/floors (no ceiling), brightened materials
+  - `src/dungeon/torchLights.js` — torch lighting (brightened intensity 8.5, range TILE×14)
+  - `src/enemies/meshFactory.js` — fleshy horror enemy mesh builders + horror animation (head jitter, tendril writhe, drool sway, glow crack pulse)
+  - `src/network/network.js` — PeerJS multiplayer with retry logic and detailed console logging
+  - `docs/` — full doc framework: architecture.md, online.md, characters.md, enemies.md, controls.md
+  - `todo.md` — next session priorities (online combat sync, perf, polish)
 
 ## Adding a New Game
 
