@@ -8713,18 +8713,18 @@ function buildMahoragaMesh() {
     const wing = new THREE.MeshStandardMaterial({ color: '#f4ecdc', roughness: 0.55, side: THREE.DoubleSide });
     const wingShade = new THREE.MeshStandardMaterial({ color: '#c4bca8', roughness: 0.6, side: THREE.DoubleSide });
 
-    // ── Hakama (lower body / shorts) ──
-    const hak = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 1.1, 8), hakama);
-    hak.position.y = 1.1; group.add(hak);
+    // ── Hakama (shorts — short so the thighs are visible for the run cycle) ──
+    const hak = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.55, 8), hakama);
+    hak.position.y = 1.6; group.add(hak);
     // Sash at waist
-    const sashRing = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.2, 10), sash);
-    sashRing.position.y = 1.65; group.add(sashRing);
+    const sashRing = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.2, 10), sash);
+    sashRing.position.y = 1.85; group.add(sashRing);
     // Sash knot front
     const knot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.32, 0.18), sash);
-    knot.position.set(0.05, 1.55, 0.5); knot.rotation.z = 0.2; group.add(knot);
+    knot.position.set(0.05, 1.78, 0.5); knot.rotation.z = 0.2; group.add(knot);
     // Sash tail hanging
     const sashTail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.04), sash);
-    sashTail.position.set(0.18, 1.3, 0.5); sashTail.rotation.z = 0.15; group.add(sashTail);
+    sashTail.position.set(0.18, 1.55, 0.5); sashTail.rotation.z = 0.15; group.add(sashTail);
 
     // ── Torso ──
     const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 1.3, 8), skin);
@@ -8763,39 +8763,57 @@ function buildMahoragaMesh() {
         sh.position.set(s * 0.6, 3.1, 0); group.add(sh);
     }
 
-    // ── Arms ──
-    for (let s = -1; s <= 1; s += 2) {
-        // Upper arm — bare skin
+    // ── Arms ── (each on a shoulder pivot so they can swing)
+    function buildArm(side) {
+        const arm = new THREE.Group();
+        // Upper arm — bare skin (hangs straight down from pivot)
         const up = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.75, 8), skin);
-        up.position.set(s * 0.68, 2.65, 0); group.add(up);
+        up.position.y = -0.45; arm.add(up);
         // Elbow
         const el = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), skin);
-        el.position.set(s * 0.68, 2.27, 0); group.add(el);
+        el.position.y = -0.83; arm.add(el);
         // Forearm — wrapped in mummy bandages
         const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 0.7, 8), wrap);
-        fore.position.set(s * 0.68, 1.88, 0); group.add(fore);
-        // Wrap bands
+        fore.position.y = -1.22; arm.add(fore);
         for (let b = 0; b < 5; b++) {
             const bd = new THREE.Mesh(new THREE.CylinderGeometry(0.185, 0.185, 0.04, 8), wrapBand);
-            bd.position.set(s * 0.68, 2.15 - b * 0.14, 0); group.add(bd);
+            bd.position.y = -0.95 - b * 0.14; arm.add(bd);
         }
         // Wrist cuff
         const wc = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.07, 8), cuff);
-        wc.position.set(s * 0.68, 1.5, 0); group.add(wc);
+        wc.position.y = -1.6; arm.add(wc);
         // Hand
         const hand = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), skin);
-        hand.position.set(s * 0.68, 1.38, 0); hand.scale.set(1, 1.1, 0.7); group.add(hand);
+        hand.position.y = -1.72; hand.scale.set(1, 1.1, 0.7); arm.add(hand);
+        arm.position.set(side * 0.68, 3.1, 0);
+        return arm;
     }
+    const rightArm = buildArm(1); group.add(rightArm);
+    const leftArm = buildArm(-1); group.add(leftArm);
 
-    // ── Legs (lower visible — bare skin shins, ankle cuffs, feet) ──
-    for (let s = -1; s <= 1; s += 2) {
-        const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.7, 8), skin);
-        shin.position.set(s * 0.25, 0.45, 0); group.add(shin);
-        const ac = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.07, 8), cuff);
-        ac.position.set(s * 0.25, 0.12, 0); group.add(ac);
+    // ── Legs ── (each on a hip pivot so they can stride)
+    function buildLeg(side) {
+        const leg = new THREE.Group();
+        // Thigh — black hakama-style pant tube (visible below the shorts during stride)
+        const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.2, 0.65, 8), hakama);
+        thigh.position.y = -0.4; leg.add(thigh);
+        // Knee — small skin highlight
+        const knee = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), skin);
+        knee.position.y = -0.78; leg.add(knee);
+        // Shin — bare skin
+        const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 0.55, 8), skin);
+        shin.position.y = -1.08; leg.add(shin);
+        // Ankle cuff
+        const ac = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.07, 8), cuff);
+        ac.position.y = -1.38; leg.add(ac);
+        // Foot
         const foot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.11, 0.45), skin);
-        foot.position.set(s * 0.25, 0.05, 0.12); group.add(foot);
+        foot.position.set(0, -1.45, 0.12); leg.add(foot);
+        leg.position.set(side * 0.25, 1.45, 0);
+        return leg;
     }
+    const rightLeg = buildLeg(1); group.add(rightLeg);
+    const leftLeg = buildLeg(-1); group.add(leftLeg);
 
     // ── Neck ──
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.22, 8), skin);
@@ -8874,6 +8892,10 @@ function buildMahoragaMesh() {
     wheel.add(hubLight);
     group.add(wheel);
     group.userData._wheel = wheel;
+    group.userData._rightArm = rightArm;
+    group.userData._leftArm = leftArm;
+    group.userData._rightLeg = rightLeg;
+    group.userData._leftLeg = leftLeg;
 
     // ── Long segmented tail along the back (curls around like the reference) ──
     const tail = new THREE.Group();
@@ -8900,6 +8922,39 @@ function buildMahoragaMesh() {
     aura.position.y = 2.5; group.add(aura);
 
     return group;
+}
+
+// Run cycle / idle animation. `mesh` is the outer minion group whose userData
+// carries the inner pivots; the AI calls this every frame.
+function updateMahoragaAnimation(mesh, dt, moving, walkCycle) {
+    const ud = mesh.userData;
+    const ra = ud._rightArm, la = ud._leftArm, rl = ud._rightLeg, ll = ud._leftLeg;
+    if (!ra || !la || !rl || !ll) return;
+    const t = walkCycle;
+    if (moving) {
+        // Big-stride run cycle (matches the cartoon reference — opposite arm/leg phase)
+        const stride = 0.95;
+        const armSwing = 0.85;
+        const bob = Math.abs(Math.sin(t * 2)) * 0.12; // vertical bob with each step
+        rl.rotation.x = Math.sin(t) * stride;
+        ll.rotation.x = Math.sin(t + Math.PI) * stride;
+        // Arms bent slightly inward, swinging opposite to legs
+        ra.rotation.x = Math.sin(t + Math.PI) * armSwing;
+        ra.rotation.z = -0.18;
+        la.rotation.x = Math.sin(t) * armSwing;
+        la.rotation.z = 0.18;
+        mesh.position.y = bob;
+    } else {
+        // Idle — subtle breathing sway, limbs neutral
+        const breath = Math.sin(t * 0.6) * 0.04;
+        rl.rotation.x = 0;
+        ll.rotation.x = 0;
+        ra.rotation.x = breath;
+        ra.rotation.z = -0.08;
+        la.rotation.x = breath;
+        la.rotation.z = 0.08;
+        mesh.position.y = 0;
+    }
 }
 
 // ─── MINION SYSTEM ──────────────────────────────────────────
@@ -9190,6 +9245,10 @@ function spawnMinion(type, tileX, tileZ, data) {
         const mh = buildMahoragaMesh();
         group.add(mh);
         group.userData._wheel = mh.userData._wheel;
+        group.userData._rightArm = mh.userData._rightArm;
+        group.userData._leftArm = mh.userData._leftArm;
+        group.userData._rightLeg = mh.userData._rightLeg;
+        group.userData._leftLeg = mh.userData._leftLeg;
         // Shadow disc beneath
         const shadowDisc = new THREE.Mesh(
             new THREE.CircleGeometry(0.9, 14),
@@ -9443,87 +9502,99 @@ function updateMinions(dt, now) {
                 else bar._fgMat.color.set('#ff2244');
             }
 
-            // If being ridden, movement + facing are driven from update() — skip AI
-            if (player && player._riding === m) continue;
+            // Determine "moving" so the run animation runs in both AI and ride mode.
+            let isMoving = false;
+            const ridden = (player && player._riding === m);
 
-            // Find nearest enemy
-            let nearestEnemy = null, nearestDist = Infinity;
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
-                if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
-            }
-
-            let targetX, targetZ;
-            let isAttacking = false;
-            if (nearestEnemy && nearestDist < 9) {
-                isAttacking = true;
-                targetX = nearestEnemy.data.x;
-                targetZ = nearestEnemy.data.z;
-                if (nearestDist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
-                    m.data.lastAttack = now;
-                    dealDamageToEnemy(nearestEnemy, m.data.damage);
-                    emitParticles(nearestEnemy.data.x * TILE, 1.8, nearestEnemy.data.z * TILE, {
-                        color: ['#e8e0d8', '#1a1a20', '#9a9aa2'],
-                        count: 8, speed: 4, spread: 0.9,
-                        gravity: -3, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
-                    });
-                    screenShake(0.15, 80);
-                }
+            if (ridden) {
+                // Ride state — position/facing already set in update();
+                // animate run cycle if W/S held this frame.
+                isMoving = !!(fpsCamera.keys['KeyW'] || fpsCamera.keys['KeyS']);
             } else {
-                // Heel mode — walk directly behind Megumi
-                const playerYaw = fpsCamera.yaw;
-                const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
-                targetX = px - pFwdX * 2.2;
-                targetZ = pz - pFwdZ * 2.2;
-            }
-
-            // Move (axis-separated wall collision)
-            const dx = targetX - m.data.x, dz = targetZ - m.data.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist > 0.3) {
-                const spd = Math.min(m.data.speed * dt, dist * 0.3);
-                const moveX = (dx / dist) * spd;
-                const moveZ = (dz / dist) * spd;
-                const r = 0.7;
-                const newX = m.data.x + moveX, newZ = m.data.z + moveZ;
-                if (isWalkable(dungeon.map, newX - r, m.data.z - r) &&
-                    isWalkable(dungeon.map, newX + r, m.data.z - r) &&
-                    isWalkable(dungeon.map, newX - r, m.data.z + r) &&
-                    isWalkable(dungeon.map, newX + r, m.data.z + r)) {
-                    m.data.x = newX;
+                // Find nearest enemy
+                let nearestEnemy = null, nearestDist = Infinity;
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
+                    if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
                 }
-                if (isWalkable(dungeon.map, m.data.x - r, newZ - r) &&
-                    isWalkable(dungeon.map, m.data.x + r, newZ - r) &&
-                    isWalkable(dungeon.map, m.data.x - r, newZ + r) &&
-                    isWalkable(dungeon.map, m.data.x + r, newZ + r)) {
-                    m.data.z = newZ;
+
+                let targetX, targetZ;
+                let isAttacking = false;
+                if (nearestEnemy && nearestDist < 9) {
+                    isAttacking = true;
+                    targetX = nearestEnemy.data.x;
+                    targetZ = nearestEnemy.data.z;
+                    if (nearestDist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
+                        m.data.lastAttack = now;
+                        dealDamageToEnemy(nearestEnemy, m.data.damage);
+                        emitParticles(nearestEnemy.data.x * TILE, 1.8, nearestEnemy.data.z * TILE, {
+                            color: ['#e8e0d8', '#1a1a20', '#9a9aa2'],
+                            count: 8, speed: 4, spread: 0.9,
+                            gravity: -3, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
+                        });
+                        screenShake(0.15, 80);
+                    }
+                } else {
+                    // Heel mode — walk directly behind Megumi
+                    const playerYaw = fpsCamera.yaw;
+                    const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
+                    targetX = px - pFwdX * 2.2;
+                    targetZ = pz - pFwdZ * 2.2;
+                }
+
+                // Move (axis-separated wall collision)
+                const dx = targetX - m.data.x, dz = targetZ - m.data.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                if (dist > 0.3) {
+                    isMoving = true;
+                    const spd = Math.min(m.data.speed * dt, dist * 0.3);
+                    const moveX = (dx / dist) * spd;
+                    const moveZ = (dz / dist) * spd;
+                    const r = 0.7;
+                    const newX = m.data.x + moveX, newZ = m.data.z + moveZ;
+                    if (isWalkable(dungeon.map, newX - r, m.data.z - r) &&
+                        isWalkable(dungeon.map, newX + r, m.data.z - r) &&
+                        isWalkable(dungeon.map, newX - r, m.data.z + r) &&
+                        isWalkable(dungeon.map, newX + r, m.data.z + r)) {
+                        m.data.x = newX;
+                    }
+                    if (isWalkable(dungeon.map, m.data.x - r, newZ - r) &&
+                        isWalkable(dungeon.map, m.data.x + r, newZ - r) &&
+                        isWalkable(dungeon.map, m.data.x - r, newZ + r) &&
+                        isWalkable(dungeon.map, m.data.x + r, newZ + r)) {
+                        m.data.z = newZ;
+                    }
+                }
+
+                // Teleport back if separated by walls
+                const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
+                if (playerDist > 12) {
+                    if (isWalkable(dungeon.map, px - 1, pz)) { m.data.x = px - 1; m.data.z = pz; }
+                    else if (isWalkable(dungeon.map, px, pz)) { m.data.x = px; m.data.z = pz; }
+                }
+
+                m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
+
+                // Face movement / target
+                if (dist > 0.25) {
+                    m.mesh.rotation.y = Math.atan2(dx, dz);
+                } else if (isAttacking && nearestEnemy) {
+                    const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
+                    m.mesh.rotation.y = Math.atan2(fdx, fdz);
+                } else {
+                    // Idle — face Megumi's direction
+                    const targetYaw = fpsCamera.yaw + Math.PI;
+                    let yawDiff = targetYaw - m.mesh.rotation.y;
+                    while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                    while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                    m.mesh.rotation.y += yawDiff * 0.18;
                 }
             }
 
-            // Teleport back if separated by walls
-            const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
-            if (playerDist > 12) {
-                if (isWalkable(dungeon.map, px - 1, pz)) { m.data.x = px - 1; m.data.z = pz; }
-                else if (isWalkable(dungeon.map, px, pz)) { m.data.x = px; m.data.z = pz; }
-            }
-
-            m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
-
-            // Face movement / target
-            if (dist > 0.25) {
-                m.mesh.rotation.y = Math.atan2(dx, dz);
-            } else if (isAttacking && nearestEnemy) {
-                const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
-                m.mesh.rotation.y = Math.atan2(fdx, fdz);
-            } else {
-                // Idle — face Megumi's direction
-                const targetYaw = fpsCamera.yaw + Math.PI;
-                let yawDiff = targetYaw - m.mesh.rotation.y;
-                while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
-                while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
-                m.mesh.rotation.y += yawDiff * 0.18;
-            }
+            // Run / idle animation (after position has been finalized — bob offsets m.mesh.position.y)
+            m.data._walkCycle = (m.data._walkCycle || 0) + dt * (isMoving ? 9 : 3);
+            updateMahoragaAnimation(m.mesh, dt, isMoving, m.data._walkCycle);
 
             continue;
         }
