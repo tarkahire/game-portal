@@ -1,6 +1,6 @@
 # Characters
 
-11 playable anime characters across 4 categories. All defined in `src/classes/definitions.js`. Models built in `src/main.js` via `build<Name>Model()` functions and dispatched in `buildPlayerModelForClass(classId, labelPrefix)`.
+10 playable anime characters across 4 categories. All defined in `src/classes/definitions.js`. Models built in `src/main.js` via `build<Name>Model()` functions and dispatched in `buildPlayerModelForClass(classId, labelPrefix)`.
 
 ## Stats Summary
 
@@ -10,7 +10,6 @@
 | Ryomen Sukuna | sorcerer | 150 | 3.4 | 18 | 250 | 35 | fist |
 | Toji Fushiguro | assassin | 140 | 4.0 | 20 | 200 | 40 | spear |
 | Brook | swordsman | 100 | 3.6 | 16 | 220 | 38 | sword |
-| Bakugo | brawler | 130 | 3.5 | 17 | 230 | 30 | fist |
 | Denji | devil | 160 | **6.0** | 19 | 240 | 35 | chainsaw |
 | Yoh Asakura | shaman | 130 | 3.6 | 16 | 220 | 38 | fist (Spirit of Sword on Q) |
 | Tao Ren | shaman | 140 | 3.8 | 18 | 210 | 40 | fist (Bason on Q) |
@@ -27,7 +26,6 @@ Each character has 5 abilities mapped to Z/X/C/V/F. Cooldowns in `definitions.js
 | Sukuna | Dismantle | Cleave | Fire Arrow | Malevolent Shrine | Dash |
 | Toji | Inverted Spear | Chain Strike | Playful Cloud | Heavenly Restriction (buff) | Flash Step |
 | Brook | Hanauta Sancho | Soul Solid | Blizzard Slice | Soul King | Dash |
-| Bakugo | AP Shot | Stun Grenade | Howitzer Impact | Cluster Bomb | Blast Rush |
 | Denji | Chain Rip | Buzzsaw | Devil Charge | Full Devil (3× dmg) | Chain Dash |
 | Yoh | Celestial Slash | Buddha Giri (dash-slash) | Double Medium (12-hit) | Fumon Tonkou | Spirit Dash |
 | Ren | Rapid Tempo Assault (6 thrusts) | Eleki Bang | Heaven-Shaking Thunder | Golden Thunder (5 pillars) | Thunder Dash |
@@ -80,7 +78,6 @@ Built in `buildFPS<X>()` functions, parented to camera. Animated by `triggerSwor
 | Sukuna | sword |
 | Toji | spear |
 | Brook | cane |
-| Bakugo | fists |
 | Denji | dual chainsaws |
 | Gojo / Megumi | none (fist combat) |
 | Yoh / Ren / Horohoro | sword/etc until Q activates oversoul, then hidden |

@@ -27,7 +27,7 @@ Dungeon Crawler 3D is a first-person 3D dungeon crawler built with Three.js (CDN
 | 49–63 | Enemy/boss tables |
 | 70–253 | `init()` — renderer, cameras, key bindings, UI wiring, debug overlay |
 | 254–320 | Class select grid, `startRun`, `selectClass` |
-| 321–2168 | Per-character model builders + animation updaters (Gojo, Sukuna, Toji, Brook, Bakugo, Denji) |
+| 321–2168 | Per-character model builders + animation updaters (Gojo, Sukuna, Toji, Brook, Denji) |
 | 2170–2693 | FPS viewmodel weapons (chainsaws/fists/sword/spear/cane), swing/combo system |
 | 2695–2911 | `buildPlayerModelForClass`, `cleanupRemotePlayers`, `startGame`, `loadFloor`, `spawnEnemies`, `nextFloor`, `gameOver`, `resumeGame` |
 | 2992–3505 | VFX — screen shake, hitstop, damage numbers, speed lines, FOV punch, slash trails, spark/particle pools, fire/beam/groundRing/lightFlash/screenFlash |

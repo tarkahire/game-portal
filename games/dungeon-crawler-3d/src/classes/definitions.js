@@ -31,13 +31,6 @@ export const CLASSES = {
         abilities: { z: 'Hanauta Sancho', x: 'Soul Solid', c: 'Blizzard Slice', v: 'Soul King', f: 'Dash' },
         abilityCooldowns: { z: 3000, x: 4000, c: 8000, v: 18000, f: 2500 }
     },
-    bakugo: {
-        name: 'Bakugo', type: 'brawler', maxHp: 130, speed: 3.5, attackRange: 30,
-        attackDamage: 17, attackSpeed: 230, attackType: 'melee', color: '#ff8800',
-        specialCooldown: 4000, specialName: 'Explosion', weaponType: 'fist',
-        abilities: { z: 'AP Shot', x: 'Stun Grenade', c: 'Howitzer Impact', v: 'Cluster Bomb', f: 'Blast Rush' },
-        abilityCooldowns: { z: 3000, x: 3500, c: 8000, v: 18000, f: 2000 }
-    },
     denji: {
         name: 'Denji', type: 'devil', maxHp: 160, speed: 6.0, attackRange: 35,
         attackDamage: 19, attackSpeed: 240, attackType: 'melee', color: '#cc4400',

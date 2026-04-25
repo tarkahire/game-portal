@@ -56,7 +56,7 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 ### Dungeon Crawler 3D
 - **Path**: `games/dungeon-crawler-3d/`
 - **Tech**: Three.js v0.162.0 (CDN via jsdelivr importmap), ES modules, PeerJS (WebRTC multiplayer)
-- **Features**: First-person 3D dungeon crawler with anime character system; 11 playable characters with custom 3D models, unique abilities, and detailed VFX; Z/X/C/V/F abilities + Q oversoul/dash; M1 4-hit melee combo (4th hit = bisect finisher); procedural dungeon generation (120x120 map, rooms 9-16 tiles, 3-wide corridors); cyberpunk neon visual style with **brightened ambient/hemisphere/torch lighting and reduced fog density** for visibility; hitstop, floating damage numbers, speed lines, FOV punch; boss encounters; 5-slot ability cooldown HUD; 1st/3rd person camera toggle (T key); no ceiling (open sky); no screen shake; no dash cooldown; summoned divine dog wolves (Megumi); **fleshy organic horror enemies** with drool/tendrils/glowing-cracks/exposed-ribcages; **online co-op MVP** (full-screen view per device, see other players as 3D meshes, ~30Hz position sync with interpolation, host-authoritative dungeon, debug overlay)
+- **Features**: First-person 3D dungeon crawler with anime character system; 10 playable characters with custom 3D models, unique abilities, and detailed VFX; Z/X/C/V/F abilities + Q oversoul/dash; M1 4-hit melee combo (4th hit = bisect finisher); procedural dungeon generation (120x120 map, rooms 9-16 tiles, 3-wide corridors); cyberpunk neon visual style with **brightened ambient/hemisphere/torch lighting and reduced fog density** for visibility; hitstop, floating damage numbers, speed lines, FOV punch; boss encounters; 5-slot ability cooldown HUD; 1st/3rd person camera toggle (T key); no ceiling (open sky); no screen shake; no dash cooldown; summoned divine dog wolves (Megumi); **fleshy organic horror enemies** with drool/tendrils/glowing-cracks/exposed-ribcages; **online co-op MVP** (full-screen view per device, see other players as 3D meshes, ~30Hz position sync with interpolation, host-authoritative dungeon, debug overlay)
 - **Controls**:
   - WASD / Arrow keys: move
   - Mouse: look around (pointer lock)
@@ -65,12 +65,11 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
   - Q: Dash (no cooldown, 300ms invincibility) OR Oversoul activation (Shaman King characters)
   - T: toggle 1st/3rd person camera, ESC: pause, F3: toggle debug overlay
   - P2 (local co-op only — disabled in online): Arrow keys move, Backslash attack, M/,/./Slash abilities, N mobility, Numpad0 dodge, 4 oversoul
-- **Characters (11)**:
+- **Characters (10)**:
   - **Gojo Satoru** (Sorcerer, 120HP): Blue gravitational pull, Red repulsion blast, Hollow Purple cutscene, Domain Expansion freeze, Teleport
   - **Ryomen Sukuna** (Sorcerer, 150HP): Dismantle, Cleave, Fire Arrow, Malevolent Shrine domain, Dash — custom detailed model with tattoos, 4 eyes, pink hair, cursed sword
   - **Toji Fushiguro** (Assassin, 140HP): Inverted Spear, Chain Strike, Playful Cloud, Heavenly Restriction buff, Flash Step — muscular build, lip scar, spear weapon
   - **Brook** (Swordsman, 100HP): Hanauta Sancho, Soul Solid, Blizzard Slice, Soul King, Dash — skeleton with cane sword
-  - **Bakugo** (Brawler, 130HP): AP Shot, Stun Grenade, Howitzer Impact, Cluster Bomb, Blast Rush — explosive fist combat
   - **Denji** (Devil, 160HP, 6.0 speed): Chain Rip, Buzzsaw, Devil Charge, Full Devil transform (3x dmg), Chain Dash — chainsaw arms, fastest character, fiery aura trail
   - **Yoh Asakura** (Shaman, 130HP): Celestial Slash wave, Buddha Giri dash-slash, Double Medium 12-hit flurry, Fumon Tonkou eruption, Spirit Dash — brown hair, headphones, orange outfit, open shirt. Q activates permanent Spirit of Sword oversoul: massive floating white spirit arm with curved katana + purple/white energy rings, smooth lerped follow, low sweeping sword slash M1s with slash trail VFX
   - **Tao Ren** (Shaman, 140HP): Rapid Tempo Assault 6-thrust, Eleki Bang electric shockwave, Heaven Shaking Thunder triple pillar, Golden Thunder 5-pillar ultimate, Thunder Dash — purple tongari hair spike, golden eyes, mandarin collar outfit. Q activates permanent Bason oversoul: golden armored spirit arm with Kwan Dao halberd + gold/purple energy rings
@@ -86,7 +85,7 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
   - `index.html` — entry point with Three.js importmap, HUD with 5-slot ability bar
   - `style.css` — cyberpunk neon HUD + menu styling
   - `src/main.js` — game loop, M1 combo, fruitAbility() dispatcher, character model builders, oversoul system, divine-dog wolf minions, VFX, minion system, HUD, minimap with enemy + remote-player dots, `netUpdatePlayers` (online sync), `updateDebugOverlay`
-  - `src/classes/definitions.js` — 11 character definitions with stats + ability metadata + cooldowns
+  - `src/classes/definitions.js` — 10 character definitions with stats + ability metadata + cooldowns
   - `src/constants.js` — tile size, map dimensions (120x120), eye height, colors
   - `src/player/fpsCamera.js` — FPS controls, pointer lock, WASD, wall collision, 1st/3rd person toggle (T key), per-character eyeHeight override
   - `src/dungeon/generator.js` — procedural dungeon generation (rooms + 3-wide corridors)
