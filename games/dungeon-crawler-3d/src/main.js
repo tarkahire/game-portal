@@ -66,7 +66,7 @@ function init() {
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(PAL.fog);
-    scene.fog = new THREE.FogExp2(PAL.fog, 0.008);
+    scene.fog = new THREE.FogExp2(PAL.fog, 0.003);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
     scene.add(camera);
@@ -79,17 +79,17 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.4;
+    renderer.toneMappingExposure = 1.9;
     renderer.setScissorTest(false); // enabled during split-screen render
     renderer.autoClear = false; // we'll clear manually for split-screen
 
-    const ambient = new THREE.AmbientLight('#2a2a3e', 1.2);
+    const ambient = new THREE.AmbientLight('#5a5a7a', 2.6);
     scene.add(ambient);
-    const hemi = new THREE.HemisphereLight('#1a2a3a', '#0a0a14', 0.8);
+    const hemi = new THREE.HemisphereLight('#5a7a9a', '#1a1a24', 1.8);
     scene.add(hemi);
-    playerLight = new THREE.PointLight('#00ffcc', 3.5, TILE * 10, 1.2);
+    playerLight = new THREE.PointLight('#ffeecc', 6.5, TILE * 16, 0.9);
     scene.add(playerLight);
-    playerLight2 = new THREE.PointLight('#00ffcc', 3.5, TILE * 10, 1.2);
+    playerLight2 = new THREE.PointLight('#ffeecc', 6.5, TILE * 16, 0.9);
     scene.add(playerLight2);
 
     // P1 camera — WASD controls
