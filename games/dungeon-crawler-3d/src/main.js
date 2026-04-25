@@ -8903,8 +8903,6 @@ function buildMahoragaMesh() {
     const sash = new THREE.MeshStandardMaterial({ color: '#7c7c84', roughness: 0.65 });
     const tassel = new THREE.MeshStandardMaterial({ color: '#16161c', roughness: 0.7 });
     const teeth = new THREE.MeshStandardMaterial({ color: '#f0e8d4', roughness: 0.3 });
-    const wing = new THREE.MeshStandardMaterial({ color: '#f4ecdc', roughness: 0.55, side: THREE.DoubleSide });
-    const wingShade = new THREE.MeshStandardMaterial({ color: '#c4bca8', roughness: 0.6, side: THREE.DoubleSide });
 
     // ── Hakama (shorts — short so the thighs are visible for the run cycle) ──
     const hak = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.55, 8), hakama);
@@ -9062,60 +9060,61 @@ function buildMahoragaMesh() {
         tooth.position.set(-0.16 + t * 0.04, 3.58, 0.36); group.add(tooth);
     }
 
-    // ── WHEEL OF ADJUSTMENT — spinning halo on top of head ──
-    // Three feathered angel-wing blades fanning out at 120° apart
+    // ── DHARMA CHAKRA — spinning Wheel of Dharma on top of his head ──
+    // Outer rim + inner hub ring + 8 spokes (the Noble Eightfold Path) +
+    // flanged tips where each spoke meets the rim. Spins on Y each frame.
     const wheel = new THREE.Group();
     wheel.position.y = 4.18;
 
-    function buildWingBlade() {
-        const w = new THREE.Group();
-        // Inner mass (closer to centre)
-        const inner = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.15, 0.4), wing);
-        inner.position.set(0.18, 0, 0); w.add(inner);
-        // Mid wing — flattened arched plate
-        const mid = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.55), wing);
-        mid.position.set(0.6, 0.05, 0); mid.rotation.z = -0.15; w.add(mid);
-        // Outer wing — taper
-        const outer = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.04, 0.4), wing);
-        outer.position.set(1.1, 0.12, 0); outer.rotation.z = -0.3; w.add(outer);
-        // Feather cones along the trailing edge for a feathered silhouette
-        const featherShade = [wing, wingShade];
-        for (let f = 0; f < 7; f++) {
-            const t = f / 6;
-            const fx = 0.25 + t * 1.0;
-            const fy = 0.02 + t * 0.05;
-            const fz = -0.22 - t * 0.12;
-            const fl = 0.32 - t * 0.08;
-            const feather = new THREE.Mesh(new THREE.ConeGeometry(0.05, fl, 4), featherShade[f % 2]);
-            feather.position.set(fx, fy, fz);
-            // Point feather outward and slightly downward
-            feather.rotation.set(-Math.PI / 2 - 0.3, 0, -t * 0.4);
-            w.add(feather);
-        }
-        // A few feathers on the leading edge (top side)
-        for (let f = 0; f < 4; f++) {
-            const t = f / 3;
-            const feather = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.22 - t * 0.04, 4), wing);
-            feather.position.set(0.4 + t * 0.7, 0.12 + t * 0.04, 0.18 + t * 0.05);
-            feather.rotation.set(-Math.PI / 2 + 0.2, 0, -t * 0.3);
-            w.add(feather);
-        }
-        // Wing tip flick
-        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.25, 4), wing);
-        tip.position.set(1.45, 0.18, 0); tip.rotation.set(0, 0, -Math.PI / 2 - 0.3);
-        w.add(tip);
-        return w;
+    const wheelMat = new THREE.MeshStandardMaterial({ color: '#f4ecdc', roughness: 0.4, metalness: 0.35 });
+    const wheelGoldMat = new THREE.MeshStandardMaterial({ color: '#d4b860', roughness: 0.35, metalness: 0.55 });
+    const wheelDarkMat = new THREE.MeshStandardMaterial({ color: '#a89868', roughness: 0.5, metalness: 0.4 });
+
+    const RIM_R = 1.05, HUB_R = 0.2;
+
+    // Outer rim — large flat torus
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(RIM_R, 0.075, 10, 40), wheelMat);
+    rim.rotation.x = Math.PI / 2;
+    wheel.add(rim);
+    // Inner accent rim (slightly smaller, gold) — gives layered depth
+    const rim2 = new THREE.Mesh(new THREE.TorusGeometry(RIM_R - 0.06, 0.025, 8, 40), wheelGoldMat);
+    rim2.rotation.x = Math.PI / 2;
+    wheel.add(rim2);
+
+    // Inner hub ring (small torus around the centre)
+    const hubRing = new THREE.Mesh(new THREE.TorusGeometry(HUB_R, 0.05, 8, 20), wheelMat);
+    hubRing.rotation.x = Math.PI / 2;
+    wheel.add(hubRing);
+    // Centre hub disc
+    const hubDisc = new THREE.Mesh(new THREE.CylinderGeometry(HUB_R - 0.02, HUB_R - 0.02, 0.1, 16), wheelGoldMat);
+    wheel.add(hubDisc);
+    // Centre boss (small raised dot)
+    const hubBoss = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), wheelMat);
+    wheel.add(hubBoss);
+
+    // 8 spokes — Noble Eightfold Path. Each runs from hub ring out to the rim.
+    const spokeLen = RIM_R - HUB_R - 0.04;
+    const spokeMid = HUB_R + spokeLen / 2 + 0.02;
+    for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        // Spoke shaft
+        const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, spokeLen), wheelMat);
+        spoke.position.set(Math.sin(angle) * spokeMid, 0, Math.cos(angle) * spokeMid);
+        spoke.rotation.y = angle;
+        wheel.add(spoke);
+        // Flanged tip where spoke meets rim — wider flat plate
+        const tip = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.11, 0.13), wheelDarkMat);
+        tip.position.set(Math.sin(angle) * (RIM_R - 0.08), 0, Math.cos(angle) * (RIM_R - 0.08));
+        tip.rotation.y = angle;
+        wheel.add(tip);
+        // Inner ferrule where spoke meets the hub ring
+        const ferrule = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.07), wheelGoldMat);
+        ferrule.position.set(Math.sin(angle) * (HUB_R + 0.04), 0, Math.cos(angle) * (HUB_R + 0.04));
+        ferrule.rotation.y = angle;
+        wheel.add(ferrule);
     }
 
-    for (let i = 0; i < 3; i++) {
-        const blade = buildWingBlade();
-        blade.rotation.y = (i / 3) * Math.PI * 2;
-        wheel.add(blade);
-    }
-    // Faint glow at the wheel's hub
-    const hub = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10),
-        new THREE.MeshBasicMaterial({ color: '#fff8e0' }));
-    wheel.add(hub);
+    // Faint glow at the wheel's centre
     const hubLight = new THREE.PointLight('#fff0c8', 1.5, TILE * 5, 1.5);
     wheel.add(hubLight);
     group.add(wheel);
