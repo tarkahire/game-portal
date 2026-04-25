@@ -9193,7 +9193,7 @@ function updateMahoragaAnimation(mesh, dt, moving, walkCycle) {
 // goal tile isn't walkable (e.g. enemy standing on a wall edge), it
 // snaps the goal to the nearest walkable tile within ±2 tiles. Returns
 // null if no route exists within the visit cap.
-function findPath(map, sCol, sRow, tCol, tRow, maxNodes = 6000) {
+function findPath(map, sCol, sRow, tCol, tRow, maxNodes = 15000) {
     if (!map || !map[0]) return null;
     const H = map.length, W = map[0].length;
     if (sRow < 0 || sRow >= H || sCol < 0 || sCol >= W) return null;
@@ -9840,8 +9840,9 @@ function updateMinions(dt, now) {
             // pursues the nearest enemy; rider just goes along for the ride.
             let isMoving = false;
             const ridden = (player && player._riding === m);
-            // Wider engage range when ridden so he stays aggressive across rooms
-            const engageRange = ridden ? 18 : 9;
+            // When ridden, hunt the nearest enemy anywhere on the floor.
+            // When unridden, only engage if an enemy is in 9 tiles (otherwise heel).
+            const engageRange = ridden ? Infinity : 9;
 
             let targetX = null, targetZ = null;
             let chasing = false;
