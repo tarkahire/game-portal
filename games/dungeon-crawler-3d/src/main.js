@@ -9214,7 +9214,22 @@ function findPath(map, sCol, sRow, tCol, tRow, maxNodes = 6000) {
         if (bestD === Infinity) return null;
         tCol = bestC; tRow = bestR;
     }
-    if (map[sRow][sCol] !== 1) return null;
+    // Snap start to nearest walkable too — Mahoraga's collision can put his
+    // tile-floor on a wall edge, which would otherwise abort BFS.
+    if (map[sRow][sCol] !== 1) {
+        let bestD = Infinity, bestC = sCol, bestR = sRow;
+        for (let dr = -3; dr <= 3; dr++) {
+            for (let dc = -3; dc <= 3; dc++) {
+                const r = sRow + dr, c = sCol + dc;
+                if (r < 0 || r >= H || c < 0 || c >= W) continue;
+                if (map[r][c] !== 1) continue;
+                const d = dr * dr + dc * dc;
+                if (d < bestD) { bestD = d; bestC = c; bestR = r; }
+            }
+        }
+        if (bestD === Infinity) return null;
+        sCol = bestC; sRow = bestR;
+    }
     const sIdx = sRow * W + sCol, gIdx = tRow * W + tCol;
     const seen = new Uint8Array(W * H);
     const parent = new Int32Array(W * H);
@@ -9893,7 +9908,9 @@ function updateMinions(dt, now) {
                 if (dist > stopDist) {
                     const moveSpeed = m.data.speed * dt * (ridden ? 1.3 : 1.0);
                     const dirX = dx / dist, dirZ = dz / dist;
-                    const r = 0.7;
+                    // Smaller movement collision radius (his visual is 0.7 but
+                    // wall fitting needs to allow for 1-tile doorways)
+                    const r = 0.45;
                     // Try direct, then ±30°, ±60°, ±90° — slides around walls/corners
                     const angles = [0, 0.5, -0.5, 1.0, -1.0, Math.PI / 2, -Math.PI / 2];
                     for (const dAng of angles) {
