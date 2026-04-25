@@ -8901,240 +8901,265 @@ function spawnMinion(type, tileX, tileZ, data) {
     const color = data.color;
 
     if (type === 'divineDog') {
-        // ── Divine Dog — anatomically realistic 3D wolf model ──
+        // ── Divine Dog — sleek lofted-body wolf with fur tufts ──
         const isWhite = data._isWhite;
         const furColor = isWhite ? '#ddd4c8' : '#1a1a20';
-        const furAccent = isWhite ? '#a89a88' : '#0a0a14';
+        const furAccent = isWhite ? '#988878' : '#0a0a14';
         const furBelly = isWhite ? '#f0e8de' : '#2a2a32';
         const eyeColor = isWhite ? '#ffaa00' : '#ff2200'; // amber / blood-red
-        const noseMat = new THREE.MeshStandardMaterial({ color: '#0a0808', roughness: 0.35, metalness: 0.1 });
-        const furMat = new THREE.MeshStandardMaterial({ color: furColor, roughness: 0.85, metalness: 0.0 });
-        const accentMat = new THREE.MeshStandardMaterial({ color: furAccent, roughness: 0.85, metalness: 0.0 });
-        const bellyMat = new THREE.MeshStandardMaterial({ color: furBelly, roughness: 0.85 });
+        const noseMatLocal = new THREE.MeshStandardMaterial({ color: '#0a0808', roughness: 0.35, metalness: 0.1 });
+        const furMat = new THREE.MeshStandardMaterial({ color: furColor, roughness: 0.95, metalness: 0.0 });
+        const accentMat = new THREE.MeshStandardMaterial({ color: furAccent, roughness: 0.95, metalness: 0.0 });
+        const bellyMat = new THREE.MeshStandardMaterial({ color: furBelly, roughness: 0.95 });
         const dogEyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
         const glowColor = isWhite ? '#fff0c8' : '#ff2244';
 
-        // Inline organic-deformed sphere for flowing fur shapes
-        function organicSphere(radius, deformAmount, segs) {
-            const geo = new THREE.SphereGeometry(radius, segs, Math.floor(segs * 0.75));
-            const pos = geo.attributes.position;
-            for (let i = 0; i < pos.count; i++) {
-                const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-                const n = Math.sin(x * 6 + 1.3) * Math.cos(y * 5 + 0.7) * Math.sin(z * 7 + 2.1);
-                const noise = n * deformAmount * radius;
-                const len = Math.sqrt(x * x + y * y + z * z);
-                if (len > 0.001) {
-                    const s = 1 + noise / len;
-                    pos.setXYZ(i, x * s, y * s, z * s);
+        // Build a single smooth lofted body by sampling cross-section rings along a curve
+        function buildLoftedBody(spinePoints, radii, mat, radialSegs, ovalRatio) {
+            const curve = new THREE.CatmullRomCurve3(spinePoints, false, 'catmullrom', 0.5);
+            const samples = spinePoints.length;
+            const positions = [];
+            const indices = [];
+            const upRef = new THREE.Vector3(0, 1, 0);
+
+            for (let i = 0; i < samples; i++) {
+                const t = i / (samples - 1);
+                const p = curve.getPoint(t);
+                const tan = curve.getTangent(t).normalize();
+                let right = new THREE.Vector3().crossVectors(tan, upRef);
+                if (right.lengthSq() < 1e-6) right.set(1, 0, 0);
+                right.normalize();
+                const up = new THREE.Vector3().crossVectors(right, tan).normalize();
+                const r = radii[i];
+                for (let j = 0; j < radialSegs; j++) {
+                    const angle = (j / radialSegs) * Math.PI * 2;
+                    const cx = Math.cos(angle), cy = Math.sin(angle);
+                    const wx = r * cx;
+                    const wy = r * cy * ovalRatio;
+                    positions.push(
+                        p.x + right.x * wx + up.x * wy,
+                        p.y + right.y * wx + up.y * wy,
+                        p.z + right.z * wx + up.z * wy
+                    );
                 }
             }
+            // Triangulate between consecutive rings
+            for (let i = 0; i < samples - 1; i++) {
+                for (let j = 0; j < radialSegs; j++) {
+                    const a = i * radialSegs + j;
+                    const b = i * radialSegs + ((j + 1) % radialSegs);
+                    const c = (i + 1) * radialSegs + j;
+                    const d = (i + 1) * radialSegs + ((j + 1) % radialSegs);
+                    indices.push(a, c, b, b, c, d);
+                }
+            }
+            // Cap front
+            const fcIdx = positions.length / 3;
+            const fp = curve.getPoint(0);
+            positions.push(fp.x, fp.y, fp.z);
+            for (let j = 0; j < radialSegs; j++) {
+                indices.push(fcIdx, (j + 1) % radialSegs, j);
+            }
+            // Cap back
+            const bcIdx = positions.length / 3;
+            const bp = curve.getPoint(1);
+            positions.push(bp.x, bp.y, bp.z);
+            const last = (samples - 1) * radialSegs;
+            for (let j = 0; j < radialSegs; j++) {
+                indices.push(bcIdx, last + j, last + ((j + 1) % radialSegs));
+            }
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+            geo.setIndex(indices);
             geo.computeVertexNormals();
-            return geo;
+            return new THREE.Mesh(geo, mat);
         }
 
-        // ── Torso — long flowing organic body ──
-        const torso = new THREE.Mesh(organicSphere(0.32, 0.06, 14), furMat);
-        torso.position.set(0, 0.58, 0);
-        torso.scale.set(1.0, 0.85, 1.75); // elongated front-to-back
-        group.add(torso);
+        // ── Sleek wolf body — single flowing surface from snout through hip ──
+        const bodySpine = [
+            new THREE.Vector3(0, 0.78, 1.18),  // snout tip
+            new THREE.Vector3(0, 0.80, 0.97),  // snout mid
+            new THREE.Vector3(0, 0.93, 0.75),  // forehead
+            new THREE.Vector3(0, 0.86, 0.55),  // neck base
+            new THREE.Vector3(0, 0.72, 0.32),  // shoulder peak
+            new THREE.Vector3(0, 0.62, 0.05),  // chest
+            new THREE.Vector3(0, 0.56, -0.20), // slim waist
+            new THREE.Vector3(0, 0.60, -0.40), // lower back
+            new THREE.Vector3(0, 0.66, -0.55), // hip
+        ];
+        const bodyRadii = [0.04, 0.09, 0.16, 0.13, 0.22, 0.21, 0.16, 0.18, 0.20];
+        const body = buildLoftedBody(bodySpine, bodyRadii, furMat, 14, 0.85);
+        group.add(body);
 
-        // Belly — lighter underside
-        const belly = new THREE.Mesh(organicSphere(0.26, 0.05, 12), bellyMat);
-        belly.position.set(0, 0.42, 0);
-        belly.scale.set(0.9, 0.6, 1.55);
+        // ── Belly — lighter underside, separate gentle loft ──
+        const bellySpine = [
+            new THREE.Vector3(0, 0.55, 0.55),
+            new THREE.Vector3(0, 0.48, 0.30),
+            new THREE.Vector3(0, 0.42, 0.05),
+            new THREE.Vector3(0, 0.40, -0.20),
+            new THREE.Vector3(0, 0.45, -0.45),
+        ];
+        const bellyRadii = [0.13, 0.16, 0.16, 0.14, 0.13];
+        const belly = buildLoftedBody(bellySpine, bellyRadii, bellyMat, 12, 0.55);
         group.add(belly);
 
-        // Shoulder bulges — muscular
-        const shoulderL = new THREE.Mesh(organicSphere(0.2, 0.05, 10), furMat);
-        shoulderL.position.set(0.18, 0.62, 0.4);
-        shoulderL.scale.set(1, 0.95, 1.1);
-        group.add(shoulderL);
-        const shoulderR = shoulderL.clone();
-        shoulderR.position.x = -0.18;
-        group.add(shoulderR);
+        // ── Bushy tail — separate flowing piece, rises and tapers ──
+        const tailGroup = new THREE.Group();
+        tailGroup.position.set(0, 0.66, -0.55);
+        const tailSpine = [
+            new THREE.Vector3(0, 0.0, 0.0),
+            new THREE.Vector3(0, 0.06, -0.18),
+            new THREE.Vector3(0, 0.13, -0.34),
+            new THREE.Vector3(0, 0.16, -0.50),
+            new THREE.Vector3(0, 0.18, -0.62),
+            new THREE.Vector3(0, 0.20, -0.72),
+        ];
+        const tailRadii = [0.16, 0.14, 0.11, 0.08, 0.04, 0.015];
+        const tail = buildLoftedBody(tailSpine, tailRadii, accentMat, 10, 0.95);
+        tailGroup.add(tail);
+        group.add(tailGroup);
+        group.userData._tailBase = tailGroup;
 
-        // Hip bulges — rear haunches
-        const hipL = new THREE.Mesh(organicSphere(0.2, 0.05, 10), furMat);
-        hipL.position.set(0.17, 0.58, -0.5);
-        hipL.scale.set(1, 0.95, 1.1);
-        group.add(hipL);
-        const hipR = hipL.clone();
-        hipR.position.x = -0.17;
-        group.add(hipR);
-
-        // ── Neck — angled forward and up ──
-        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.4, 10), furMat);
-        neck.position.set(0, 0.72, 0.6);
-        neck.rotation.x = -0.7;
-        group.add(neck);
-
-        // Mane fur tuft on chest/throat
-        const mane = new THREE.Mesh(organicSphere(0.16, 0.08, 10), accentMat);
-        mane.position.set(0, 0.55, 0.6);
-        mane.scale.set(1, 0.75, 1.2);
-        group.add(mane);
-
-        // ── Head — narrower, slightly elongated ──
-        const head = new THREE.Mesh(organicSphere(0.17, 0.05, 12), furMat);
-        head.position.set(0, 0.92, 0.82);
-        head.scale.set(1, 0.95, 1.15);
-        group.add(head);
-
-        // ── Snout — long tapering muzzle (defining wolf feature) ──
-        const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 0.34, 8), furMat);
-        snout.position.set(0, 0.84, 1.02);
-        snout.rotation.x = Math.PI / 2 - 0.05;
-        group.add(snout);
-
-        // Snout bridge (top, slightly darker)
-        const snoutTop = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.32, 6), accentMat);
-        snoutTop.position.set(0, 0.91, 1.02);
-        snoutTop.rotation.x = Math.PI / 2 - 0.05;
-        snoutTop.scale.set(1, 1, 0.5);
-        group.add(snoutTop);
-
-        // Nose tip — wet black nub
-        const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), noseMat);
-        noseTip.position.set(0, 0.85, 1.2);
+        // ── Snout details: nose tip, mouth slit, fangs ──
+        const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), noseMatLocal);
+        noseTip.position.set(0, 0.79, 1.20);
         noseTip.scale.set(1, 0.85, 0.85);
         group.add(noseTip);
 
-        // ── Mouth — dark slit ──
         const mouth = new THREE.Mesh(
-            new THREE.BoxGeometry(0.11, 0.012, 0.18),
+            new THREE.BoxGeometry(0.10, 0.012, 0.18),
             new THREE.MeshBasicMaterial({ color: '#1a0608' })
         );
-        mouth.position.set(0, 0.78, 1.05);
+        mouth.position.set(0, 0.74, 1.05);
         group.add(mouth);
 
-        // Visible fangs at mouth corners
         const toothMat = new THREE.MeshStandardMaterial({ color: '#f0e8d0', roughness: 0.3 });
         for (let s = -1; s <= 1; s += 2) {
             const fang = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.06, 5), toothMat);
-            fang.position.set(s * 0.05, 0.755, 1.08);
+            fang.position.set(s * 0.045, 0.715, 1.08);
             fang.rotation.x = Math.PI;
             group.add(fang);
         }
 
-        // ── Eyes — almond shaped sockets with glowing iris and slit pupil ──
+        // ── Eyes — almond sockets + glowing iris + vertical slit pupil ──
         for (let s = -1; s <= 1; s += 2) {
             const socket = new THREE.Mesh(
                 new THREE.SphereGeometry(0.05, 8, 8),
                 new THREE.MeshStandardMaterial({ color: '#0a0808', roughness: 0.5 })
             );
-            socket.position.set(s * 0.1, 0.97, 0.92);
+            socket.position.set(s * 0.10, 0.97, 0.93);
             socket.scale.set(1, 0.55, 0.4);
             group.add(socket);
 
             const iris = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), dogEyeMat);
-            iris.position.set(s * 0.1, 0.97, 0.95);
+            iris.position.set(s * 0.10, 0.97, 0.96);
             iris.scale.set(1, 0.7, 0.5);
             group.add(iris);
 
-            // Vertical slit pupil (predator eye)
             const pupil = new THREE.Mesh(
                 new THREE.BoxGeometry(0.006, 0.024, 0.005),
                 new THREE.MeshBasicMaterial({ color: '#000000' })
             );
-            pupil.position.set(s * 0.1, 0.97, 0.97);
+            pupil.position.set(s * 0.10, 0.97, 0.98);
             group.add(pupil);
         }
 
-        // ── Ears — large pointed triangles, upright (alert) ──
+        // ── Ears — large pointed triangles, swept slightly back ──
         for (let s = -1; s <= 1; s += 2) {
             const ear = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.24, 5), furMat);
-            ear.position.set(s * 0.13, 1.13, 0.75);
+            ear.position.set(s * 0.13, 1.13, 0.72);
             ear.rotation.z = s * 0.18;
             ear.rotation.x = -0.05;
             ear.scale.set(0.7, 1, 0.4);
             group.add(ear);
-            // Inner ear
-            const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.18, 4),
-                new THREE.MeshStandardMaterial({ color: isWhite ? '#d4a8a0' : '#3a1a1a', roughness: 0.5 }));
-            innerEar.position.set(s * 0.12, 1.1, 0.78);
+            const innerEar = new THREE.Mesh(
+                new THREE.ConeGeometry(0.05, 0.18, 4),
+                new THREE.MeshStandardMaterial({ color: isWhite ? '#d4a8a0' : '#3a1a1a', roughness: 0.5 })
+            );
+            innerEar.position.set(s * 0.12, 1.10, 0.75);
             innerEar.rotation.z = s * 0.18;
             innerEar.rotation.x = -0.05;
             innerEar.scale.set(0.7, 1, 0.3);
             group.add(innerEar);
         }
 
-        // ── Legs (4) — anatomical with knee, paw, claws ──
+        // ── Legs (4) — long sleek capsules for athletic stance ──
         const legPositions = [
-            { x: 0.18, z: 0.36 },   // front-left
-            { x: -0.18, z: 0.36 },  // front-right
-            { x: 0.16, z: -0.45 },  // back-left
-            { x: -0.16, z: -0.45 }, // back-right
+            { x: 0.16, z: 0.32 },   // FL
+            { x: -0.16, z: 0.32 },  // FR
+            { x: 0.14, z: -0.42 },  // BL
+            { x: -0.14, z: -0.42 }, // BR
         ];
         const legPivots = [];
         for (const lp of legPositions) {
-            const legPivot = new THREE.Group();
-            legPivot.position.set(lp.x, 0.45, lp.z);
-
-            // Upper leg (thigh)
-            const upperLeg = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.18, 4, 6), furMat);
-            upperLeg.position.set(0, -0.1, 0);
-            legPivot.add(upperLeg);
-
-            // Knee joint
-            const knee = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), furMat);
-            knee.position.set(0, -0.22, 0);
-            legPivot.add(knee);
-
-            // Lower leg (shin)
-            const lowerLeg = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.18, 4, 6), accentMat);
-            lowerLeg.position.set(0, -0.34, 0.02);
-            legPivot.add(lowerLeg);
-
-            // Paw — flat oval
+            const pivot = new THREE.Group();
+            pivot.position.set(lp.x, 0.50, lp.z);
+            // Single sleek capsule leg
+            const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.36, 4, 8), furMat);
+            leg.position.set(0, -0.22, 0);
+            pivot.add(leg);
+            // Paw
             const paw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), accentMat);
-            paw.position.set(0, -0.46, 0.04);
+            paw.position.set(0, -0.45, 0.04);
             paw.scale.set(1, 0.4, 1.4);
-            legPivot.add(paw);
-
-            // Tiny claws
+            pivot.add(paw);
+            // Claws
             for (let c = -1; c <= 1; c++) {
-                const claw = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.018, 3),
-                    new THREE.MeshStandardMaterial({ color: '#1a1a1a' }));
+                const claw = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.008, 0.02, 3),
+                    new THREE.MeshStandardMaterial({ color: '#1a1a1a' })
+                );
                 claw.position.set(c * 0.022, -0.475, 0.085);
                 claw.rotation.x = -0.5;
-                legPivot.add(claw);
+                pivot.add(claw);
             }
-
-            group.add(legPivot);
-            legPivots.push(legPivot);
+            group.add(pivot);
+            legPivots.push(pivot);
         }
         group.userData._legPivots = legPivots;
 
-        // ── Bushy tail — multiple sphere segments curving up ──
-        const tailSegs = [];
-        const tailBase = new THREE.Group();
-        tailBase.position.set(0, 0.6, -0.65);
-        for (let t = 0; t < 5; t++) {
-            const seg = new THREE.Mesh(
-                new THREE.SphereGeometry(0.075 - t * 0.008, 8, 6),
-                t < 2 ? furMat : accentMat
-            );
-            const tProg = t / 4;
-            seg.position.set(0, tProg * 0.18, -tProg * 0.18);
-            seg.scale.set(1, 0.95, 1.3);
-            tailBase.add(seg);
-            tailSegs.push(seg);
+        // ── Fur tufts along the body — radially outward for furry silhouette ──
+        function addFurTufts(targetGroup, spinePoints, count, color, lengthScale, radiusScale, tStart, tEnd) {
+            const tuftMat = new THREE.MeshStandardMaterial({ color, roughness: 0.95 });
+            const tuftGeo = new THREE.ConeGeometry(0.012 * (radiusScale || 1), 0.10 * (lengthScale || 1), 4);
+            const curve = new THREE.CatmullRomCurve3(spinePoints, false, 'catmullrom', 0.5);
+            const upRef = new THREE.Vector3(0, 1, 0);
+            const tS = tStart != null ? tStart : 0.18;
+            const tE = tEnd != null ? tEnd : 0.95;
+            for (let i = 0; i < count; i++) {
+                const t = tS + (i / (count - 1)) * (tE - tS);
+                const p = curve.getPoint(t);
+                const tan = curve.getTangent(t).normalize();
+                let right = new THREE.Vector3().crossVectors(tan, upRef);
+                if (right.lengthSq() < 1e-6) right.set(1, 0, 0);
+                right.normalize();
+                const up = new THREE.Vector3().crossVectors(right, tan).normalize();
+                // Place 2-3 tufts at this spine sample around upper hemisphere
+                const numTufts = 2 + (i % 2);
+                for (let k = 0; k < numTufts; k++) {
+                    // angle around tangent: π/2 = top, jitter into sides
+                    const angle = Math.PI / 2 + (Math.random() - 0.5) * 2.4;
+                    const r = 0.16 + Math.random() * 0.05;
+                    const ox = right.x * Math.cos(angle) * r + up.x * Math.sin(angle) * r;
+                    const oy = right.y * Math.cos(angle) * r + up.y * Math.sin(angle) * r;
+                    const oz = right.z * Math.cos(angle) * r + up.z * Math.sin(angle) * r;
+                    const tuft = new THREE.Mesh(tuftGeo, tuftMat);
+                    tuft.position.set(p.x + ox, p.y + oy, p.z + oz);
+                    // Orient tuft outward from body surface
+                    const dirVec = new THREE.Vector3(ox, oy, oz).normalize();
+                    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirVec);
+                    tuft.quaternion.copy(quat);
+                    tuft.scale.set(0.8 + Math.random() * 0.4, 0.8 + Math.random() * 0.6, 0.8 + Math.random() * 0.4);
+                    targetGroup.add(tuft);
+                }
+            }
         }
-        group.add(tailBase);
-        group.userData._tailBase = tailBase;
-        group.userData._tailSegs = tailSegs;
-
-        // ── Fur tufts along back — texture detail ──
-        for (let i = 0; i < 5; i++) {
-            const tProg = i / 4;
-            const tuft = new THREE.Mesh(
-                new THREE.SphereGeometry(0.07, 6, 6),
-                i % 2 === 0 ? accentMat : furMat
-            );
-            tuft.position.set((Math.random() - 0.5) * 0.12, 0.78, -0.45 + tProg * 0.85);
-            tuft.scale.set(1.2, 0.55, 1.2);
-            group.add(tuft);
-        }
+        // Body fur — full length
+        addFurTufts(group, bodySpine, 12, furAccent, 1.0, 1.0, 0.20, 0.95);
+        // Mane / scruff — denser cluster around shoulders/neck
+        addFurTufts(group, [bodySpine[2], bodySpine[3], bodySpine[4]], 6, furColor, 1.4, 1.2);
+        // Tail fur — bushy
+        addFurTufts(tailGroup, tailSpine, 8, furAccent, 1.3, 1.4, 0.05, 0.9);
 
         // ── Glow aura ──
         const aura = new THREE.PointLight(glowColor, 1.4, TILE * 3, 2);
@@ -9150,7 +9175,6 @@ function spawnMinion(type, tileX, tileZ, data) {
         shadowDisc.position.y = 0.02;
         group.add(shadowDisc);
 
-        // Scale the whole dog up — big imposing wolf
         group.scale.setScalar(2.8);
 
     } else {
