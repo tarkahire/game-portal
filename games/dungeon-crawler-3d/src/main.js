@@ -232,6 +232,7 @@ function init() {
             if (e.code === 'KeyV') fruitAbility('v');     // P1 ability 4
             if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
             if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else if (player?.classId === 'horohoro') horohoroOversoul(); else playerDodge(); }
+            if (e.code === 'KeyG' && player?.classId === 'megumi') megumiToggleRide();
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
             // ── P2 controls (local co-op only — disabled in online) ──
@@ -6872,6 +6873,61 @@ function fruitAbility(slot) {
             triggerHitstop(40);
         }
 
+        else if (slot === 'x') { // Mahoraga — summon adapting divine general (G to mount/dismount)
+            // Remove any existing mahoraga first (one at a time)
+            for (let i = minions3D.length - 1; i >= 0; i--) {
+                if (minions3D[i].data.type === 'mahoraga' && minions3D[i].data._owner === player) {
+                    if (player._riding === minions3D[i]) {
+                        player._riding = null;
+                        fpsCamera.eyeHeight = 2.0;
+                    }
+                    if (minions3D[i].data._hpBar) scene.remove(minions3D[i].data._hpBar);
+                    scene.remove(minions3D[i].mesh);
+                    minions3D.splice(i, 1);
+                }
+            }
+
+            // Heavy summon VFX
+            screenShake(0.7, 900);
+            triggerHitstop(120);
+            fovPunch(22, 0.35);
+            screenFlash('rgba(220,210,190,0.5)', 700);
+
+            emitParticles(worldPx, 0.5, worldPz, {
+                color: ['#ece5d9', '#c0b8a8', '#7c7c84', '#1a1a20'],
+                count: 80, speed: 7, spread: 3,
+                gravity: -2, life: 28, size: 0.22, sizeEnd: 0, drag: 0.95, upward: 5
+            });
+            groundRing(worldPx, worldPz, '#ece5d9', 6, 1100);
+            groundRing(worldPx, worldPz, '#1a1a20', 4.5, 1300);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#fff0c8', 12, 900);
+            groundDecal(worldPx, worldPz, '#1a1a20', 3, 5000);
+
+            // Summoning hand sign
+            if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(-1.2, 0, -0.3);
+            if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.set(-1.2, 0, 0.3);
+            setTimeout(() => {
+                if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(0.04, 0, 0);
+                if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.set(0.04, 0, 0);
+            }, 1000);
+
+            // Spawn behind Megumi so he doesn't clip
+            const spawnX = px - fwdX * 1.8;
+            const spawnZ = pz - fwdZ * 1.8;
+            spawnMinion('mahoraga', spawnX, spawnZ, {
+                color: '#ece5d9', radius: 0.7, speed: 4,
+                damage: Math.round(player.damage * 0.7),
+                attackRange: 2.5, attackSpeed: 800,
+                hp: 250, maxHp: 250, life: Infinity, _owner: player,
+            });
+            const summoned = minions3D[minions3D.length - 1];
+            if (summoned) {
+                const bar = buildDogHpBar();
+                scene.add(bar);
+                summoned.data._hpBar = bar;
+            }
+        }
+
         else if (slot === 'f') { // Shadow Dash — phase through shadows forward
             const dashDist = 5;
             const newX = px + fwdX * dashDist;
@@ -8639,6 +8695,213 @@ function dealDamageToDog(m, dmg) {
     }
 }
 
+// ─── MAHORAGA MESH (Megumi X — adapting divine general) ──────
+// White muscular humanoid: black hakama + gray sash, mummy-wrapped forearms,
+// dark wrist/ankle cuffs, 3-tassel necklace, exposed teeth, segmented tail,
+// and a spinning 3-bladed feathered "wheel of adjustment" halo on his head.
+function buildMahoragaMesh() {
+    const group = new THREE.Group();
+    const skin = new THREE.MeshStandardMaterial({ color: '#ece5d9', roughness: 0.55 });
+    const skinShade = new THREE.MeshStandardMaterial({ color: '#b8b0a4', roughness: 0.6 });
+    const wrap = new THREE.MeshStandardMaterial({ color: '#7c7c84', roughness: 0.75 });
+    const wrapBand = new THREE.MeshStandardMaterial({ color: '#9a9aa2', roughness: 0.7 });
+    const cuff = new THREE.MeshStandardMaterial({ color: '#1f1f26', roughness: 0.5, metalness: 0.4 });
+    const hakama = new THREE.MeshStandardMaterial({ color: '#0a0a14', roughness: 0.75 });
+    const sash = new THREE.MeshStandardMaterial({ color: '#7c7c84', roughness: 0.65 });
+    const tassel = new THREE.MeshStandardMaterial({ color: '#16161c', roughness: 0.7 });
+    const teeth = new THREE.MeshStandardMaterial({ color: '#f0e8d4', roughness: 0.3 });
+    const wing = new THREE.MeshStandardMaterial({ color: '#f4ecdc', roughness: 0.55, side: THREE.DoubleSide });
+    const wingShade = new THREE.MeshStandardMaterial({ color: '#c4bca8', roughness: 0.6, side: THREE.DoubleSide });
+
+    // ── Hakama (lower body / shorts) ──
+    const hak = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 1.1, 8), hakama);
+    hak.position.y = 1.1; group.add(hak);
+    // Sash at waist
+    const sashRing = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.2, 10), sash);
+    sashRing.position.y = 1.65; group.add(sashRing);
+    // Sash knot front
+    const knot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.32, 0.18), sash);
+    knot.position.set(0.05, 1.55, 0.5); knot.rotation.z = 0.2; group.add(knot);
+    // Sash tail hanging
+    const sashTail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.04), sash);
+    sashTail.position.set(0.18, 1.3, 0.5); sashTail.rotation.z = 0.15; group.add(sashTail);
+
+    // ── Torso ──
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 1.3, 8), skin);
+    torso.position.y = 2.4; group.add(torso);
+    // Chest plate (wider)
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.55, 0.7), skin);
+    chest.position.y = 2.85; group.add(chest);
+    // Pec definition
+    for (let s = -1; s <= 1; s += 2) {
+        const pec = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.32, 0.1), skinShade);
+        pec.position.set(s * 0.24, 2.9, 0.36); group.add(pec);
+    }
+    // Abs (3 rows × 2 cols)
+    for (let r = 0; r < 3; r++) {
+        for (let s = -1; s <= 1; s += 2) {
+            const ab = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.13, 0.05), skinShade);
+            ab.position.set(s * 0.14, 2.55 - r * 0.2, 0.36); group.add(ab);
+        }
+    }
+
+    // ── Necklace — gray chain with 3 black tassels ──
+    const chain = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.018, 6, 20), cuff);
+    chain.rotation.x = Math.PI / 2; chain.position.set(0, 3.18, 0.28); chain.scale.set(1.2, 1, 0.55);
+    group.add(chain);
+    for (let i = -1; i <= 1; i++) {
+        const t = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.05), tassel);
+        t.position.set(i * 0.2, 2.96, 0.42); group.add(t);
+        // tassel cap
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.04, 6), cuff);
+        cap.position.set(i * 0.2, 3.12, 0.42); group.add(cap);
+    }
+
+    // ── Shoulders ──
+    for (let s = -1; s <= 1; s += 2) {
+        const sh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), skin);
+        sh.position.set(s * 0.6, 3.1, 0); group.add(sh);
+    }
+
+    // ── Arms ──
+    for (let s = -1; s <= 1; s += 2) {
+        // Upper arm — bare skin
+        const up = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.75, 8), skin);
+        up.position.set(s * 0.68, 2.65, 0); group.add(up);
+        // Elbow
+        const el = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), skin);
+        el.position.set(s * 0.68, 2.27, 0); group.add(el);
+        // Forearm — wrapped in mummy bandages
+        const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 0.7, 8), wrap);
+        fore.position.set(s * 0.68, 1.88, 0); group.add(fore);
+        // Wrap bands
+        for (let b = 0; b < 5; b++) {
+            const bd = new THREE.Mesh(new THREE.CylinderGeometry(0.185, 0.185, 0.04, 8), wrapBand);
+            bd.position.set(s * 0.68, 2.15 - b * 0.14, 0); group.add(bd);
+        }
+        // Wrist cuff
+        const wc = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.07, 8), cuff);
+        wc.position.set(s * 0.68, 1.5, 0); group.add(wc);
+        // Hand
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), skin);
+        hand.position.set(s * 0.68, 1.38, 0); hand.scale.set(1, 1.1, 0.7); group.add(hand);
+    }
+
+    // ── Legs (lower visible — bare skin shins, ankle cuffs, feet) ──
+    for (let s = -1; s <= 1; s += 2) {
+        const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.7, 8), skin);
+        shin.position.set(s * 0.25, 0.45, 0); group.add(shin);
+        const ac = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.07, 8), cuff);
+        ac.position.set(s * 0.25, 0.12, 0); group.add(ac);
+        const foot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.11, 0.45), skin);
+        foot.position.set(s * 0.25, 0.05, 0.12); group.add(foot);
+    }
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.22, 8), skin);
+    neck.position.y = 3.32; group.add(neck);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 10), skin);
+    head.position.y = 3.7; head.scale.set(1, 1.15, 0.95); group.add(head);
+    // Forehead ridge / brow
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.3), skinShade);
+    brow.position.set(0, 3.78, 0.25); group.add(brow);
+    // Mouth slit — wide gritted teeth, no other facial features (matches reference)
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.1, 0.05),
+        new THREE.MeshBasicMaterial({ color: '#0a0a0a' }));
+    mouth.position.set(0, 3.58, 0.34); group.add(mouth);
+    for (let t = 0; t < 9; t++) {
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.08, 0.035), teeth);
+        tooth.position.set(-0.16 + t * 0.04, 3.58, 0.36); group.add(tooth);
+    }
+
+    // ── WHEEL OF ADJUSTMENT — spinning halo on top of head ──
+    // Three feathered angel-wing blades fanning out at 120° apart
+    const wheel = new THREE.Group();
+    wheel.position.y = 4.18;
+
+    function buildWingBlade() {
+        const w = new THREE.Group();
+        // Inner mass (closer to centre)
+        const inner = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.15, 0.4), wing);
+        inner.position.set(0.18, 0, 0); w.add(inner);
+        // Mid wing — flattened arched plate
+        const mid = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.55), wing);
+        mid.position.set(0.6, 0.05, 0); mid.rotation.z = -0.15; w.add(mid);
+        // Outer wing — taper
+        const outer = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.04, 0.4), wing);
+        outer.position.set(1.1, 0.12, 0); outer.rotation.z = -0.3; w.add(outer);
+        // Feather cones along the trailing edge for a feathered silhouette
+        const featherShade = [wing, wingShade];
+        for (let f = 0; f < 7; f++) {
+            const t = f / 6;
+            const fx = 0.25 + t * 1.0;
+            const fy = 0.02 + t * 0.05;
+            const fz = -0.22 - t * 0.12;
+            const fl = 0.32 - t * 0.08;
+            const feather = new THREE.Mesh(new THREE.ConeGeometry(0.05, fl, 4), featherShade[f % 2]);
+            feather.position.set(fx, fy, fz);
+            // Point feather outward and slightly downward
+            feather.rotation.set(-Math.PI / 2 - 0.3, 0, -t * 0.4);
+            w.add(feather);
+        }
+        // A few feathers on the leading edge (top side)
+        for (let f = 0; f < 4; f++) {
+            const t = f / 3;
+            const feather = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.22 - t * 0.04, 4), wing);
+            feather.position.set(0.4 + t * 0.7, 0.12 + t * 0.04, 0.18 + t * 0.05);
+            feather.rotation.set(-Math.PI / 2 + 0.2, 0, -t * 0.3);
+            w.add(feather);
+        }
+        // Wing tip flick
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.25, 4), wing);
+        tip.position.set(1.45, 0.18, 0); tip.rotation.set(0, 0, -Math.PI / 2 - 0.3);
+        w.add(tip);
+        return w;
+    }
+
+    for (let i = 0; i < 3; i++) {
+        const blade = buildWingBlade();
+        blade.rotation.y = (i / 3) * Math.PI * 2;
+        wheel.add(blade);
+    }
+    // Faint glow at the wheel's hub
+    const hub = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10),
+        new THREE.MeshBasicMaterial({ color: '#fff8e0' }));
+    wheel.add(hub);
+    const hubLight = new THREE.PointLight('#fff0c8', 1.5, TILE * 5, 1.5);
+    wheel.add(hubLight);
+    group.add(wheel);
+    group.userData._wheel = wheel;
+
+    // ── Long segmented tail along the back (curls around like the reference) ──
+    const tail = new THREE.Group();
+    tail.position.set(-0.2, 2.6, -0.5);
+    for (let i = 0; i < 14; i++) {
+        const t = i / 14;
+        const segR = 0.18 - t * 0.12;
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(segR * 1.6, segR * 1.6, 0.22), skin);
+        // Curl around: parameterize a spiral
+        const a = t * Math.PI * 2.2;
+        const radius = 0.7 + t * 0.4;
+        seg.position.set(
+            Math.cos(a) * radius * 0.6,
+            -t * 1.4 + 0.4 + Math.sin(a) * 0.15,
+            -Math.abs(Math.sin(a)) * radius * 0.4 - t * 0.2
+        );
+        seg.rotation.set(t * 0.5, a, 0);
+        tail.add(seg);
+    }
+    group.add(tail);
+
+    // ── Aura ──
+    const aura = new THREE.PointLight('#e8e0d0', 1.6, TILE * 4, 1.5);
+    aura.position.y = 2.5; group.add(aura);
+
+    return group;
+}
+
 // ─── MINION SYSTEM ──────────────────────────────────────────
 function spawnMinion(type, tileX, tileZ, data) {
     const group = new THREE.Group();
@@ -8922,6 +9185,20 @@ function spawnMinion(type, tileX, tileZ, data) {
 
         group.scale.setScalar(2.8);
 
+    } else if (type === 'mahoraga') {
+        // ── Mahoraga — adapting divine general with spinning wheel halo ──
+        const mh = buildMahoragaMesh();
+        group.add(mh);
+        group.userData._wheel = mh.userData._wheel;
+        // Shadow disc beneath
+        const shadowDisc = new THREE.Mesh(
+            new THREE.CircleGeometry(0.9, 14),
+            new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.55, depthWrite: false })
+        );
+        shadowDisc.rotation.x = -Math.PI / 2;
+        shadowDisc.position.y = 0.02;
+        group.add(shadowDisc);
+
     } else {
         // ── Default humanoid minion ──
 
@@ -9146,6 +9423,111 @@ function updateMinions(dt, now) {
             continue; // skip default logic below
         }
 
+        // ── Mahoraga AI ──
+        if (m.data.type === 'mahoraga') {
+            // Always spin the wheel of adjustment on his head
+            if (m.mesh.userData._wheel) {
+                m.mesh.userData._wheel.rotation.y += dt * 1.4;
+            }
+            // HP bar update (same style as dogs)
+            if (m.data._hpBar) {
+                const bar = m.data._hpBar;
+                bar.position.set(m.data.x * TILE, 5.0, m.data.z * TILE);
+                bar.lookAt(camera.position);
+                const ratio = Math.max(0, m.data.hp / m.data.maxHp);
+                const fg = bar._fg;
+                fg.scale.x = ratio;
+                fg.position.x = -(1 - ratio) * 0.55;
+                if (ratio > 0.5) bar._fgMat.color.set('#00ff66');
+                else if (ratio > 0.25) bar._fgMat.color.set('#ffcc00');
+                else bar._fgMat.color.set('#ff2244');
+            }
+
+            // If being ridden, movement + facing are driven from update() — skip AI
+            if (player && player._riding === m) continue;
+
+            // Find nearest enemy
+            let nearestEnemy = null, nearestDist = Infinity;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
+                if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
+            }
+
+            let targetX, targetZ;
+            let isAttacking = false;
+            if (nearestEnemy && nearestDist < 9) {
+                isAttacking = true;
+                targetX = nearestEnemy.data.x;
+                targetZ = nearestEnemy.data.z;
+                if (nearestDist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
+                    m.data.lastAttack = now;
+                    dealDamageToEnemy(nearestEnemy, m.data.damage);
+                    emitParticles(nearestEnemy.data.x * TILE, 1.8, nearestEnemy.data.z * TILE, {
+                        color: ['#e8e0d8', '#1a1a20', '#9a9aa2'],
+                        count: 8, speed: 4, spread: 0.9,
+                        gravity: -3, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
+                    });
+                    screenShake(0.15, 80);
+                }
+            } else {
+                // Heel mode — walk directly behind Megumi
+                const playerYaw = fpsCamera.yaw;
+                const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
+                targetX = px - pFwdX * 2.2;
+                targetZ = pz - pFwdZ * 2.2;
+            }
+
+            // Move (axis-separated wall collision)
+            const dx = targetX - m.data.x, dz = targetZ - m.data.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist > 0.3) {
+                const spd = Math.min(m.data.speed * dt, dist * 0.3);
+                const moveX = (dx / dist) * spd;
+                const moveZ = (dz / dist) * spd;
+                const r = 0.7;
+                const newX = m.data.x + moveX, newZ = m.data.z + moveZ;
+                if (isWalkable(dungeon.map, newX - r, m.data.z - r) &&
+                    isWalkable(dungeon.map, newX + r, m.data.z - r) &&
+                    isWalkable(dungeon.map, newX - r, m.data.z + r) &&
+                    isWalkable(dungeon.map, newX + r, m.data.z + r)) {
+                    m.data.x = newX;
+                }
+                if (isWalkable(dungeon.map, m.data.x - r, newZ - r) &&
+                    isWalkable(dungeon.map, m.data.x + r, newZ - r) &&
+                    isWalkable(dungeon.map, m.data.x - r, newZ + r) &&
+                    isWalkable(dungeon.map, m.data.x + r, newZ + r)) {
+                    m.data.z = newZ;
+                }
+            }
+
+            // Teleport back if separated by walls
+            const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
+            if (playerDist > 12) {
+                if (isWalkable(dungeon.map, px - 1, pz)) { m.data.x = px - 1; m.data.z = pz; }
+                else if (isWalkable(dungeon.map, px, pz)) { m.data.x = px; m.data.z = pz; }
+            }
+
+            m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
+
+            // Face movement / target
+            if (dist > 0.25) {
+                m.mesh.rotation.y = Math.atan2(dx, dz);
+            } else if (isAttacking && nearestEnemy) {
+                const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
+                m.mesh.rotation.y = Math.atan2(fdx, fdz);
+            } else {
+                // Idle — face Megumi's direction
+                const targetYaw = fpsCamera.yaw + Math.PI;
+                let yawDiff = targetYaw - m.mesh.rotation.y;
+                while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                m.mesh.rotation.y += yawDiff * 0.18;
+            }
+
+            continue;
+        }
+
         // ── Default minion AI ──
 
         // Find nearest enemy
@@ -9314,6 +9696,41 @@ function playerDodge() {
     // VFX
     showSpeedLines(300);
     fovPunch(15, 0.12);
+}
+
+// ─── MAHORAGA RIDE — G key toggles mount/dismount when near him ──
+function megumiToggleRide() {
+    if (!player || !player.alive) return;
+    const baseEye = (player.classId === 'megumi') ? 2.0 : EYE_HEIGHT;
+    if (player._riding) {
+        // Dismount — drop player slightly in front of mahoraga
+        const m = player._riding;
+        player._riding = null;
+        fpsCamera.eyeHeight = baseEye;
+        const yaw = fpsCamera.yaw;
+        const offX = -Math.sin(yaw) * 0.8, offZ = -Math.cos(yaw) * 0.8;
+        const tryX = m.data.x + offX, tryZ = m.data.z + offZ;
+        if (isWalkable(dungeon.map, tryX, tryZ)) {
+            fpsCamera.posX = tryX; fpsCamera.posZ = tryZ;
+        } else {
+            fpsCamera.posX = m.data.x; fpsCamera.posZ = m.data.z;
+        }
+        if (fpsCamera.playerModel) fpsCamera.playerModel.visible = fpsCamera.thirdPerson;
+        return;
+    }
+    // Mount — find nearest mahoraga within 4 tiles
+    let nearest = null, nd = 4;
+    for (const m of minions3D) {
+        if (m.data.type !== 'mahoraga' || m.data.hp <= 0) continue;
+        const d = Math.hypot(m.data.x - fpsCamera.posX, m.data.z - fpsCamera.posZ);
+        if (d < nd) { nd = d; nearest = m; }
+    }
+    if (nearest) {
+        player._riding = nearest;
+        fpsCamera.eyeHeight = baseEye + 3.4; // sit on his shoulders
+        // Hide own player model so it doesn't clip inside mahoraga
+        if (fpsCamera.playerModel) fpsCamera.playerModel.visible = false;
+    }
 }
 
 function dealDamageToEnemy(e, dmg) {
@@ -9543,6 +9960,58 @@ function update() {
     const now = performance.now();
 
     fpsCamera.update(dt, dungeon.map);
+
+    // ── Mahoraga ride override (Megumi G) ──
+    // Player's normal movement above is discarded — instead, W/S drive Mahoraga
+    // forward/back along the camera yaw, and the player snaps to his back.
+    if (player && player._riding) {
+        const m = player._riding;
+        if (!m.data || m.data.hp <= 0) {
+            // Mahoraga died — dismount
+            player._riding = null;
+            fpsCamera.eyeHeight = (player.classId === 'megumi') ? 2.0 : EYE_HEIGHT;
+            if (fpsCamera.playerModel) fpsCamera.playerModel.visible = fpsCamera.thirdPerson;
+        } else {
+            const yaw = fpsCamera.yaw;
+            const fwd = fpsCamera.keys['KeyW'];
+            const back = fpsCamera.keys['KeyS'];
+            if (fwd || back) {
+                const dir = fwd ? 1 : -1;
+                const fx = -Math.sin(yaw) * dir, fz = -Math.cos(yaw) * dir;
+                const spd = m.data.speed * dt * 1.4; // slight ride boost
+                const r = 0.7;
+                const newX = m.data.x + fx * spd, newZ = m.data.z + fz * spd;
+                if (isWalkable(dungeon.map, newX - r, m.data.z - r) &&
+                    isWalkable(dungeon.map, newX + r, m.data.z - r) &&
+                    isWalkable(dungeon.map, newX - r, m.data.z + r) &&
+                    isWalkable(dungeon.map, newX + r, m.data.z + r)) {
+                    m.data.x = newX;
+                }
+                if (isWalkable(dungeon.map, m.data.x - r, newZ - r) &&
+                    isWalkable(dungeon.map, m.data.x + r, newZ - r) &&
+                    isWalkable(dungeon.map, m.data.x - r, newZ + r) &&
+                    isWalkable(dungeon.map, m.data.x + r, newZ + r)) {
+                    m.data.z = newZ;
+                }
+            }
+            m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
+            m.mesh.rotation.y = yaw + Math.PI;
+            // Snap player to Mahoraga and re-place camera (overriding fpsCamera.update output)
+            fpsCamera.posX = m.data.x;
+            fpsCamera.posZ = m.data.z;
+            const wx = fpsCamera.posX * TILE, wz = fpsCamera.posZ * TILE;
+            if (fpsCamera.thirdPerson) {
+                const behindX = Math.sin(fpsCamera.yaw) * fpsCamera.tpDistance;
+                const behindZ = Math.cos(fpsCamera.yaw) * fpsCamera.tpDistance;
+                camera.position.set(wx + behindX, fpsCamera.eyeHeight + fpsCamera.tpHeight, wz + behindZ);
+                camera.lookAt(wx, fpsCamera.eyeHeight, wz);
+            } else {
+                camera.position.set(wx, fpsCamera.eyeHeight, wz);
+            }
+            if (fpsCamera.playerModel) fpsCamera.playerModel.visible = false;
+        }
+    }
+
     updateScreenShake(dt);
     updateFovPunch();
     playerLight.position.copy(camera.position);
@@ -9710,11 +10179,12 @@ function update() {
         // Freeze enemies during cutscenes
         if (player._cutsceneActive) continue;
 
-        // Pick target — closer of player or any divine dog (dogs can pull aggro)
+        // Pick target — closer of player, divine dog, or mahoraga (summons can pull aggro)
         let targetX = px, targetZ = pz, targetDog = null;
         let targetDist = distToPlayer;
         for (const m of minions3D) {
-            if (m.data.type !== 'divineDog' || m.data.hp <= 0) continue;
+            if (m.data.type !== 'divineDog' && m.data.type !== 'mahoraga') continue;
+            if (m.data.hp <= 0) continue;
             const d = Math.hypot(m.data.x - e.data.x, m.data.z - e.data.z);
             if (d < targetDist) { targetDist = d; targetX = m.data.x; targetZ = m.data.z; targetDog = m; }
         }
@@ -9809,11 +10279,13 @@ function update() {
                 }
             }
         } else {
-            // Enemy projectile — check dog hits first, then player
+            // Enemy projectile — check dog/mahoraga hits first, then player
             let hit = false;
             for (const m of minions3D) {
-                if (m.data.type !== 'divineDog' || m.data.hp <= 0) continue;
-                if (Math.hypot(m.data.x - tileX, m.data.z - tileZ) < 0.6) {
+                if (m.data.type !== 'divineDog' && m.data.type !== 'mahoraga') continue;
+                if (m.data.hp <= 0) continue;
+                const hitR = m.data.type === 'mahoraga' ? 0.9 : 0.6;
+                if (Math.hypot(m.data.x - tileX, m.data.z - tileZ) < hitR) {
                     dealDamageToDog(m, p.damage);
                     scene.remove(p.mesh); projectiles3D.splice(i, 1);
                     hit = true; break;
