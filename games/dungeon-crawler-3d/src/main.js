@@ -9755,67 +9755,90 @@ function updateMinions(dt, now) {
                 screenShake(0.18, 80);
             }
 
-            // Movement is conditional — rider drives Mahoraga manually
+            // Unified movement — runs whether ridden or not. Mahoraga always
+            // pursues the nearest enemy; rider just goes along for the ride.
             let isMoving = false;
             const ridden = (player && player._riding === m);
+            // Wider engage range when ridden so he stays aggressive across rooms
+            const engageRange = ridden ? 18 : 9;
 
-            if (ridden) {
-                isMoving = !!(fpsCamera.keys['KeyW'] || fpsCamera.keys['KeyS']);
+            let targetX = null, targetZ = null;
+            let chasing = false;
+            if (nearestEnemy && nearestDist < engageRange) {
+                targetX = nearestEnemy.data.x;
+                targetZ = nearestEnemy.data.z;
+                chasing = true;
+            } else if (!ridden) {
+                // Heel directly behind Megumi
+                const playerYaw = fpsCamera.yaw;
+                const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
+                targetX = px - pFwdX * 2.2;
+                targetZ = pz - pFwdZ * 2.2;
             } else {
-                let targetX, targetZ;
-                let isAttacking = (nearestEnemy && nearestDist < 9);
-                if (isAttacking) {
-                    targetX = nearestEnemy.data.x;
-                    targetZ = nearestEnemy.data.z;
-                } else {
-                    // Heel mode — walk directly behind Megumi
-                    const playerYaw = fpsCamera.yaw;
-                    const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
-                    targetX = px - pFwdX * 2.2;
-                    targetZ = pz - pFwdZ * 2.2;
+                // Ridden + no enemy in range — let the rider steer with W/S
+                const fwd = fpsCamera.keys['KeyW'];
+                const back = fpsCamera.keys['KeyS'];
+                if (fwd || back) {
+                    const dir = fwd ? 1 : -1;
+                    const yaw = fpsCamera.yaw;
+                    targetX = m.data.x + (-Math.sin(yaw) * dir) * 4;
+                    targetZ = m.data.z + (-Math.cos(yaw) * dir) * 4;
                 }
+            }
 
-                // Move (axis-separated wall collision)
+            if (targetX !== null) {
                 const dx = targetX - m.data.x, dz = targetZ - m.data.z;
                 const dist = Math.sqrt(dx * dx + dz * dz);
-                if (dist > 0.3) {
-                    isMoving = true;
-                    const spd = Math.min(m.data.speed * dt, dist * 0.3);
-                    const moveX = (dx / dist) * spd;
-                    const moveZ = (dz / dist) * spd;
+                // Stop near the target — for chase, stop just inside attack range
+                const stopDist = chasing ? Math.max(m.data.attackRange * 0.65, 1.4) : 0.3;
+                if (dist > stopDist) {
+                    const moveSpeed = m.data.speed * dt * (ridden ? 1.3 : 1.0);
+                    const dirX = dx / dist, dirZ = dz / dist;
                     const r = 0.7;
-                    const newX = m.data.x + moveX, newZ = m.data.z + moveZ;
-                    if (isWalkable(dungeon.map, newX - r, m.data.z - r) &&
-                        isWalkable(dungeon.map, newX + r, m.data.z - r) &&
-                        isWalkable(dungeon.map, newX - r, m.data.z + r) &&
-                        isWalkable(dungeon.map, newX + r, m.data.z + r)) {
-                        m.data.x = newX;
-                    }
-                    if (isWalkable(dungeon.map, m.data.x - r, newZ - r) &&
-                        isWalkable(dungeon.map, m.data.x + r, newZ - r) &&
-                        isWalkable(dungeon.map, m.data.x - r, newZ + r) &&
-                        isWalkable(dungeon.map, m.data.x + r, newZ + r)) {
-                        m.data.z = newZ;
+                    // Try direct, then ±30°, ±60°, ±90° — slides around walls/corners
+                    const angles = [0, 0.5, -0.5, 1.0, -1.0, Math.PI / 2, -Math.PI / 2];
+                    for (const dAng of angles) {
+                        const cosA = Math.cos(dAng), sinA = Math.sin(dAng);
+                        const tryX = dirX * cosA - dirZ * sinA;
+                        const tryZ = dirX * sinA + dirZ * cosA;
+                        const newX = m.data.x + tryX * moveSpeed;
+                        const newZ = m.data.z + tryZ * moveSpeed;
+                        const okX = isWalkable(dungeon.map, newX - r, m.data.z - r) &&
+                                    isWalkable(dungeon.map, newX + r, m.data.z - r) &&
+                                    isWalkable(dungeon.map, newX - r, m.data.z + r) &&
+                                    isWalkable(dungeon.map, newX + r, m.data.z + r);
+                        const okZ = isWalkable(dungeon.map, m.data.x - r, newZ - r) &&
+                                    isWalkable(dungeon.map, m.data.x + r, newZ - r) &&
+                                    isWalkable(dungeon.map, m.data.x - r, newZ + r) &&
+                                    isWalkable(dungeon.map, m.data.x + r, newZ + r);
+                        if (okX && okZ) { m.data.x = newX; m.data.z = newZ; isMoving = true; break; }
+                        else if (okX) { m.data.x = newX; isMoving = true; break; }
+                        else if (okZ) { m.data.z = newZ; isMoving = true; break; }
                     }
                 }
 
-                // Teleport back if separated by walls
-                const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
-                if (playerDist > 12) {
-                    if (isWalkable(dungeon.map, px - 1, pz)) { m.data.x = px - 1; m.data.z = pz; }
-                    else if (isWalkable(dungeon.map, px, pz)) { m.data.x = px; m.data.z = pz; }
-                }
-
-                m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
-
-                // Face movement / target
-                if (dist > 0.25) {
-                    m.mesh.rotation.y = Math.atan2(dx, dz);
-                } else if (isAttacking && nearestEnemy) {
+                // Facing — turn toward movement direction (or enemy if stationary in range)
+                if (isMoving) {
+                    const fdx = targetX - m.data.x, fdz = targetZ - m.data.z;
+                    if (Math.hypot(fdx, fdz) > 0.1) {
+                        const targetYaw = Math.atan2(fdx, fdz);
+                        let yawDiff = targetYaw - m.mesh.rotation.y;
+                        while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                        while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                        m.mesh.rotation.y += yawDiff * 0.25;
+                    }
+                } else if (chasing && nearestEnemy) {
+                    // Stationary in attack range — face the enemy
                     const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
-                    m.mesh.rotation.y = Math.atan2(fdx, fdz);
-                } else {
-                    // Idle — face Megumi's direction
+                    const targetYaw = Math.atan2(fdx, fdz);
+                    let yawDiff = targetYaw - m.mesh.rotation.y;
+                    while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                    while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                    m.mesh.rotation.y += yawDiff * 0.25;
+                }
+            } else if (!chasing) {
+                // Idle, not chasing, not steered — slowly orient toward Megumi (only when not ridden)
+                if (!ridden) {
                     const targetYaw = fpsCamera.yaw + Math.PI;
                     let yawDiff = targetYaw - m.mesh.rotation.y;
                     while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
@@ -9824,7 +9847,18 @@ function updateMinions(dt, now) {
                 }
             }
 
-            // Run / idle animation (after position has been finalized — bob offsets m.mesh.position.y)
+            // Teleport back to Megumi if completely orphaned (only when not ridden)
+            if (!ridden) {
+                const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
+                if (playerDist > 14) {
+                    if (isWalkable(dungeon.map, px - 1, pz)) { m.data.x = px - 1; m.data.z = pz; }
+                    else if (isWalkable(dungeon.map, px, pz)) { m.data.x = px; m.data.z = pz; }
+                }
+            }
+
+            m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
+
+            // Run / idle animation (bob offsets m.mesh.position.y after this)
             m.data._walkCycle = (m.data._walkCycle || 0) + dt * (isMoving ? 9 : 3);
             updateMahoragaAnimation(m.mesh, dt, isMoving, m.data._walkCycle);
 
@@ -10264,58 +10298,16 @@ function update() {
 
     fpsCamera.update(dt, dungeon.map);
 
-    // ── Mahoraga ride override (Megumi G) ──
-    // Player's normal movement above is discarded — instead, W/S drive Mahoraga
-    // forward/back along the camera yaw, and the player snaps to his back.
+    // ── Mahoraga ride — death check only ──
+    // Mahoraga's AI in updateMinions() drives him autonomously (chase nearest
+    // enemy, attack, pathfind around walls) whether he's mounted or not.
+    // The rider's camera is snapped to the saddle AFTER updateMinions runs.
     if (player && player._riding) {
         const m = player._riding;
         if (!m.data || m.data.hp <= 0) {
-            // Mahoraga died — dismount
             player._riding = null;
             fpsCamera.eyeHeight = (player.classId === 'megumi') ? 2.0 : EYE_HEIGHT;
             if (fpsCamera.playerModel) fpsCamera.playerModel.visible = fpsCamera.thirdPerson;
-        } else {
-            const yaw = fpsCamera.yaw;
-            const fwd = fpsCamera.keys['KeyW'];
-            const back = fpsCamera.keys['KeyS'];
-            if (fwd || back) {
-                const dir = fwd ? 1 : -1;
-                const fx = -Math.sin(yaw) * dir, fz = -Math.cos(yaw) * dir;
-                const spd = m.data.speed * dt * 1.4; // slight ride boost
-                const r = 0.7;
-                const newX = m.data.x + fx * spd, newZ = m.data.z + fz * spd;
-                if (isWalkable(dungeon.map, newX - r, m.data.z - r) &&
-                    isWalkable(dungeon.map, newX + r, m.data.z - r) &&
-                    isWalkable(dungeon.map, newX - r, m.data.z + r) &&
-                    isWalkable(dungeon.map, newX + r, m.data.z + r)) {
-                    m.data.x = newX;
-                }
-                if (isWalkable(dungeon.map, m.data.x - r, newZ - r) &&
-                    isWalkable(dungeon.map, m.data.x + r, newZ - r) &&
-                    isWalkable(dungeon.map, m.data.x - r, newZ + r) &&
-                    isWalkable(dungeon.map, m.data.x + r, newZ + r)) {
-                    m.data.z = newZ;
-                }
-            }
-            m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
-            m.mesh.rotation.y = yaw + Math.PI;
-            // Snap rider to the saddle on Mahoraga's upper back (behind his center).
-            // The seat mesh sits at local z ≈ -0.45 (unscaled); after the 1.45x scale
-            // that's ~0.65 world units behind, which is ~0.16 tiles.
-            const backOffX = Math.sin(yaw) * 0.18;
-            const backOffZ = Math.cos(yaw) * 0.18;
-            fpsCamera.posX = m.data.x + backOffX;
-            fpsCamera.posZ = m.data.z + backOffZ;
-            const wx = fpsCamera.posX * TILE, wz = fpsCamera.posZ * TILE;
-            if (fpsCamera.thirdPerson) {
-                const behindX = Math.sin(fpsCamera.yaw) * fpsCamera.tpDistance;
-                const behindZ = Math.cos(fpsCamera.yaw) * fpsCamera.tpDistance;
-                camera.position.set(wx + behindX, fpsCamera.eyeHeight + fpsCamera.tpHeight, wz + behindZ);
-                camera.lookAt(wx, fpsCamera.eyeHeight, wz);
-            } else {
-                camera.position.set(wx, fpsCamera.eyeHeight, wz);
-            }
-            if (fpsCamera.playerModel) fpsCamera.playerModel.visible = false;
         }
     }
 
@@ -10408,6 +10400,35 @@ function update() {
     updateMinions(dt, now);
     // (old Katakuri portal update removed — Blox Fruits system)
     updateFruitEffects(now, dt);
+
+    // ── Mahoraga ride camera snap ──
+    // After updateMinions has moved Mahoraga (his AI is in charge), snap the
+    // rider's camera onto the saddle on his upper back so they get carried along.
+    if (player && player._riding) {
+        const m = player._riding;
+        if (m && m.data && m.data.hp > 0 && m.mesh) {
+            const mYaw = m.mesh.rotation.y;
+            // His back (local -Z) in world coords
+            const backDirX = -Math.sin(mYaw);
+            const backDirZ = -Math.cos(mYaw);
+            const seatOffset = 0.18; // tiles behind his center (matches saddle pad position)
+            const rideX = m.data.x + backDirX * seatOffset;
+            const rideZ = m.data.z + backDirZ * seatOffset;
+            fpsCamera.posX = rideX;
+            fpsCamera.posZ = rideZ;
+            const wx = rideX * TILE, wz = rideZ * TILE;
+            if (fpsCamera.thirdPerson) {
+                const behindX = Math.sin(fpsCamera.yaw) * fpsCamera.tpDistance;
+                const behindZ = Math.cos(fpsCamera.yaw) * fpsCamera.tpDistance;
+                camera.position.set(wx + behindX, fpsCamera.eyeHeight + fpsCamera.tpHeight, wz + behindZ);
+                camera.lookAt(wx, fpsCamera.eyeHeight, wz);
+            } else {
+                camera.position.set(wx, fpsCamera.eyeHeight, wz);
+            }
+            if (fpsCamera.playerModel) fpsCamera.playerModel.visible = false;
+        }
+    }
+
     // Punch swings — applied LAST so other animations can't overwrite them
     updatePunchArms();
 
