@@ -232,6 +232,7 @@ function init() {
             if (e.code === 'KeyV') fruitAbility('v');     // P1 ability 4
             if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
             if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else if (player?.classId === 'horohoro') horohoroOversoul(); else playerDodge(); }
+            if (e.code === 'KeyG' && player?.classId === 'megumi') megumiToad();
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
             // ── P2 controls (local co-op only — disabled in online) ──
@@ -7115,54 +7116,168 @@ function fruitAbility(slot) {
             }
         }
 
-        else if (slot === 'c') { // Nue — flying owl shikigami that strikes with lightning
-            // Build the shadow owl mesh
+        else if (slot === 'c') { // Nue — huge red feathered owl shikigami with lightning aura
+            // ── Build the imposing crimson owl mesh ──
             const nue = new THREE.Group();
-            const shadowMat = new THREE.MeshStandardMaterial({ color: '#0a0a18', roughness: 0.6 });
-            const shadowAccent = new THREE.MeshStandardMaterial({ color: '#1a237e', roughness: 0.5 });
-            // Body — ovoid
-            const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), shadowMat);
-            body.scale.set(1, 0.85, 1.4);
-            nue.add(body);
+            const redMat = new THREE.MeshStandardMaterial({ color: '#a8261a', roughness: 0.55 });
+            const redDeepMat = new THREE.MeshStandardMaterial({ color: '#6a1a10', roughness: 0.6 });
+            const redAccentMat = new THREE.MeshStandardMaterial({ color: '#c84030', roughness: 0.5 });
+            const whiteMat = new THREE.MeshStandardMaterial({ color: '#f0e8dc', roughness: 0.5 });
+            const beakMat = new THREE.MeshStandardMaterial({ color: '#3a1a14', roughness: 0.5 });
+            const eyeGlowMat = new THREE.MeshBasicMaterial({ color: '#ffeb3b' });
+            const clawMat = new THREE.MeshStandardMaterial({ color: '#1a1a18', roughness: 0.4 });
+
+            // Body — chunky feathered torso
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 12), redMat);
+            body.scale.set(1.15, 1.0, 1.3);
+            body.position.y = 0.0; nue.add(body);
+
+            // Bushy chest mane — cluster of feather tufts radiating outward
+            for (let i = 0; i < 22; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const r = 0.55 + Math.random() * 0.25;
+                const tuft = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.07, 0.28, 4),
+                    Math.random() > 0.5 ? redMat : redDeepMat
+                );
+                tuft.position.set(Math.cos(a) * r * 0.7, -0.05 + (Math.random() - 0.3) * 0.4, Math.sin(a) * r * 0.6 + 0.1);
+                const dir = new THREE.Vector3(tuft.position.x, tuft.position.y * 0.4 - 0.1, tuft.position.z * 0.6 - 0.1).normalize();
+                const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+                tuft.quaternion.copy(quat);
+                nue.add(tuft);
+            }
+
             // Head
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), shadowMat);
-            head.position.set(0, 0.15, 0.6);
-            nue.add(head);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), redMat);
+            head.position.set(0, 0.45, 0.55); nue.add(head);
+
+            // Spiky head mane — upward and outward feather tufts
+            for (let i = 0; i < 16; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const tuft = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.06, 0.32, 4),
+                    Math.random() > 0.5 ? redMat : redAccentMat
+                );
+                const r = 0.32;
+                tuft.position.set(Math.cos(a) * r, 0.75 + Math.random() * 0.25, Math.sin(a) * r * 0.6 + 0.55);
+                tuft.rotation.set(Math.cos(a) * 0.4, 0, -Math.sin(a) * 0.4);
+                nue.add(tuft);
+            }
+
+            // White face mask around eyes
+            const mask = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.18, 0.08), whiteMat);
+            mask.position.set(0, 0.5, 0.97); nue.add(mask);
+
             // Glowing yellow eyes
-            const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffeb3b' });
             for (let s = -1; s <= 1; s += 2) {
-                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), eyeMat);
-                eye.position.set(s * 0.13, 0.18, 0.85);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), eyeGlowMat);
+                eye.position.set(s * 0.16, 0.5, 1.02);
                 nue.add(eye);
             }
-            // Beak
-            const beak = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 4), shadowAccent);
-            beak.position.set(0, 0.05, 0.95);
-            beak.rotation.x = Math.PI / 2;
+
+            // Hooked beak (upper + lower)
+            const beak = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.25, 4), beakMat);
+            beak.position.set(0, 0.32, 1.0);
+            beak.rotation.x = Math.PI / 2 - 0.3;
             nue.add(beak);
-            // Wings — two flat wing planes that flap
-            const wingMat = new THREE.MeshStandardMaterial({
-                color: '#0a0a18', roughness: 0.7, side: THREE.DoubleSide,
-                transparent: true, opacity: 0.92
-            });
-            const wingL = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.55), wingMat);
-            wingL.position.set(-0.55, 0.1, 0);
-            wingL.rotation.set(0, 0, 0.2);
-            nue.add(wingL);
-            const wingR = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.55), wingMat);
-            wingR.position.set(0.55, 0.1, 0);
-            wingR.rotation.set(0, 0, -0.2);
-            nue.add(wingR);
-            // Talons
-            for (let s = -1; s <= 1; s += 2) {
-                const talon = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.18, 4), shadowAccent);
-                talon.position.set(s * 0.12, -0.35, 0.05);
-                talon.rotation.x = Math.PI;
-                nue.add(talon);
+            const lowerBeak = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.12), beakMat);
+            lowerBeak.position.set(0, 0.24, 1.02); nue.add(lowerBeak);
+
+            // Belly — slightly hanging deeper red
+            const belly = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), redDeepMat);
+            belly.scale.set(1, 0.7, 1);
+            belly.position.set(0, -0.4, 0.2); nue.add(belly);
+
+            // ── HUGE multi-row feathered wings ──
+            function buildWing(side) {
+                const wing = new THREE.Group();
+                const matsByRow = [redAccentMat, redMat, redDeepMat];
+                for (let row = 0; row < 3; row++) {
+                    const featherCount = 7;
+                    const wingLen = 2.6 - row * 0.25;
+                    const rowMat = matsByRow[row];
+                    for (let f = 0; f < featherCount; f++) {
+                        const t = f / (featherCount - 1);
+                        const featherGeo = new THREE.PlaneGeometry(wingLen, 0.22);
+                        const featherMat = new THREE.MeshStandardMaterial({
+                            color: rowMat.color, roughness: 0.55, side: THREE.DoubleSide
+                        });
+                        const feather = new THREE.Mesh(featherGeo, featherMat);
+                        const fanAngle = (t - 0.5) * 0.85;
+                        const radialOffset = wingLen / 2 + 0.15;
+                        feather.position.set(
+                            Math.cos(fanAngle) * radialOffset,
+                            -row * 0.07 - t * 0.04,
+                            Math.sin(fanAngle) * radialOffset * 0.25
+                        );
+                        feather.rotation.set(0, 0, fanAngle - Math.PI / 2);
+                        wing.add(feather);
+                    }
+                }
+                // Inner shoulder/arm bulk
+                const arm = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.28, 0.45), redMat);
+                arm.position.set(0.22, 0, 0); wing.add(arm);
+                wing.position.set(side * 0.75, 0.45, 0);
+                if (side < 0) wing.scale.x = -1;
+                return wing;
             }
+            const wingL = buildWing(-1); nue.add(wingL);
+            const wingR = buildWing(1); nue.add(wingR);
+
+            // Talons — leg + foot + 3 hooked claws
+            for (let s = -1; s <= 1; s += 2) {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.55, 8), redDeepMat);
+                leg.position.set(s * 0.22, -0.85, 0.15); nue.add(leg);
+                const foot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), redDeepMat);
+                foot.position.set(s * 0.22, -1.12, 0.22); nue.add(foot);
+                for (let c = 0; c < 3; c++) {
+                    const claw = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.2, 4), clawMat);
+                    claw.position.set(s * 0.22 + (c - 1) * 0.09, -1.18, 0.32);
+                    claw.rotation.x = Math.PI / 2 + 0.3;
+                    nue.add(claw);
+                }
+            }
+
+            // ── Crackling lightning aura ──
+            const lightningGroup = new THREE.Group();
+            nue.add(lightningGroup);
+            const arcs = []; // tracked for lifecycle
+            function spawnArc() {
+                const segs = 7;
+                const points = [];
+                const phase = Math.random() * Math.PI * 2;
+                const arcRad = 1.6 + Math.random() * 0.5;
+                for (let i = 0; i <= segs; i++) {
+                    const t = i / segs;
+                    const a = phase + t * Math.PI * 1.6 + (Math.random() - 0.5) * 0.5;
+                    const r = arcRad + (Math.random() - 0.5) * 0.3;
+                    points.push(new THREE.Vector3(
+                        Math.cos(a) * r,
+                        (Math.random() - 0.5) * 1.4 + 0.1,
+                        Math.sin(a) * r * 0.6 + 0.2
+                    ));
+                }
+                const curve = new THREE.CatmullRomCurve3(points);
+                const tubeGeo = new THREE.TubeGeometry(curve, 18, 0.04, 4, false);
+                const tubeMat = new THREE.MeshBasicMaterial({
+                    color: '#a8d8ff', transparent: true, opacity: 0.9,
+                    blending: THREE.AdditiveBlending, depthWrite: false
+                });
+                const arc = new THREE.Mesh(tubeGeo, tubeMat);
+                arc._maxLife = 6 + Math.random() * 4;
+                arc._life = arc._maxLife;
+                lightningGroup.add(arc);
+                arcs.push(arc);
+            }
+            // Seed a few arcs immediately
+            for (let i = 0; i < 4; i++) spawnArc();
+
             // Aura glow
-            const auraLight = new THREE.PointLight('#ffeb3b', 1.8, TILE * 4, 1.5);
+            const auraLight = new THREE.PointLight('#ffeb3b', 4, TILE * 7, 1.5);
             nue.add(auraLight);
+
+            // Make him imposing
+            nue.scale.setScalar(2.2);
 
             // Spawn above Megumi's head and fly forward to find a target
             const startWX = worldPx + fwdX * 1.5;
@@ -7194,10 +7309,25 @@ function fruitAbility(slot) {
 
             const animateNue = () => {
                 const elapsed = performance.now() - startTime;
-                // Wing flap
-                const flap = Math.sin(elapsed * 0.025) * 0.6;
-                wingL.rotation.z = 0.2 + flap;
-                wingR.rotation.z = -0.2 - flap;
+                // Wing flap (wings are Groups now)
+                const flap = Math.sin(elapsed * 0.022) * 0.55;
+                wingL.rotation.z = 0.15 + flap;
+                wingR.rotation.z = -0.15 - flap;
+                // Lightning arc lifecycle — spawn new ones, decay old ones
+                if (Math.random() < 0.45) spawnArc();
+                for (let ai = arcs.length - 1; ai >= 0; ai--) {
+                    const arc = arcs[ai];
+                    arc._life--;
+                    arc.material.opacity = (arc._life / arc._maxLife) * 0.9;
+                    arc.rotation.y += 0.04;
+                    if (arc._life <= 0) {
+                        lightningGroup.remove(arc);
+                        arc.geometry.dispose(); arc.material.dispose();
+                        arcs.splice(ai, 1);
+                    }
+                }
+                // Pulsing aura intensity
+                auraLight.intensity = 4 + Math.sin(elapsed * 0.012) * 1;
 
                 if (elapsed < phaseRise) {
                     const t = elapsed / phaseRise;
@@ -10537,6 +10667,267 @@ function playerDodge() {
     // VFX
     showSpeedLines(300);
     fovPunch(15, 0.12);
+}
+
+// ─── TOAD SHIKIGAMI (Megumi G key) ───────────────────────────
+// Builds a small green frog with white wings on its back, big bulbous
+// eyes, and a wide mouth. Used by megumiToad() below.
+function buildToadMesh() {
+    const g = new THREE.Group();
+    const greenMat = new THREE.MeshStandardMaterial({ color: '#5a8a3a', roughness: 0.6 });
+    const greenDeepMat = new THREE.MeshStandardMaterial({ color: '#3a6a2a', roughness: 0.65 });
+    const bellyMat = new THREE.MeshStandardMaterial({ color: '#c8d8a8', roughness: 0.7 });
+    const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: '#f0e8dc', roughness: 0.4 });
+    const eyePupilMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
+    const wingMat = new THREE.MeshStandardMaterial({ color: '#f4ecdc', roughness: 0.55, side: THREE.DoubleSide });
+
+    // Body — squat ovoid
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), greenMat);
+    body.scale.set(1.2, 0.7, 1.3);
+    body.position.y = 0.4; g.add(body);
+
+    // Lighter underbelly
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), bellyMat);
+    belly.scale.set(0.95, 0.45, 1.05);
+    belly.position.set(0, 0.18, 0.05); g.add(belly);
+
+    // Head bump (front)
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), greenMat);
+    head.scale.set(1.05, 0.85, 1);
+    head.position.set(0, 0.55, 0.4); g.add(head);
+
+    // Two big bulbous eyes on top
+    for (let s = -1; s <= 1; s += 2) {
+        const eyeBase = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), eyeWhiteMat);
+        eyeBase.position.set(s * 0.2, 0.88, 0.4); g.add(eyeBase);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), eyePupilMat);
+        pupil.position.set(s * 0.2, 0.88, 0.58); g.add(pupil);
+    }
+
+    // Wide grinning mouth
+    const mouth = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 0.05, 0.06),
+        new THREE.MeshBasicMaterial({ color: '#1a1a1a' })
+    );
+    mouth.position.set(0, 0.42, 0.78); g.add(mouth);
+
+    // Belly pattern — small ring (like the reference)
+    const pattern = new THREE.Mesh(
+        new THREE.RingGeometry(0.07, 0.11, 16),
+        new THREE.MeshBasicMaterial({ color: '#3a6a2a', side: THREE.DoubleSide })
+    );
+    pattern.position.set(0, 0.12, 0.55);
+    pattern.rotation.x = -Math.PI / 3.5; g.add(pattern);
+
+    // Two small white feathered wings on the back
+    for (let s = -1; s <= 1; s += 2) {
+        const wingBase = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.35), wingMat);
+        wingBase.position.set(s * 0.42, 0.62, -0.05);
+        wingBase.rotation.set(0.1, 0, s * -0.5);
+        g.add(wingBase);
+        // Layered feather cones along the wing
+        for (let f = 0; f < 4; f++) {
+            const ft = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.22, 4), wingMat);
+            ft.position.set(s * (0.5 + f * 0.1), 0.6 - f * 0.04, -0.05);
+            ft.rotation.set(0.1, 0, s * (Math.PI / 2 + 0.4 + f * 0.08));
+            g.add(ft);
+        }
+    }
+
+    // Squat legs (4 small bumps)
+    for (let lx = -1; lx <= 1; lx += 2) {
+        for (let lz = -1; lz <= 1; lz += 2) {
+            const leg = new THREE.Mesh(new THREE.SphereGeometry(0.13, 6, 6), greenDeepMat);
+            leg.scale.set(1, 0.7, 1);
+            leg.position.set(lx * 0.4, 0.13, lz * 0.3);
+            g.add(leg);
+        }
+    }
+
+    // Faint green aura
+    const auraLight = new THREE.PointLight('#a8d870', 1.2, TILE * 3, 1.5);
+    auraLight.position.y = 0.5; g.add(auraLight);
+
+    g.scale.setScalar(1.5); // big enough to read at a distance
+    return g;
+}
+
+// Megumi G — summon a fan of three winged toads. Each shoots a sticky
+// tongue at a nearby enemy, wraps it, and yanks the enemy toward Megumi.
+function megumiToad() {
+    if (!player || !player.alive) return;
+    if (player.classId !== 'megumi') return;
+    const now = performance.now();
+    if (!player._toadCd) player._toadCd = 0;
+    if (now - player._toadCd < 7000) return; // 7s cooldown
+    player._toadCd = now;
+
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const worldPx = px * TILE, worldPz = pz * TILE;
+
+    // Activation VFX
+    screenShake(0.25, 250);
+    fovPunch(10, 0.15);
+    emitParticles(worldPx, 0.4, worldPz, {
+        color: ['#5a8a3a', '#a8d870', '#1a237e', '#3a6a2a'],
+        count: 25, speed: 3, spread: 1.2,
+        gravity: 0, life: 14, size: 0.13, sizeEnd: 0, drag: 0.94, upward: 2
+    });
+    groundRing(worldPx, worldPz, '#a8d870', 3, 500);
+    lightFlash(worldPx, EYE_HEIGHT, worldPz, '#5a8a3a', 4, 250);
+
+    // Find nearby enemies in front of Megumi (cone of ~10 tiles)
+    const candidates = [];
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const dxE = e.data.x - px, dzE = e.data.z - pz;
+        const dot = dxE * fwdX + dzE * fwdZ;
+        if (dot < 0 || dot > 11) continue;
+        const perp = Math.abs(dxE * fwdZ - dzE * fwdX);
+        if (perp > 5) continue;
+        candidates.push({ e, dist: Math.hypot(dxE, dzE) });
+    }
+    candidates.sort((a, b) => a.dist - b.dist);
+
+    // Spawn 3 toads in a fan in front. Each grabs an enemy if any are around.
+    const fanPositions = [
+        { side:  0,    fwd: 1.4 },
+        { side: -1.2,  fwd: 1.0 },
+        { side:  1.2,  fwd: 1.0 },
+    ];
+    for (let i = 0; i < fanPositions.length; i++) {
+        const fp = fanPositions[i];
+        const sxTile = px + perpX * fp.side + fwdX * fp.fwd;
+        const szTile = pz + perpZ * fp.side + fwdZ * fp.fwd;
+        // Skip if spawn would be in a wall
+        if (!isWalkable(dungeon.map, sxTile, szTile)) continue;
+        const toad = buildToadMesh();
+        toad.position.set(sxTile * TILE, 0, szTile * TILE);
+        const target = candidates[i] || candidates[0];
+        if (target) {
+            toad.lookAt(target.e.data.x * TILE, 0, target.e.data.z * TILE);
+        } else {
+            toad.lookAt(worldPx + fwdX * 5, 0, worldPz + fwdZ * 5);
+        }
+        scene.add(toad);
+        // Spawn pop
+        emitParticles(sxTile * TILE, 0.5, szTile * TILE, {
+            color: ['#5a8a3a', '#a8d870', '#f0e8dc'],
+            count: 12, speed: 3, spread: 0.6,
+            gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.93, upward: 3
+        });
+        // Schedule the tongue grab (staggered slightly so they don't all fire at once)
+        if (target) {
+            spawnToadTongueGrab(toad, target.e, sxTile, szTile, i * 60);
+        }
+        // Despawn the toad after ~2.5s
+        setTimeout(() => {
+            scene.remove(toad);
+            toad.traverse(c => { if (c.isMesh) { c.geometry?.dispose(); c.material?.dispose(); } });
+        }, 2500);
+    }
+}
+
+// Animate one toad's tongue: extend toward target, grab, then yank the
+// enemy along the tongue back to Megumi.
+function spawnToadTongueGrab(toad, targetEnemy, frogTileX, frogTileZ, delayMs) {
+    setTimeout(() => {
+        if (!targetEnemy.data.alive) return;
+        const tongueMat = new THREE.MeshStandardMaterial({
+            color: '#d8506a', roughness: 0.4, metalness: 0.2,
+            emissive: '#5a1820', emissiveIntensity: 0.3
+        });
+        const segCount = 12;
+        const tongue = new THREE.Group();
+        const tongueSegs = [];
+        for (let i = 0; i < segCount; i++) {
+            const seg = new THREE.Mesh(new THREE.SphereGeometry(0.09 - i * 0.003, 6, 6), tongueMat);
+            tongue.add(seg);
+            tongueSegs.push(seg);
+        }
+        scene.add(tongue);
+
+        const startWX = frogTileX * TILE;
+        const startWY = 0.7;
+        const startWZ = frogTileZ * TILE;
+        const startTime = performance.now();
+        const extendDur = 220;
+        const wrapDur = 120;
+        const yankDur = 320;
+        const totalDur = extendDur + wrapDur + yankDur;
+        let grabbed = false;
+        let yankStartX = null, yankStartZ = null;
+
+        const layoutTongue = (endX, endY, endZ, t) => {
+            for (let i = 0; i < segCount; i++) {
+                const ti = (i / (segCount - 1)) * t;
+                tongueSegs[i].position.set(
+                    startWX + (endX - startWX) * ti,
+                    startWY + (endY - startWY) * ti + Math.sin(ti * Math.PI) * 0.4,
+                    startWZ + (endZ - startWZ) * ti
+                );
+            }
+        };
+
+        const animateTongue = () => {
+            const elapsed = performance.now() - startTime;
+            if (!targetEnemy.data.alive) {
+                scene.remove(tongue);
+                tongue.traverse(c => { if (c.isMesh) { c.geometry?.dispose(); c.material?.dispose(); } });
+                return;
+            }
+            const tx = targetEnemy.data.x * TILE;
+            const ty = 1.2;
+            const tz = targetEnemy.data.z * TILE;
+
+            if (elapsed < extendDur) {
+                // Extend toward target
+                const t = elapsed / extendDur;
+                layoutTongue(tx, ty, tz, t);
+            } else if (elapsed < extendDur + wrapDur) {
+                // Wrap — tongue fully extended, slight oscillation, damage on contact
+                if (!grabbed) {
+                    grabbed = true;
+                    dealDamageToEnemy(targetEnemy, Math.round(player.damage * 1.5));
+                    targetEnemy.data.lastAttack = performance.now() + 1200; // brief stun
+                    spawnPunchImpact(tx, ty, tz, '#a8d870');
+                    // Grab particles
+                    emitParticles(tx, ty, tz, {
+                        color: ['#d8506a', '#a8d870', '#ffffff'],
+                        count: 15, speed: 4, spread: 0.6,
+                        gravity: -2, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
+                    });
+                }
+                layoutTongue(tx, ty, tz, 1);
+            } else if (elapsed < totalDur) {
+                // YANK — pull enemy along the tongue toward Megumi
+                if (yankStartX === null) {
+                    yankStartX = targetEnemy.data.x;
+                    yankStartZ = targetEnemy.data.z;
+                }
+                const t = (elapsed - extendDur - wrapDur) / yankDur;
+                const ease = 1 - Math.pow(1 - t, 2);
+                // Pull toward Megumi's position (1.2 tiles in front of camera)
+                const endTileX = fpsCamera.posX + (-Math.sin(fpsCamera.yaw)) * 1.2;
+                const endTileZ = fpsCamera.posZ + (-Math.cos(fpsCamera.yaw)) * 1.2;
+                targetEnemy.data.x = yankStartX + (endTileX - yankStartX) * ease;
+                targetEnemy.data.z = yankStartZ + (endTileZ - yankStartZ) * ease;
+                targetEnemy.mesh.position.set(targetEnemy.data.x * TILE, 0, targetEnemy.data.z * TILE);
+                // Reel tongue back to follow the enemy
+                layoutTongue(targetEnemy.data.x * TILE, ty, targetEnemy.data.z * TILE, 1);
+            } else {
+                // Done — clean up
+                scene.remove(tongue);
+                tongue.traverse(c => { if (c.isMesh) { c.geometry?.dispose(); c.material?.dispose(); } });
+                return;
+            }
+            requestAnimationFrame(animateTongue);
+        };
+        requestAnimationFrame(animateTongue);
+    }, delayMs);
 }
 
 function dealDamageToEnemy(e, dmg) {
