@@ -9187,6 +9187,72 @@ function updateMahoragaAnimation(mesh, dt, moving, walkCycle) {
     }
 }
 
+// ─── TILE-GRID BFS PATHFINDER ────────────────────────────────
+// 4-directional BFS over dungeon.map (120×120, 1=walkable). Returns
+// an array of { x, z } tile-centre waypoints (excluding start). If the
+// goal tile isn't walkable (e.g. enemy standing on a wall edge), it
+// snaps the goal to the nearest walkable tile within ±2 tiles. Returns
+// null if no route exists within the visit cap.
+function findPath(map, sCol, sRow, tCol, tRow, maxNodes = 6000) {
+    if (!map || !map[0]) return null;
+    const H = map.length, W = map[0].length;
+    if (sRow < 0 || sRow >= H || sCol < 0 || sCol >= W) return null;
+    if (tRow < 0 || tRow >= H || tCol < 0 || tCol >= W) return null;
+    if (sCol === tCol && sRow === tRow) return [];
+    // Snap goal to nearest walkable tile if needed
+    if (map[tRow][tCol] !== 1) {
+        let bestD = Infinity, bestC = tCol, bestR = tRow;
+        for (let dr = -2; dr <= 2; dr++) {
+            for (let dc = -2; dc <= 2; dc++) {
+                const r = tRow + dr, c = tCol + dc;
+                if (r < 0 || r >= H || c < 0 || c >= W) continue;
+                if (map[r][c] !== 1) continue;
+                const d = dr * dr + dc * dc;
+                if (d < bestD) { bestD = d; bestC = c; bestR = r; }
+            }
+        }
+        if (bestD === Infinity) return null;
+        tCol = bestC; tRow = bestR;
+    }
+    if (map[sRow][sCol] !== 1) return null;
+    const sIdx = sRow * W + sCol, gIdx = tRow * W + tCol;
+    const seen = new Uint8Array(W * H);
+    const parent = new Int32Array(W * H);
+    parent.fill(-1);
+    const queue = new Int32Array(W * H);
+    let head = 0, tail = 0;
+    queue[tail++] = sIdx;
+    seen[sIdx] = 1;
+    let visited = 0;
+    let found = false;
+    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    while (head < tail && visited < maxNodes) {
+        const idx = queue[head++];
+        if (idx === gIdx) { found = true; break; }
+        visited++;
+        const cr = (idx / W) | 0, cc = idx - cr * W;
+        for (let d = 0; d < 4; d++) {
+            const nr = cr + dirs[d][0], nc = cc + dirs[d][1];
+            if (nr < 0 || nr >= H || nc < 0 || nc >= W) continue;
+            const ni = nr * W + nc;
+            if (seen[ni] || map[nr][nc] !== 1) continue;
+            seen[ni] = 1;
+            parent[ni] = idx;
+            queue[tail++] = ni;
+        }
+    }
+    if (!found) return null;
+    // Reconstruct path (oldest → goal), excluding start
+    const path = [];
+    let cur = gIdx;
+    while (cur !== -1 && cur !== sIdx) {
+        const cr = (cur / W) | 0, cc = cur - cr * W;
+        path.unshift({ x: cc + 0.5, z: cr + 0.5 });
+        cur = parent[cur];
+    }
+    return path;
+}
+
 // ─── MINION SYSTEM ──────────────────────────────────────────
 function spawnMinion(type, tileX, tileZ, data) {
     const group = new THREE.Group();
@@ -9768,6 +9834,39 @@ function updateMinions(dt, now) {
                 targetX = nearestEnemy.data.x;
                 targetZ = nearestEnemy.data.z;
                 chasing = true;
+
+                // BFS pathfinding — route around walls instead of bumping into them.
+                // Recompute when stale (>500ms) or the goal tile moved noticeably.
+                const mc = Math.floor(m.data.x), mr = Math.floor(m.data.z);
+                const tc = Math.floor(targetX), tr = Math.floor(targetZ);
+                const stale = (now - (m.data._pathTime || 0)) > 500;
+                const goalMoved = !m.data._pathGoal
+                    || Math.abs(m.data._pathGoal.c - tc) > 1
+                    || Math.abs(m.data._pathGoal.r - tr) > 1;
+                if (stale || goalMoved || !m.data._path) {
+                    m.data._path = findPath(dungeon.map, mc, mr, tc, tr);
+                    m.data._pathIdx = 0;
+                    m.data._pathGoal = { c: tc, r: tr };
+                    m.data._pathTime = now;
+                }
+                // Steer toward the next waypoint (in tile coords) if a route exists.
+                // Once close enough to the actual enemy, drop the path and go direct
+                // so the wall-slide handles fine combat positioning.
+                const directDist = Math.hypot(targetX - m.data.x, targetZ - m.data.z);
+                if (m.data._path && m.data._path.length > 0 && directDist > m.data.attackRange + 1.5) {
+                    // Skip waypoints we've already reached
+                    while (m.data._pathIdx < m.data._path.length) {
+                        const wp = m.data._path[m.data._pathIdx];
+                        if (Math.hypot(wp.x - m.data.x, wp.z - m.data.z) < 0.7) {
+                            m.data._pathIdx++;
+                        } else break;
+                    }
+                    if (m.data._pathIdx < m.data._path.length) {
+                        const wp = m.data._path[m.data._pathIdx];
+                        targetX = wp.x;
+                        targetZ = wp.z;
+                    }
+                }
             } else if (!ridden) {
                 // Heel directly behind Megumi
                 const playerYaw = fpsCamera.yaw;
