@@ -139,12 +139,16 @@ function init() {
 
     // Online co-op buttons
     document.getElementById('btn-create-room').onclick = () => {
-        const code = createRoom(
+        // Show placeholder until peer is actually registered with the broker —
+        // sharing the code before that point causes peer-unavailable on the joiner
+        document.getElementById('room-code-display').textContent = '....';
+        document.getElementById('lobby-status').textContent = 'Setting up room...';
+        createRoom(
             (status) => { document.getElementById('lobby-status').textContent = status; },
             (players) => { updateLobbyUI(players); },
-            null
+            null,
+            (readyCode) => { document.getElementById('room-code-display').textContent = readyCode; }
         );
-        document.getElementById('room-code-display').textContent = code;
         showScreen('lobby-screen');
         buildClassGrid('lobby-class-grid', true);
         // Re-bind lobby class cards for host

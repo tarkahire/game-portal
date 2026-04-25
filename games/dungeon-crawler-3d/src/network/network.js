@@ -29,7 +29,7 @@ const iceServers = [
     { urls: 'stun:stun3.l.google.com:19302' }
 ];
 
-export function createRoom(onStatusUpdate, onLobbyUpdate, onGameStart) {
+export function createRoom(onStatusUpdate, onLobbyUpdate, onGameStart, onReady) {
     NET.isHost = true;
     NET.isOnline = true;
     NET.roomCode = generateRoomCode();
@@ -37,13 +37,14 @@ export function createRoom(onStatusUpdate, onLobbyUpdate, onGameStart) {
     NET.lobbyPlayers = [{ id: 'host', classId: null, ready: false }];
     NET.connections = [];
 
-    onStatusUpdate('Creating room...');
+    onStatusUpdate('Setting up room...');
 
     const peerId = 'dc3d-' + NET.roomCode.toLowerCase();
     NET.peer = new Peer(peerId, { debug: 0, config: { iceServers } });
 
     NET.peer.on('open', () => {
-        onStatusUpdate('Room open! Share the code.');
+        onStatusUpdate('Room ready! Share the code with your friends.');
+        if (onReady) onReady(NET.roomCode);
         onLobbyUpdate(NET.lobbyPlayers);
     });
 
@@ -86,8 +87,13 @@ export function createRoom(onStatusUpdate, onLobbyUpdate, onGameStart) {
     });
 
     NET.peer.on('error', (err) => {
-        console.error('Peer error:', err);
-        onStatusUpdate('Error: ' + err.type);
+        console.warn('Peer error:', err.type || err);
+        const t = err.type || '';
+        if (t === 'unavailable-id') {
+            onStatusUpdate('Room code already in use — go back and try again.');
+        } else {
+            onStatusUpdate('Error: ' + (t || 'unknown'));
+        }
     });
 
     return NET.roomCode;
@@ -99,24 +105,35 @@ export function joinRoom(code, onStatusUpdate, onLobbyUpdate, onGameStart) {
     NET.roomCode = code.toUpperCase();
     NET._onGameStart = onGameStart;
 
-    onStatusUpdate('Connecting...');
-
+    onStatusUpdate('Connecting to network...');
     NET.peer = new Peer(undefined, { debug: 0, config: { iceServers } });
 
-    NET.peer.on('open', () => {
+    let attemptNum = 0;
+    const MAX_ATTEMPTS = 5;
+    let connected = false;
+
+    function tryConnect() {
+        if (connected) return;
+        attemptNum++;
         const peerId = 'dc3d-' + NET.roomCode.toLowerCase();
+        onStatusUpdate(attemptNum === 1
+            ? 'Looking for room...'
+            : `Looking again (${attemptNum}/${MAX_ATTEMPTS})...`);
+
         const conn = NET.peer.connect(peerId, { reliable: true });
         NET.connections = [conn];
 
-        const timeout = setTimeout(() => {
-            if (!conn.open) {
-                onStatusUpdate('Could not connect. Check the code.');
-                conn.close();
-            }
+        // Long-stop fallback — if neither open nor error fires, retry
+        const timer = setTimeout(() => {
+            if (connected || conn.open) return;
+            try { conn.close(); } catch (e) {}
+            if (attemptNum < MAX_ATTEMPTS) setTimeout(tryConnect, 1500);
+            else onStatusUpdate('Connection timed out. Check the code or your network.');
         }, 8000);
 
         conn.on('open', () => {
-            clearTimeout(timeout);
+            connected = true;
+            clearTimeout(timer);
             onStatusUpdate('Connected! Waiting for host...');
         });
 
@@ -144,11 +161,29 @@ export function joinRoom(code, onStatusUpdate, onLobbyUpdate, onGameStart) {
             onStatusUpdate('Disconnected from host.');
             NET.isOnline = false;
         });
+    }
+
+    NET.peer.on('open', () => {
+        tryConnect();
     });
 
     NET.peer.on('error', (err) => {
-        console.error('Peer error:', err);
-        onStatusUpdate('Failed: ' + err.type);
+        const type = err.type || '';
+        console.warn('Peer error:', type, err);
+        if (connected) return;
+        // Host not registered with broker yet (or wrong code) — retry a few times
+        if (type === 'peer-unavailable') {
+            if (attemptNum < MAX_ATTEMPTS) {
+                onStatusUpdate(`Host not found yet — retrying (${attemptNum}/${MAX_ATTEMPTS})...`);
+                setTimeout(tryConnect, 2000);
+            } else {
+                onStatusUpdate("Couldn't find that room. Make sure the host has created it and the code is correct.");
+            }
+        } else if (type === 'network' || type === 'server-error' || type === 'socket-error') {
+            onStatusUpdate('Network problem — check your connection.');
+        } else {
+            onStatusUpdate('Connection error: ' + (type || 'unknown'));
+        }
     });
 }
 
