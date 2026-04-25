@@ -10104,16 +10104,10 @@ function spawnMinion(type, tileX, tileZ, data) {
         // ── Serpent — Megumi's Great Serpent shikigami ──
         const sp = buildSerpentMesh();
         group.add(sp);
-        group.userData._segments = sp.userData._segments;
+        group.userData._head = sp.userData._head;
+        group.userData._bodyMesh = sp.userData._bodyMesh;
+        group.userData._radii = sp.userData._radii;
         group.userData._tongue = sp.userData._tongue;
-        // Shadow disc beneath the head
-        const shadowDisc = new THREE.Mesh(
-            new THREE.CircleGeometry(0.4, 12),
-            new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.5, depthWrite: false })
-        );
-        shadowDisc.rotation.x = -Math.PI / 2;
-        shadowDisc.position.y = 0.02;
-        group.add(shadowDisc);
 
     } else {
         // ── Default humanoid minion ──
@@ -10522,10 +10516,13 @@ function updateMinions(dt, now) {
 
         // ── Serpent AI ──
         if (m.data.type === 'serpent') {
-            // HP bar update
+            // HP bar update — follow the head's actual world position when the
+            // spine has been initialised, otherwise fall back to logical pos.
             if (m.data._hpBar) {
                 const bar = m.data._hpBar;
-                bar.position.set(m.data.x * TILE, 2.0, m.data.z * TILE);
+                const headWorldX = m.data._spine ? m.data._spine[0].x : m.data.x * TILE;
+                const headWorldZ = m.data._spine ? m.data._spine[0].z : m.data.z * TILE;
+                bar.position.set(headWorldX, 2.2, headWorldZ);
                 bar.lookAt(camera.position);
                 const ratio = Math.max(0, m.data.hp / m.data.maxHp);
                 bar._fg.scale.x = ratio;
@@ -10551,11 +10548,8 @@ function updateMinions(dt, now) {
                 }
             }
 
-            // Slither motion — head moves toward target with a sinusoidal lateral wobble
-            // Body segments chain-follow the head at fixed segment distance.
-            const segments = m.mesh.userData._segments;
-            const segDist = 0.32; // tile-space distance between head positions in segment chain
-            // Head logical position lives on m.data.x/z (tile coords). We add a wobble at draw time.
+            // Logical head position lives on m.data.x/z (tile coords). The body
+            // chain + lofted-tube rebuild happens at the bottom of this block.
             let moving = false;
             if (target) {
                 const dx = target.data.x - m.data.x, dz = target.data.z - m.data.z;
@@ -10620,50 +10614,79 @@ function updateMinions(dt, now) {
                 m.data.x = px; m.data.z = pz;
             }
 
-            // ── Slithering chain-follow body ──
-            // Head world position with sin lateral wobble for the slither look
+            // ── Slithering body — chain of world-space spine points re-built
+            // each frame as a single lofted tube so the serpent renders gap-free.
             m.data._slitherT = (m.data._slitherT || 0) + dt * 6;
-            // Heading direction (toward last movement, or toward target)
+            // Heading direction
             let hX = 0, hZ = -1;
             if (target) {
                 const dx = target.data.x - m.data.x, dz = target.data.z - m.data.z;
                 const d = Math.hypot(dx, dz) || 1;
                 hX = dx / d; hZ = dz / d;
             }
-            // Perpendicular to heading (for wobble)
             const perpX = -hZ, perpZ = hX;
-            const wobble = moving ? Math.sin(m.data._slitherT) * 0.12 : 0;
+            const wobble = moving ? Math.sin(m.data._slitherT) * 0.18 : 0;
             const headWX = (m.data.x + perpX * wobble) * TILE;
+            const headWY = 0.55; // body height off the ground
             const headWZ = (m.data.z + perpZ * wobble) * TILE;
-            // Chain-follow: each segment trails the previous one at fixed segDist
-            const headSeg = segments[0];
-            const groupOffset = m.mesh.position; // group is positioned at (0,0,0); segments hold world-local pos
-            // We treat segment.position as if in world space for simplicity (group at origin)
-            m.mesh.position.set(0, 0, 0);
-            // Place head
-            headSeg.position.x = headWX;
-            headSeg.position.z = headWZ;
-            headSeg.position.y = 0.3;
-            // Face heading direction
-            if (Math.hypot(hX, hZ) > 0.001) {
-                headSeg.rotation.y = Math.atan2(hX, hZ) + Math.PI;
+
+            // Initialise / step the chain of world-space spine points
+            const SPINE_COUNT = 18;
+            const SEG_DIST = 0.55; // world distance between adjacent spine points
+            if (!m.data._spine) {
+                m.data._spine = [];
+                for (let i = 0; i < SPINE_COUNT; i++) {
+                    m.data._spine.push(new THREE.Vector3(
+                        headWX - hX * i * SEG_DIST,
+                        headWY,
+                        headWZ - hZ * i * SEG_DIST
+                    ));
+                }
             }
-            // Body chain
-            for (let i = 1; i < segments.length; i++) {
-                const prev = segments[i - 1].position;
-                const curr = segments[i].position;
+            const spine = m.data._spine;
+            // Head
+            spine[0].set(headWX, headWY, headWZ);
+            // Each segment trails the previous one at fixed SEG_DIST
+            for (let i = 1; i < spine.length; i++) {
+                const prev = spine[i - 1];
+                const curr = spine[i];
                 const sdx = prev.x - curr.x, sdz = prev.z - curr.z;
                 const d = Math.hypot(sdx, sdz);
-                const wantD = segDist * TILE; // world-space segment distance
-                if (d > wantD) {
-                    const t = (d - wantD) / d;
+                if (d > SEG_DIST) {
+                    const t = (d - SEG_DIST) / d;
                     curr.x += sdx * t;
                     curr.z += sdz * t;
                 }
-                curr.y = 0.3 - i * 0.005; // slight downward taper to ground
-                // Each body segment looks toward the previous one
-                if (d > 0.001) segments[i].rotation.y = Math.atan2(sdx, sdz) + Math.PI;
+                // Slight droop toward tail so it rests on the ground at the end
+                curr.y = headWY - i * 0.012;
             }
+
+            // Rebuild the lofted body geometry from the spine
+            const ud = m.mesh.userData;
+            if (ud._bodyMesh && ud._radii) {
+                const oldGeo = ud._bodyMesh.geometry;
+                ud._bodyMesh.geometry = buildLoftedTube(spine, ud._radii, 10);
+                if (oldGeo) oldGeo.dispose();
+            }
+
+            // Position the head Group at spine[0], facing along the spine forward
+            if (ud._head) {
+                ud._head.position.copy(spine[0]);
+                const aheadX = spine[0].x - spine[1].x;
+                const aheadZ = spine[0].z - spine[1].z;
+                if (Math.hypot(aheadX, aheadZ) > 0.001) {
+                    ud._head.rotation.y = Math.atan2(aheadX, aheadZ) + Math.PI;
+                }
+            }
+
+            // Tongue flick
+            if (ud._tongue) {
+                const flick = Math.sin(now * 0.012) > 0.85 ? 1.4 : 1;
+                ud._tongue.scale.z = flick;
+            }
+
+            // The mesh group itself stays at world origin — all spine + head positions are world.
+            m.mesh.position.set(0, 0, 0);
             continue;
         }
 
@@ -10847,63 +10870,151 @@ function playerDodge() {
 // hunts the nearest enemy. See _lastShadowAttack tracker below.
 let _lastShadowAttack = null; // { enemy, time } — set when any shadow takes damage
 
+// Build a continuous lofted body geometry from a list of world-space spine
+// points and matching radii. Used by the serpent body each frame so it
+// renders as one smooth gap-free snake instead of a chain of beads.
+function buildLoftedTube(spinePoints, radii, radialSegs) {
+    if (spinePoints.length < 2) return new THREE.BufferGeometry();
+    const curve = new THREE.CatmullRomCurve3(spinePoints, false, 'catmullrom', 0.5);
+    const samples = Math.max(spinePoints.length * 3, 30);
+    const positions = [];
+    const indices = [];
+    const upRef = new THREE.Vector3(0, 1, 0);
+    for (let i = 0; i < samples; i++) {
+        const t = i / (samples - 1);
+        const p = curve.getPoint(t);
+        const tan = curve.getTangent(t).normalize();
+        let right = new THREE.Vector3().crossVectors(tan, upRef);
+        if (right.lengthSq() < 1e-6) right.set(1, 0, 0);
+        right.normalize();
+        const up = new THREE.Vector3().crossVectors(right, tan).normalize();
+        const rIdx = t * (radii.length - 1);
+        const rLow = Math.floor(rIdx), rHigh = Math.min(rLow + 1, radii.length - 1);
+        const rT = rIdx - rLow;
+        const r = radii[rLow] * (1 - rT) + radii[rHigh] * rT;
+        for (let j = 0; j < radialSegs; j++) {
+            const a = (j / radialSegs) * Math.PI * 2;
+            const cx = Math.cos(a), cy = Math.sin(a);
+            positions.push(
+                p.x + right.x * r * cx + up.x * r * cy,
+                p.y + right.y * r * cx + up.y * r * cy,
+                p.z + right.z * r * cx + up.z * r * cy
+            );
+        }
+    }
+    for (let i = 0; i < samples - 1; i++) {
+        for (let j = 0; j < radialSegs; j++) {
+            const a = i * radialSegs + j;
+            const b = i * radialSegs + ((j + 1) % radialSegs);
+            const c = (i + 1) * radialSegs + j;
+            const d = (i + 1) * radialSegs + ((j + 1) % radialSegs);
+            indices.push(a, c, b, b, c, d);
+        }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+}
+
 function buildSerpentMesh() {
     const g = new THREE.Group();
-    const greenMat = new THREE.MeshStandardMaterial({ color: '#5aa838', roughness: 0.5, metalness: 0.1 });
-    const greenDeepMat = new THREE.MeshStandardMaterial({ color: '#3a7a28', roughness: 0.55 });
+    const bodyMat = new THREE.MeshStandardMaterial({ color: '#a8a058', roughness: 0.55, metalness: 0.05 });
+    const headMat = new THREE.MeshStandardMaterial({ color: '#f0e8dc', roughness: 0.45 });
+    const headShade = new THREE.MeshStandardMaterial({ color: '#c8c0b0', roughness: 0.55 });
     const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffeb00' });
     const pupilMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
-    const tongueMat = new THREE.MeshStandardMaterial({ color: '#d8506a', roughness: 0.4 });
+    const fangMat = new THREE.MeshStandardMaterial({ color: '#fff8e0', roughness: 0.3 });
+    const tongueMat = new THREE.MeshStandardMaterial({ color: '#c8202a', roughness: 0.4, emissive: '#5a0000', emissiveIntensity: 0.25 });
+    const mouthMat = new THREE.MeshBasicMaterial({ color: '#0a0a0a' });
+    const markingMat = new THREE.MeshBasicMaterial({ color: '#c8202a' });
 
-    // 14 body segments, tapered toward the tail. Index 0 is the head.
-    const segCount = 14;
-    const segments = [];
-    for (let i = 0; i < segCount; i++) {
-        const t = i / (segCount - 1);
-        const r = 0.22 - t * 0.12; // taper
-        const seg = new THREE.Mesh(
-            new THREE.SphereGeometry(r, 10, 8),
-            i % 2 === 0 ? greenMat : greenDeepMat
-        );
-        // Initial straight-line position (head at origin, body trailing back)
-        seg.position.set(0, 0.25 + (i === 0 ? 0.05 : 0), -i * 0.32);
-        if (i === 0) seg.scale.set(1.2, 0.85, 1.4); // head is squashed
-        g.add(seg);
-        segments.push(seg);
+    // ── Body — initially a straight lofted tube placeholder. The AI rebuilds
+    // this geometry every frame from the chain positions for smooth slither.
+    const initSpine = [];
+    for (let i = 0; i < 18; i++) initSpine.push(new THREE.Vector3(0, 0.35, -i * 0.45));
+    const radii = [];
+    for (let i = 0; i < 18; i++) {
+        const t = i / 17;
+        radii.push(0.32 - t * 0.22); // taper from 0.32 head-end to 0.10 tail
     }
-    g.userData._segments = segments;
+    const bodyGeo = buildLoftedTube(initSpine, radii, 10);
+    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+    g.add(bodyMesh);
 
-    // Head details — yellow slit eyes + forked pink tongue
-    const head = segments[0];
+    // ── Head — white cobra-style head, separate from body so we can
+    // give it real face details. Positioned on chain[0] each frame.
+    const head = new THREE.Group();
+    // Skull — elongated white ovoid
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 12), headMat);
+    skull.scale.set(1.05, 0.85, 1.5);
+    head.add(skull);
+    // Snout — slight forward bump
+    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), headMat);
+    snout.position.set(0, -0.04, -0.32);
+    snout.scale.set(1, 0.7, 1.1);
+    head.add(snout);
+    // Top-of-head shading (slightly darker)
+    const topShade = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), headShade);
+    topShade.scale.set(1.05, 0.4, 1.55);
+    topShade.position.y = 0.04;
+    head.add(topShade);
+    // Yellow eyes
     for (let s = -1; s <= 1; s += 2) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), eyeMat);
-        eye.position.set(s * 0.1, 0.07, -0.1);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 10), eyeMat);
+        eye.position.set(s * 0.18, 0.07, -0.1);
         head.add(eye);
-        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.05, 0.01), pupilMat);
-        pupil.position.set(s * 0.1, 0.07, -0.14);
+        // Vertical slit pupil
+        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.07, 0.01), pupilMat);
+        pupil.position.set(s * 0.18, 0.07, -0.18);
         head.add(pupil);
+        // Red marking — angled stripe extending back from each eye
+        const mark = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.4), markingMat);
+        mark.position.set(s * 0.22, 0.03, 0.1);
+        mark.rotation.y = s * -0.2;
+        head.add(mark);
     }
-    // Forked tongue — faint flick animation handled in AI
+    // Open mouth — dark cavity under the snout
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 6), mouthMat);
+    mouth.scale.set(1, 0.55, 1.2);
+    mouth.position.set(0, -0.16, -0.28);
+    head.add(mouth);
+    // Two long curved fangs
+    for (let s = -1; s <= 1; s += 2) {
+        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.22, 6), fangMat);
+        fang.position.set(s * 0.1, -0.22, -0.36);
+        fang.rotation.x = Math.PI;
+        fang.rotation.z = s * -0.1;
+        head.add(fang);
+    }
+    // Forked tongue — long red tongue lolling forward + down
     const tongue = new THREE.Group();
-    const tongueShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.008, 0.18, 4), tongueMat);
-    tongueShaft.position.set(0, -0.04, -0.2);
-    tongueShaft.rotation.x = Math.PI / 2;
+    const tongueShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.015, 0.45, 6), tongueMat);
+    tongueShaft.position.set(0, -0.3, -0.5);
+    tongueShaft.rotation.x = Math.PI / 2 + 0.4;
     tongue.add(tongueShaft);
     for (let s = -1; s <= 1; s += 2) {
-        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.005, 0.07, 3), tongueMat);
-        tip.position.set(s * 0.025, -0.04, -0.3);
-        tip.rotation.x = Math.PI / 2;
+        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.008, 0.18, 5), tongueMat);
+        tip.position.set(s * 0.04, -0.45, -0.7);
+        tip.rotation.x = Math.PI / 2 + 0.5;
         tip.rotation.y = s * 0.35;
         tongue.add(tip);
     }
     head.add(tongue);
+
+    g.add(head);
+    g.userData._head = head;
+    g.userData._bodyMesh = bodyMesh;
+    g.userData._radii = radii;
     g.userData._tongue = tongue;
 
-    // Faint green aura
-    const aura = new THREE.PointLight('#a8d870', 0.9, TILE * 2.5, 1.5);
-    aura.position.y = 0.4;
+    // Faint warm aura
+    const aura = new THREE.PointLight('#d8c870', 1.0, TILE * 3, 1.5);
+    aura.position.y = 0.6;
     g.add(aura);
 
+    g.scale.setScalar(1.6); // imposing size — bigger snake
     return g;
 }
 
