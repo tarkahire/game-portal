@@ -2874,6 +2874,84 @@ function spawnMeleeSlash(color, forP2) {
     }
 }
 
+// ─── PUNCH IMPACT VFX (boxing-style hand strike) ──────────────
+// Bright knuckle ring + radiating speed lines + sparks + a short flash.
+// Used by player M1 fist-combo characters and by Mahoraga's punches.
+function spawnPunchImpact(wx, wy, wz, color) {
+    const palette = color || '#ffffff';
+
+    // Bright impact ring facing the camera
+    const ringGeo = new THREE.RingGeometry(0.06, 0.35, 18);
+    const ringMat = new THREE.MeshBasicMaterial({
+        color: palette, transparent: true, opacity: 0.95,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.set(wx, wy, wz);
+    ring.lookAt(camera.position);
+    scene.add(ring);
+    const ringStart = performance.now();
+    const animateRing = () => {
+        const t = (performance.now() - ringStart) / 220;
+        if (t >= 1) { scene.remove(ring); ringGeo.dispose(); ringMat.dispose(); return; }
+        ring.scale.setScalar(1 + t * 4);
+        ringMat.opacity = (1 - t) * 0.95;
+        requestAnimationFrame(animateRing);
+    };
+    requestAnimationFrame(animateRing);
+
+    // Star-burst speed lines radiating outward from the impact
+    for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2 + Math.random() * 0.3;
+        const lineGeo = new THREE.PlaneGeometry(0.55, 0.04);
+        const lineMat = new THREE.MeshBasicMaterial({
+            color: '#ffffff', transparent: true, opacity: 0.9,
+            blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+        });
+        const line = new THREE.Mesh(lineGeo, lineMat);
+        line.position.set(wx, wy, wz);
+        line.lookAt(camera.position);
+        line.rotateZ(angle);
+        line.translateX(0.25);
+        scene.add(line);
+        const lStart = performance.now();
+        const animateLine = () => {
+            const t = (performance.now() - lStart) / 180;
+            if (t >= 1) { scene.remove(line); lineGeo.dispose(); lineMat.dispose(); return; }
+            line.scale.x = 1 + t * 2;
+            lineMat.opacity = (1 - t) * 0.9;
+            requestAnimationFrame(animateLine);
+        };
+        requestAnimationFrame(animateLine);
+    }
+
+    // Small sparks burst forward
+    emitParticles(wx, wy, wz, {
+        color: ['#ffffff', palette, '#ffeecc'],
+        count: 10, speed: 5, spread: 0.4,
+        gravity: -3, life: 8, size: 0.09, sizeEnd: 0, drag: 0.93
+    });
+
+    // Brief flash light
+    lightFlash(wx, wy, wz, palette, 2.5, 140);
+}
+
+// Forward fist-thrust on a character model for ~180ms.
+// Works for both player models (which expose pivots as direct properties)
+// and the Mahoraga mesh (which exposes them on userData).
+function triggerPunchArm(pm, side) {
+    if (!pm) return;
+    const arm = side > 0
+        ? (pm._rightArm || (pm.userData && pm.userData._rightArm))
+        : (pm._leftArm || (pm.userData && pm.userData._leftArm));
+    if (!arm) return;
+    arm.rotation.x = -1.6;
+    arm.rotation.z = side > 0 ? -0.18 : 0.18;
+    setTimeout(() => {
+        if (arm) { arm.rotation.x = 0.05; arm.rotation.z = 0; }
+    }, 180);
+}
+
 function updateMeleeSlashes() {
     for (let i = slashTrails.length - 1; i >= 0; i--) {
         const s = slashTrails[i];
@@ -3531,7 +3609,11 @@ function playerAttack() {
         requestAnimationFrame(fadeImpact);
 
     } else {
-        spawnMeleeSlash(player.cls.color);
+        // Fist characters (gojo, megumi, pre-oversoul yoh/ren/horohoro) — boxing-style punch
+        // Alternate hands per combo step and thrust the player model's arm forward
+        const punchSide = (player._comboStep % 2 === 0) ? 1 : -1;
+        triggerPunchArm(fpsCamera.playerModel, punchSide);
+        spawnPunchImpact(hitX, hitY, hitZ, player.cls.color);
     }
 
     // Per-character M1 VFX — add character-specific hit effects here
@@ -3546,7 +3628,8 @@ function playerAttack() {
         screenShake(0.25, 100);
         triggerHitstop(50);
         fovPunch(8, 0.15);
-        setTimeout(() => spawnMeleeSlash(player.cls.color), 50);
+        if (hasWeaponCombo) setTimeout(() => spawnMeleeSlash(player.cls.color), 50);
+        else setTimeout(() => spawnPunchImpact(hitX, hitY, hitZ, player.cls.color), 50);
 
         // Toji dash-thrust — lunge forward on 4th hit
         if (isToji) {
@@ -3611,7 +3694,18 @@ function p2Attack() {
         }
     }
 
-    spawnMeleeSlash(player2.cls.color, true);
+    if (hasWeap) {
+        spawnMeleeSlash(player2.cls.color, true);
+    } else {
+        // P2 fist character — boxing-style punch impact
+        const fly2 = fpsCamera2.flyHeight || 0;
+        const hit2X = px * TILE + fwdX * 2;
+        const hit2Y = EYE_HEIGHT + fly2;
+        const hit2Z = pz * TILE + fwdZ * 2;
+        const punchSide = (player2._comboStep % 2 === 0) ? 1 : -1;
+        triggerPunchArm(fpsCamera2.playerModel, punchSide);
+        spawnPunchImpact(hit2X, hit2Y, hit2Z, player2.cls.color);
+    }
 
     // P2 weapon swing on viewmodel
     if (hasWeap && fpsSword2) {
@@ -9528,12 +9622,16 @@ function updateMinions(dt, now) {
                     if (nearestDist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
                         m.data.lastAttack = now;
                         dealDamageToEnemy(nearestEnemy, m.data.damage);
-                        emitParticles(nearestEnemy.data.x * TILE, 1.8, nearestEnemy.data.z * TILE, {
-                            color: ['#e8e0d8', '#1a1a20', '#9a9aa2'],
-                            count: 8, speed: 4, spread: 0.9,
-                            gravity: -3, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
-                        });
-                        screenShake(0.15, 80);
+                        // Alternating boxing-style punch — thrust arm forward + impact ring
+                        m.data._punchSide = (m.data._punchSide || 1) * -1;
+                        triggerPunchArm(m.mesh, m.data._punchSide);
+                        spawnPunchImpact(
+                            nearestEnemy.data.x * TILE,
+                            1.8,
+                            nearestEnemy.data.z * TILE,
+                            '#f0e8dc'
+                        );
+                        screenShake(0.18, 80);
                     }
                 } else {
                     // Heel mode — walk directly behind Megumi
