@@ -10,7 +10,7 @@ import { createTorchLights, updateTorchLights, syncTorchVisibility } from './dun
 import { FPSCamera } from './player/fpsCamera.js';
 import { createEnemyMesh, billboardEnemy, animateEnemyMesh } from './enemies/meshFactory.js';
 import { CLASSES } from './classes/definitions.js';
-import { NET, createRoom, joinRoom, hostSelectClass, clientSelectClass, hostStartGame, broadcastGameState, getLastState, cleanupNetwork } from './network/network.js';
+import { NET, createRoom, joinRoom, hostSelectClass, clientSelectClass, hostStartGame, broadcastGameState, sendClientInput, getLastState, cleanupNetwork } from './network/network.js';
 
 // ─── GLOBALS ────────────────────────────────────────────────
 let scene, camera, renderer;
@@ -33,6 +33,13 @@ let fpsSword = null; // 1st-person viewmodel weapon (child of camera)
 let fpsSword2 = null; // P2 viewmodel weapon
 let swordSwing = null; // active weapon swing animation state
 let swordSwing2 = null; // P2 weapon swing
+
+// Online co-op state
+let onlineMode = false;
+let remotePlayers = []; // [{ playerIndex, classId, mesh, x, z, yaw, hp, alive }]
+let myPlayerIndex = 0;
+let _lastNetSendMs = 0;
+let _pendingDungeon = null;
 
 // Player state
 let player = null;
@@ -159,7 +166,10 @@ function init() {
             (data) => {
                 // Host started the game — we received classes + dungeon
                 selectedClasses = data.classes;
-                coopMode = true;
+                _pendingDungeon = data.dungeon || null;
+                myPlayerIndex = NET.playerIndex;
+                onlineMode = true;
+                coopMode = false;
                 startGame();
             }
         );
@@ -181,7 +191,9 @@ function init() {
         if (!NET.isHost) return;
         const classes = NET.lobbyPlayers.map(lp => lp.classId || 'angel');
         selectedClasses = classes;
-        coopMode = true;
+        myPlayerIndex = 0; // host is always player 0
+        onlineMode = true;
+        coopMode = false;
         startGame();
         // Send dungeon + classes to clients
         hostStartGame({
@@ -191,12 +203,12 @@ function init() {
         }, selectedClasses);
     };
 
-    document.getElementById('btn-leave-lobby').onclick = () => { cleanupNetwork(); showScreen('title-screen'); };
+    document.getElementById('btn-leave-lobby').onclick = () => { cleanupRemotePlayers(); cleanupNetwork(); onlineMode = false; showScreen('title-screen'); };
     document.getElementById('btn-back-title').onclick = () => showScreen('title-screen');
     document.getElementById('btn-retry').onclick = () => { showScreen('class-screen'); p2ClassSelect = false; selectedClasses = []; };
-    document.getElementById('btn-menu').onclick = () => showScreen('title-screen');
+    document.getElementById('btn-menu').onclick = () => { cleanupRemotePlayers(); if (onlineMode) cleanupNetwork(); onlineMode = false; showScreen('title-screen'); };
     document.getElementById('btn-resume').onclick = resumeGame;
-    document.getElementById('btn-quit').onclick = () => { gameState = 'title'; document.getElementById('pause-overlay').style.display = 'none'; document.getElementById('hud').style.display = 'none'; showScreen('title-screen'); document.exitPointerLock(); };
+    document.getElementById('btn-quit').onclick = () => { gameState = 'title'; document.getElementById('pause-overlay').style.display = 'none'; document.getElementById('hud').style.display = 'none'; cleanupRemotePlayers(); if (onlineMode) cleanupNetwork(); onlineMode = false; showScreen('title-screen'); document.exitPointerLock(); };
 
     // Keyboard
     document.addEventListener('keydown', (e) => {
@@ -215,8 +227,8 @@ function init() {
             if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else if (player?.classId === 'horohoro') horohoroOversoul(); else playerDodge(); }
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
-            // ── P2 controls ──
-            if (coopMode && player2 && player2.alive) {
+            // ── P2 controls (local co-op only — disabled in online) ──
+            if (coopMode && !onlineMode && player2 && player2.alive) {
                 if (e.code === 'Backslash' || e.code === 'IntlBackslash') p2Attack();
                 if (e.code === 'KeyM') p2Ability('z');
                 if (e.code === 'Comma') p2Ability('x');
@@ -2679,14 +2691,39 @@ function updateSwordSwing() {
     }
 }
 
+function buildPlayerModelForClass(classId, labelPrefix) {
+    let pm;
+    if (classId === 'gojo') { pm = buildGojoModel(); addPlayerLabel(pm, labelPrefix + 'GOJO', '#4fc3f7'); }
+    else if (classId === 'sukuna') { pm = buildSukunaModel(); addPlayerLabel(pm, labelPrefix + 'SUKUNA', '#ff2244'); }
+    else if (classId === 'toji') { pm = buildTojiModel(); addPlayerLabel(pm, labelPrefix + 'TOJI', '#2a6e3f'); }
+    else if (classId === 'brook') { pm = buildBrookModel(); addPlayerLabel(pm, labelPrefix + 'BROOK', '#88ccff'); }
+    else if (classId === 'bakugo') { pm = buildBakugoModel(); addPlayerLabel(pm, labelPrefix + 'BAKUGO', '#ff8800'); }
+    else if (classId === 'denji') { pm = buildDenjiModel(); addPlayerLabel(pm, labelPrefix + 'DENJI', '#cc4400'); }
+    else if (classId === 'yoh') { pm = buildYohModel(); pm.scale.setScalar(0.85); addPlayerLabel(pm, labelPrefix + 'YOH', '#ff9800'); }
+    else if (classId === 'ren') { pm = buildRenModel(); pm.scale.setScalar(0.85); addPlayerLabel(pm, labelPrefix + 'REN', '#9c27b0'); }
+    else if (classId === 'horohoro') { pm = buildHorohoroModel(); pm.scale.setScalar(0.85); addPlayerLabel(pm, labelPrefix + 'HORO', '#42a5f5'); }
+    else if (classId === 'megumi') { pm = buildMegumiModel(); addPlayerLabel(pm, labelPrefix + 'MEGUMI', '#1a237e'); }
+    else { pm = buildGenericPlayerModel(CLASSES[classId] || CLASSES['gojo']); }
+    return pm;
+}
+
+function cleanupRemotePlayers() {
+    for (const rp of remotePlayers) {
+        if (rp.mesh) scene.remove(rp.mesh);
+    }
+    remotePlayers = [];
+}
+
 function startGame() {
     currentFloor = 1;
     lives = 5;
     runStats = { enemiesKilled: 0, goldCollected: 0, floorsCleared: 0, bossesKilled: 0, itemsFound: 0 };
 
-    const cls = CLASSES[selectedClasses[0]];
+    // In online mode, my class comes from selectedClasses[myPlayerIndex]; otherwise from [0]
+    const localClassIdx = onlineMode ? myPlayerIndex : 0;
+    const cls = CLASSES[selectedClasses[localClassIdx]];
     player = {
-        classId: selectedClasses[0], cls,
+        classId: selectedClasses[localClassIdx], cls,
         hp: cls.maxHp, maxHp: cls.maxHp,
         speed: cls.speed, damage: cls.attackDamage,
         attackSpeed: cls.attackSpeed, attackRange: cls.attackRange,
@@ -2827,6 +2864,27 @@ function startGame() {
         else if (player2.classId === 'bakugo') { fpsSword2 = buildFPSFists(); camera2.add(fpsSword2); }
         else if (player2.classId === 'denji') { fpsSword2 = buildFPSChainsaws(); camera2.add(fpsSword2); }
     }
+
+    // ── Online — build remote player meshes (one per other peer) ──
+    cleanupRemotePlayers();
+    if (onlineMode && selectedClasses.length > 1) {
+        const startRoom = dungeon.rooms[0];
+        for (let i = 0; i < selectedClasses.length; i++) {
+            if (i === myPlayerIndex) continue;
+            const rClassId = selectedClasses[i];
+            if (!rClassId) continue;
+            const rpMesh = buildPlayerModelForClass(rClassId, `P${i + 1} `);
+            rpMesh.visible = true;
+            const sx = startRoom.cx + 0.5, sz = startRoom.cy + 0.5;
+            rpMesh.position.set(sx * TILE, 0, sz * TILE);
+            scene.add(rpMesh);
+            remotePlayers.push({
+                playerIndex: i, classId: rClassId, mesh: rpMesh,
+                x: sx, z: sz, yaw: 0,
+                hp: (CLASSES[rClassId] && CLASSES[rClassId].maxHp) || 100, alive: true
+            });
+        }
+    }
 }
 
 function loadFloor(floor) {
@@ -2842,7 +2900,19 @@ function loadFloor(floor) {
     enemies3D = [];
     projectiles3D = [];
 
-    dungeon = generateDungeon(floor);
+    // Use the host's pre-generated dungeon if we received one (online client),
+    // otherwise generate a fresh one.
+    if (_pendingDungeon) {
+        dungeon = _pendingDungeon;
+        _pendingDungeon = null;
+        // Restore mutable per-room state defaults (host stripped enemies array etc.)
+        for (const rm of dungeon.rooms) {
+            if (!rm.enemies) rm.enemies = [];
+            if (rm.explored == null) rm.explored = false;
+        }
+    } else {
+        dungeon = generateDungeon(floor);
+    }
     dungeon.rooms[0].explored = true;
 
     dungeonMesh = buildDungeonMesh(dungeon);
@@ -9429,6 +9499,78 @@ function updateMinions(dt, now) {
     }
 }
 
+// ─── ONLINE — broadcast my position, receive everyone else's, move remote meshes ───
+function netUpdatePlayers(now) {
+    if (!onlineMode) return;
+
+    // Pull updates received from network
+    if (NET.isHost) {
+        // Host: clients write directly into NET.remotePlayerData via 'input' messages
+        for (const idx in NET.remotePlayerData) {
+            const i = parseInt(idx);
+            const r = NET.remotePlayerData[idx];
+            const rp = remotePlayers.find(rp => rp.playerIndex === i);
+            if (rp && r && r.x != null) {
+                rp.x = r.x; rp.z = r.z; rp.yaw = r.yaw;
+                if (r.hp != null) rp.hp = r.hp;
+                if (r.alive != null) rp.alive = r.alive;
+            }
+        }
+    } else {
+        // Client: read host's last broadcast (gameState contains all player slots)
+        const state = getLastState();
+        if (state && state.players) {
+            for (const p of state.players) {
+                if (p.idx === myPlayerIndex) continue;
+                const rp = remotePlayers.find(rp => rp.playerIndex === p.idx);
+                if (rp) {
+                    rp.x = p.x; rp.z = p.z; rp.yaw = p.yaw;
+                    if (p.hp != null) rp.hp = p.hp;
+                    if (p.alive != null) rp.alive = p.alive;
+                }
+            }
+        }
+    }
+
+    // Send my own position out (~20Hz to keep bandwidth sane)
+    if (now - _lastNetSendMs >= 50) {
+        _lastNetSendMs = now;
+        if (NET.isHost) {
+            // Host broadcasts everyone (including own) so clients see all peers
+            const state = {
+                players: [{
+                    idx: 0, x: fpsCamera.posX, z: fpsCamera.posZ, yaw: fpsCamera.yaw,
+                    hp: player ? player.hp : 100, alive: player ? player.alive : true
+                }]
+            };
+            for (const idx in NET.remotePlayerData) {
+                const i = parseInt(idx);
+                const r = NET.remotePlayerData[idx];
+                if (r && r.x != null) {
+                    state.players.push({
+                        idx: i, x: r.x, z: r.z, yaw: r.yaw,
+                        hp: r.hp != null ? r.hp : 100, alive: r.alive !== false
+                    });
+                }
+            }
+            broadcastGameState(state);
+        } else {
+            sendClientInput({
+                x: fpsCamera.posX, z: fpsCamera.posZ, yaw: fpsCamera.yaw,
+                hp: player ? player.hp : 100, alive: player ? player.alive : true
+            });
+        }
+    }
+
+    // Apply received positions to remote meshes
+    for (const rp of remotePlayers) {
+        if (!rp.mesh) continue;
+        rp.mesh.position.set(rp.x * TILE, 0, rp.z * TILE);
+        rp.mesh.rotation.y = rp.yaw + Math.PI;
+        rp.mesh.visible = rp.alive !== false;
+    }
+}
+
 function playerDodge() {
     if (!player || !player.alive) return;
     const now = performance.now();
@@ -9671,6 +9813,9 @@ function update() {
     updateScreenShake(dt);
     updateFovPunch();
     playerLight.position.copy(camera.position);
+
+    // Online position sync — send mine, apply theirs
+    if (onlineMode) netUpdatePlayers(now);
 
     // Show viewmodel sword in 1st person, hide in 3rd person
     if (fpsSword) fpsSword.visible = !fpsCamera.thirdPerson;
