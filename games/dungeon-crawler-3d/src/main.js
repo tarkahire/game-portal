@@ -36,10 +36,13 @@ let swordSwing2 = null; // P2 weapon swing
 
 // Online co-op state
 let onlineMode = false;
-let remotePlayers = []; // [{ playerIndex, classId, mesh, x, z, yaw, hp, alive }]
+let remotePlayers = []; // [{ playerIndex, classId, mesh, x, z, yaw, targetX, targetZ, targetYaw, targetTime, hp, alive }]
 let myPlayerIndex = 0;
 let _lastNetSendMs = 0;
 let _pendingDungeon = null;
+const NET_SEND_INTERVAL_MS = 33; // ~30Hz position broadcasts
+let _debugEl = null;
+let _fpsAvg = 60, _lastFrameTime = 0, _lastStateRecvAt = 0;
 
 // Player state
 let player = null;
@@ -248,6 +251,15 @@ function init() {
     // Mouse attack (still works if pointer is locked)
     renderer.domElement.addEventListener('mousedown', (e) => {
         if (e.button === 0 && gameState === 'playing') playerAttack();
+    });
+
+    // Debug overlay — visible in online mode, toggle with F3
+    _debugEl = document.createElement('div');
+    _debugEl.id = 'debug-overlay';
+    _debugEl.style.cssText = 'position:fixed;top:90px;left:12px;background:rgba(0,0,0,0.85);color:#0ff;padding:8px 10px;font-size:11px;font-family:monospace;border:1px solid #2a3a4a;z-index:50;display:none;white-space:pre;line-height:1.4;pointer-events:none;';
+    document.body.appendChild(_debugEl);
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'F3') { e.preventDefault(); _debugEl.dataset.forced = _debugEl.dataset.forced ? '' : '1'; }
     });
 
     showScreen('title-screen');
@@ -2725,6 +2737,7 @@ function startGame() {
 
     // In online mode, my class comes from selectedClasses[myPlayerIndex]; otherwise from [0]
     const localClassIdx = onlineMode ? myPlayerIndex : 0;
+    console.log(`[game] startGame online=${onlineMode} coop=${coopMode} myIdx=${myPlayerIndex} myClass=${selectedClasses[localClassIdx]} classes=`, selectedClasses);
     const cls = CLASSES[selectedClasses[localClassIdx]];
     player = {
         classId: selectedClasses[localClassIdx], cls,
@@ -2885,8 +2898,10 @@ function startGame() {
             remotePlayers.push({
                 playerIndex: i, classId: rClassId, mesh: rpMesh,
                 x: sx, z: sz, yaw: 0,
+                targetX: sx, targetZ: sz, targetYaw: 0, targetTime: performance.now(),
                 hp: (CLASSES[rClassId] && CLASSES[rClassId].maxHp) || 100, alive: true
             });
+            console.log(`[game] remote player P${i + 1} (${rClassId}) spawned at (${sx.toFixed(1)}, ${sz.toFixed(1)})`);
         }
     }
 }
@@ -9503,44 +9518,44 @@ function updateMinions(dt, now) {
     }
 }
 
-// ─── ONLINE — broadcast my position, receive everyone else's, move remote meshes ───
-function netUpdatePlayers(now) {
+// ─── ONLINE — broadcast my position, receive everyone else's, smoothly move remote meshes ───
+function _setRemoteTarget(rp, x, z, yaw, hp, alive, tNow) {
+    rp.targetX = x; rp.targetZ = z; rp.targetYaw = yaw;
+    rp.targetTime = tNow;
+    if (hp != null) rp.hp = hp;
+    if (alive != null) rp.alive = alive;
+}
+
+function netUpdatePlayers(now, dt) {
     if (!onlineMode) return;
 
-    // Pull updates received from network
+    // Pull updates received from network → store as new targets
     if (NET.isHost) {
-        // Host: clients write directly into NET.remotePlayerData via 'input' messages
         for (const idx in NET.remotePlayerData) {
             const i = parseInt(idx);
             const r = NET.remotePlayerData[idx];
             const rp = remotePlayers.find(rp => rp.playerIndex === i);
             if (rp && r && r.x != null) {
-                rp.x = r.x; rp.z = r.z; rp.yaw = r.yaw;
-                if (r.hp != null) rp.hp = r.hp;
-                if (r.alive != null) rp.alive = r.alive;
+                _setRemoteTarget(rp, r.x, r.z, r.yaw, r.hp, r.alive, now);
+                _lastStateRecvAt = now;
             }
         }
     } else {
-        // Client: read host's last broadcast (gameState contains all player slots)
         const state = getLastState();
         if (state && state.players) {
+            _lastStateRecvAt = now;
             for (const p of state.players) {
                 if (p.idx === myPlayerIndex) continue;
                 const rp = remotePlayers.find(rp => rp.playerIndex === p.idx);
-                if (rp) {
-                    rp.x = p.x; rp.z = p.z; rp.yaw = p.yaw;
-                    if (p.hp != null) rp.hp = p.hp;
-                    if (p.alive != null) rp.alive = p.alive;
-                }
+                if (rp) _setRemoteTarget(rp, p.x, p.z, p.yaw, p.hp, p.alive, now);
             }
         }
     }
 
-    // Send my own position out (~20Hz to keep bandwidth sane)
-    if (now - _lastNetSendMs >= 50) {
+    // Send my own position out at NET_SEND_INTERVAL_MS (~30Hz)
+    if (now - _lastNetSendMs >= NET_SEND_INTERVAL_MS) {
         _lastNetSendMs = now;
         if (NET.isHost) {
-            // Host broadcasts everyone (including own) so clients see all peers
             const state = {
                 players: [{
                     idx: 0, x: fpsCamera.posX, z: fpsCamera.posZ, yaw: fpsCamera.yaw,
@@ -9566,13 +9581,47 @@ function netUpdatePlayers(now) {
         }
     }
 
-    // Apply received positions to remote meshes
+    // Smoothly interpolate visual position toward latest target — runs every frame
+    // so remote players move continuously even though network samples arrive at 30Hz
+    const followRate = Math.min(1, (dt || 0.016) * 18); // ~55ms time constant
     for (const rp of remotePlayers) {
         if (!rp.mesh) continue;
+        rp.x += (rp.targetX - rp.x) * followRate;
+        rp.z += (rp.targetZ - rp.z) * followRate;
+        // Yaw needs angle wrap handling
+        let yawDiff = rp.targetYaw - rp.yaw;
+        while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+        while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+        rp.yaw += yawDiff * followRate;
         rp.mesh.position.set(rp.x * TILE, 0, rp.z * TILE);
         rp.mesh.rotation.y = rp.yaw + Math.PI;
         rp.mesh.visible = rp.alive !== false;
     }
+}
+
+function updateDebugOverlay() {
+    if (!_debugEl) return;
+    const showForced = _debugEl.dataset.forced === '1';
+    if (!onlineMode && !showForced) { _debugEl.style.display = 'none'; return; }
+    _debugEl.style.display = 'block';
+    let txt = '';
+    if (onlineMode) {
+        const role = NET.isHost ? 'HOST' : 'CLIENT';
+        const conn = NET.connections && NET.connections[0];
+        const connState = conn ? (conn.open ? 'open' : 'closed') : 'none';
+        const since = _lastStateRecvAt ? Math.round(performance.now() - _lastStateRecvAt) : '∞';
+        txt += `[ONLINE ${role}]\n`;
+        txt += `Room: ${NET.roomCode}  myIdx: ${myPlayerIndex}\n`;
+        txt += `Connections: ${NET.connections ? NET.connections.length : 0} (${connState})\n`;
+        txt += `Remote players: ${remotePlayers.length}\n`;
+        for (const rp of remotePlayers) {
+            const age = rp.targetTime ? Math.round(performance.now() - rp.targetTime) : '∞';
+            txt += `  P${rp.playerIndex + 1} ${rp.classId} (${rp.x.toFixed(1)},${rp.z.toFixed(1)}) ${age}ms\n`;
+        }
+        txt += `Last recv: ${since}ms ago\n`;
+    }
+    txt += `FPS: ${Math.round(_fpsAvg)}`;
+    _debugEl.textContent = txt;
 }
 
 function playerDodge() {
@@ -9818,8 +9867,9 @@ function update() {
     updateFovPunch();
     playerLight.position.copy(camera.position);
 
-    // Online position sync — send mine, apply theirs
-    if (onlineMode) netUpdatePlayers(now);
+    // Online position sync — send mine, apply theirs (per-frame interpolation)
+    if (onlineMode) netUpdatePlayers(now, dt);
+    updateDebugOverlay();
 
     // Show viewmodel sword in 1st person, hide in 3rd person
     if (fpsSword) fpsSword.visible = !fpsCamera.thirdPerson;
@@ -9963,9 +10013,17 @@ function update() {
 
         if (!e.mesh.visible) continue;
 
-        billboardEnemy(e.mesh, camera.position);
+        // Perf: skip per-frame billboarding + horror animations for distant enemies
+        // (they're tiny pixels at >12 tiles — animation jitter isn't visible anyway)
+        const camDx = camera.position.x - e.data.x * TILE;
+        const camDz = camera.position.z - e.data.z * TILE;
+        const distToCamSq = camDx * camDx + camDz * camDz;
+        const closeForAnim = distToCamSq < 48 * 48; // 12 tiles = 48 world units
+        if (closeForAnim) {
+            billboardEnemy(e.mesh, camera.position);
+            animateEnemyMesh(e.mesh, e.data.enemyType, time);
+        }
         if (e.label) e.label.position.set(e.data.x * TILE, e.data.isBoss ? 5.5 : 3.5, e.data.z * TILE);
-        animateEnemyMesh(e.mesh, e.data.enemyType, time);
 
 
 
@@ -10172,6 +10230,14 @@ function showScreen(id) {
 
 // ─── GAME LOOP ──────────────────────────────────────────────
 function gameLoop() {
+    // FPS counter (rolling avg) — used by debug overlay
+    const fNow = performance.now();
+    if (_lastFrameTime) {
+        const fdt = fNow - _lastFrameTime;
+        if (fdt > 0) _fpsAvg = _fpsAvg * 0.95 + (1000 / fdt) * 0.05;
+    }
+    _lastFrameTime = fNow;
+
     update();
 
     const w = window.innerWidth;

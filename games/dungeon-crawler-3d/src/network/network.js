@@ -36,20 +36,25 @@ export function createRoom(onStatusUpdate, onLobbyUpdate, onGameStart, onReady) 
     NET.playerIndex = 0;
     NET.lobbyPlayers = [{ id: 'host', classId: null, ready: false }];
     NET.connections = [];
+    NET.remotePlayerData = {};
 
+    console.log('[net/host] createRoom code=' + NET.roomCode);
     onStatusUpdate('Setting up room...');
 
     const peerId = 'dc3d-' + NET.roomCode.toLowerCase();
     NET.peer = new Peer(peerId, { debug: 0, config: { iceServers } });
 
-    NET.peer.on('open', () => {
+    NET.peer.on('open', (id) => {
+        console.log('[net/host] peer open id=' + id);
         onStatusUpdate('Room ready! Share the code with your friends.');
         if (onReady) onReady(NET.roomCode);
         onLobbyUpdate(NET.lobbyPlayers);
     });
 
     NET.peer.on('connection', (conn) => {
+        console.log('[net/host] incoming connection from ' + conn.peer);
         if (NET.lobbyPlayers.length >= NET.maxPlayers) {
+            console.log('[net/host] room full — rejecting');
             conn.on('open', () => { conn.send({ type: 'full' }); conn.close(); });
             return;
         }
@@ -57,8 +62,10 @@ export function createRoom(onStatusUpdate, onLobbyUpdate, onGameStart, onReady) 
         conn._playerIndex = pIdx;
         NET.connections.push(conn);
         NET.lobbyPlayers.push({ id: conn.peer, classId: null, ready: false });
+        console.log('[net/host] assigned playerIndex=' + pIdx + ' to ' + conn.peer);
 
         conn.on('open', () => {
+            console.log('[net/host] data channel open with ' + conn.peer + ' (P' + (pIdx + 1) + ')');
             conn.send({ type: 'welcome', playerIndex: pIdx, roomCode: NET.roomCode });
             broadcastLobby();
             onLobbyUpdate(NET.lobbyPlayers);
@@ -66,6 +73,7 @@ export function createRoom(onStatusUpdate, onLobbyUpdate, onGameStart, onReady) 
 
         conn.on('data', (data) => {
             if (data.type === 'classSelect') {
+                console.log('[net/host] received classSelect from P' + (pIdx + 1) + ': ' + data.classId);
                 const lp = NET.lobbyPlayers.find(p => p.id === conn.peer);
                 if (lp) { lp.classId = data.classId; lp.ready = true; }
                 broadcastLobby();
@@ -77,8 +85,10 @@ export function createRoom(onStatusUpdate, onLobbyUpdate, onGameStart, onReady) 
         });
 
         conn.on('close', () => {
+            console.log('[net/host] connection closed: ' + conn.peer);
             NET.connections = NET.connections.filter(c => c !== conn);
             NET.lobbyPlayers = NET.lobbyPlayers.filter(lp => lp.id !== conn.peer);
+            delete NET.remotePlayerData[pIdx];
             broadcastLobby();
             onLobbyUpdate(NET.lobbyPlayers);
         });
@@ -105,6 +115,7 @@ export function joinRoom(code, onStatusUpdate, onLobbyUpdate, onGameStart) {
     NET.roomCode = code.toUpperCase();
     NET._onGameStart = onGameStart;
 
+    console.log('[net/client] joinRoom code=' + NET.roomCode);
     onStatusUpdate('Connecting to network...');
     NET.peer = new Peer(undefined, { debug: 0, config: { iceServers } });
 
@@ -116,6 +127,7 @@ export function joinRoom(code, onStatusUpdate, onLobbyUpdate, onGameStart) {
         if (connected) return;
         attemptNum++;
         const peerId = 'dc3d-' + NET.roomCode.toLowerCase();
+        console.log('[net/client] connecting to ' + peerId + ' (attempt ' + attemptNum + ')');
         onStatusUpdate(attemptNum === 1
             ? 'Looking for room...'
             : `Looking again (${attemptNum}/${MAX_ATTEMPTS})...`);
@@ -126,6 +138,7 @@ export function joinRoom(code, onStatusUpdate, onLobbyUpdate, onGameStart) {
         // Long-stop fallback — if neither open nor error fires, retry
         const timer = setTimeout(() => {
             if (connected || conn.open) return;
+            console.warn('[net/client] connection timeout (' + attemptNum + ')');
             try { conn.close(); } catch (e) {}
             if (attemptNum < MAX_ATTEMPTS) setTimeout(tryConnect, 1500);
             else onStatusUpdate('Connection timed out. Check the code or your network.');
@@ -134,15 +147,18 @@ export function joinRoom(code, onStatusUpdate, onLobbyUpdate, onGameStart) {
         conn.on('open', () => {
             connected = true;
             clearTimeout(timer);
+            console.log('[net/client] data channel open with host');
             onStatusUpdate('Connected! Waiting for host...');
         });
 
         conn.on('data', (data) => {
             if (data.type === 'welcome') {
+                console.log('[net/client] welcome — assigned playerIndex=' + data.playerIndex);
                 NET.playerIndex = data.playerIndex;
                 onStatusUpdate(`Connected as Player ${data.playerIndex + 1}`);
             }
             if (data.type === 'full') {
+                console.warn('[net/client] room full');
                 onStatusUpdate('Room is full!');
             }
             if (data.type === 'lobby') {
@@ -150,6 +166,7 @@ export function joinRoom(code, onStatusUpdate, onLobbyUpdate, onGameStart) {
                 onLobbyUpdate(data.players);
             }
             if (data.type === 'startGame') {
+                console.log('[net/client] received startGame — classes=', data.classes);
                 if (NET._onGameStart) NET._onGameStart(data);
             }
             if (data.type === 'gameState') {
@@ -158,18 +175,20 @@ export function joinRoom(code, onStatusUpdate, onLobbyUpdate, onGameStart) {
         });
 
         conn.on('close', () => {
+            console.warn('[net/client] connection to host closed');
             onStatusUpdate('Disconnected from host.');
             NET.isOnline = false;
         });
     }
 
-    NET.peer.on('open', () => {
+    NET.peer.on('open', (id) => {
+        console.log('[net/client] my peer open id=' + id);
         tryConnect();
     });
 
     NET.peer.on('error', (err) => {
         const type = err.type || '';
-        console.warn('Peer error:', type, err);
+        console.warn('[net/client] peer error:', type, err);
         if (connected) return;
         // Host not registered with broker yet (or wrong code) — retry a few times
         if (type === 'peer-unavailable') {
