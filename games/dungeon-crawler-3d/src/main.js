@@ -6800,9 +6800,10 @@ function fruitAbility(slot) {
     // ══════ MEGUMI ══════
     if (id === 'megumi') {
         if (slot === 'z') { // Divine Dogs — summon white & black divine dogs
-            // Remove any existing divine dogs first
+            // Remove any existing divine dogs first (and their HP bars)
             for (let i = minions3D.length - 1; i >= 0; i--) {
                 if (minions3D[i].data.type === 'divineDog' && minions3D[i].data._owner === player) {
+                    if (minions3D[i].data._hpBar) scene.remove(minions3D[i].data._hpBar);
                     scene.remove(minions3D[i].mesh);
                     minions3D.splice(i, 1);
                 }
@@ -6830,16 +6831,27 @@ function fruitAbility(slot) {
             }, 800);
 
             // Spawn white dog (left side) and black dog (right side)
+            // Damage tuned so dogs assist but can't solo bosses; HP makes them attackable.
             const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
             const dogStats = {
-                color: '#1a1a22', radius: 0.5, speed: 5, damage: Math.round(player.damage * 1.2),
-                attackRange: 1.8, attackSpeed: 600, hp: 9999, maxHp: 9999, life: Infinity, _owner: player,
+                color: '#1a1a22', radius: 0.5, speed: 5, damage: Math.round(player.damage * 0.4),
+                attackRange: 1.8, attackSpeed: 600, hp: 120, maxHp: 120, life: Infinity, _owner: player,
+            };
+
+            // Helper — attach HP bar to the dog that was just spawned
+            const attachBar = () => {
+                const dog = minions3D[minions3D.length - 1];
+                if (!dog) return;
+                const bar = buildDogHpBar();
+                scene.add(bar);
+                dog.data._hpBar = bar;
             };
 
             // White divine dog — right flank
             const whiteX = px + perpX * 3 + fwdX * 1;
             const whiteZ = pz + perpZ * 3 + fwdZ * 1;
             spawnMinion('divineDog', whiteX, whiteZ, { ...dogStats, color: '#e8e0d8', _isWhite: true, _dogSide: 1 });
+            attachBar();
             emitParticles(whiteX * TILE, 0.5, whiteZ * TILE, {
                 color: ['#ffffff', '#e0e0e0', '#c0c0c0'],
                 count: 20, speed: 3, spread: 1.5,
@@ -6850,6 +6862,7 @@ function fruitAbility(slot) {
             const blackX = px - perpX * 3 + fwdX * 1;
             const blackZ = pz - perpZ * 3 + fwdZ * 1;
             spawnMinion('divineDog', blackX, blackZ, { ...dogStats, _isWhite: false, _dogSide: -1 });
+            attachBar();
             emitParticles(blackX * TILE, 0.5, blackZ * TILE, {
                 color: ['#1a237e', '#ff2244', '#0d1b5e'],
                 count: 20, speed: 3, spread: 1.5,
@@ -8586,6 +8599,46 @@ function updateFruitEffects(now, dt) {
     }
 }
 
+// ─── DIVINE DOG HP BAR (billboarded above each dog) ──────────
+function buildDogHpBar() {
+    const group = new THREE.Group();
+    const bgMat = new THREE.MeshBasicMaterial({ color: '#220000', transparent: true, opacity: 0.85, depthTest: false });
+    const fgMat = new THREE.MeshBasicMaterial({ color: '#00ff66', transparent: true, opacity: 0.95, depthTest: false });
+    const bg = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.18), bgMat);
+    bg.renderOrder = 999;
+    const fg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.12), fgMat);
+    fg.position.z = 0.001;
+    fg.renderOrder = 1000;
+    group.add(bg);
+    group.add(fg);
+    group._fg = fg;
+    group._fgMat = fgMat;
+    group._bg = bg;
+    group._bgMat = bgMat;
+    return group;
+}
+
+// Damage a divine dog (or any minion with hp). Cleanup happens at top of updateMinions.
+function dealDamageToDog(m, dmg) {
+    if (!m || !m.data || m.data.hp <= 0) return;
+    m.data.hp -= dmg;
+    // Hit flash
+    m.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#ff0000'); });
+    setTimeout(() => {
+        if (m.mesh) m.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#000000'); });
+    }, 120);
+    spawnDmgNumber(m.data.x * TILE, 3.0, m.data.z * TILE, dmg, '#ffaa00');
+    if (m.data.hp <= 0) {
+        // Death VFX — shadow dispersal
+        emitParticles(m.data.x * TILE, 0.8, m.data.z * TILE, {
+            color: m.data._isWhite ? ['#ffffff', '#e0e0e0', '#1a237e'] : ['#1a237e', '#0d1b5e', '#000000'],
+            count: 25, speed: 4, spread: 1.5,
+            gravity: -2, life: 20, size: 0.18, sizeEnd: 0, drag: 0.94, upward: 2
+        });
+        groundRing(m.data.x * TILE, m.data.z * TILE, '#1a237e', 2, 600);
+    }
+}
+
 // ─── MINION SYSTEM ──────────────────────────────────────────
 function spawnMinion(type, tileX, tileZ, data) {
     const group = new THREE.Group();
@@ -8922,6 +8975,7 @@ function updateMinions(dt, now) {
     for (let i = minions3D.length - 1; i >= 0; i--) {
         const m = minions3D[i];
         if (now > m.data.life || m.data.hp <= 0) {
+            if (m.data._hpBar) scene.remove(m.data._hpBar);
             scene.remove(m.mesh);
             minions3D.splice(i, 1);
             continue;
@@ -9034,13 +9088,36 @@ function updateMinions(dt, now) {
 
             m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
 
-            // Face movement direction (or face nearest enemy if attacking but stationary)
-            if (dist > 0.2) {
-                const faceAngle = Math.atan2(dx, dz);
-                m.mesh.rotation.y = faceAngle;
-            } else if (isAttacking && nearestEnemy) {
-                const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
-                m.mesh.rotation.y = Math.atan2(fdx, fdz);
+            // Facing:
+            //  - Attacking: face the enemy (or movement dir if mid-flank)
+            //  - Heel mode: face the same way as Megumi so both dogs align with the player
+            if (isAttacking) {
+                if (dist > 0.2) {
+                    m.mesh.rotation.y = Math.atan2(dx, dz);
+                } else if (nearestEnemy) {
+                    const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
+                    m.mesh.rotation.y = Math.atan2(fdx, fdz);
+                }
+            } else {
+                const targetYaw = fpsCamera.yaw + Math.PI;
+                let yawDiff = targetYaw - m.mesh.rotation.y;
+                while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                m.mesh.rotation.y += yawDiff * 0.18;
+            }
+
+            // HP bar — billboard above the dog
+            if (m.data._hpBar) {
+                const bar = m.data._hpBar;
+                bar.position.set(m.data.x * TILE, 4.0, m.data.z * TILE);
+                bar.lookAt(camera.position);
+                const ratio = Math.max(0, m.data.hp / m.data.maxHp);
+                const fg = bar._fg;
+                fg.scale.x = ratio;
+                fg.position.x = -(1 - ratio) * 0.55; // anchor left so it shrinks rightward
+                if (ratio > 0.5) bar._fgMat.color.set('#00ff66');
+                else if (ratio > 0.25) bar._fgMat.color.set('#ffcc00');
+                else bar._fgMat.color.set('#ff2244');
             }
 
             // Leg walk animation — tied to actual movement
@@ -9633,9 +9710,18 @@ function update() {
         // Freeze enemies during cutscenes
         if (player._cutsceneActive) continue;
 
-        // AI — chase and attack player (with wall collision)
-        if (distToPlayer < 12 && distToPlayer > e.data.radius) {
-            const dx = px - e.data.x, dz = pz - e.data.z;
+        // Pick target — closer of player or any divine dog (dogs can pull aggro)
+        let targetX = px, targetZ = pz, targetDog = null;
+        let targetDist = distToPlayer;
+        for (const m of minions3D) {
+            if (m.data.type !== 'divineDog' || m.data.hp <= 0) continue;
+            const d = Math.hypot(m.data.x - e.data.x, m.data.z - e.data.z);
+            if (d < targetDist) { targetDist = d; targetX = m.data.x; targetZ = m.data.z; targetDog = m; }
+        }
+
+        // AI — chase and attack closest target (with wall collision)
+        if (targetDist < 12 && targetDist > e.data.radius) {
+            const dx = targetX - e.data.x, dz = targetZ - e.data.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
             if (dist > e.data.radius + 0.3) {
                 const spd = e.data.speed * dt;
@@ -9654,11 +9740,11 @@ function update() {
                 e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
             }
             // Attack
-            if (distToPlayer < e.data.range + 0.5 && now - e.data.lastAttack > e.data.attackSpeed) {
+            if (targetDist < e.data.range + 0.5 && now - e.data.lastAttack > e.data.attackSpeed) {
                 e.data.lastAttack = now;
                 if (e.data.type === 'ranged' || e.data.type === 'summoner') {
-                    // Ranged enemy — shoot projectile
-                    const angle = Math.atan2(px - e.data.x, pz - e.data.z);
+                    // Ranged enemy — shoot projectile toward target
+                    const angle = Math.atan2(targetX - e.data.x, targetZ - e.data.z);
                     const mesh = new THREE.Mesh(projGeo, projMatEnemy);
                     mesh.position.set(e.data.x * TILE, 1.2, e.data.z * TILE);
                     scene.add(mesh);
@@ -9666,6 +9752,8 @@ function update() {
                         mesh, vx: Math.sin(angle) * 8, vz: Math.cos(angle) * 8,
                         damage: e.data.damage, owner: 'enemy', traveled: 0, range: 40,
                     });
+                } else if (targetDog) {
+                    dealDamageToDog(targetDog, e.data.damage);
                 } else {
                     dealDamageToPlayer(e.data.damage);
                 }
@@ -9721,6 +9809,17 @@ function update() {
                 }
             }
         } else {
+            // Enemy projectile — check dog hits first, then player
+            let hit = false;
+            for (const m of minions3D) {
+                if (m.data.type !== 'divineDog' || m.data.hp <= 0) continue;
+                if (Math.hypot(m.data.x - tileX, m.data.z - tileZ) < 0.6) {
+                    dealDamageToDog(m, p.damage);
+                    scene.remove(p.mesh); projectiles3D.splice(i, 1);
+                    hit = true; break;
+                }
+            }
+            if (hit) continue;
             const dist = Math.hypot(px - tileX, pz - tileZ);
             if (dist < 0.5) {
                 dealDamageToPlayer(p.damage);
