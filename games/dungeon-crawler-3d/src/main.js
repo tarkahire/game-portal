@@ -42,7 +42,6 @@ let _lastNetSendMs = 0;
 let _pendingDungeon = null;
 const NET_SEND_INTERVAL_MS = 33; // ~30Hz position broadcasts
 let _debugEl = null;
-let _rideDebugEl = null;
 let _fpsAvg = 60, _lastFrameTime = 0, _lastStateRecvAt = 0;
 
 // Player state
@@ -233,7 +232,6 @@ function init() {
             if (e.code === 'KeyV') fruitAbility('v');     // P1 ability 4
             if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
             if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else if (player?.classId === 'horohoro') horohoroOversoul(); else playerDodge(); }
-            if (e.code === 'KeyG' && player?.classId === 'megumi') megumiToggleRide();
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
             // ── P2 controls (local co-op only — disabled in online) ──
@@ -7066,14 +7064,10 @@ function fruitAbility(slot) {
             triggerHitstop(40);
         }
 
-        else if (slot === 'x') { // Mahoraga — summon adapting divine general (G to mount/dismount)
+        else if (slot === 'x') { // Mahoraga — summon adapting divine general
             // Remove any existing mahoraga first (one at a time)
             for (let i = minions3D.length - 1; i >= 0; i--) {
                 if (minions3D[i].data.type === 'mahoraga' && minions3D[i].data._owner === player) {
-                    if (player._riding === minions3D[i]) {
-                        player._riding = null;
-                        fpsCamera.eyeHeight = 2.0;
-                    }
                     if (minions3D[i].data._hpBar) scene.remove(minions3D[i].data._hpBar);
                     scene.remove(minions3D[i].mesh);
                     minions3D.splice(i, 1);
@@ -8953,23 +8947,6 @@ function buildMahoragaMesh() {
         cap.position.set(i * 0.2, 3.12, 0.42); group.add(cap);
     }
 
-    // ── Riding seat on the upper back (visible whether ridden or not) ──
-    const seatPadMat = new THREE.MeshStandardMaterial({ color: '#3a2820', roughness: 0.7 });
-    const seatPad = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.14, 0.55), seatPadMat);
-    seatPad.position.set(0, 3.0, -0.45); group.add(seatPad);
-    // Saddle skirt — drapes a bit
-    const seatSkirt = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.22, 0.05), seatPadMat);
-    seatSkirt.position.set(0, 2.85, -0.7); seatSkirt.rotation.x = -0.2; group.add(seatSkirt);
-    // Front grip-bar for the rider to hold
-    const gripMat = new THREE.MeshStandardMaterial({ color: '#222', metalness: 0.6, roughness: 0.4 });
-    const gripBar = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.6, 8), gripMat);
-    gripBar.rotation.z = Math.PI / 2;
-    gripBar.position.set(0, 3.18, -0.18); group.add(gripBar);
-    for (let s = -1; s <= 1; s += 2) {
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.2, 6), gripMat);
-        post.position.set(s * 0.3, 3.09, -0.18); group.add(post);
-    }
-
     // ── Arms ── BUFF and articulated, each on a shoulder pivot so they can swing
     function buildArm(side) {
         const arm = new THREE.Group();
@@ -9813,8 +9790,7 @@ function updateMinions(dt, now) {
                 else bar._fgMat.color.set('#ff2244');
             }
 
-            // Enemy detection + attack — runs whether ridden or AI-walking,
-            // so Mahoraga keeps fighting on his own while you sit on his back.
+            // Enemy detection + attack — fully autonomous.
             let nearestEnemy = null, nearestDist = Infinity;
             for (const e of enemies3D) {
                 if (!e.data.alive) continue;
@@ -9836,13 +9812,10 @@ function updateMinions(dt, now) {
                 screenShake(0.18, 80);
             }
 
-            // Unified movement — runs whether ridden or not. Mahoraga always
-            // pursues the nearest enemy; rider just goes along for the ride.
+            // Movement — chase a nearby enemy or heel near Megumi.
             let isMoving = false;
-            const ridden = (player && player._riding === m);
-            // When ridden, hunt the nearest enemy anywhere on the floor.
-            // When unridden, only engage if an enemy is in 9 tiles (otherwise heel).
-            const engageRange = ridden ? Infinity : 9;
+            // Engage the nearest enemy within 12 tiles, otherwise heel near Megumi.
+            const engageRange = 12;
 
             let targetX = null, targetZ = null;
             let chasing = false;
@@ -9883,22 +9856,12 @@ function updateMinions(dt, now) {
                         targetZ = wp.z;
                     }
                 }
-            } else if (!ridden) {
+            } else {
                 // Heel directly behind Megumi
                 const playerYaw = fpsCamera.yaw;
                 const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
                 targetX = px - pFwdX * 2.2;
                 targetZ = pz - pFwdZ * 2.2;
-            } else {
-                // Ridden + no enemy in range — let the rider steer with W/S
-                const fwd = fpsCamera.keys['KeyW'];
-                const back = fpsCamera.keys['KeyS'];
-                if (fwd || back) {
-                    const dir = fwd ? 1 : -1;
-                    const yaw = fpsCamera.yaw;
-                    targetX = m.data.x + (-Math.sin(yaw) * dir) * 4;
-                    targetZ = m.data.z + (-Math.cos(yaw) * dir) * 4;
-                }
             }
 
             if (targetX !== null) {
@@ -9907,7 +9870,7 @@ function updateMinions(dt, now) {
                 // Stop near the target — for chase, stop just inside attack range
                 const stopDist = chasing ? Math.max(m.data.attackRange * 0.65, 1.4) : 0.3;
                 if (dist > stopDist) {
-                    const moveSpeed = m.data.speed * dt * (ridden ? 1.5 : 1.0);
+                    const moveSpeed = m.data.speed * dt;
                     const dirX = dx / dist, dirZ = dz / dist;
                     // Small movement collision radius — his visual is much bigger
                     // (he'll clip into walls slightly), but this prevents him from
@@ -9964,23 +9927,19 @@ function updateMinions(dt, now) {
                     m.mesh.rotation.y += yawDiff * 0.25;
                 }
             } else if (!chasing) {
-                // Idle, not chasing, not steered — slowly orient toward Megumi (only when not ridden)
-                if (!ridden) {
-                    const targetYaw = fpsCamera.yaw + Math.PI;
-                    let yawDiff = targetYaw - m.mesh.rotation.y;
-                    while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
-                    while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
-                    m.mesh.rotation.y += yawDiff * 0.18;
-                }
+                // Idle — slowly orient toward Megumi
+                const targetYaw = fpsCamera.yaw + Math.PI;
+                let yawDiff = targetYaw - m.mesh.rotation.y;
+                while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                m.mesh.rotation.y += yawDiff * 0.18;
             }
 
-            // Teleport back to Megumi if completely orphaned (only when not ridden)
-            if (!ridden) {
-                const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
-                if (playerDist > 14) {
-                    if (isWalkable(dungeon.map, px - 1, pz)) { m.data.x = px - 1; m.data.z = pz; }
-                    else if (isWalkable(dungeon.map, px, pz)) { m.data.x = px; m.data.z = pz; }
-                }
+            // Teleport back to Megumi if completely orphaned
+            const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
+            if (playerDist > 14) {
+                if (isWalkable(dungeon.map, px - 1, pz)) { m.data.x = px - 1; m.data.z = pz; }
+                else if (isWalkable(dungeon.map, px, pz)) { m.data.x = px; m.data.z = pz; }
             }
 
             m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
@@ -10160,41 +10119,6 @@ function playerDodge() {
     // VFX
     showSpeedLines(300);
     fovPunch(15, 0.12);
-}
-
-// ─── MAHORAGA RIDE — G key toggles mount/dismount when near him ──
-function megumiToggleRide() {
-    if (!player || !player.alive) return;
-    const baseEye = (player.classId === 'megumi') ? 2.0 : EYE_HEIGHT;
-    if (player._riding) {
-        // Dismount — drop player slightly in front of mahoraga
-        const m = player._riding;
-        player._riding = null;
-        fpsCamera.eyeHeight = baseEye;
-        const yaw = fpsCamera.yaw;
-        const offX = -Math.sin(yaw) * 0.8, offZ = -Math.cos(yaw) * 0.8;
-        const tryX = m.data.x + offX, tryZ = m.data.z + offZ;
-        if (isWalkable(dungeon.map, tryX, tryZ)) {
-            fpsCamera.posX = tryX; fpsCamera.posZ = tryZ;
-        } else {
-            fpsCamera.posX = m.data.x; fpsCamera.posZ = m.data.z;
-        }
-        if (fpsCamera.playerModel) fpsCamera.playerModel.visible = fpsCamera.thirdPerson;
-        return;
-    }
-    // Mount — find nearest mahoraga within 4 tiles
-    let nearest = null, nd = 4;
-    for (const m of minions3D) {
-        if (m.data.type !== 'mahoraga' || m.data.hp <= 0) continue;
-        const d = Math.hypot(m.data.x - fpsCamera.posX, m.data.z - fpsCamera.posZ);
-        if (d < nd) { nd = d; nearest = m; }
-    }
-    if (nearest) {
-        player._riding = nearest;
-        fpsCamera.eyeHeight = baseEye + 3.4; // sit on his shoulders
-        // Hide own player model so it doesn't clip inside mahoraga
-        if (fpsCamera.playerModel) fpsCamera.playerModel.visible = false;
-    }
 }
 
 function dealDamageToEnemy(e, dmg) {
@@ -10425,19 +10349,6 @@ function update() {
 
     fpsCamera.update(dt, dungeon.map);
 
-    // ── Mahoraga ride — death check only ──
-    // Mahoraga's AI in updateMinions() drives him autonomously (chase nearest
-    // enemy, attack, pathfind around walls) whether he's mounted or not.
-    // The rider's camera is snapped to the saddle AFTER updateMinions runs.
-    if (player && player._riding) {
-        const m = player._riding;
-        if (!m.data || m.data.hp <= 0) {
-            player._riding = null;
-            fpsCamera.eyeHeight = (player.classId === 'megumi') ? 2.0 : EYE_HEIGHT;
-            if (fpsCamera.playerModel) fpsCamera.playerModel.visible = fpsCamera.thirdPerson;
-        }
-    }
-
     updateScreenShake(dt);
     updateFovPunch();
     playerLight.position.copy(camera.position);
@@ -10527,65 +10438,6 @@ function update() {
     updateMinions(dt, now);
     // (old Katakuri portal update removed — Blox Fruits system)
     updateFruitEffects(now, dt);
-
-    // ── Mahoraga ride camera snap ──
-    // After updateMinions has moved Mahoraga (his AI is in charge), snap the
-    // rider's camera onto the saddle on his upper back so they get carried along.
-    if (player && player._riding) {
-        const m = player._riding;
-        if (m && m.data && m.data.hp > 0 && m.mesh) {
-            const mYaw = m.mesh.rotation.y;
-            // His back (local -Z) in world coords
-            const backDirX = -Math.sin(mYaw);
-            const backDirZ = -Math.cos(mYaw);
-            const seatOffset = 0.18; // tiles behind his center (matches saddle pad position)
-            const rideX = m.data.x + backDirX * seatOffset;
-            const rideZ = m.data.z + backDirZ * seatOffset;
-            fpsCamera.posX = rideX;
-            fpsCamera.posZ = rideZ;
-            const wx = rideX * TILE, wz = rideZ * TILE;
-            if (fpsCamera.thirdPerson) {
-                const behindX = Math.sin(fpsCamera.yaw) * fpsCamera.tpDistance;
-                const behindZ = Math.cos(fpsCamera.yaw) * fpsCamera.tpDistance;
-                camera.position.set(wx + behindX, fpsCamera.eyeHeight + fpsCamera.tpHeight, wz + behindZ);
-                camera.lookAt(wx, fpsCamera.eyeHeight, wz);
-            } else {
-                camera.position.set(wx, fpsCamera.eyeHeight, wz);
-            }
-            if (fpsCamera.playerModel) fpsCamera.playerModel.visible = false;
-
-            // Ride debug overlay — shows what Mahoraga is doing while you're on him
-            if (!_rideDebugEl) {
-                _rideDebugEl = document.createElement('div');
-                _rideDebugEl.style.cssText = 'position:fixed;top:12px;right:12px;background:rgba(0,0,0,0.85);color:#0ff;padding:8px 12px;font-size:12px;font-family:monospace;border:1px solid #2a3a4a;z-index:60;white-space:pre;line-height:1.4;pointer-events:none;';
-                document.body.appendChild(_rideDebugEl);
-            }
-            _rideDebugEl.style.display = 'block';
-            // Find nearest enemy from Mahoraga's perspective (mirrors AI)
-            let dbgN = null, dbgD = Infinity;
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
-                if (d < dbgD) { dbgD = d; dbgN = e; }
-            }
-            const aliveCount = enemies3D.filter(e => e.data.alive).length;
-            const lastDx = (m.data._lastX != null) ? (m.data.x - m.data._lastX) : 0;
-            const lastDz = (m.data._lastZ != null) ? (m.data.z - m.data._lastZ) : 0;
-            const moved = Math.hypot(lastDx, lastDz) > 0.001;
-            m.data._lastX = m.data.x; m.data._lastZ = m.data.z;
-            const pathLen = m.data._path ? m.data._path.length : 0;
-            const pathIdx = m.data._pathIdx || 0;
-            _rideDebugEl.textContent =
-                `[RIDING MAHORAGA]\n` +
-                `pos: (${m.data.x.toFixed(1)}, ${m.data.z.toFixed(1)})\n` +
-                `enemies alive: ${aliveCount}\n` +
-                `nearest: ${dbgN ? `${dbgN.data.name || dbgN.data.enemyType} @ (${dbgN.data.x.toFixed(1)}, ${dbgN.data.z.toFixed(1)}) d=${dbgD.toFixed(1)}` : 'NONE'}\n` +
-                `path: ${pathLen ? `${pathIdx}/${pathLen}` : 'none'}\n` +
-                `moved last frame: ${moved ? 'YES' : 'NO'} (d=${Math.hypot(lastDx, lastDz).toFixed(3)})`;
-        }
-    } else if (_rideDebugEl) {
-        _rideDebugEl.style.display = 'none';
-    }
 
     // Punch swings — applied LAST so other animations can't overwrite them
     updatePunchArms();
