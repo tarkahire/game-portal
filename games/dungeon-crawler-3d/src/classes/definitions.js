@@ -63,7 +63,7 @@ export const CLASSES = {
         name: 'Megumi Fushiguro', type: 'sorcerer', maxHp: 130, speed: 3.5, attackRange: 35,
         attackDamage: 16, attackSpeed: 240, attackType: 'melee', color: '#1a237e',
         specialCooldown: 5000, specialName: 'Ten Shadows', weaponType: 'fist',
-        abilities: { z: 'Divine Dog', x: 'Mahoraga', c: 'Toad', v: 'Chimera Shadow Garden', f: 'Shadow Dash' },
+        abilities: { z: 'Divine Dog', x: 'Mahoraga', c: 'Nue', v: 'Chimera Shadow Garden', f: 'Shadow Dash' },
         abilityCooldowns: { z: 4000, x: 18000, c: 8000, v: 20000, f: 2500 }
     },
 };

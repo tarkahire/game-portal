@@ -7115,6 +7115,424 @@ function fruitAbility(slot) {
             }
         }
 
+        else if (slot === 'c') { // Nue — flying owl shikigami that strikes with lightning
+            // Build the shadow owl mesh
+            const nue = new THREE.Group();
+            const shadowMat = new THREE.MeshStandardMaterial({ color: '#0a0a18', roughness: 0.6 });
+            const shadowAccent = new THREE.MeshStandardMaterial({ color: '#1a237e', roughness: 0.5 });
+            // Body — ovoid
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), shadowMat);
+            body.scale.set(1, 0.85, 1.4);
+            nue.add(body);
+            // Head
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), shadowMat);
+            head.position.set(0, 0.15, 0.6);
+            nue.add(head);
+            // Glowing yellow eyes
+            const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffeb3b' });
+            for (let s = -1; s <= 1; s += 2) {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), eyeMat);
+                eye.position.set(s * 0.13, 0.18, 0.85);
+                nue.add(eye);
+            }
+            // Beak
+            const beak = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 4), shadowAccent);
+            beak.position.set(0, 0.05, 0.95);
+            beak.rotation.x = Math.PI / 2;
+            nue.add(beak);
+            // Wings — two flat wing planes that flap
+            const wingMat = new THREE.MeshStandardMaterial({
+                color: '#0a0a18', roughness: 0.7, side: THREE.DoubleSide,
+                transparent: true, opacity: 0.92
+            });
+            const wingL = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.55), wingMat);
+            wingL.position.set(-0.55, 0.1, 0);
+            wingL.rotation.set(0, 0, 0.2);
+            nue.add(wingL);
+            const wingR = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.55), wingMat);
+            wingR.position.set(0.55, 0.1, 0);
+            wingR.rotation.set(0, 0, -0.2);
+            nue.add(wingR);
+            // Talons
+            for (let s = -1; s <= 1; s += 2) {
+                const talon = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.18, 4), shadowAccent);
+                talon.position.set(s * 0.12, -0.35, 0.05);
+                talon.rotation.x = Math.PI;
+                nue.add(talon);
+            }
+            // Aura glow
+            const auraLight = new THREE.PointLight('#ffeb3b', 1.8, TILE * 4, 1.5);
+            nue.add(auraLight);
+
+            // Spawn above Megumi's head and fly forward to find a target
+            const startWX = worldPx + fwdX * 1.5;
+            const startWZ = worldPz + fwdZ * 1.5;
+            nue.position.set(startWX, EYE_HEIGHT + 1.5, startWZ);
+            scene.add(nue);
+            screenFlash('rgba(255,235,59,0.18)', 250);
+
+            // Find a target — nearest enemy in front of Megumi within ~10 tiles
+            let target = null, bestD = Infinity;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const dxE = e.data.x - px, dzE = e.data.z - pz;
+                const dot = dxE * fwdX + dzE * fwdZ;
+                if (dot < 0) continue; // behind us
+                const d = Math.hypot(dxE, dzE);
+                if (d > 12) continue;
+                if (d < bestD) { bestD = d; target = e; }
+            }
+
+            // Animate the flight: rise → swoop to target → lightning strike → dissipate
+            const phaseRise = 250, phaseFly = 600, phaseStrike = 200, phaseFade = 300;
+            const startTime = performance.now();
+            // Where Nue lands for the strike — above the target if there is one, else just ahead
+            const aimX = target ? target.data.x * TILE : worldPx + fwdX * 8;
+            const aimZ = target ? target.data.z * TILE : worldPz + fwdZ * 8;
+            const aimY = 4.5;
+            let strikeFired = false;
+
+            const animateNue = () => {
+                const elapsed = performance.now() - startTime;
+                // Wing flap
+                const flap = Math.sin(elapsed * 0.025) * 0.6;
+                wingL.rotation.z = 0.2 + flap;
+                wingR.rotation.z = -0.2 - flap;
+
+                if (elapsed < phaseRise) {
+                    const t = elapsed / phaseRise;
+                    nue.position.y = EYE_HEIGHT + 1.5 + (aimY - EYE_HEIGHT - 1.5) * t;
+                } else if (elapsed < phaseRise + phaseFly) {
+                    const t = (elapsed - phaseRise) / phaseFly;
+                    const ease = 1 - Math.pow(1 - t, 3);
+                    nue.position.x = startWX + (aimX - startWX) * ease;
+                    nue.position.z = startWZ + (aimZ - startWZ) * ease;
+                    // Face direction of motion
+                    const fdx = aimX - nue.position.x, fdz = aimZ - nue.position.z;
+                    if (Math.hypot(fdx, fdz) > 0.1) nue.rotation.y = Math.atan2(fdx, fdz);
+                } else if (elapsed < phaseRise + phaseFly + phaseStrike) {
+                    if (!strikeFired) {
+                        strikeFired = true;
+                        // ── LIGHTNING STRIKE ──
+                        // Vertical bolt from Nue down to ground
+                        const boltGeo = new THREE.CylinderGeometry(0.12, 0.4, 8, 8);
+                        const boltMat = new THREE.MeshBasicMaterial({
+                            color: '#ffeb3b', transparent: true, opacity: 0.9,
+                            blending: THREE.AdditiveBlending, depthWrite: false
+                        });
+                        const bolt = new THREE.Mesh(boltGeo, boltMat);
+                        bolt.position.set(aimX, 4, aimZ);
+                        scene.add(bolt);
+                        // Inner white core
+                        const core = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.05, 0.18, 8, 6),
+                            new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false })
+                        );
+                        core.position.copy(bolt.position);
+                        scene.add(core);
+                        // Big flash light
+                        lightFlash(aimX, 2, aimZ, '#ffeb3b', 12, 350);
+                        screenFlash('rgba(255,255,255,0.45)', 200);
+                        screenShake(0.5, 250);
+                        triggerHitstop(80);
+                        // Ground rings
+                        groundRing(aimX, aimZ, '#ffeb3b', 4, 600);
+                        groundRing(aimX, aimZ, '#ffffff', 2.5, 400);
+                        groundDecal(aimX, aimZ, '#1a237e', 2.5, 2500);
+                        // Particle explosion
+                        emitParticles(aimX, 1, aimZ, {
+                            color: ['#ffeb3b', '#ffffff', '#1a237e', '#daa520'],
+                            count: 50, speed: 7, spread: 1.5,
+                            gravity: -2, life: 18, size: 0.18, sizeEnd: 0, drag: 0.94, upward: 3
+                        });
+                        // Crackling jagged streaks radiating outward
+                        for (let i = 0; i < 8; i++) {
+                            const angle = (i / 8) * Math.PI * 2;
+                            const streakGeo = new THREE.PlaneGeometry(2.5, 0.08);
+                            const streakMat = new THREE.MeshBasicMaterial({
+                                color: '#ffeb3b', transparent: true, opacity: 0.9,
+                                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                            });
+                            const streak = new THREE.Mesh(streakGeo, streakMat);
+                            streak.position.set(aimX, 1.5, aimZ);
+                            streak.rotation.set(0, angle, 0);
+                            streak.translateZ(1.3);
+                            scene.add(streak);
+                            const sStart = performance.now();
+                            const fadeStreak = () => {
+                                const ft = (performance.now() - sStart) / 350;
+                                if (ft >= 1) { scene.remove(streak); streakGeo.dispose(); streakMat.dispose(); return; }
+                                streakMat.opacity = (1 - ft) * 0.9;
+                                streak.scale.x = 1 + ft * 1.5;
+                                requestAnimationFrame(fadeStreak);
+                            };
+                            requestAnimationFrame(fadeStreak);
+                        }
+                        // Fade the bolt
+                        const boltStart = performance.now();
+                        const fadeBolt = () => {
+                            const ft = (performance.now() - boltStart) / 250;
+                            if (ft >= 1) {
+                                scene.remove(bolt); boltGeo.dispose(); boltMat.dispose();
+                                scene.remove(core); core.geometry.dispose(); core.material.dispose();
+                                return;
+                            }
+                            boltMat.opacity = (1 - ft) * 0.9;
+                            core.material.opacity = (1 - ft);
+                            requestAnimationFrame(fadeBolt);
+                        };
+                        requestAnimationFrame(fadeBolt);
+                        // ── DAMAGE — AoE around strike point ──
+                        const aimTileX = aimX / TILE, aimTileZ = aimZ / TILE;
+                        for (const e of enemies3D) {
+                            if (!e.data.alive) continue;
+                            const d = Math.hypot(e.data.x - aimTileX, e.data.z - aimTileZ);
+                            if (d < 3) {
+                                dealDamageToEnemy(e, Math.round(player.damage * 3.5));
+                                e.data.lastAttack = now + 1000; // brief stun
+                            }
+                        }
+                    }
+                } else if (elapsed < phaseRise + phaseFly + phaseStrike + phaseFade) {
+                    const t = (elapsed - phaseRise - phaseFly - phaseStrike) / phaseFade;
+                    nue.traverse(c => {
+                        if (c.isMesh && c.material) {
+                            c.material.transparent = true;
+                            c.material.opacity = 1 - t;
+                        }
+                    });
+                    auraLight.intensity = 1.8 * (1 - t);
+                } else {
+                    scene.remove(nue);
+                    nue.traverse(c => {
+                        if (c.isMesh) {
+                            if (c.geometry) c.geometry.dispose();
+                            if (c.material) c.material.dispose();
+                        }
+                    });
+                    return;
+                }
+                requestAnimationFrame(animateNue);
+            };
+            requestAnimationFrame(animateNue);
+
+            // Hand sign + mild VFX at Megumi
+            if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(-1.0, 0, -0.2);
+            setTimeout(() => {
+                if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(0.04, 0, 0);
+            }, 500);
+            emitParticles(worldPx, 0.4, worldPz, {
+                color: ['#1a237e', '#0d1b5e', '#283593'],
+                count: 18, speed: 2.5, spread: 1,
+                gravity: 0, life: 14, size: 0.13, sizeEnd: 0, drag: 0.94, upward: 2
+            });
+            groundRing(worldPx, worldPz, '#1a237e', 2.5, 500);
+            lightFlash(worldPx, EYE_HEIGHT, worldPz, '#1a237e', 3, 200);
+        }
+
+        else if (slot === 'v') { // Chimera Shadow Garden — incomplete domain expansion
+            const radius = 8; // tile radius of the domain
+            const duration = 7000; // ms
+
+            // ── Domain VFX — patterned floor + faint dome ──
+            screenFlash('rgba(26,35,126,0.6)', 1200);
+            screenShake(0.7, 1000);
+            triggerHitstop(120);
+            fovPunch(28, 0.4);
+            player.invincible = performance.now() + 1500;
+
+            // Activation hand sign
+            if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(-1.4, 0, -0.4);
+            if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.set(-1.4, 0, 0.4);
+            setTimeout(() => {
+                if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(0.04, 0, 0);
+                if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.set(0.04, 0, 0);
+            }, 1000);
+
+            // Patterned floor decal — multiple concentric rings (incomplete domain look)
+            const floorGroup = new THREE.Group();
+            for (let r = 0; r < 4; r++) {
+                const ringR = radius - r * 1.6;
+                const ringGeo = new THREE.RingGeometry(ringR - 0.15, ringR, 48);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: r % 2 === 0 ? '#1a237e' : '#7c4dff',
+                    transparent: true, opacity: 0.55,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.position.set(worldPx, 0.06 + r * 0.005, worldPz);
+                ring.rotation.x = -Math.PI / 2;
+                floorGroup.add(ring);
+            }
+            // Spoke lines (8 spokes)
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2;
+                const spokeGeo = new THREE.PlaneGeometry(radius * 1.8, 0.12);
+                const spokeMat = new THREE.MeshBasicMaterial({
+                    color: '#7c4dff', transparent: true, opacity: 0.4,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                });
+                const spoke = new THREE.Mesh(spokeGeo, spokeMat);
+                spoke.position.set(worldPx, 0.07, worldPz);
+                spoke.rotation.set(-Math.PI / 2, 0, a);
+                floorGroup.add(spoke);
+            }
+            scene.add(floorGroup);
+
+            // Faint dome overhead
+            const domeGeo = new THREE.SphereGeometry(radius, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const domeMat = new THREE.MeshBasicMaterial({
+                color: '#1a237e', transparent: true, opacity: 0.18,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const dome = new THREE.Mesh(domeGeo, domeMat);
+            dome.position.set(worldPx, 0.1, worldPz);
+            scene.add(dome);
+            // Wireframe inner dome
+            const wireDome = new THREE.Mesh(
+                new THREE.SphereGeometry(radius - 0.3, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.5),
+                new THREE.MeshBasicMaterial({ color: '#7c4dff', wireframe: true, transparent: true, opacity: 0.35, depthWrite: false })
+            );
+            wireDome.position.set(worldPx, 0.1, worldPz);
+            scene.add(wireDome);
+            const domeLight = new THREE.PointLight('#7c4dff', 5, TILE * 12, 1.8);
+            domeLight.position.set(worldPx, 4, worldPz);
+            scene.add(domeLight);
+
+            groundDecal(worldPx, worldPz, '#1a237e', radius, duration + 500);
+
+            // ── Spawn the simultaneous shikigami inside the domain ──
+            // 2 temporary divine dogs (death timestamp = now + duration)
+            const lifeEnd = performance.now() + duration;
+            const tempDogStats = {
+                color: '#1a1a22', radius: 0.5, speed: 5,
+                damage: Math.round(player.damage * 0.5),
+                attackRange: 1.8, attackSpeed: 600,
+                hp: 999, maxHp: 999, life: lifeEnd, _owner: player,
+            };
+            const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+            spawnMinion('divineDog', px + perpX * 1.5, pz + perpZ * 1.5,
+                { ...tempDogStats, color: '#e8e0d8', _isWhite: true, _dogSide: 1 });
+            spawnMinion('divineDog', px - perpX * 1.5, pz - perpZ * 1.5,
+                { ...tempDogStats, _isWhite: false, _dogSide: -1 });
+
+            // Big damage burst on activation — every enemy inside the domain
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) {
+                    dealDamageToEnemy(e, Math.round(player.damage * 3));
+                    e.data.lastAttack = now + 800;
+                }
+            }
+
+            // ── Per-tick effects: rotate floor, lightning strikes from above, damage ──
+            const startTime = performance.now();
+            let lastTickTime = startTime;
+            let tickCount = 0;
+            const tickInterval = setInterval(() => {
+                const elapsed = performance.now() - startTime;
+                if (elapsed >= duration) {
+                    clearInterval(tickInterval);
+                    // Collapse VFX
+                    const fadeStart = performance.now();
+                    const fadeDome = () => {
+                        const ft = (performance.now() - fadeStart) / 600;
+                        if (ft >= 1) {
+                            scene.remove(dome); domeGeo.dispose(); domeMat.dispose();
+                            scene.remove(wireDome); wireDome.geometry.dispose(); wireDome.material.dispose();
+                            scene.remove(floorGroup);
+                            floorGroup.traverse(c => {
+                                if (c.isMesh) {
+                                    if (c.geometry) c.geometry.dispose();
+                                    if (c.material) c.material.dispose();
+                                }
+                            });
+                            scene.remove(domeLight);
+                            return;
+                        }
+                        domeMat.opacity = (1 - ft) * 0.18;
+                        wireDome.material.opacity = (1 - ft) * 0.35;
+                        domeLight.intensity = (1 - ft) * 5;
+                        floorGroup.traverse(c => {
+                            if (c.isMesh && c.material) c.material.opacity *= 0.94;
+                        });
+                        requestAnimationFrame(fadeDome);
+                    };
+                    requestAnimationFrame(fadeDome);
+                    return;
+                }
+                tickCount++;
+                // Spin the floor pattern
+                floorGroup.rotation.y += 0.04;
+
+                // Damage tick to enemies inside the domain
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 0.8));
+                    }
+                }
+
+                // Periodic lightning strike on the strongest nearby enemy
+                if (tickCount % 4 === 0) {
+                    let bestE = null, bestHp = 0;
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        if (Math.hypot(e.data.x - px, e.data.z - pz) > radius) continue;
+                        if (e.data.hp > bestHp) { bestHp = e.data.hp; bestE = e; }
+                    }
+                    if (bestE) {
+                        const tx = bestE.data.x * TILE, tz = bestE.data.z * TILE;
+                        // Quick bolt
+                        const bGeo = new THREE.CylinderGeometry(0.08, 0.3, 8, 6);
+                        const bMat = new THREE.MeshBasicMaterial({
+                            color: '#ffeb3b', transparent: true, opacity: 0.85,
+                            blending: THREE.AdditiveBlending, depthWrite: false
+                        });
+                        const bolt = new THREE.Mesh(bGeo, bMat);
+                        bolt.position.set(tx, 4, tz);
+                        scene.add(bolt);
+                        const bStart = performance.now();
+                        const fadeBolt = () => {
+                            const ft = (performance.now() - bStart) / 250;
+                            if (ft >= 1) { scene.remove(bolt); bGeo.dispose(); bMat.dispose(); return; }
+                            bMat.opacity = (1 - ft) * 0.85;
+                            requestAnimationFrame(fadeBolt);
+                        };
+                        requestAnimationFrame(fadeBolt);
+                        lightFlash(tx, 2, tz, '#ffeb3b', 6, 200);
+                        groundRing(tx, tz, '#ffeb3b', 1.8, 300);
+                        emitParticles(tx, 1, tz, {
+                            color: ['#ffeb3b', '#ffffff'], count: 12, speed: 4, spread: 0.6,
+                            gravity: -2, life: 10, size: 0.1, sizeEnd: 0, drag: 0.94
+                        });
+                        dealDamageToEnemy(bestE, Math.round(player.damage * 2));
+                    }
+                }
+
+                // Shadow particles at random points inside the domain
+                const a = Math.random() * Math.PI * 2;
+                const r2 = Math.random() * radius * 0.9;
+                emitParticles(worldPx + Math.cos(a) * r2 * TILE / radius, 1, worldPz + Math.sin(a) * r2 * TILE / radius, {
+                    color: ['#1a237e', '#7c4dff', '#0d1b5e'],
+                    count: 4, speed: 2, spread: 0.6,
+                    gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.96, upward: 1.5
+                });
+                lastTickTime = performance.now();
+            }, 250);
+
+            // Initial ground rings + flash
+            for (let r = 0; r < 4; r++) {
+                setTimeout(() => groundRing(worldPx, worldPz, r % 2 === 0 ? '#1a237e' : '#7c4dff', radius - r * 1.2, 800), r * 80);
+            }
+            lightFlash(worldPx, 3, worldPz, '#7c4dff', 14, 800);
+            emitParticles(worldPx, 1, worldPz, {
+                color: ['#1a237e', '#7c4dff', '#0d1b5e', '#ffffff'],
+                count: 80, speed: 6, spread: 2,
+                gravity: 0, life: 20, size: 0.18, sizeEnd: 0, drag: 0.95, upward: 4
+            });
+        }
+
         else if (slot === 'f') { // Shadow Dash — phase through shadows forward
             const dashDist = 5;
             const newX = px + fwdX * dashDist;
