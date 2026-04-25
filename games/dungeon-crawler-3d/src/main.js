@@ -2892,14 +2892,23 @@ function startGame() {
             if (!rClassId) continue;
             const rpMesh = buildPlayerModelForClass(rClassId, `P${i + 1} `);
             rpMesh.visible = true;
-            const sx = startRoom.cx + 0.5, sz = startRoom.cy + 0.5;
+            // Stagger spawn so remote players aren't on top of you (and each other)
+            const offsetIdx = i + 1; // host=0 stays put; remotes spread out
+            const sx = startRoom.cx + 0.5 + Math.cos(offsetIdx * 1.7) * 1.4;
+            const sz = startRoom.cy + 0.5 + Math.sin(offsetIdx * 1.7) * 1.4;
             rpMesh.position.set(sx * TILE, 0, sz * TILE);
             scene.add(rpMesh);
+            // Bright aura so the remote player is easy to spot in the dungeon
+            const auraColor = i === 0 ? '#4fc3f7' : i === 1 ? '#ff8800' : i === 2 ? '#aa00ff' : '#00ff88';
+            const aura = new THREE.PointLight(auraColor, 2.5, TILE * 5, 1.4);
+            aura.position.y = 1.5;
+            rpMesh.add(aura);
             remotePlayers.push({
                 playerIndex: i, classId: rClassId, mesh: rpMesh,
                 x: sx, z: sz, yaw: 0,
                 targetX: sx, targetZ: sz, targetYaw: 0, targetTime: performance.now(),
-                hp: (CLASSES[rClassId] && CLASSES[rClassId].maxHp) || 100, alive: true
+                hp: (CLASSES[rClassId] && CLASSES[rClassId].maxHp) || 100, alive: true,
+                auraColor
             });
             console.log(`[game] remote player P${i + 1} (${rClassId}) spawned at (${sx.toFixed(1)}, ${sz.toFixed(1)})`);
         }
@@ -10208,6 +10217,21 @@ function drawMinimap() {
         } else {
             ctx.fillStyle = '#ff4444';
             ctx.fillRect(ex - 1, ez - 1, 2, 2);
+        }
+    }
+
+    // Remote player dots (online co-op) — colored circle + arrow
+    if (onlineMode) {
+        for (const rp of remotePlayers) {
+            if (!rp.alive) continue;
+            const rx = rp.x * scale, rz = rp.z * scale;
+            ctx.fillStyle = rp.auraColor || '#4fc3f7';
+            ctx.beginPath(); ctx.arc(rx, rz, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = rp.auraColor || '#4fc3f7'; ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(rx, rz);
+            ctx.lineTo(rx - Math.sin(rp.yaw) * 5, rz - Math.cos(rp.yaw) * 5);
+            ctx.stroke();
         }
     }
 
