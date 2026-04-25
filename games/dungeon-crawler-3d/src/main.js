@@ -8901,163 +8901,251 @@ function spawnMinion(type, tileX, tileZ, data) {
     const color = data.color;
 
     if (type === 'divineDog') {
-        // ── Divine Dog — full 3D wolf/dog model ──
+        // ── Divine Dog — anatomically realistic 3D wolf model ──
         const isWhite = data._isWhite;
-        const furColor = isWhite ? '#e8e0d8' : '#1a1a22';
-        const furAccent = isWhite ? '#d0c8c0' : '#0d0d14';
-        const eyeColor = isWhite ? '#ffffff' : '#ff2244';
-        const furMat = new THREE.MeshStandardMaterial({ color: furColor, roughness: 0.7 });
-        const accentMat = new THREE.MeshStandardMaterial({ color: furAccent, roughness: 0.7 });
-        const noseMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.5 });
+        const furColor = isWhite ? '#ddd4c8' : '#1a1a20';
+        const furAccent = isWhite ? '#a89a88' : '#0a0a14';
+        const furBelly = isWhite ? '#f0e8de' : '#2a2a32';
+        const eyeColor = isWhite ? '#ffaa00' : '#ff2200'; // amber / blood-red
+        const noseMat = new THREE.MeshStandardMaterial({ color: '#0a0808', roughness: 0.35, metalness: 0.1 });
+        const furMat = new THREE.MeshStandardMaterial({ color: furColor, roughness: 0.85, metalness: 0.0 });
+        const accentMat = new THREE.MeshStandardMaterial({ color: furAccent, roughness: 0.85, metalness: 0.0 });
+        const bellyMat = new THREE.MeshStandardMaterial({ color: furBelly, roughness: 0.85 });
         const dogEyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
-        const glowColor = isWhite ? '#e0e0e0' : '#ff2244';
+        const glowColor = isWhite ? '#fff0c8' : '#ff2244';
 
-        // ── Torso — long oval body ──
-        const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 0.9, 8), furMat);
-        torso.rotation.x = Math.PI / 2; // lay horizontal
-        torso.position.set(0, 0.55, 0);
+        // Inline organic-deformed sphere for flowing fur shapes
+        function organicSphere(radius, deformAmount, segs) {
+            const geo = new THREE.SphereGeometry(radius, segs, Math.floor(segs * 0.75));
+            const pos = geo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+                const n = Math.sin(x * 6 + 1.3) * Math.cos(y * 5 + 0.7) * Math.sin(z * 7 + 2.1);
+                const noise = n * deformAmount * radius;
+                const len = Math.sqrt(x * x + y * y + z * z);
+                if (len > 0.001) {
+                    const s = 1 + noise / len;
+                    pos.setXYZ(i, x * s, y * s, z * s);
+                }
+            }
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        // ── Torso — long flowing organic body ──
+        const torso = new THREE.Mesh(organicSphere(0.32, 0.06, 14), furMat);
+        torso.position.set(0, 0.58, 0);
+        torso.scale.set(1.0, 0.85, 1.75); // elongated front-to-back
         group.add(torso);
 
-        // Chest — broader front
-        const chest = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 8), furMat);
-        chest.position.set(0, 0.55, 0.35);
-        chest.scale.set(1, 1, 0.8);
-        group.add(chest);
+        // Belly — lighter underside
+        const belly = new THREE.Mesh(organicSphere(0.26, 0.05, 12), bellyMat);
+        belly.position.set(0, 0.42, 0);
+        belly.scale.set(0.9, 0.6, 1.55);
+        group.add(belly);
 
-        // Haunches — rear
-        const rear = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), furMat);
-        rear.position.set(0, 0.52, -0.4);
-        rear.scale.set(1, 1, 0.8);
-        group.add(rear);
+        // Shoulder bulges — muscular
+        const shoulderL = new THREE.Mesh(organicSphere(0.2, 0.05, 10), furMat);
+        shoulderL.position.set(0.18, 0.62, 0.4);
+        shoulderL.scale.set(1, 0.95, 1.1);
+        group.add(shoulderL);
+        const shoulderR = shoulderL.clone();
+        shoulderR.position.x = -0.18;
+        group.add(shoulderR);
 
-        // ── Neck ──
-        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.25, 6), furMat);
-        neck.position.set(0, 0.7, 0.5);
-        neck.rotation.x = -0.5;
+        // Hip bulges — rear haunches
+        const hipL = new THREE.Mesh(organicSphere(0.2, 0.05, 10), furMat);
+        hipL.position.set(0.17, 0.58, -0.5);
+        hipL.scale.set(1, 0.95, 1.1);
+        group.add(hipL);
+        const hipR = hipL.clone();
+        hipR.position.x = -0.17;
+        group.add(hipR);
+
+        // ── Neck — angled forward and up ──
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.4, 10), furMat);
+        neck.position.set(0, 0.72, 0.6);
+        neck.rotation.x = -0.7;
         group.add(neck);
 
-        // ── Head ──
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), furMat);
-        head.position.set(0, 0.85, 0.65);
-        head.scale.set(1, 0.9, 1.15); // slightly elongated snout shape
+        // Mane fur tuft on chest/throat
+        const mane = new THREE.Mesh(organicSphere(0.16, 0.08, 10), accentMat);
+        mane.position.set(0, 0.55, 0.6);
+        mane.scale.set(1, 0.75, 1.2);
+        group.add(mane);
+
+        // ── Head — narrower, slightly elongated ──
+        const head = new THREE.Mesh(organicSphere(0.17, 0.05, 12), furMat);
+        head.position.set(0, 0.92, 0.82);
+        head.scale.set(1, 0.95, 1.15);
         group.add(head);
 
-        // Snout — protruding muzzle
-        const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 0.2, 6), furMat);
-        snout.position.set(0, 0.8, 0.85);
-        snout.rotation.x = Math.PI / 2;
+        // ── Snout — long tapering muzzle (defining wolf feature) ──
+        const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 0.34, 8), furMat);
+        snout.position.set(0, 0.84, 1.02);
+        snout.rotation.x = Math.PI / 2 - 0.05;
         group.add(snout);
 
-        // Nose tip
-        const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), noseMat);
-        noseTip.position.set(0, 0.82, 0.95);
+        // Snout bridge (top, slightly darker)
+        const snoutTop = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.32, 6), accentMat);
+        snoutTop.position.set(0, 0.91, 1.02);
+        snoutTop.rotation.x = Math.PI / 2 - 0.05;
+        snoutTop.scale.set(1, 1, 0.5);
+        group.add(snoutTop);
+
+        // Nose tip — wet black nub
+        const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), noseMat);
+        noseTip.position.set(0, 0.85, 1.2);
+        noseTip.scale.set(1, 0.85, 0.85);
         group.add(noseTip);
 
-        // ── Mouth — slight jaw gap ──
-        const upperJaw = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 0.12), accentMat);
-        upperJaw.position.set(0, 0.77, 0.88);
-        group.add(upperJaw);
-        const lowerJaw = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.02, 0.1), accentMat);
-        lowerJaw.position.set(0, 0.74, 0.86);
-        group.add(lowerJaw);
+        // ── Mouth — dark slit ──
+        const mouth = new THREE.Mesh(
+            new THREE.BoxGeometry(0.11, 0.012, 0.18),
+            new THREE.MeshBasicMaterial({ color: '#1a0608' })
+        );
+        mouth.position.set(0, 0.78, 1.05);
+        group.add(mouth);
 
-        // Teeth — small fangs visible
-        const toothMat = new THREE.MeshStandardMaterial({ color: '#f0f0e0', roughness: 0.3 });
+        // Visible fangs at mouth corners
+        const toothMat = new THREE.MeshStandardMaterial({ color: '#f0e8d0', roughness: 0.3 });
         for (let s = -1; s <= 1; s += 2) {
-            const fang = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.04, 3), toothMat);
-            fang.position.set(s * 0.03, 0.74, 0.9);
+            const fang = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.06, 5), toothMat);
+            fang.position.set(s * 0.05, 0.755, 1.08);
             fang.rotation.x = Math.PI;
             group.add(fang);
         }
 
-        // ── Eyes ──
+        // ── Eyes — almond shaped sockets with glowing iris and slit pupil ──
         for (let s = -1; s <= 1; s += 2) {
-            const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6),
-                new THREE.MeshBasicMaterial({ color: '#e0e0e0' }));
-            eyeWhite.position.set(s * 0.1, 0.9, 0.75);
-            eyeWhite.scale.set(0.8, 0.7, 0.5);
-            group.add(eyeWhite);
+            const socket = new THREE.Mesh(
+                new THREE.SphereGeometry(0.05, 8, 8),
+                new THREE.MeshStandardMaterial({ color: '#0a0808', roughness: 0.5 })
+            );
+            socket.position.set(s * 0.1, 0.97, 0.92);
+            socket.scale.set(1, 0.55, 0.4);
+            group.add(socket);
 
-            const iris = new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 5), dogEyeMat);
-            iris.position.set(s * 0.1, 0.9, 0.78);
+            const iris = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), dogEyeMat);
+            iris.position.set(s * 0.1, 0.97, 0.95);
+            iris.scale.set(1, 0.7, 0.5);
             group.add(iris);
 
-            const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4),
-                new THREE.MeshBasicMaterial({ color: '#000000' }));
-            pupil.position.set(s * 0.1, 0.9, 0.8);
+            // Vertical slit pupil (predator eye)
+            const pupil = new THREE.Mesh(
+                new THREE.BoxGeometry(0.006, 0.024, 0.005),
+                new THREE.MeshBasicMaterial({ color: '#000000' })
+            );
+            pupil.position.set(s * 0.1, 0.97, 0.97);
             group.add(pupil);
         }
 
-        // ── Ears — pointed upward (wolf-like) ──
+        // ── Ears — large pointed triangles, upright (alert) ──
         for (let s = -1; s <= 1; s += 2) {
-            const ear = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.15, 4), furMat);
-            ear.position.set(s * 0.12, 1.02, 0.6);
-            ear.rotation.z = s * 0.2;
-            ear.rotation.x = -0.15;
+            const ear = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.24, 5), furMat);
+            ear.position.set(s * 0.13, 1.13, 0.75);
+            ear.rotation.z = s * 0.18;
+            ear.rotation.x = -0.05;
+            ear.scale.set(0.7, 1, 0.4);
             group.add(ear);
             // Inner ear
-            const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.1, 4),
+            const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.18, 4),
                 new THREE.MeshStandardMaterial({ color: isWhite ? '#d4a8a0' : '#3a1a1a', roughness: 0.5 }));
-            innerEar.position.set(s * 0.12, 1.0, 0.62);
-            innerEar.rotation.z = s * 0.2;
-            innerEar.rotation.x = -0.15;
+            innerEar.position.set(s * 0.12, 1.1, 0.78);
+            innerEar.rotation.z = s * 0.18;
+            innerEar.rotation.x = -0.05;
+            innerEar.scale.set(0.7, 1, 0.3);
             group.add(innerEar);
         }
 
-        // ── Legs (4 legs) ──
+        // ── Legs (4) — anatomical with knee, paw, claws ──
         const legPositions = [
-            { x: 0.12, z: 0.25, label: 'FL' },  // front-left
-            { x: -0.12, z: 0.25, label: 'FR' },  // front-right
-            { x: 0.1, z: -0.35, label: 'BL' },   // back-left
-            { x: -0.1, z: -0.35, label: 'BR' },   // back-right
+            { x: 0.18, z: 0.36 },   // front-left
+            { x: -0.18, z: 0.36 },  // front-right
+            { x: 0.16, z: -0.45 },  // back-left
+            { x: -0.16, z: -0.45 }, // back-right
         ];
         const legPivots = [];
         for (const lp of legPositions) {
             const legPivot = new THREE.Group();
             legPivot.position.set(lp.x, 0.45, lp.z);
 
-            // Upper leg
-            const upperLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.25, 5), furMat);
-            upperLeg.position.y = -0.12;
+            // Upper leg (thigh)
+            const upperLeg = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.18, 4, 6), furMat);
+            upperLeg.position.set(0, -0.1, 0);
             legPivot.add(upperLeg);
 
-            // Lower leg
-            const lowerLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.025, 0.22, 5), furMat);
-            lowerLeg.position.y = -0.32;
+            // Knee joint
+            const knee = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), furMat);
+            knee.position.set(0, -0.22, 0);
+            legPivot.add(knee);
+
+            // Lower leg (shin)
+            const lowerLeg = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.18, 4, 6), accentMat);
+            lowerLeg.position.set(0, -0.34, 0.02);
             legPivot.add(lowerLeg);
 
-            // Paw
-            const paw = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), accentMat);
-            paw.position.set(0, -0.44, 0.01);
-            paw.scale.set(1, 0.5, 1.3);
+            // Paw — flat oval
+            const paw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), accentMat);
+            paw.position.set(0, -0.46, 0.04);
+            paw.scale.set(1, 0.4, 1.4);
             legPivot.add(paw);
+
+            // Tiny claws
+            for (let c = -1; c <= 1; c++) {
+                const claw = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.018, 3),
+                    new THREE.MeshStandardMaterial({ color: '#1a1a1a' }));
+                claw.position.set(c * 0.022, -0.475, 0.085);
+                claw.rotation.x = -0.5;
+                legPivot.add(claw);
+            }
 
             group.add(legPivot);
             legPivots.push(legPivot);
         }
         group.userData._legPivots = legPivots;
 
-        // ── Tail — curves upward ──
-        const tailBase = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.02, 0.25, 5), furMat);
-        tailBase.position.set(0, 0.65, -0.55);
-        tailBase.rotation.x = 0.8;
+        // ── Bushy tail — multiple sphere segments curving up ──
+        const tailSegs = [];
+        const tailBase = new THREE.Group();
+        tailBase.position.set(0, 0.6, -0.65);
+        for (let t = 0; t < 5; t++) {
+            const seg = new THREE.Mesh(
+                new THREE.SphereGeometry(0.075 - t * 0.008, 8, 6),
+                t < 2 ? furMat : accentMat
+            );
+            const tProg = t / 4;
+            seg.position.set(0, tProg * 0.18, -tProg * 0.18);
+            seg.scale.set(1, 0.95, 1.3);
+            tailBase.add(seg);
+            tailSegs.push(seg);
+        }
         group.add(tailBase);
-        const tailTip = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.008, 0.18, 4), furMat);
-        tailTip.position.set(0, 0.8, -0.65);
-        tailTip.rotation.x = 1.2;
-        group.add(tailTip);
+        group.userData._tailBase = tailBase;
+        group.userData._tailSegs = tailSegs;
+
+        // ── Fur tufts along back — texture detail ──
+        for (let i = 0; i < 5; i++) {
+            const tProg = i / 4;
+            const tuft = new THREE.Mesh(
+                new THREE.SphereGeometry(0.07, 6, 6),
+                i % 2 === 0 ? accentMat : furMat
+            );
+            tuft.position.set((Math.random() - 0.5) * 0.12, 0.78, -0.45 + tProg * 0.85);
+            tuft.scale.set(1.2, 0.55, 1.2);
+            group.add(tuft);
+        }
 
         // ── Glow aura ──
-        const aura = new THREE.PointLight(glowColor, 1.2, TILE * 3, 2);
+        const aura = new THREE.PointLight(glowColor, 1.4, TILE * 3, 2);
         aura.position.y = 0.7;
         group.add(aura);
 
-        // Shadow wisps at feet (dark energy)
+        // Shadow disc beneath
         const shadowMat = new THREE.MeshBasicMaterial({
-            color: '#1a237e', transparent: true, opacity: 0.3,
-            blending: THREE.AdditiveBlending, depthWrite: false
+            color: '#000000', transparent: true, opacity: 0.5, depthWrite: false
         });
-        const shadowDisc = new THREE.Mesh(new THREE.CircleGeometry(0.5, 8), shadowMat);
+        const shadowDisc = new THREE.Mesh(new THREE.CircleGeometry(0.55, 12), shadowMat);
         shadowDisc.rotation.x = -Math.PI / 2;
         shadowDisc.position.y = 0.02;
         group.add(shadowDisc);
@@ -9146,23 +9234,21 @@ function updateMinions(dt, now) {
             }
 
             let targetX, targetZ;
-            if (nearestEnemy && nearestDist < 10) {
+            let isAttacking = false;
+            if (nearestEnemy && nearestDist < 8) {
                 // ── ATTACK MODE — flank the enemy from this dog's side ──
+                isAttacking = true;
                 const ex = nearestEnemy.data.x, ez = nearestEnemy.data.z;
-                // Direction from enemy to player
                 const eToPx = px - ex, eToPz = pz - ez;
                 const eToPd = Math.hypot(eToPx, eToPz) || 1;
-                // Perpendicular direction for flanking
                 const perpX = -eToPz / eToPd, perpZ = eToPx / eToPd;
-                const flankDist = 1.5;
+                const flankDist = 1.0;
                 targetX = ex + perpX * flankDist * side;
                 targetZ = ez + perpZ * flankDist * side;
 
-                // Attack if in range
                 if (nearestDist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
                     m.data.lastAttack = now;
                     dealDamageToEnemy(nearestEnemy, m.data.damage);
-                    // Bite VFX
                     emitParticles(nearestEnemy.data.x * TILE, 1.5, nearestEnemy.data.z * TILE, {
                         color: m.data._isWhite ? ['#ffffff', '#e0e0e0'] : ['#ff2244', '#1a237e'],
                         count: 6, speed: 3, spread: 0.8,
@@ -9170,67 +9256,100 @@ function updateMinions(dt, now) {
                     });
                 }
             } else {
-                // ── FOLLOW MODE — walk beside the player on this dog's side ──
-                // Get player's facing direction for side offset
+                // ── FOLLOW MODE — heel beside the player closely ──
                 const playerYaw = fpsCamera.yaw;
                 const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
                 const pPerpX = Math.cos(playerYaw), pPerpZ = -Math.sin(playerYaw);
-                const sideOffset = 2.5; // how far to the side
-                const backOffset = 1.0; // slightly behind player
+                const sideOffset = 1.4; // closer to the player
+                const backOffset = 0.4; // barely behind
                 targetX = px + pPerpX * sideOffset * side - pFwdX * backOffset;
                 targetZ = pz + pPerpZ * sideOffset * side - pFwdZ * backOffset;
             }
 
-            // Separation from other dog — push apart if too close
+            // Light separation from the other dog — only when really crowded
             if (otherDog) {
                 const odx = m.data.x - otherDog.data.x;
                 const odz = m.data.z - otherDog.data.z;
                 const odist = Math.hypot(odx, odz);
-                if (odist < 3 && odist > 0.01) {
-                    // Push away from the other dog
-                    const pushStrength = (3 - odist) * 0.3;
+                if (odist < 1.5 && odist > 0.01) {
+                    const pushStrength = (1.5 - odist) * 0.4;
                     targetX += (odx / odist) * pushStrength;
                     targetZ += (odz / odist) * pushStrength;
                 }
             }
 
-            // Move toward target
+            // Move toward target — with axis-separated wall collision
             const dx = targetX - m.data.x, dz = targetZ - m.data.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist > 0.5) {
-                const spd = Math.min(m.data.speed * dt, dist * 0.2);
-                m.data.x += (dx / dist) * spd;
-                m.data.z += (dz / dist) * spd;
+            if (dist > 0.25) {
+                const spd = Math.min(m.data.speed * dt, dist * 0.3);
+                const moveX = (dx / dist) * spd;
+                const moveZ = (dz / dist) * spd;
+                const r = 0.4; // dog collision radius
+                const newX = m.data.x + moveX;
+                const newZ = m.data.z + moveZ;
+                if (isWalkable(dungeon.map, newX - r, m.data.z - r) &&
+                    isWalkable(dungeon.map, newX + r, m.data.z - r) &&
+                    isWalkable(dungeon.map, newX - r, m.data.z + r) &&
+                    isWalkable(dungeon.map, newX + r, m.data.z + r)) {
+                    m.data.x = newX;
+                }
+                if (isWalkable(dungeon.map, m.data.x - r, newZ - r) &&
+                    isWalkable(dungeon.map, m.data.x + r, newZ - r) &&
+                    isWalkable(dungeon.map, m.data.x - r, newZ + r) &&
+                    isWalkable(dungeon.map, m.data.x + r, newZ + r)) {
+                    m.data.z = newZ;
+                }
             }
 
-            // Teleport if too far from player
+            // Teleport to player's side if separated by walls (e.g. went through a doorway)
             const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
-            if (playerDist > 15) {
+            if (playerDist > 9) {
                 const playerYaw = fpsCamera.yaw;
                 const pPerpX = Math.cos(playerYaw), pPerpZ = -Math.sin(playerYaw);
-                m.data.x = px + pPerpX * 2.5 * side;
-                m.data.z = pz + pPerpZ * 2.5 * side;
+                const tryX = px + pPerpX * 1.2 * side;
+                const tryZ = pz + pPerpZ * 1.2 * side;
+                if (isWalkable(dungeon.map, tryX, tryZ)) {
+                    m.data.x = tryX; m.data.z = tryZ;
+                } else if (isWalkable(dungeon.map, px, pz)) {
+                    m.data.x = px; m.data.z = pz;
+                }
             }
 
             m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
 
-            // Face movement direction
-            if (dist > 0.3) {
+            // Face movement direction (or face nearest enemy if attacking but stationary)
+            if (dist > 0.2) {
                 const faceAngle = Math.atan2(dx, dz);
                 m.mesh.rotation.y = faceAngle;
+            } else if (isAttacking && nearestEnemy) {
+                const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
+                m.mesh.rotation.y = Math.atan2(fdx, fdz);
             }
-            // Leg walk animation
+
+            // Leg walk animation — tied to actual movement
             const legs = m.mesh.userData._legPivots;
-            if (legs && dist > 0.5) {
-                const wt = now * 0.01;
-                const stride = 0.6;
+            const moving = dist > 0.25;
+            if (legs && moving) {
+                const wt = now * 0.012;
+                const stride = 0.55;
                 legs[0].rotation.x = Math.sin(wt) * stride;
                 legs[1].rotation.x = Math.sin(wt + Math.PI) * stride;
                 legs[2].rotation.x = Math.sin(wt + Math.PI) * stride;
                 legs[3].rotation.x = Math.sin(wt) * stride;
             } else if (legs) {
-                for (const lp of legs) lp.rotation.x *= 0.9; // ease to idle
+                for (const lp of legs) lp.rotation.x *= 0.85;
             }
+
+            // Tail wag — faster when following the player, slow sway otherwise
+            const tail = m.mesh.userData._tailBase;
+            if (tail) {
+                const wagSpeed = isAttacking ? 0.018 : 0.008;
+                const wagAmt = isAttacking ? 0.5 : 0.35;
+                tail.rotation.y = Math.sin(now * wagSpeed) * wagAmt;
+                tail.rotation.x = 0.6 + Math.sin(now * wagSpeed * 0.7) * 0.1;
+            }
+
             continue; // skip default logic below
         }
 
