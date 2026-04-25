@@ -233,6 +233,7 @@ function init() {
             if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
             if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else if (player?.classId === 'horohoro') horohoroOversoul(); else playerDodge(); }
             if (e.code === 'KeyG' && player?.classId === 'megumi') megumiToad();
+            if (e.code === 'KeyH' && player?.classId === 'megumi') megumiSerpent();
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
             // ── P2 controls (local co-op only — disabled in online) ──
@@ -9410,8 +9411,13 @@ function buildDogHpBar() {
 }
 
 // Damage a divine dog (or any minion with hp). Cleanup happens at top of updateMinions.
-function dealDamageToDog(m, dmg) {
+// `attacker` is optional — when supplied (e.g. from enemy melee or projectiles),
+// it's recorded as the most recent shadow attacker so the serpent can avenge.
+function dealDamageToDog(m, dmg, attacker) {
     if (!m || !m.data || m.data.hp <= 0) return;
+    if (attacker && attacker.data && attacker.data.alive) {
+        _lastShadowAttack = { enemy: attacker, time: performance.now() };
+    }
     m.data.hp -= dmg;
     // Hit flash
     m.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#ff0000'); });
@@ -10094,6 +10100,21 @@ function spawnMinion(type, tileX, tileZ, data) {
         shadowDisc.position.y = 0.02;
         group.add(shadowDisc);
 
+    } else if (type === 'serpent') {
+        // ── Serpent — Megumi's Great Serpent shikigami ──
+        const sp = buildSerpentMesh();
+        group.add(sp);
+        group.userData._segments = sp.userData._segments;
+        group.userData._tongue = sp.userData._tongue;
+        // Shadow disc beneath the head
+        const shadowDisc = new THREE.Mesh(
+            new THREE.CircleGeometry(0.4, 12),
+            new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.5, depthWrite: false })
+        );
+        shadowDisc.rotation.x = -Math.PI / 2;
+        shadowDisc.position.y = 0.02;
+        group.add(shadowDisc);
+
     } else {
         // ── Default humanoid minion ──
 
@@ -10499,6 +10520,153 @@ function updateMinions(dt, now) {
             continue;
         }
 
+        // ── Serpent AI ──
+        if (m.data.type === 'serpent') {
+            // HP bar update
+            if (m.data._hpBar) {
+                const bar = m.data._hpBar;
+                bar.position.set(m.data.x * TILE, 2.0, m.data.z * TILE);
+                bar.lookAt(camera.position);
+                const ratio = Math.max(0, m.data.hp / m.data.maxHp);
+                bar._fg.scale.x = ratio;
+                bar._fg.position.x = -(1 - ratio) * 0.55;
+                if (ratio > 0.5) bar._fgMat.color.set('#00ff66');
+                else if (ratio > 0.25) bar._fgMat.color.set('#ffcc00');
+                else bar._fgMat.color.set('#ff2244');
+            }
+
+            // Pick target — recently-attacked-shadow's attacker takes priority,
+            // else nearest enemy within 12 tiles.
+            let target = null;
+            if (_lastShadowAttack && _lastShadowAttack.enemy && _lastShadowAttack.enemy.data.alive
+                && (now - _lastShadowAttack.time) < 3000) {
+                target = _lastShadowAttack.enemy;
+            }
+            if (!target) {
+                let bestD = Infinity;
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
+                    if (d < bestD && d < 12) { bestD = d; target = e; }
+                }
+            }
+
+            // Slither motion — head moves toward target with a sinusoidal lateral wobble
+            // Body segments chain-follow the head at fixed segment distance.
+            const segments = m.mesh.userData._segments;
+            const segDist = 0.32; // tile-space distance between head positions in segment chain
+            // Head logical position lives on m.data.x/z (tile coords). We add a wobble at draw time.
+            let moving = false;
+            if (target) {
+                const dx = target.data.x - m.data.x, dz = target.data.z - m.data.z;
+                const dist = Math.hypot(dx, dz);
+                const stopDist = m.data.attackRange * 0.7;
+                if (dist > stopDist) {
+                    moving = true;
+                    const spd = m.data.speed * dt;
+                    // Wall-slide: try direct then ±45°
+                    const dirX = dx / dist, dirZ = dz / dist;
+                    const r = 0.25;
+                    const angles = [0, 0.5, -0.5, 1.0, -1.0, Math.PI / 2, -Math.PI / 2];
+                    for (const dAng of angles) {
+                        const cosA = Math.cos(dAng), sinA = Math.sin(dAng);
+                        const tryX = dirX * cosA - dirZ * sinA;
+                        const tryZ = dirX * sinA + dirZ * cosA;
+                        const newX = m.data.x + tryX * spd;
+                        const newZ = m.data.z + tryZ * spd;
+                        if (isWalkable(dungeon.map, newX, newZ)) {
+                            m.data.x = newX; m.data.z = newZ;
+                            break;
+                        }
+                    }
+                }
+                // Bite when in range
+                if (dist < m.data.attackRange && now - m.data.lastAttack > m.data.attackSpeed) {
+                    m.data.lastAttack = now;
+                    dealDamageToEnemy(target, m.data.damage);
+                    emitParticles(target.data.x * TILE, 1.4, target.data.z * TILE, {
+                        color: ['#5aa838', '#a8d870', '#d8506a'],
+                        count: 8, speed: 4, spread: 0.7,
+                        gravity: -3, life: 8, size: 0.08, sizeEnd: 0, drag: 0.93
+                    });
+                    // Tongue flick on bite
+                    if (m.mesh.userData._tongue) {
+                        const t = m.mesh.userData._tongue;
+                        t.scale.z = 1.6;
+                        setTimeout(() => { if (t) t.scale.z = 1; }, 150);
+                    }
+                }
+            } else {
+                // No target — circle near the player
+                const playerYaw = fpsCamera.yaw;
+                const heelX = px - Math.sin(playerYaw) * (-1) * 1.8;
+                const heelZ = pz - Math.cos(playerYaw) * (-1) * 1.8;
+                const dx = heelX - m.data.x, dz = heelZ - m.data.z;
+                const dist = Math.hypot(dx, dz);
+                if (dist > 0.5) {
+                    moving = true;
+                    const spd = m.data.speed * 0.6 * dt;
+                    const newX = m.data.x + (dx / dist) * spd;
+                    const newZ = m.data.z + (dz / dist) * spd;
+                    if (isWalkable(dungeon.map, newX, newZ)) {
+                        m.data.x = newX; m.data.z = newZ;
+                    }
+                }
+            }
+
+            // Teleport to player if completely orphaned
+            const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
+            if (playerDist > 14 && isWalkable(dungeon.map, px, pz)) {
+                m.data.x = px; m.data.z = pz;
+            }
+
+            // ── Slithering chain-follow body ──
+            // Head world position with sin lateral wobble for the slither look
+            m.data._slitherT = (m.data._slitherT || 0) + dt * 6;
+            // Heading direction (toward last movement, or toward target)
+            let hX = 0, hZ = -1;
+            if (target) {
+                const dx = target.data.x - m.data.x, dz = target.data.z - m.data.z;
+                const d = Math.hypot(dx, dz) || 1;
+                hX = dx / d; hZ = dz / d;
+            }
+            // Perpendicular to heading (for wobble)
+            const perpX = -hZ, perpZ = hX;
+            const wobble = moving ? Math.sin(m.data._slitherT) * 0.12 : 0;
+            const headWX = (m.data.x + perpX * wobble) * TILE;
+            const headWZ = (m.data.z + perpZ * wobble) * TILE;
+            // Chain-follow: each segment trails the previous one at fixed segDist
+            const headSeg = segments[0];
+            const groupOffset = m.mesh.position; // group is positioned at (0,0,0); segments hold world-local pos
+            // We treat segment.position as if in world space for simplicity (group at origin)
+            m.mesh.position.set(0, 0, 0);
+            // Place head
+            headSeg.position.x = headWX;
+            headSeg.position.z = headWZ;
+            headSeg.position.y = 0.3;
+            // Face heading direction
+            if (Math.hypot(hX, hZ) > 0.001) {
+                headSeg.rotation.y = Math.atan2(hX, hZ) + Math.PI;
+            }
+            // Body chain
+            for (let i = 1; i < segments.length; i++) {
+                const prev = segments[i - 1].position;
+                const curr = segments[i].position;
+                const sdx = prev.x - curr.x, sdz = prev.z - curr.z;
+                const d = Math.hypot(sdx, sdz);
+                const wantD = segDist * TILE; // world-space segment distance
+                if (d > wantD) {
+                    const t = (d - wantD) / d;
+                    curr.x += sdx * t;
+                    curr.z += sdz * t;
+                }
+                curr.y = 0.3 - i * 0.005; // slight downward taper to ground
+                // Each body segment looks toward the previous one
+                if (d > 0.001) segments[i].rotation.y = Math.atan2(sdx, sdz) + Math.PI;
+            }
+            continue;
+        }
+
         // ── Default minion AI ──
 
         // Find nearest enemy
@@ -10672,6 +10840,126 @@ function playerDodge() {
 // ─── TOAD SHIKIGAMI (Megumi G key) ───────────────────────────
 // Builds a small green frog with white wings on its back, big bulbous
 // eyes, and a wide mouth. Used by megumiToad() below.
+// ─── SERPENT SHIKIGAMI (Megumi H key) ────────────────────────
+// Long green snake with a 14-segment chain-follow body that slithers
+// through the dungeon. Watches for damage on the other shadows and
+// avenges them — chases the most recent attacker first, otherwise
+// hunts the nearest enemy. See _lastShadowAttack tracker below.
+let _lastShadowAttack = null; // { enemy, time } — set when any shadow takes damage
+
+function buildSerpentMesh() {
+    const g = new THREE.Group();
+    const greenMat = new THREE.MeshStandardMaterial({ color: '#5aa838', roughness: 0.5, metalness: 0.1 });
+    const greenDeepMat = new THREE.MeshStandardMaterial({ color: '#3a7a28', roughness: 0.55 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffeb00' });
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
+    const tongueMat = new THREE.MeshStandardMaterial({ color: '#d8506a', roughness: 0.4 });
+
+    // 14 body segments, tapered toward the tail. Index 0 is the head.
+    const segCount = 14;
+    const segments = [];
+    for (let i = 0; i < segCount; i++) {
+        const t = i / (segCount - 1);
+        const r = 0.22 - t * 0.12; // taper
+        const seg = new THREE.Mesh(
+            new THREE.SphereGeometry(r, 10, 8),
+            i % 2 === 0 ? greenMat : greenDeepMat
+        );
+        // Initial straight-line position (head at origin, body trailing back)
+        seg.position.set(0, 0.25 + (i === 0 ? 0.05 : 0), -i * 0.32);
+        if (i === 0) seg.scale.set(1.2, 0.85, 1.4); // head is squashed
+        g.add(seg);
+        segments.push(seg);
+    }
+    g.userData._segments = segments;
+
+    // Head details — yellow slit eyes + forked pink tongue
+    const head = segments[0];
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), eyeMat);
+        eye.position.set(s * 0.1, 0.07, -0.1);
+        head.add(eye);
+        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.05, 0.01), pupilMat);
+        pupil.position.set(s * 0.1, 0.07, -0.14);
+        head.add(pupil);
+    }
+    // Forked tongue — faint flick animation handled in AI
+    const tongue = new THREE.Group();
+    const tongueShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.008, 0.18, 4), tongueMat);
+    tongueShaft.position.set(0, -0.04, -0.2);
+    tongueShaft.rotation.x = Math.PI / 2;
+    tongue.add(tongueShaft);
+    for (let s = -1; s <= 1; s += 2) {
+        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.005, 0.07, 3), tongueMat);
+        tip.position.set(s * 0.025, -0.04, -0.3);
+        tip.rotation.x = Math.PI / 2;
+        tip.rotation.y = s * 0.35;
+        tongue.add(tip);
+    }
+    head.add(tongue);
+    g.userData._tongue = tongue;
+
+    // Faint green aura
+    const aura = new THREE.PointLight('#a8d870', 0.9, TILE * 2.5, 1.5);
+    aura.position.y = 0.4;
+    g.add(aura);
+
+    return g;
+}
+
+// Megumi H — summon the Great Serpent shikigami (one at a time)
+function megumiSerpent() {
+    if (!player || !player.alive) return;
+    if (player.classId !== 'megumi') return;
+    const now = performance.now();
+    if (!player._serpentCd) player._serpentCd = 0;
+    if (now - player._serpentCd < 8000) return; // 8s cooldown
+    player._serpentCd = now;
+
+    // Despawn existing serpent if any
+    for (let i = minions3D.length - 1; i >= 0; i--) {
+        if (minions3D[i].data.type === 'serpent' && minions3D[i].data._owner === player) {
+            if (minions3D[i].data._hpBar) scene.remove(minions3D[i].data._hpBar);
+            scene.remove(minions3D[i].mesh);
+            minions3D.splice(i, 1);
+        }
+    }
+
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const worldPx = px * TILE, worldPz = pz * TILE;
+
+    // Spawn VFX — emerges from a shadow puddle
+    screenShake(0.2, 200);
+    fovPunch(8, 0.15);
+    emitParticles(worldPx + fwdX * 1.5 * TILE, 0.3, worldPz + fwdZ * 1.5 * TILE, {
+        color: ['#5aa838', '#3a7a28', '#1a237e', '#0d1b5e'],
+        count: 30, speed: 3, spread: 1.2,
+        gravity: 0, life: 14, size: 0.13, sizeEnd: 0, drag: 0.94, upward: 2
+    });
+    groundRing(worldPx + fwdX * 1.5 * TILE, worldPz + fwdZ * 1.5 * TILE, '#5aa838', 2.5, 600);
+    lightFlash(worldPx, EYE_HEIGHT, worldPz, '#5aa838', 4, 250);
+
+    // Spawn serpent ahead of Megumi
+    spawnMinion('serpent', px + fwdX * 1.5, pz + fwdZ * 1.5, {
+        color: '#5aa838', radius: 0.4, speed: 5,
+        damage: Math.round(player.damage * 0.5),
+        attackRange: 1.4, attackSpeed: 600,
+        hp: 90, maxHp: 90, life: Infinity, _owner: player,
+    });
+    const summoned = minions3D[minions3D.length - 1];
+    if (summoned) {
+        const bar = buildDogHpBar();
+        scene.add(bar);
+        summoned.data._hpBar = bar;
+        // Initialise head position so chain-follow has a starting point
+        summoned.data._headX = summoned.data.x;
+        summoned.data._headZ = summoned.data.z;
+        summoned.data._slitherT = 0;
+    }
+}
+
 function buildToadMesh() {
     const g = new THREE.Group();
     const greenMat = new THREE.MeshStandardMaterial({ color: '#5a8a3a', roughness: 0.6 });
@@ -11362,7 +11650,8 @@ function update() {
             if (targetDist < e.data.range + 0.5 && now - e.data.lastAttack > e.data.attackSpeed) {
                 e.data.lastAttack = now;
                 if (e.data.type === 'ranged' || e.data.type === 'summoner') {
-                    // Ranged enemy — shoot projectile toward target
+                    // Ranged enemy — shoot projectile toward target. Attacker tagged
+                    // on the projectile so dog/mahoraga hits credit the attacker.
                     const angle = Math.atan2(targetX - e.data.x, targetZ - e.data.z);
                     const mesh = new THREE.Mesh(projGeo, projMatEnemy);
                     mesh.position.set(e.data.x * TILE, 1.2, e.data.z * TILE);
@@ -11370,9 +11659,10 @@ function update() {
                     projectiles3D.push({
                         mesh, vx: Math.sin(angle) * 8, vz: Math.cos(angle) * 8,
                         damage: e.data.damage, owner: 'enemy', traveled: 0, range: 40,
+                        _attacker: e,
                     });
                 } else if (targetDog) {
-                    dealDamageToDog(targetDog, e.data.damage);
+                    dealDamageToDog(targetDog, e.data.damage, e);
                 } else {
                     dealDamageToPlayer(e.data.damage);
                 }
@@ -11435,7 +11725,7 @@ function update() {
                 if (m.data.hp <= 0) continue;
                 const hitR = m.data.type === 'mahoraga' ? 0.9 : 0.6;
                 if (Math.hypot(m.data.x - tileX, m.data.z - tileZ) < hitR) {
-                    dealDamageToDog(m, p.damage);
+                    dealDamageToDog(m, p.damage, p._attacker);
                     scene.remove(p.mesh); projectiles3D.splice(i, 1);
                     hit = true; break;
                 }
