@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Battle Royale</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen active">
+        <div class="title-content">
+            <h1>ANIME<br><span class="subtitle">BATTLE ROYALE</span></h1>
+            <div class="dim-tag">9 FIGHTERS · LAST ONE STANDING</div>
+            <p class="tagline">Pick your character. Survive the shrinking storm. Be the last alive.</p>
+            <div class="menu-buttons">
+                <button id="btn-play" class="menu-btn">Play</button>
+                <button id="btn-howto" class="menu-btn secondary">How to Play</button>
+            </div>
+            <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+        </div>
+    </div>
+
+    <!-- Character Select -->
+    <div id="select-screen" class="screen">
+        <h2>CHOOSE YOUR FIGHTER</h2>
+        <div id="char-grid" class="char-grid"></div>
+        <div class="select-actions">
+            <button id="btn-back-select" class="menu-btn secondary">Back</button>
+            <button id="btn-start-match" class="menu-btn" disabled>Drop In</button>
+        </div>
+    </div>
+
+    <!-- How to Play -->
+    <div id="howto-screen" class="screen">
+        <h2>HOW TO PLAY</h2>
+        <div class="howto-content">
+            <p><b>Goal:</b> Be the last fighter alive among 9.</p>
+            <p><b>Storm:</b> A neon ring shrinks every 30 seconds. Stay inside or take damage.</p>
+            <h3>Controls</h3>
+            <ul>
+                <li><b>WASD</b> &mdash; move</li>
+                <li><b>Mouse</b> &mdash; aim camera (click to lock)</li>
+                <li><b>Left click</b> &mdash; M1 melee attack</li>
+                <li><b>Z / X / C / V</b> &mdash; abilities 1-4</li>
+                <li><b>F</b> &mdash; mobility ability</li>
+                <li><b>Shift</b> &mdash; sprint</li>
+                <li><b>Space</b> &mdash; dash (no cooldown, brief i-frames)</li>
+                <li><b>ESC</b> &mdash; pause</li>
+            </ul>
+        </div>
+        <button id="btn-back-howto" class="menu-btn secondary">Back</button>
+    </div>
+
+    <!-- Game Over -->
+    <div id="gameover-screen" class="screen">
+        <h2 id="gameover-title">YOU DIED</h2>
+        <div id="gameover-stats" class="stats-list"></div>
+        <div class="menu-buttons">
+            <button id="btn-replay" class="menu-btn">Play Again</button>
+            <button id="btn-menu" class="menu-btn secondary">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Pause -->
+    <div id="pause-overlay" class="overlay" style="display:none">
+        <div class="pause-panel">
+            <h2>PAUSED</h2>
+            <button id="btn-resume" class="menu-btn">Resume</button>
+            <button id="btn-quit" class="menu-btn secondary">Quit to Menu</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" style="display:none">
+        <!-- Top left: name, HP, abilities -->
+        <div id="hud-player-panel">
+            <div id="hud-char-name">&nbsp;</div>
+            <div class="hud-bar-container">
+                <div id="hud-hp-bar" class="hud-bar hp-bar"></div>
+                <div id="hud-hp-text" class="hud-bar-text">100/100</div>
+            </div>
+            <div id="hud-ability-bar">
+                <div class="ability-slot" data-key="z"><span class="key">Z</span><span class="cd">READY</span></div>
+                <div class="ability-slot" data-key="x"><span class="key">X</span><span class="cd">READY</span></div>
+                <div class="ability-slot" data-key="c"><span class="key">C</span><span class="cd">READY</span></div>
+                <div class="ability-slot" data-key="v"><span class="key">V</span><span class="cd">READY</span></div>
+                <div class="ability-slot" data-key="f"><span class="key">F</span><span class="cd">READY</span></div>
+            </div>
+        </div>
+
+        <!-- Top center: alive count + storm timer -->
+        <div id="hud-top-center">
+            <div id="hud-alive">Alive: 9</div>
+            <div id="hud-storm">Storm shrinks in 30s</div>
+        </div>
+
+        <!-- Top right: kills -->
+        <div id="hud-killfeed"></div>
+
+        <div id="crosshair">+</div>
+        <canvas id="minimap-canvas" width="160" height="160"></canvas>
+        <div id="hud-hint">WASD move &middot; Mouse aim &middot; LMB attack &middot; ZXCVF abilities &middot; Space dash &middot; ESC pause</div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

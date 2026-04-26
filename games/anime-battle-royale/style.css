@@ -1,0 +1,160 @@
+/* Anime Battle Royale - cyberpunk neon */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: #eee;
+    font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+
+#game-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+
+.screen {
+    position: fixed; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #0a0014 0%, #000 70%);
+    z-index: 10; padding: 32px;
+}
+.screen.active { display: flex; }
+
+h1 {
+    font-size: 88px; font-weight: 900; letter-spacing: 6px; text-align: center;
+    color: #ff0080; text-shadow: 0 0 30px #ff0080, 0 0 60px #ff0080;
+    line-height: 0.95;
+}
+h1 .subtitle { color: #00ffee; text-shadow: 0 0 30px #00ffee, 0 0 60px #00ffee; font-size: 56px; }
+
+h2 {
+    font-size: 42px; font-weight: 800; letter-spacing: 4px;
+    color: #ff0080; text-shadow: 0 0 20px #ff0080;
+    margin-bottom: 24px;
+}
+h3 { color: #00ffee; margin: 16px 0 8px; letter-spacing: 2px; }
+
+.dim-tag { color: #00ffee; letter-spacing: 4px; font-size: 12px; margin-top: 8px; opacity: 0.85; }
+.tagline { color: #aab; margin-top: 20px; font-size: 16px; max-width: 560px; text-align: center; }
+
+.menu-buttons { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
+.menu-btn {
+    background: linear-gradient(180deg, #1a002a, #0a0010);
+    color: #ff0080; border: 2px solid #ff0080; padding: 12px 32px;
+    font-size: 18px; font-weight: 700; letter-spacing: 2px; cursor: pointer;
+    border-radius: 4px; min-width: 240px;
+    box-shadow: 0 0 16px rgba(255, 0, 128, 0.4);
+    transition: all 0.15s;
+}
+.menu-btn:hover:not(:disabled) {
+    background: #ff0080; color: #000; box-shadow: 0 0 30px #ff0080;
+}
+.menu-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.menu-btn.secondary { color: #00ffee; border-color: #00ffee; box-shadow: 0 0 16px rgba(0, 255, 238, 0.3); }
+.menu-btn.secondary:hover { background: #00ffee; color: #000; }
+
+.back-link {
+    position: absolute; top: 20px; left: 24px; color: #00ffee; text-decoration: none;
+    font-size: 14px; opacity: 0.8; letter-spacing: 2px;
+}
+.back-link:hover { opacity: 1; text-shadow: 0 0 8px #00ffee; }
+
+/* Character grid */
+.char-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px; max-width: 1100px; width: 100%; padding: 0 16px;
+    max-height: 60vh; overflow-y: auto;
+}
+.char-card {
+    background: linear-gradient(180deg, #150022, #0a0014);
+    border: 2px solid #333; border-radius: 6px; padding: 12px; cursor: pointer;
+    text-align: center; transition: all 0.15s;
+}
+.char-card:hover { border-color: #ff0080; transform: translateY(-2px); }
+.char-card.selected { border-color: #00ffee; box-shadow: 0 0 24px #00ffee; }
+.char-card .char-swatch {
+    width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 8px;
+    border: 2px solid rgba(255,255,255,0.2);
+    box-shadow: 0 0 16px currentColor;
+}
+.char-card .char-name { font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 4px; }
+.char-card .char-type { font-size: 11px; color: #aab; letter-spacing: 1px; text-transform: uppercase; }
+.char-card .char-stats { font-size: 10px; color: #777; margin-top: 6px; }
+
+.select-actions { display: flex; gap: 16px; margin-top: 24px; }
+
+.howto-content {
+    background: rgba(0,0,0,0.6); border: 1px solid #333; border-radius: 6px;
+    padding: 20px 28px; max-width: 560px; line-height: 1.7;
+}
+.howto-content ul { padding-left: 20px; }
+.howto-content li { margin: 4px 0; }
+.howto-content b { color: #ff0080; }
+
+.stats-list { margin: 16px 0; padding: 16px 24px; background: rgba(0,0,0,0.6);
+    border: 1px solid #333; border-radius: 6px; min-width: 320px; }
+.stats-list .stat-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 14px; }
+.stats-list .stat-row .label { color: #aab; }
+.stats-list .stat-row .value { color: #00ffee; font-weight: 700; }
+
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex;
+    align-items: center; justify-content: center; z-index: 20; }
+.pause-panel { background: #0a0014; border: 2px solid #ff0080; padding: 32px 48px;
+    border-radius: 8px; text-align: center; box-shadow: 0 0 40px #ff0080; }
+.pause-panel .menu-btn { margin-top: 12px; }
+
+/* HUD */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+
+#hud-player-panel {
+    position: absolute; top: 16px; left: 16px;
+    background: rgba(0,0,0,0.6); border: 1px solid #ff0080;
+    padding: 10px 14px; border-radius: 6px; min-width: 280px;
+    box-shadow: 0 0 16px rgba(255,0,128,0.3);
+}
+#hud-char-name { color: #ff0080; font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; font-size: 14px; }
+
+.hud-bar-container { position: relative; width: 260px; height: 18px;
+    background: rgba(0,0,0,0.7); border: 1px solid #444; border-radius: 3px; overflow: hidden; }
+.hud-bar { position: absolute; left: 0; top: 0; height: 100%; transition: width 0.18s; }
+.hp-bar { background: linear-gradient(90deg, #ff0055, #ff66aa); box-shadow: 0 0 8px #ff0055; width: 100%; }
+.hud-bar-text { position: absolute; inset: 0; text-align: center; font-size: 11px; line-height: 18px;
+    color: #fff; text-shadow: 1px 1px 2px #000; }
+
+#hud-ability-bar { display: flex; gap: 6px; margin-top: 8px; }
+.ability-slot {
+    background: rgba(0,0,0,0.7); border: 1px solid #ff0080;
+    padding: 4px 8px; border-radius: 4px; font-size: 11px; min-width: 56px; text-align: center;
+}
+.ability-slot .key { color: #ff0080; font-weight: 800; margin-right: 4px; }
+.ability-slot .cd { color: #00ffee; }
+.ability-slot.cooling { opacity: 0.5; }
+.ability-slot.cooling .cd { color: #ff8844; }
+
+#hud-top-center {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); border: 1px solid #00ffee;
+    padding: 10px 22px; border-radius: 6px; text-align: center;
+    box-shadow: 0 0 16px rgba(0,255,238,0.3);
+}
+#hud-alive { color: #00ffee; font-weight: 800; letter-spacing: 2px; font-size: 18px; }
+#hud-storm { color: #ffaa44; font-size: 12px; margin-top: 4px; }
+
+#hud-killfeed { position: absolute; top: 16px; right: 16px; max-width: 280px; }
+.kill-msg { background: rgba(0,0,0,0.7); border-left: 3px solid #ff0055;
+    padding: 6px 12px; margin-bottom: 4px; font-size: 13px; color: #fff;
+    animation: killfade 5s forwards; }
+@keyframes killfade { 0% { opacity: 0; transform: translateX(20px); } 10% { opacity: 1; transform: none; }
+    80% { opacity: 1; } 100% { opacity: 0; } }
+
+#crosshair { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    color: #ff0080; font-size: 22px; text-shadow: 0 0 8px #ff0080; }
+
+#minimap-canvas { position: absolute; bottom: 16px; right: 16px;
+    background: rgba(0,0,0,0.7); border: 1px solid #00ffee; border-radius: 4px;
+    box-shadow: 0 0 12px rgba(0,255,238,0.4); }
+
+#hud-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    color: #888; font-size: 11px; letter-spacing: 1px; }
+
+/* Floating damage numbers / kill messages anchored to canvas via JS */
+.dmg-num {
+    position: absolute; pointer-events: none; font-weight: 900;
+    text-shadow: 2px 2px 0 #000, 0 0 10px currentColor;
+    animation: dmgfloat 1s forwards;
+}
+@keyframes dmgfloat { 0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-60px); } }

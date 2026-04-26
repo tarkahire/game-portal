@@ -22,6 +22,7 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 | `games/stickman-fighter/` | 2D Stickman Fighter game (vanilla JS Canvas) |
 | `games/dungeon-crawler/` | 2D Roguelike dungeon crawler (vanilla JS Canvas + PeerJS) |
 | `games/dungeon-crawler-3d/` | 3D First-person dungeon crawler (Three.js + PeerJS) |
+| `games/anime-battle-royale/` | 3D third-person Battle Royale (Three.js, reuses dungeon-crawler-3d roster) |
 | `vercel.json` | Vercel deployment config |
 
 ## Games
@@ -52,6 +53,27 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 - **Classes (64)**: Angel, Demon, Draco, Healer, Lightning, Portal, Katakuri, Naruto, Megumi, Jin-Woo, Frog, Bee Swarm, T-Rex, Wendigo, Alien Queen, Comet, Telekinesis, Mind Control, Chimera, Mimic, Supernova, Puppet Master, Medusa, Cerberus, Minotaur, Anubis, Thor, Venom, Cordyceps, Leech, Chrono, Dimension Cutter, Paradox, Drummer, Siren, Mercury, Acid, Smoke, Ant Colony, Rat King, Locust, Mecha Shark, Ghost Rider, Ice Phoenix, Plague Rat, Card Dealer, Dice Roller, Chess King, Rage, Fear, Love, Chaos, Senor Pink, Ink, Dog, Kitsune, Mahoraga, Parasite, Skeleton, Archer, Slime, Bat, Dark Knight, Necromancer
 - **Recent additions**: Katakuri 16-portal ring system with dough fist M1s + Fusillade + Haki (blue); Senor Pink (Sui Sui) walk-through-walls + dive + whirlpool; Ink class with puddle resource system + Draw Soldier + Masterpiece golem; Dog class (OP) with permanent pack + puppy spawn + fetch frenzy + alpha howl; Kitsune with tails meter transformation (human -> nine-tailed fox with cyan arc slashes)
 - **Full docs**: See `games/dungeon-crawler/docs/` for architecture, classes, gameplay, network, controls
+
+### Anime Battle Royale
+- **Path**: `games/anime-battle-royale/`
+- **Tech**: Three.js v0.162.0 (CDN via jsdelivr importmap), ES modules
+- **Concept**: 9-fighter free-for-all battle royale on a circular ~140m arena. Shrinking neon storm circle pushes fighters together. Last one alive wins. Reuses the **same character roster, stats, and ability cooldowns** as `dungeon-crawler-3d` from `src/classes/definitions.js` (12 characters: Gojo, Sukuna, Toji, Brook, Denji, Yoh, Ren, Horohoro, Megumi, Todo, Yuta — note: definitions.js has 12 keys; CLAUDE.md previously said 10).
+- **Important scope note**: This is the **MVP** — fighters render as **stylized humanoids** (cylinder body + sphere head + character.color tint + per-weaponType weapon prop), NOT the detailed 3D character models from dungeon-crawler-3d's main.js. Detailed model porting is left for a follow-up. Abilities use generic VFX runners (projectile / AOE explosion / beam / dash) tinted to character color, with damage values scaled off `attackDamage` and cooldowns straight from `definitions.js`.
+- **Storm**: 4 phases with delay → shrink animation. Outside storm = 5 dmg/sec. Phases shrink to 65%, 35%, 15%, then 4m radius.
+- **Bots**: 8 AI fighters, each rolls a different character. Bots wander/strafe, target nearest enemy, M1 in melee range, randomly cast off-cooldown abilities every 1.2-3s. Avoid storm by running to center when outside safe radius.
+- **Controls**: WASD move, Mouse aim (pointer-locked), LMB M1 melee, Z/X/C/V abilities, F mobility, Space dash (no CD, 240ms i-frames), Shift sprint, ESC pause.
+- **Ability dispatcher**: `src/abilities.js` switch over ability name. Generic effect functions: `spawnProjectile` (sphere + collision), `spawnAOE` (radial damage + ground ring), `spawnBeam` (cylinder line + line-trace damage), `doDash` (translate + i-frames). M1 uses arc check (60° / 2.6m reach). All damage scales with `buffMul` if `buffUntil` active (e.g. Toji's Heavenly Restriction).
+- **File structure**:
+  - `index.html` — title / character select / how-to / gameover screens, HUD with HP bar + 5 ability slots + minimap + killfeed
+  - `style.css` — cyberpunk neon UI matching dungeon-crawler-3d aesthetic
+  - `src/main.js` — Three.js scene, game loop, input, screens, HUD, killfeed, minimap, win/loss flow
+  - `src/classes/definitions.js` — copied verbatim from dungeon-crawler-3d
+  - `src/arena.js` — circular floor, neon grid, scattered cover boxes, distant skyline buildings, lights
+  - `src/fighter.js` — `Fighter` class (mesh + HP + cooldowns), `buildHumanoid` builder, weapon props, HP bar billboard, name tag canvas-texture, `rollBotCharacters`
+  - `src/camera.js` — `ThirdPersonCamera` with mouse pointer-lock yaw/pitch
+  - `src/abilities.js` — VFX entity list, ability dispatcher (`castAbility`, `castM1`)
+  - `src/ai.js` — `BotBrain` with target picking, storm avoidance, strafing, ability spam
+  - `src/storm.js` — phase-driven shrinking ring + damage tick
 
 ### Dungeon Crawler 3D
 - **Path**: `games/dungeon-crawler-3d/`
