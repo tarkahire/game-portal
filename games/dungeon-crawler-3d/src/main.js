@@ -10665,7 +10665,7 @@ function updateMinions(dt, now) {
             const ud = m.mesh.userData;
             if (ud._bodyMesh && ud._radii) {
                 const oldGeo = ud._bodyMesh.geometry;
-                ud._bodyMesh.geometry = buildLoftedTube(spine, ud._radii, 10);
+                ud._bodyMesh.geometry = buildLoftedTube(spine, ud._radii, 14, ud._colorFn);
                 if (oldGeo) oldGeo.dispose();
             }
 
@@ -10873,11 +10873,12 @@ let _lastShadowAttack = null; // { enemy, time } — set when any shadow takes d
 // Build a continuous lofted body geometry from a list of world-space spine
 // points and matching radii. Used by the serpent body each frame so it
 // renders as one smooth gap-free snake instead of a chain of beads.
-function buildLoftedTube(spinePoints, radii, radialSegs) {
+function buildLoftedTube(spinePoints, radii, radialSegs, colorFn) {
     if (spinePoints.length < 2) return new THREE.BufferGeometry();
     const curve = new THREE.CatmullRomCurve3(spinePoints, false, 'catmullrom', 0.5);
     const samples = Math.max(spinePoints.length * 3, 30);
     const positions = [];
+    const colors = colorFn ? [] : null;
     const indices = [];
     const upRef = new THREE.Vector3(0, 1, 0);
     for (let i = 0; i < samples; i++) {
@@ -10900,6 +10901,10 @@ function buildLoftedTube(spinePoints, radii, radialSegs) {
                 p.y + right.y * r * cx + up.y * r * cy,
                 p.z + right.z * r * cx + up.z * r * cy
             );
+            if (colors) {
+                const col = colorFn(t, j, radialSegs);
+                colors.push(col[0], col[1], col[2]);
+            }
         }
     }
     for (let i = 0; i < samples - 1; i++) {
@@ -10913,6 +10918,9 @@ function buildLoftedTube(spinePoints, radii, radialSegs) {
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+    if (colors) {
+        geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
+    }
     geo.setIndex(indices);
     geo.computeVertexNormals();
     return geo;
@@ -10920,8 +10928,12 @@ function buildLoftedTube(spinePoints, radii, radialSegs) {
 
 function buildSerpentMesh() {
     const g = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color: '#a8a058', roughness: 0.55, metalness: 0.05 });
-    const headMat = new THREE.MeshStandardMaterial({ color: '#f0e8dc', roughness: 0.45 });
+    // Vertex-colored body — the colorFn paints olive scales on top, cream belly,
+    // and a black/white striped tail section to match the reference shikigami.
+    const bodyMat = new THREE.MeshStandardMaterial({
+        color: '#ffffff', roughness: 0.55, metalness: 0.05, vertexColors: true
+    });
+    const headMat = new THREE.MeshStandardMaterial({ color: '#f4ecdc', roughness: 0.45 });
     const headShade = new THREE.MeshStandardMaterial({ color: '#c8c0b0', roughness: 0.55 });
     const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffeb00' });
     const pupilMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
@@ -10930,75 +10942,105 @@ function buildSerpentMesh() {
     const mouthMat = new THREE.MeshBasicMaterial({ color: '#0a0a0a' });
     const markingMat = new THREE.MeshBasicMaterial({ color: '#c8202a' });
 
+    // Olive top, cream belly up front; black-and-white banded tail end.
+    // t: 0 = head end, 1 = tail tip. j/segs maps around the body — sin(angle) > 0 = top, < 0 = belly.
+    const colorFn = (t, j, segs) => {
+        const a = (j / segs) * Math.PI * 2;
+        const ringMix = (Math.sin(a) + 1) * 0.5; // 1 = top, 0 = belly
+        if (t < 0.62) {
+            // Front body — olive yellow scales on top, lighter cream belly
+            const olive = [0.66, 0.62, 0.34];
+            const belly = [0.94, 0.92, 0.78];
+            // Subtle scale banding along length for texture
+            const scaleBand = (Math.floor(t * 32) % 2 === 0) ? 1.0 : 0.88;
+            return [
+                (olive[0] * ringMix + belly[0] * (1 - ringMix)) * (ringMix > 0.55 ? scaleBand : 1),
+                (olive[1] * ringMix + belly[1] * (1 - ringMix)) * (ringMix > 0.55 ? scaleBand : 1),
+                (olive[2] * ringMix + belly[2] * (1 - ringMix)) * (ringMix > 0.55 ? scaleBand : 1),
+            ];
+        }
+        // Tail end — alternating black/white bands (top), cream belly stays light
+        const bandT = (t - 0.62) * 22;
+        const isWhite = Math.floor(bandT) % 2 === 0;
+        if (ringMix < 0.4) return [0.95, 0.93, 0.88]; // belly
+        return isWhite ? [0.96, 0.94, 0.90] : [0.05, 0.05, 0.07];
+    };
+
     // ── Body — initially a straight lofted tube placeholder. The AI rebuilds
     // this geometry every frame from the chain positions for smooth slither.
     const initSpine = [];
-    for (let i = 0; i < 18; i++) initSpine.push(new THREE.Vector3(0, 0.35, -i * 0.45));
-    const radii = [];
-    for (let i = 0; i < 18; i++) {
-        const t = i / 17;
-        radii.push(0.32 - t * 0.22); // taper from 0.32 head-end to 0.10 tail
-    }
-    const bodyGeo = buildLoftedTube(initSpine, radii, 10);
+    for (let i = 0; i < 20; i++) initSpine.push(new THREE.Vector3(0, 0.55, -i * 0.5));
+    // Wider, more imposing taper. Thick neck/upper body, gradual taper to a fine tail tip.
+    const radii = [
+        0.50, 0.58, 0.62, 0.60, 0.56, 0.51, 0.46, 0.42, 0.38, 0.34,
+        0.31, 0.28, 0.25, 0.22, 0.20, 0.18, 0.15, 0.12, 0.09, 0.06
+    ];
+    const bodyGeo = buildLoftedTube(initSpine, radii, 14, colorFn);
     const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
     g.add(bodyMesh);
 
-    // ── Head — white cobra-style head, separate from body so we can
-    // give it real face details. Positioned on chain[0] each frame.
+    // ── Head — white cobra-style head, scaled up to match the wider body.
     const head = new THREE.Group();
-    // Skull — elongated white ovoid
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 12), headMat);
-    skull.scale.set(1.05, 0.85, 1.5);
+    // Skull — elongated white ovoid, bigger
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 12), headMat);
+    skull.scale.set(1.1, 0.9, 1.55);
     head.add(skull);
-    // Snout — slight forward bump
-    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), headMat);
-    snout.position.set(0, -0.04, -0.32);
-    snout.scale.set(1, 0.7, 1.1);
-    head.add(snout);
-    // Top-of-head shading (slightly darker)
-    const topShade = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), headShade);
-    topShade.scale.set(1.05, 0.4, 1.55);
-    topShade.position.y = 0.04;
-    head.add(topShade);
-    // Yellow eyes
+    // Cheek widening — gives the head a cobra-like hooded look from the front
     for (let s = -1; s <= 1; s += 2) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 10), eyeMat);
-        eye.position.set(s * 0.18, 0.07, -0.1);
+        const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), headMat);
+        cheek.position.set(s * 0.22, -0.04, 0.1);
+        cheek.scale.set(0.9, 0.6, 1.1);
+        head.add(cheek);
+    }
+    // Snout — forward bump
+    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), headMat);
+    snout.position.set(0, -0.06, -0.46);
+    snout.scale.set(1, 0.72, 1.15);
+    head.add(snout);
+    // Top-of-head shading (slightly darker plate)
+    const topShade = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), headShade);
+    topShade.scale.set(1.1, 0.42, 1.6);
+    topShade.position.y = 0.06;
+    head.add(topShade);
+    // Yellow eyes — bigger
+    for (let s = -1; s <= 1; s += 2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), eyeMat);
+        eye.position.set(s * 0.26, 0.08, -0.14);
         head.add(eye);
         // Vertical slit pupil
-        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.07, 0.01), pupilMat);
-        pupil.position.set(s * 0.18, 0.07, -0.18);
+        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.10, 0.012), pupilMat);
+        pupil.position.set(s * 0.26, 0.08, -0.25);
         head.add(pupil);
         // Red marking — angled stripe extending back from each eye
-        const mark = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.4), markingMat);
-        mark.position.set(s * 0.22, 0.03, 0.1);
-        mark.rotation.y = s * -0.2;
+        const mark = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.05, 0.55), markingMat);
+        mark.position.set(s * 0.30, 0.04, 0.16);
+        mark.rotation.y = s * -0.22;
         head.add(mark);
     }
-    // Open mouth — dark cavity under the snout
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 6), mouthMat);
-    mouth.scale.set(1, 0.55, 1.2);
-    mouth.position.set(0, -0.16, -0.28);
+    // Open mouth — wider, deeper dark cavity
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 8), mouthMat);
+    mouth.scale.set(1, 0.58, 1.25);
+    mouth.position.set(0, -0.22, -0.4);
     head.add(mouth);
-    // Two long curved fangs
+    // Two long curved fangs — bigger and more menacing
     for (let s = -1; s <= 1; s += 2) {
-        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.22, 6), fangMat);
-        fang.position.set(s * 0.1, -0.22, -0.36);
+        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.32, 6), fangMat);
+        fang.position.set(s * 0.14, -0.30, -0.52);
         fang.rotation.x = Math.PI;
-        fang.rotation.z = s * -0.1;
+        fang.rotation.z = s * -0.12;
         head.add(fang);
     }
     // Forked tongue — long red tongue lolling forward + down
     const tongue = new THREE.Group();
-    const tongueShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.015, 0.45, 6), tongueMat);
-    tongueShaft.position.set(0, -0.3, -0.5);
-    tongueShaft.rotation.x = Math.PI / 2 + 0.4;
+    const tongueShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.022, 0.65, 6), tongueMat);
+    tongueShaft.position.set(0, -0.42, -0.74);
+    tongueShaft.rotation.x = Math.PI / 2 + 0.45;
     tongue.add(tongueShaft);
     for (let s = -1; s <= 1; s += 2) {
-        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.008, 0.18, 5), tongueMat);
-        tip.position.set(s * 0.04, -0.45, -0.7);
-        tip.rotation.x = Math.PI / 2 + 0.5;
-        tip.rotation.y = s * 0.35;
+        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.011, 0.26, 5), tongueMat);
+        tip.position.set(s * 0.06, -0.62, -1.0);
+        tip.rotation.x = Math.PI / 2 + 0.55;
+        tip.rotation.y = s * 0.38;
         tongue.add(tip);
     }
     head.add(tongue);
@@ -11007,14 +11049,15 @@ function buildSerpentMesh() {
     g.userData._head = head;
     g.userData._bodyMesh = bodyMesh;
     g.userData._radii = radii;
+    g.userData._colorFn = colorFn;
     g.userData._tongue = tongue;
 
     // Faint warm aura
-    const aura = new THREE.PointLight('#d8c870', 1.0, TILE * 3, 1.5);
-    aura.position.y = 0.6;
+    const aura = new THREE.PointLight('#d8c870', 1.4, TILE * 4, 1.5);
+    aura.position.y = 0.8;
     g.add(aura);
 
-    g.scale.setScalar(1.6); // imposing size — bigger snake
+    g.scale.setScalar(2.2); // imposing size — much bigger, intimidating snake
     return g;
 }
 
@@ -11052,12 +11095,12 @@ function megumiSerpent() {
     groundRing(worldPx + fwdX * 1.5 * TILE, worldPz + fwdZ * 1.5 * TILE, '#5aa838', 2.5, 600);
     lightFlash(worldPx, EYE_HEIGHT, worldPz, '#5aa838', 4, 250);
 
-    // Spawn serpent ahead of Megumi
+    // Spawn serpent ahead of Megumi — bigger, hits harder, takes more punishment
     spawnMinion('serpent', px + fwdX * 1.5, pz + fwdZ * 1.5, {
-        color: '#5aa838', radius: 0.4, speed: 5,
-        damage: Math.round(player.damage * 0.5),
-        attackRange: 1.4, attackSpeed: 600,
-        hp: 90, maxHp: 90, life: Infinity, _owner: player,
+        color: '#a8a058', radius: 0.6, speed: 5,
+        damage: Math.round(player.damage * 0.75),
+        attackRange: 2.0, attackSpeed: 600,
+        hp: 160, maxHp: 160, life: Infinity, _owner: player,
     });
     const summoned = minions3D[minions3D.length - 1];
     if (summoned) {
