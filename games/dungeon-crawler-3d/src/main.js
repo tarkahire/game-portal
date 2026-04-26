@@ -13509,16 +13509,16 @@ function yutaSummonRika() {
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const worldPx = px * TILE, worldPz = pz * TILE;
 
-    // Spawn VFX — dark blue cursed energy burst from a shadow puddle
+    // Spawn VFX — pink cursed energy burst
     screenShake(0.25, 200);
     fovPunch(7, 0.15);
     emitParticles(worldPx + fwdX * 1.8 * TILE, 0.4, worldPz + fwdZ * 1.8 * TILE, {
-        color: ['#aabaff', '#0a0a0e', '#5a8aff', '#ffffff'],
+        color: ['#ff5aaa', '#ffaadc', '#ff2288', '#0a0a0e', '#ffffff'],
         count: 32, speed: 4, spread: 1.6,
         gravity: 0, life: 18, size: 0.16, sizeEnd: 0, drag: 0.92, upward: 2,
     });
-    groundRing(worldPx + fwdX * 1.8 * TILE, worldPz + fwdZ * 1.8 * TILE, '#aabaff', 3, 700);
-    lightFlash(worldPx, EYE_HEIGHT, worldPz, '#5a8aff', 5, 300);
+    groundRing(worldPx + fwdX * 1.8 * TILE, worldPz + fwdZ * 1.8 * TILE, '#ff5aaa', 3, 700);
+    lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff2288', 5, 300);
 
     spawnMinion('rika', px + fwdX * 1.8, pz + fwdZ * 1.8, {
         color: '#aabaff', radius: 0.8, speed: 4.0,
