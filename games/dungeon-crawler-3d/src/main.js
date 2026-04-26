@@ -10940,7 +10940,10 @@ function buildSerpentMesh() {
     const pupilMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
     const fangMat = new THREE.MeshStandardMaterial({ color: '#fff8e0', roughness: 0.3 });
     const tongueMat = new THREE.MeshStandardMaterial({ color: '#c8202a', roughness: 0.4, emissive: '#5a0000', emissiveIntensity: 0.25 });
-    const mouthMat = new THREE.MeshBasicMaterial({ color: '#0a0a0a' });
+    // Mouth interior — vivid pink/magenta like the reference, not a dark cavity
+    const mouthInnerMat = new THREE.MeshStandardMaterial({ color: '#b8284a', roughness: 0.55, emissive: '#3a0810', emissiveIntensity: 0.35 });
+    const throatMat = new THREE.MeshStandardMaterial({ color: '#5a0820', roughness: 0.6 });
+    const lowerJawOuterMat = headMat;
     const markingMat = new THREE.MeshBasicMaterial({ color: '#c8202a' });
 
     // Olive top, cream belly up front; black-and-white banded tail end.
@@ -11023,18 +11026,52 @@ function buildSerpentMesh() {
         mark.rotation.y = s * -0.22;
         head.add(mark);
     }
-    // Open mouth — wider, deeper dark cavity
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 8), mouthMat);
-    mouth.scale.set(1, 0.58, 1.25);
-    mouth.position.set(0, -0.22, -0.4);
-    head.add(mouth);
-    // Two long curved fangs — bigger and more menacing
+    // ── Open mouth — bright pink interior with a darker throat in back, ──
+    // matching the reference shikigami's wide-jawed bite pose.
+    // Pink mouth cavity (the visible inside of the mouth)
+    const mouthCavity = new THREE.Mesh(new THREE.SphereGeometry(0.30, 14, 10), mouthInnerMat);
+    mouthCavity.scale.set(1.05, 0.7, 1.35);
+    mouthCavity.position.set(0, -0.22, -0.42);
+    head.add(mouthCavity);
+    // Darker throat — a smaller sphere set deeper in to give depth to the back of the mouth
+    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), throatMat);
+    throat.scale.set(0.85, 0.55, 1.1);
+    throat.position.set(0, -0.18, -0.20);
+    head.add(throat);
+    // Upper-jaw lip — thin pink ridge along the top inside of the mouth
+    const upperLip = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.03, 6, 14, Math.PI), mouthInnerMat);
+    upperLip.position.set(0, -0.10, -0.42);
+    upperLip.rotation.x = Math.PI / 2;
+    upperLip.rotation.z = Math.PI;
+    head.add(upperLip);
+    // ── Lower jaw — hangs down at an angle, white outside, pink inside ──
+    const lowerJaw = new THREE.Group();
+    const lowerJawOuter = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), lowerJawOuterMat);
+    lowerJawOuter.scale.set(1.0, 0.45, 1.2);
+    lowerJaw.add(lowerJawOuter);
+    // Pink inside surface of the lower jaw
+    const lowerJawInner = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), mouthInnerMat);
+    lowerJawInner.scale.set(1.0, 0.6, 1.2);
+    lowerJawInner.position.y = 0.04;
+    lowerJaw.add(lowerJawInner);
+    lowerJaw.position.set(0, -0.36, -0.36);
+    lowerJaw.rotation.x = -0.45; // jaw drops open downward
+    head.add(lowerJaw);
+    // ── Two long curved white fangs hanging from the upper jaw ──
     for (let s = -1; s <= 1; s += 2) {
-        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.32, 6), fangMat);
-        fang.position.set(s * 0.14, -0.30, -0.52);
-        fang.rotation.x = Math.PI;
+        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.36, 6), fangMat);
+        fang.position.set(s * 0.16, -0.20, -0.58);
+        fang.rotation.x = Math.PI + 0.08; // tip down, slight forward angle
         fang.rotation.z = s * -0.12;
         head.add(fang);
+    }
+    // Two smaller front fangs for menace
+    for (let s = -1; s <= 1; s += 2) {
+        const smallFang = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.18, 5), fangMat);
+        smallFang.position.set(s * 0.07, -0.15, -0.62);
+        smallFang.rotation.x = Math.PI + 0.05;
+        smallFang.rotation.z = s * -0.08;
+        head.add(smallFang);
     }
     // Forked tongue — long red tongue lolling forward + down
     const tongue = new THREE.Group();
