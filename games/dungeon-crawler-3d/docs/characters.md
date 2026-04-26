@@ -25,7 +25,7 @@ Each character has 5 abilities mapped to Z/X/C/V/F. Megumi gets two extras on G 
 | Char | Z | X | C | V | F |
 |------|---|---|---|---|---|
 | Gojo | Blue (gravity pull) | Red (repulsion blast) | Hollow Purple (cutscene) | Domain Expansion (freeze) | Teleport |
-| Sukuna | Dismantle | — | Fire Arrow | Malevolent Shrine | Dash |
+| Sukuna | Dismantle | Cleave | Fire Arrow | Malevolent Shrine | Dash |
 | Toji | Inverted Spear | Chain Strike | Playful Cloud | Heavenly Restriction (buff) | Flash Step |
 | Brook | Hanauta Sancho | Soul Solid | Blizzard Slice | Soul King | Dash |
 | Denji | Chain Rip | Buzzsaw | Devil Charge | Full Devil (3× dmg) | Chain Dash |
@@ -40,7 +40,7 @@ Each character has 5 abilities mapped to Z/X/C/V/F. Megumi gets two extras on G 
 
 ## M1 Combo
 
-Left click triggers a 4-hit melee combo (`COMBO_STEPS` in main.js). 4th hit is a finisher. Sukuna's 4th hit triggers `sukunaBisect()` — splits the enemy mesh in half with blood splash, screen shake, hitstop.
+Left click triggers a 4-hit melee combo (`COMBO_STEPS` in main.js). 4th hit is a finisher with extra knockback + screen shake + hitstop + a bigger slash/punch impact, but no longer instant-kills — the old "4 consecutive M1 hits → sukunaBisect" execute mechanic was removed; weapon characters now do full M1 damage like fist characters.
 
 Combo window: 600ms between hits — past that, combo resets.
 
@@ -51,7 +51,7 @@ Yoh, Ren, and Horohoro have a unique Q ability: a permanent armored "oversoul" s
 - **Ren — Bason**: golden armored arm + Kwan Dao halberd, gold/purple rings
 - **Horohoro — Ice Fists**: dual blue armored fists alternating-punch M1s with ice impact rings
 
-Once active, the oversoul replaces the FPS viewmodel — the floating spirit IS the visible weapon in both 1st and 3rd person. M1 damage is reduced to compensate for the visual impact, but the 4th-hit bisect finisher still applies.
+Once active, the oversoul replaces the FPS viewmodel — the floating spirit IS the visible weapon in both 1st and 3rd person.
 
 ## Megumi Ten Shadows Technique (full shikigami roster)
 

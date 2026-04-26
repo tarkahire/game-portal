@@ -4861,8 +4861,10 @@ function playerAttack() {
         const chain = (player._blackFlashChainEnd && now < player._blackFlashChainEnd) ? (player._blackFlashChain || 0) : 0;
         blackFlashMult = Math.min(3, 2 + chain * 0.25);
     }
-    // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
-    const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25 * auraMult * blackFlashMult) : Math.round(player.damage * step.dmgMult * auraMult * blackFlashMult);
+    // Full damage on M1 for both fist and weapon characters — weapons no longer
+    // get a 0.25× penalty (the old "4-hit bisect finisher" execute mechanic
+    // was removed).
+    const dmg = Math.round(player.damage * step.dmgMult * auraMult * blackFlashMult);
     const isFinisher = player._comboStep === 3;
 
     // Hit enemies in arc in front
@@ -4876,47 +4878,21 @@ function playerAttack() {
         while (ad > Math.PI) ad -= Math.PI * 2;
         while (ad < -Math.PI) ad += Math.PI * 2;
         if (Math.abs(ad) < Math.PI * 0.5) {
-            // Weapon combo tracker — track consecutive M1 hits per enemy
-            if (hasWeaponCombo) {
-                if (e.data._weaponCombo === undefined) e.data._weaponCombo = 0;
-                if (e.data._weaponLastStep === undefined) e.data._weaponLastStep = -1;
-                if (player._comboStep === 0) {
-                    e.data._weaponCombo = 1;
-                    e.data._weaponLastStep = 0;
-                } else if (player._comboStep === e.data._weaponLastStep + 1) {
-                    e.data._weaponCombo++;
-                    e.data._weaponLastStep = player._comboStep;
-                } else {
-                    e.data._weaponCombo = 1;
-                    e.data._weaponLastStep = player._comboStep;
-                }
-            }
-
-            // On finisher (4th hit) — if enemy caught all 4, execute with bisection
-            if (hasWeaponCombo && isFinisher && e.data._weaponCombo >= 4) {
-                sukunaBisect(e);
-                e.data._weaponCombo = 0;
-                e.data._weaponLastStep = -1;
+            dealDamageToEnemy(e, dmg);
+            // Black Flash launches the enemy at high speed in the player's
+            // facing direction. They fly until they hit a wall and splat
+            // (or run out of flight time). Skip the regular knockback in
+            // that case.
+            if (blackFlashPrimed) {
+                e.data._bfKnockback = {
+                    vx: fwdX * 26, vz: fwdZ * 26,
+                    timeLeft: 1.4,
+                    attacker: player,
+                };
             } else {
-                // Weapon combo M1s can't kill — leave at 1 HP so bisect can finish
-                const actualDmg = (hasWeaponCombo && e.data.hp - dmg <= 0) ? Math.max(0, e.data.hp - 1) : dmg;
-                dealDamageToEnemy(e, actualDmg);
-                // Black Flash launches the enemy at high speed in player's facing
-                // direction. They fly until they hit a wall and splat (or run out
-                // of flight time). Skip the regular knockback in that case.
-                if (blackFlashPrimed) {
-                    e.data._bfKnockback = {
-                        vx: fwdX * 26, vz: fwdZ * 26,
-                        timeLeft: 1.4,
-                        attacker: player,
-                    };
-                } else {
-                    // Weapon users use less KB to keep enemies in combo range
-                    const kb = hasWeaponCombo ? step.kb * 0.3 : step.kb;
-                    e.data.x += (dx / d) * kb;
-                    e.data.z += (dz / d) * kb;
-                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
-                }
+                e.data.x += (dx / d) * step.kb;
+                e.data.z += (dz / d) * step.kb;
+                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
             }
         }
     }
@@ -5267,7 +5243,9 @@ function p2Attack() {
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const range = 3.0;
     const hasWeap = ['sukuna','toji','brook','denji','yuta','yoh','ren','horohoro'].includes(player2.classId) && (player2.classId !== 'yoh' || player2._yohOversoulsActive) && (player2.classId !== 'ren' || player2._renOversoulsActive) && (player2.classId !== 'horohoro' || player2._horoOversoulsActive);
-    const dmg = hasWeap ? Math.round(player2.damage * step.dmgMult * 0.25) : Math.round(player2.damage * step.dmgMult);
+    // Full M1 damage for both fist and weapon characters — the 4-hit bisect
+    // finisher mechanic was removed, so weapons no longer have a 0.25× penalty.
+    const dmg = Math.round(player2.damage * step.dmgMult);
     const isFinisher = player2._comboStep === 3;
 
     for (const e of enemies3D) {
@@ -5280,23 +5258,10 @@ function p2Attack() {
         while (ad > Math.PI) ad -= Math.PI * 2;
         while (ad < -Math.PI) ad += Math.PI * 2;
         if (Math.abs(ad) < Math.PI * 0.5) {
-            if (hasWeap) {
-                if (e.data._weaponCombo === undefined) e.data._weaponCombo = 0;
-                if (e.data._weaponLastStep === undefined) e.data._weaponLastStep = -1;
-                if (player2._comboStep === 0) { e.data._weaponCombo = 1; e.data._weaponLastStep = 0; }
-                else if (player2._comboStep === e.data._weaponLastStep + 1) { e.data._weaponCombo++; e.data._weaponLastStep = player2._comboStep; }
-                else { e.data._weaponCombo = 1; e.data._weaponLastStep = player2._comboStep; }
-            }
-            if (hasWeap && isFinisher && e.data._weaponCombo >= 4) {
-                sukunaBisect(e);
-                e.data._weaponCombo = 0; e.data._weaponLastStep = -1;
-            } else {
-                const actualDmg = (hasWeap && e.data.hp - dmg <= 0) ? Math.max(0, e.data.hp - 1) : dmg;
-                dealDamageToEnemy(e, actualDmg);
-                const kb = hasWeap ? step.kb * 0.3 : step.kb;
-                e.data.x += (dx / d) * kb; e.data.z += (dz / d) * kb;
-                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
-            }
+            dealDamageToEnemy(e, dmg);
+            e.data.x += (dx / d) * step.kb;
+            e.data.z += (dz / d) * step.kb;
+            e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
         }
     }
 
@@ -6064,6 +6029,92 @@ function fruitAbility(slot) {
             }
 
             lightFlash(spawnX, EYE_HEIGHT, spawnZ, '#ff2244', 3, 200);
+        }
+
+        else if (slot === 'x') {
+            // ── CLEAVE — massive wide arc slash that hits everything in front ──
+            triggerSwordSwing(2); // horizontal sweep
+            screenShake(0.4, 200);
+            triggerHitstop(60);
+
+            const fly = fpsCamera.flyHeight || 0;
+
+            // Giant red arc slash visual
+            const arcGeo = new THREE.TorusGeometry(3, 0.04, 4, 32, Math.PI);
+            const arcMat = new THREE.MeshBasicMaterial({
+                color: '#ff2244', transparent: true, opacity: 0.9,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const arc = new THREE.Mesh(arcGeo, arcMat);
+            arc.position.set(worldPx + fwdX * 3, EYE_HEIGHT + fly, worldPz + fwdZ * 3);
+            arc.rotation.y = fpsCamera.yaw + Math.PI / 2;
+            arc.rotation.x = Math.PI / 2;
+            scene.add(arc);
+
+            // Second wider arc behind it
+            const arc2Geo = new THREE.TorusGeometry(3.5, 0.03, 4, 32, Math.PI);
+            const arc2Mat = new THREE.MeshBasicMaterial({
+                color: '#ff0000', transparent: true, opacity: 0.5,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const arc2 = new THREE.Mesh(arc2Geo, arc2Mat);
+            arc2.position.copy(arc.position);
+            arc2.rotation.copy(arc.rotation);
+            scene.add(arc2);
+
+            // Blood-red particles in the arc
+            emitParticles(worldPx + fwdX * 3, EYE_HEIGHT + fly, worldPz + fwdZ * 3, {
+                color: ['#ff2244', '#ff0000', '#cc0000', '#ff4466'],
+                count: 25, speed: 5, spread: 2,
+                gravity: -3, life: 15, size: 0.15, sizeEnd: 0, drag: 0.96, upward: 0.3
+            });
+
+            // Hit everything in a wide cone in front
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const dx = e.data.x - px, dz = e.data.z - pz;
+                const d = Math.hypot(dx, dz);
+                if (d > 5 || d < 0.1) continue;
+                const a = Math.atan2(-dx, -dz);
+                let ad = a - yaw;
+                while (ad > Math.PI) ad -= Math.PI * 2;
+                while (ad < -Math.PI) ad += Math.PI * 2;
+                if (Math.abs(ad) < Math.PI * 0.6) { // wider arc than M1
+                    dealDamageToEnemy(e, Math.round(player.damage * 3));
+                    // Big knockback
+                    e.data.x += (dx / d) * 2;
+                    e.data.z += (dz / d) * 2;
+                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                }
+            }
+
+            // Fade arcs
+            const start = performance.now();
+            const fadeArc = () => {
+                const t = (performance.now() - start) / 400;
+                if (t >= 1) {
+                    scene.remove(arc); arc.geometry.dispose(); arc.material.dispose();
+                    scene.remove(arc2); arc2.geometry.dispose(); arc2.material.dispose();
+                    return;
+                }
+                arcMat.opacity = (1 - t) * 0.9;
+                arc2Mat.opacity = (1 - t) * 0.5;
+                arc.scale.setScalar(1 + t * 0.3);
+                arc2.scale.setScalar(1 + t * 0.4);
+                requestAnimationFrame(fadeArc);
+            };
+            requestAnimationFrame(fadeArc);
+
+            // Arm pose
+            const pm = fpsCamera.playerModel;
+            if (pm?._rightArm) {
+                pm._rightArm.rotation.set(-0.3, 0, -1.2);
+                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 500);
+            }
+
+            lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#ff2244', 5, 300);
+            groundRing(worldPx + fwdX * 3, worldPz + fwdZ * 3, '#ff2244', 4, 600);
+            fovPunch(10, 0.15);
         }
 
         else if (slot === 'c') {
