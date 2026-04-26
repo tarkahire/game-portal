@@ -13595,7 +13595,7 @@ function yutaSummonRika() {
         damage: Math.round(player.damage * 1.5),
         attackRange: 2.6, attackSpeed: 1500,
         hp: 250, maxHp: 250,
-        life: performance.now() + 15000,
+        life: Infinity, // permanent — only despawns on HP <= 0 or floor change
         _owner: player,
     });
     const summoned = minions3D[minions3D.length - 1];
