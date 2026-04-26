@@ -3744,9 +3744,10 @@ function todoGrabAnimation() {
 }
 
 // ─── BOULDER KICK (C) ──────────────────────────────────────────────
-// Build an irregular stone — sphere with vertex displacement plus a few
-// surface bumps for a chunky boulder silhouette.
-function buildBoulderMesh() {
+// Build an irregular stone wrapped in cursed energy in the player's
+// chosen aura colour — translucent halo sprite + colored point light
+// that follow the boulder through flight.
+function buildBoulderMesh(auraColor) {
     const stoneMat = new THREE.MeshStandardMaterial({
         color: '#5a5048', roughness: 0.9, metalness: 0.05,
     });
@@ -3780,6 +3781,32 @@ function buildBoulderMesh() {
         );
         group.add(bump);
     }
+
+    // ── Cursed energy aura wrap ──
+    if (auraColor) {
+        const c = new THREE.Color(auraColor);
+        // Translucent additive halo sprite that always faces camera
+        const haloMat = new THREE.SpriteMaterial({
+            color: c, transparent: true, opacity: 0.55,
+            blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        const halo = new THREE.Sprite(haloMat);
+        halo.scale.set(1.1, 1.1, 1);
+        group.add(halo);
+        group.userData._halo = halo;
+        group.userData._haloMat = haloMat;
+        // Bright additive shell — slightly bigger than the rock for a glow rim
+        const shellMat = new THREE.MeshBasicMaterial({
+            color: c, transparent: true, opacity: 0.30,
+            blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide,
+        });
+        const shell = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 12), shellMat);
+        group.add(shell);
+        // Coloured point light so the boulder lights its surroundings
+        const light = new THREE.PointLight(c, 2.5, TILE * 4, 1.6);
+        group.add(light);
+        group.userData._auraLight = light;
+    }
     return group;
 }
 
@@ -3788,24 +3815,22 @@ function todoBoulderKick() {
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const yaw = fpsCamera.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const aura = player._auraColor || '#ffaa00';
 
-    // Spawn the boulder at the floor in front of TODO's foot
-    const boulder = buildBoulderMesh();
+    // Spawn the boulder at the floor in front of TODO's foot, wrapped in
+    // the player's cursed-energy aura colour
+    const boulder = buildBoulderMesh(aura);
     const wx = (px + fwdX * 0.8) * TILE;
     const wz = (pz + fwdZ * 0.8) * TILE;
     boulder.position.set(wx, 0.30, wz);
     scene.add(boulder);
 
-    // Dust kick-up at the boulder's spawn point — like he just yanked it loose
+    // Dust kick-up at the boulder's spawn point — tinted with aura
     emitParticles(wx, 0.2, wz, {
-        color: ['#8a7860', '#a89880', '#c0b8a0', '#5a4838'],
+        color: [aura, '#8a7860', '#a89880', '#c0b8a0'],
         count: 18, speed: 4, spread: 1.4,
         gravity: -3, life: 14, size: 0.16, sizeEnd: 0, drag: 0.92, upward: 1.2,
     });
-
-    // Drop any active hook punch / grab on the right leg's pivot — this
-    // animation owns the leg now
-    const pm = fpsCamera.playerModel;
 
     player._boulderKick = {
         startTime: performance.now(),
@@ -3813,15 +3838,8 @@ function todoBoulderKick() {
         fwdX, fwdZ,
         spawnYaw: yaw,
         launched: false,
+        aura,
     };
-
-    // Cinematic side angle — show TODO's profile so the kick reads
-    const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
-    const camWorldX = (px + fwdX * 0.6 + perpX * 1.1) * TILE;
-    const camWorldY = EYE_HEIGHT - 0.1;
-    const camWorldZ = (pz + fwdZ * 0.6 + perpZ * 1.1) * TILE;
-    fpsCamera.setCinematic(camWorldX, camWorldY, camWorldZ,
-        (px + fwdX * 0.6) * TILE, EYE_HEIGHT - 0.4, (pz + fwdZ * 0.6) * TILE, 700);
 }
 
 // State-driven kick animation — wind-up → kick → recovery. Runs after
@@ -3877,11 +3895,12 @@ function updateTodoBoulderKick() {
                 traveled: 0,
                 range: 30,
                 _isBoulder: true,
+                _auraColor: bk.aura,
+                _trailAccum: 0,
             });
-            // Kick burst — dust at the foot + impact feel
-            const aura = player._auraColor || '#ffaa00';
+            // Kick burst — aura-tinted dust at the foot
             emitParticles(startX, 0.4, startZ, {
-                color: [aura, '#8a7860', '#c0b8a0', '#ffffff'],
+                color: [bk.aura, '#8a7860', '#c0b8a0', '#ffffff'],
                 count: 22, speed: 6, spread: 1.4,
                 gravity: -3, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92,
             });
@@ -13473,11 +13492,25 @@ function update() {
         p.mesh.position.x += dx;
         p.mesh.position.z += dz;
         p.traveled += Math.sqrt(dx * dx + dz * dz);
-        // Boulder Kick projectile — tumble in flight
+        // Boulder Kick projectile — tumble in flight + aura trail + light pulse
         if (p._isBoulder) {
             p.mesh.rotation.x += 0.45;
             p.mesh.rotation.z += 0.32;
             p.mesh.rotation.y += 0.18;
+            // Pulse the attached aura point light
+            const al = p.mesh.userData && p.mesh.userData._auraLight;
+            if (al) al.intensity = 2.2 + Math.sin(performance.now() * 0.012) * 0.7;
+            // Emit a small aura-coloured trail every ~50ms behind the boulder
+            p._trailAccum = (p._trailAccum || 0) + dt;
+            if (p._trailAccum > 0.05) {
+                p._trailAccum = 0;
+                const tc = p._auraColor || '#ffaa00';
+                emitParticles(p.mesh.position.x, p.mesh.position.y, p.mesh.position.z, {
+                    color: [tc, '#ffffff'],
+                    count: 3, speed: 1.5, spread: 0.6,
+                    gravity: 0, life: 10, size: 0.12, sizeEnd: 0, drag: 0.92,
+                });
+            }
         }
 
         // Wall collision
@@ -13495,16 +13528,19 @@ function update() {
                 const dist = Math.hypot(e.data.x - tileX, e.data.z - tileZ);
                 if (dist < e.data.radius + 0.3) {
                     dealDamageToEnemy(e, p.damage);
-                    // Boulder Kick impact — heavy dust + debris + screen shake
+                    // Boulder Kick impact — heavy dust + debris + cursed energy burst
                     if (p._isBoulder) {
                         const hx = p.mesh.position.x, hz = p.mesh.position.z;
+                        const tc = p._auraColor || '#ffaa00';
                         emitParticles(hx, 0.6, hz, {
-                            color: ['#8a7860', '#a89880', '#c0b8a0', '#5a4838', '#3a3028', '#aa0010'],
+                            color: [tc, '#ffffff', '#8a7860', '#a89880', '#c0b8a0', '#5a4838'],
                             count: 36, speed: 7, spread: 1.7,
                             gravity: -4, life: 20, size: 0.18, sizeEnd: 0, drag: 0.92, upward: 1.0,
                         });
-                        groundRing(hx, hz, '#8a7860', 1.6, 450);
+                        groundRing(hx, hz, tc, 1.8, 450);
+                        groundRing(hx, hz, '#8a7860', 1.4, 350);
                         groundDecal(hx, hz, '#3a3028', 1.0, 3000);
+                        lightFlash(hx, 0.6, hz, tc, 8, 250);
                         screenShake(0.5, 200);
                         triggerHitstop(80);
                         fovPunch(10, 0.16);
