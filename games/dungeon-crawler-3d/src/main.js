@@ -2400,6 +2400,7 @@ function buildPlayerModelForClass(classId, labelPrefix) {
     else if (classId === 'horohoro') { pm = buildHorohoroModel(); pm.scale.setScalar(0.85); addPlayerLabel(pm, labelPrefix + 'HORO', '#42a5f5'); }
     else if (classId === 'megumi') { pm = buildMegumiModel(); addPlayerLabel(pm, labelPrefix + 'MEGUMI', '#1a237e'); }
     else if (classId === 'todo') { pm = buildTodoModel(); addPlayerLabel(pm, labelPrefix + 'TODO', '#d4a070'); }
+    else if (classId === 'yuta') { pm = buildYutaModel(); addPlayerLabel(pm, labelPrefix + 'YUTA', '#5a8aff'); }
     else { pm = buildGenericPlayerModel(CLASSES[classId] || CLASSES['gojo']); }
     return pm;
 }
@@ -2482,6 +2483,9 @@ function startGame() {
     } else if (player.classId === 'todo') {
         pm = buildTodoModel();
         addPlayerLabel(pm, 'TODO', '#d4a070');
+    } else if (player.classId === 'yuta') {
+        pm = buildYutaModel();
+        addPlayerLabel(pm, 'YUTA', '#5a8aff');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
@@ -2504,6 +2508,9 @@ function startGame() {
         camera.add(fpsSword);
     } else if (player.classId === 'denji') {
         fpsSword = buildFPSChainsaws();
+        camera.add(fpsSword);
+    } else if (player.classId === 'yuta') {
+        fpsSword = buildFPSSword();
         camera.add(fpsSword);
     }
 
@@ -2549,6 +2556,7 @@ function startGame() {
         else if (player2.classId === 'horohoro') { pm2 = buildHorohoroModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 HORO', '#42a5f5'); }
         else if (player2.classId === 'megumi') { pm2 = buildMegumiModel(); addPlayerLabel(pm2, 'P2 MEGUMI', '#1a237e'); }
         else if (player2.classId === 'todo') { pm2 = buildTodoModel(); addPlayerLabel(pm2, 'P2 TODO', '#d4a070'); }
+        else if (player2.classId === 'yuta') { pm2 = buildYutaModel(); addPlayerLabel(pm2, 'P2 YUTA', '#5a8aff'); }
         else { pm2 = buildGenericPlayerModel(cls2); }
         pm2.visible = false;
         scene.add(pm2);
@@ -2559,6 +2567,7 @@ function startGame() {
         else if (player2.classId === 'toji') { fpsSword2 = buildFPSSpear(); camera2.add(fpsSword2); }
         else if (player2.classId === 'brook') { fpsSword2 = buildFPSCane(); camera2.add(fpsSword2); }
         else if (player2.classId === 'denji') { fpsSword2 = buildFPSChainsaws(); camera2.add(fpsSword2); }
+        else if (player2.classId === 'yuta') { fpsSword2 = buildFPSSword(); camera2.add(fpsSword2); }
     }
 
     // ── Online — build remote player meshes (one per other peer) ──
@@ -4478,10 +4487,11 @@ function playerAttack() {
     const isToji = player.classId === 'toji';
     const isBrook = player.classId === 'brook';
     const isDenji = player.classId === 'denji';
+    const isYuta = player.classId === 'yuta';
     const isYoh = player.classId === 'yoh' && player._yohOversoulsActive;
     const isRen = player.classId === 'ren' && player._renOversoulsActive;
     const isHoro = player.classId === 'horohoro' && player._horoOversoulsActive;
-    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh || isRen || isHoro;
+    const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYuta || isYoh || isRen || isHoro;
     // Cursed-energy aura boost — 50% damage while active
     const auraMult = player._cursedAuraActive ? 1.5 : 1;
     // Black Flash multiplier — 2× damage if primed and this M1 connects.
@@ -4897,7 +4907,7 @@ function p2Attack() {
     const yaw = fpsCamera2.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const range = 3.0;
-    const hasWeap = ['sukuna','toji','brook','denji','yoh','ren','horohoro'].includes(player2.classId) && (player2.classId !== 'yoh' || player2._yohOversoulsActive) && (player2.classId !== 'ren' || player2._renOversoulsActive) && (player2.classId !== 'horohoro' || player2._horoOversoulsActive);
+    const hasWeap = ['sukuna','toji','brook','denji','yuta','yoh','ren','horohoro'].includes(player2.classId) && (player2.classId !== 'yoh' || player2._yohOversoulsActive) && (player2.classId !== 'ren' || player2._renOversoulsActive) && (player2.classId !== 'horohoro' || player2._horoOversoulsActive);
     const dmg = hasWeap ? Math.round(player2.damage * step.dmgMult * 0.25) : Math.round(player2.damage * step.dmgMult);
     const isFinisher = player2._comboStep === 3;
 
@@ -9510,6 +9520,241 @@ function buildMegumiModel() {
     pm._auraLight = aura;
 
     pm._isMegumi = true;
+
+    return pm;
+}
+
+// ─── YUTA OKKOTSU 3D MODEL — white tee, black shorts, katana ──────
+function buildYutaModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f0d5b8', roughness: 0.5 });
+    const tshirtMat = new THREE.MeshStandardMaterial({ color: '#f0f0ee', roughness: 0.6 });
+    const tshirtShade = new THREE.MeshStandardMaterial({ color: '#c8c8c5', roughness: 0.65 });
+    const shortsMat = new THREE.MeshStandardMaterial({ color: '#0e0e10', roughness: 0.7 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#0a0a0a', roughness: 0.85 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#0d0a0e', roughness: 0.55 });
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    const irisMat = new THREE.MeshBasicMaterial({ color: '#1a3a6a' });
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // White t-shirt body
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.23, 0.85, 8), tshirtMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.22, 0.34), tshirtMat);
+    shoulders.position.y = 0.85; torsoPivot.add(shoulders);
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.04, 8), tshirtShade);
+    collar.position.y = 0.96; torsoPivot.add(collar);
+    for (let s = -1; s <= 1; s += 2) {
+        const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.012, 6), tshirtShade);
+        cuff.position.set(s * 0.36, 0.78, 0); cuff.rotation.z = s * Math.PI / 2;
+        torsoPivot.add(cuff);
+    }
+
+    // ── Neck + Head ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.14, 6), skinMat);
+    neck.position.y = 1.10; torsoPivot.add(neck);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
+    head.position.y = 1.36; head.scale.set(1, 1.04, 0.95); torsoPivot.add(head);
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), skinMat);
+    chin.position.set(0, 1.22, 0.12); chin.scale.set(1.15, 0.6, 1); torsoPivot.add(chin);
+
+    // Eyes — calm dark blue
+    for (let s = -1; s <= 1; s += 2) {
+        const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.045, 7, 7), eyeWhiteMat);
+        eyeWhite.position.set(s * 0.085, 1.40, 0.19);
+        eyeWhite.scale.set(1, 0.7, 0.7);
+        torsoPivot.add(eyeWhite);
+        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 6), irisMat);
+        iris.position.set(s * 0.085, 1.40, 0.215);
+        torsoPivot.add(iris);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.013, 4, 4), pupilMat);
+        pupil.position.set(s * 0.085, 1.40, 0.235);
+        torsoPivot.add(pupil);
+        const shine = new THREE.Mesh(new THREE.SphereGeometry(0.006, 4, 4), eyeWhiteMat);
+        shine.position.set(s * 0.085 + 0.012, 1.41, 0.245);
+        torsoPivot.add(shine);
+    }
+    for (let s = -1; s <= 1; s += 2) {
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.018), hairMat);
+        brow.position.set(s * 0.085, 1.435, 0.205);
+        brow.rotation.z = s * 0.06;
+        torsoPivot.add(brow);
+    }
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.06, 4), skinMat);
+    nose.position.set(0, 1.34, 0.21); nose.rotation.x = Math.PI * 0.6;
+    torsoPivot.add(nose);
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.008, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#aa6a5a' }));
+    mouth.position.set(0, 1.27, 0.21); torsoPivot.add(mouth);
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.038, 5, 5), skinMat);
+        ear.position.set(s * 0.21, 1.38, -0.01); ear.scale.set(0.6, 1, 0.6);
+        torsoPivot.add(ear);
+    }
+
+    // ── HAIR — Yuta's signature messy black hair with bangs over the forehead ──
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 10), hairMat);
+    hairBase.position.set(0, 1.45, -0.01); hairBase.scale.set(1.08, 0.92, 1.06);
+    torsoPivot.add(hairBase);
+    const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), hairMat);
+    hairTop.position.set(0, 1.55, 0.02); hairTop.scale.set(1.0, 0.7, 0.95);
+    torsoPivot.add(hairTop);
+    // Forehead bangs — signature side-parted fringe
+    const bangs = [
+        { x:  0.04, y: 1.49, z: 0.20, rx: -0.85, rz:  0.25, h: 0.18, r: 0.034 },
+        { x: -0.02, y: 1.50, z: 0.20, rx: -0.78, rz: -0.05, h: 0.17, r: 0.032 },
+        { x:  0.10, y: 1.47, z: 0.18, rx: -0.70, rz:  0.45, h: 0.15, r: 0.030 },
+        { x: -0.08, y: 1.48, z: 0.18, rx: -0.70, rz: -0.30, h: 0.14, r: 0.028 },
+        { x: -0.13, y: 1.46, z: 0.16, rx: -0.60, rz: -0.50, h: 0.12, r: 0.026 },
+        { x:  0.15, y: 1.45, z: 0.14, rx: -0.55, rz:  0.65, h: 0.13, r: 0.026 },
+    ];
+    for (const b of bangs) {
+        const strand = new THREE.Mesh(new THREE.ConeGeometry(b.r, b.h, 4), hairMat);
+        strand.position.set(b.x, b.y, b.z);
+        strand.rotation.set(b.rx, 0, b.rz);
+        torsoPivot.add(strand);
+    }
+    // Crown / back / temple messy spikes
+    const messy = [
+        { x:  0.06, y: 1.62, z: 0.0,   rx: -0.10, rz:  0.20, h: 0.16, r: 0.030 },
+        { x: -0.06, y: 1.62, z: 0.0,   rx: -0.10, rz: -0.20, h: 0.16, r: 0.030 },
+        { x:  0.13, y: 1.58, z: -0.02, rx:  0.0,  rz:  0.45, h: 0.14, r: 0.028 },
+        { x: -0.13, y: 1.58, z: -0.02, rx:  0.0,  rz: -0.45, h: 0.14, r: 0.028 },
+        { x:  0.05, y: 1.52, z: -0.16, rx:  0.55, rz:  0.20, h: 0.16, r: 0.030 },
+        { x: -0.05, y: 1.52, z: -0.16, rx:  0.55, rz: -0.20, h: 0.16, r: 0.030 },
+        { x:  0.0,  y: 1.50, z: -0.20, rx:  0.65, rz:  0.0,  h: 0.18, r: 0.030 },
+        { x:  0.18, y: 1.46, z: 0.04,  rx: -0.25, rz:  0.85, h: 0.11, r: 0.024 },
+        { x: -0.18, y: 1.46, z: 0.04,  rx: -0.25, rz: -0.85, h: 0.11, r: 0.024 },
+    ];
+    for (const m of messy) {
+        const strand = new THREE.Mesh(new THREE.ConeGeometry(m.r, m.h, 4), hairMat);
+        strand.position.set(m.x, m.y, m.z);
+        strand.rotation.set(m.rx, 0, m.rz);
+        torsoPivot.add(strand);
+    }
+
+    // ── Right arm (holds katana) ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.38, 0.82, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), tshirtMat));
+    const rSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.18, 6), tshirtMat);
+    rSleeve.position.y = -0.13; rightArmPivot.add(rSleeve);
+    rightArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.068, 0.012, 6), tshirtShade).translateY(-0.22));
+    const rUpperArmSkin = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.055, 0.26, 5), skinMat);
+    rUpperArmSkin.position.y = -0.36; rightArmPivot.add(rUpperArmSkin);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), skinMat).translateY(-0.50));
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.052, 0.4, 5), skinMat);
+    rForearm.position.y = -0.72; rightArmPivot.add(rForearm);
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.06), skinMat);
+    rHand.position.set(0, -0.95, 0.02); rightArmPivot.add(rHand);
+
+    // Katana
+    const swordGroup = new THREE.Group();
+    swordGroup.position.set(0, -1.0, 0.04);
+    swordGroup.rotation.x = Math.PI / 2;
+    const gripMat = new THREE.MeshStandardMaterial({ color: '#1a1424', roughness: 0.7 });
+    const wrapMat = new THREE.MeshStandardMaterial({ color: '#382c50', roughness: 0.6 });
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.20, 6), gripMat);
+    swordGroup.add(grip);
+    for (let w = 0; w < 4; w++) {
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.013, 6), wrapMat);
+        wrap.position.y = -0.07 + w * 0.05;
+        swordGroup.add(wrap);
+    }
+    const tsubaMat = new THREE.MeshStandardMaterial({ color: '#2a2a2a', metalness: 0.55, roughness: 0.35 });
+    const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.014, 8), tsubaMat);
+    tsuba.position.y = 0.11;
+    swordGroup.add(tsuba);
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#d8dde8', metalness: 0.92, roughness: 0.10 });
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.85, 0.006), bladeMat);
+    blade.position.y = 0.55;
+    swordGroup.add(blade);
+    const hamonMat = new THREE.MeshBasicMaterial({ color: '#8aaaff', transparent: true, opacity: 0.5 });
+    const hamon = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.85, 0.008), hamonMat);
+    hamon.position.set(0.013, 0.55, 0);
+    swordGroup.add(hamon);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.013, 0.10, 4), bladeMat);
+    tip.position.y = 1.00;
+    swordGroup.add(tip);
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.022, 5, 5), tsubaMat);
+    pommel.position.y = -0.12;
+    swordGroup.add(pommel);
+    rightArmPivot.add(swordGroup);
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm — mirrored, no sword ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.38, 0.82, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), tshirtMat));
+    const lSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.18, 6), tshirtMat);
+    lSleeve.position.y = -0.13; leftArmPivot.add(lSleeve);
+    leftArmPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.068, 0.012, 6), tshirtShade).translateY(-0.22));
+    const lUpperArmSkin = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.055, 0.26, 5), skinMat);
+    lUpperArmSkin.position.y = -0.36; leftArmPivot.add(lUpperArmSkin);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), skinMat).translateY(-0.50));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.052, 0.4, 5), skinMat);
+    lForearm.position.y = -0.72; leftArmPivot.add(lForearm);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.06), skinMat);
+    lHand.position.set(0, -0.95, 0.02); leftArmPivot.add(lHand);
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Right leg (black shorts, bare lower leg) ──
+    const rightLegPivot = new THREE.Group();
+    rightLegPivot.position.set(0.10, 0.65, 0);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), shortsMat));
+    const rShorts = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.10, 0.30, 6), shortsMat);
+    rShorts.position.y = -0.18; rightLegPivot.add(rShorts);
+    rightLegPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.012, 6),
+        new THREE.MeshStandardMaterial({ color: '#2a2a2c', roughness: 0.7 })).translateY(-0.32));
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.062, 0.20, 5), skinMat);
+    rThigh.position.y = -0.45; rightLegPivot.add(rThigh);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), skinMat).translateY(-0.58));
+    const rShin = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.052, 0.42, 5), skinMat);
+    rShin.position.y = -0.80; rightLegPivot.add(rShin);
+    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, 0.16), shoeMat);
+    rShoe.position.set(0, -1.04, 0.03); rightLegPivot.add(rShoe);
+    pm.add(rightLegPivot);
+    pm._rightLeg = rightLegPivot;
+
+    // ── Left leg ──
+    const leftLegPivot = new THREE.Group();
+    leftLegPivot.position.set(-0.10, 0.65, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), shortsMat));
+    const lShorts = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.10, 0.30, 6), shortsMat);
+    lShorts.position.y = -0.18; leftLegPivot.add(lShorts);
+    leftLegPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.012, 6),
+        new THREE.MeshStandardMaterial({ color: '#2a2a2c', roughness: 0.7 })).translateY(-0.32));
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.062, 0.20, 5), skinMat);
+    lThigh.position.y = -0.45; leftLegPivot.add(lThigh);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), skinMat).translateY(-0.58));
+    const lShin = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.052, 0.42, 5), skinMat);
+    lShin.position.y = -0.80; leftLegPivot.add(lShin);
+    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, 0.16), shoeMat);
+    lShoe.position.set(0, -1.04, 0.03); leftLegPivot.add(lShoe);
+    pm.add(leftLegPivot);
+    pm._leftLeg = leftLegPivot;
+
+    // Subtle waistband visible at the hem of the t-shirt
+    const waistband = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.22, 0.04, 8),
+        new THREE.MeshStandardMaterial({ color: '#1a1a1c', roughness: 0.7 }));
+    waistband.position.y = 0.66; pm.add(waistband);
+
+    // Faint blue cursed energy aura
+    const aura = new THREE.PointLight('#5a8aff', 0.5, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isSukuna = true; // reuse Sukuna's swordsman walk/idle animation
+    pm._isYuta = true;
 
     return pm;
 }

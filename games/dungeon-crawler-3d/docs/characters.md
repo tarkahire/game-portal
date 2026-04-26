@@ -16,6 +16,7 @@
 | Horohoro | shaman | 135 | 3.5 | 15 | 230 | 38 | fist (Ice fists on Q) |
 | Megumi Fushiguro | sorcerer | 130 | 3.5 | 16 | 240 | 35 | fist |
 | TODO | fighter | **220** | 3.0 | 5 | 320 | 35 | fist (Z: Black Flash) |
+| Yuta Okkotsu | sorcerer | 135 | 3.6 | 17 | 220 | 38 | sword (no abilities yet) |
 
 ## Abilities
 

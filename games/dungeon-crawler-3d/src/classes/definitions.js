@@ -73,4 +73,11 @@ export const CLASSES = {
         abilities: { z: 'Black Flash', x: 'Face Slam', c: 'Boulder Kick' },
         abilityCooldowns: { z: 5000, x: 7000, c: 6000 }
     },
+    yuta: {
+        name: 'Yuta Okkotsu', type: 'sorcerer', maxHp: 135, speed: 3.6, attackRange: 38,
+        attackDamage: 17, attackSpeed: 220, attackType: 'melee', color: '#5a8aff',
+        specialCooldown: 5000, specialName: 'Cursed Sword', weaponType: 'sword',
+        abilities: {},
+        abilityCooldowns: {}
+    },
 };
