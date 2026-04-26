@@ -1,6 +1,7 @@
-// Fighter: stylized humanoid mesh + HP/state + cooldowns
+// Fighter: full 3D character mesh (from characterModels.js) + HP/state + cooldowns
 import * as THREE from 'three';
 import { CLASSES } from './classes/definitions.js';
+import { buildCharacterMesh, animateCharacter } from './characterModels.js';
 
 const TWO_PI = Math.PI * 2;
 
@@ -9,9 +10,31 @@ function hexNumber(hex) {
     return parseInt(hex.replace('#', ''), 16);
 }
 
-// Build a stylized humanoid figure colored to character.
-// Returns a THREE.Group with named children for animation.
-export function buildHumanoid(character) {
+// Wrap the imported character mesh with HP bar + name tag billboards.
+export function buildHumanoid(character, charKey) {
+    const group = new THREE.Group();
+    // Real character mesh from dungeon-crawler-3d
+    const charMesh = buildCharacterMesh(charKey);
+    charMesh.name = 'charMesh';
+    group.add(charMesh);
+
+    // HP bar billboard
+    const hpBar = buildHpBar();
+    hpBar.position.y = 2.5;
+    hpBar.name = 'hpBar';
+    group.add(hpBar);
+
+    // Name tag billboard
+    const nameTag = buildNameTag(character.name);
+    nameTag.position.y = 2.75;
+    nameTag.name = 'nameTag';
+    group.add(nameTag);
+
+    return group;
+}
+
+// Legacy stylized humanoid kept for fallback / reference (unused).
+function buildStylizedHumanoid(character) {
     const group = new THREE.Group();
     const colorN = hexNumber(character.color);
 
@@ -169,7 +192,8 @@ export class Fighter {
         this.maxHp = this.character.maxHp;
         this.hp = this.maxHp;
         this.alive = true;
-        this.mesh = buildHumanoid(this.character);
+        this.mesh = buildHumanoid(this.character, charKey);
+        this.walkCycle = 0;
         this.x = 0;
         this.z = 0;
         this.yaw = 0;        // facing angle (radians, 0 = +Z)
@@ -223,33 +247,14 @@ export class Fighter {
         }
     }
 
-    // Per-frame: pose animations (walking / attacking)
+    // Per-frame: dispatch to the imported per-character animator
     tick(dt) {
         if (!this.alive) return;
-        this.animTime += dt;
         const moving = (this.vx * this.vx + this.vz * this.vz) > 0.05;
-        const armL = this.mesh.getObjectByName('armL');
-        const armR = this.mesh.getObjectByName('armR');
-        const legL = this.mesh.getObjectByName('legL');
-        const legR = this.mesh.getObjectByName('legR');
-        if (moving) {
-            const swing = Math.sin(this.animTime * 8) * 0.5;
-            if (legL) legL.rotation.x = swing;
-            if (legR) legR.rotation.x = -swing;
-            if (armL) armL.rotation.x = -swing * 0.8;
-            if (armR) armR.rotation.x = swing * 0.8;
-        } else {
-            if (legL) legL.rotation.x = 0;
-            if (legR) legR.rotation.x = 0;
-            if (armL) armL.rotation.x = 0;
-            if (armR) armR.rotation.x = 0;
-        }
-        // M1 attack animation
-        if (this.attackAnimT > 0) {
-            this.attackAnimT = Math.max(0, this.attackAnimT - dt * 4);
-            const t = 1 - this.attackAnimT;
-            if (armR) armR.rotation.x = -Math.sin(t * Math.PI) * 1.6;
-        }
+        // walkCycle advances faster while moving (matches dungeon-crawler-3d feel)
+        this.walkCycle += dt * (moving ? 6 : 1);
+        const charMesh = this.mesh.getObjectByName('charMesh');
+        if (charMesh) animateCharacter(charMesh, this.key, dt, moving, this.walkCycle);
 
         // Match dungeon-crawler-3d convention: yaw=0 -> forward (-Z), so model rotates by yaw+π
         this.mesh.rotation.y = this.yaw + Math.PI;
