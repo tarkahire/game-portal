@@ -10632,7 +10632,7 @@ function updateMinions(dt, now) {
             const headWZ = (m.data.z + perpZ * wobble) * TILE;
 
             // Initialise / step the chain of world-space spine points
-            const SPINE_COUNT = 18;
+            const SPINE_COUNT = 26;
             const SEG_DIST = 0.55; // world distance between adjacent spine points
             if (!m.data._spine) {
                 m.data._spine = [];
@@ -11001,130 +11001,168 @@ function buildSerpentMesh() {
     const SCALE = 2.2;
     const initSpine = [];
     for (let i = 0; i < 20; i++) initSpine.push(new THREE.Vector3(0, 0.55, -i * 0.5));
-    // Skinny + uniform along most of the length. Only the last ~6 segments
-    // taper into a fine tail tip, matching how the reference body holds
-    // roughly the same width all the way down before the tail.
+    // Skinny + uniform along most of the length. Only the last ~25% tapers
+    // into a fine tail tip. Long snake — extended to 24 radii entries.
     const baseRadii = [
         0.30, 0.32, 0.32, 0.32, 0.32, 0.32, 0.32, 0.32, 0.32, 0.32,
-        0.32, 0.32, 0.31, 0.29, 0.25, 0.20, 0.15, 0.10, 0.06, 0.03
+        0.32, 0.32, 0.32, 0.32, 0.32, 0.32, 0.31, 0.29, 0.25, 0.20,
+        0.15, 0.10, 0.06, 0.03
     ];
     const radii = baseRadii.map(r => r * SCALE);
     const bodyGeo = buildLoftedTube(initSpine, radii, 14, colorFn);
     const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
     g.add(bodyMesh);
 
-    // ── Head — white cobra-style head, flatter on top for the angular look.
+    // ── Head — narrow elongated snake skull with proper facial features.
     const head = new THREE.Group();
-    // Skull — elongated white ovoid, flatter on top (low-poly anime look)
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 12), headMat);
-    skull.scale.set(1.1, 0.78, 1.55);
+    // Skull — narrower (skinnier x), flatter on top, longer (z)
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.40, 16, 12), headMat);
+    skull.scale.set(0.85, 0.62, 1.85);
     head.add(skull);
-    // Cheek widening — gives the head a cobra-like hooded look from the front
-    for (let s = -1; s <= 1; s += 2) {
-        const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), headMat);
-        cheek.position.set(s * 0.22, -0.05, 0.1);
-        cheek.scale.set(0.9, 0.55, 1.1);
-        head.add(cheek);
-    }
-    // Snout — forward bump, tapered slightly downward
-    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), headMat);
-    snout.position.set(0, -0.08, -0.46);
-    snout.scale.set(0.95, 0.65, 1.2);
+    // Snout — forward bump, narrower and pointier
+    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 10), headMat);
+    snout.position.set(0, -0.08, -0.55);
+    snout.scale.set(0.7, 0.55, 1.05);
     head.add(snout);
-    // Top-of-head shading (slightly darker plate, flatter)
-    const topShade = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), headShade);
-    topShade.scale.set(1.1, 0.34, 1.62);
-    topShade.position.y = 0.08;
+    // Snout tip — small pointed cone for the nose
+    const snoutTip = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.20, 6), headMat);
+    snoutTip.position.set(0, -0.10, -0.78);
+    snoutTip.rotation.x = -Math.PI / 2;
+    snoutTip.scale.set(1.1, 1.0, 0.7); // wider, flatter cone
+    head.add(snoutTip);
+    // Top-of-head dark plate — sits across the skull crown
+    const topShade = new THREE.Mesh(new THREE.SphereGeometry(0.36, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), headShade);
+    topShade.scale.set(0.85, 0.28, 1.85);
+    topShade.position.y = 0.06;
     head.add(topShade);
+    // Frontal scale plate (the big shield scale on top of the snout)
+    const frontPlate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 0.32), headShade);
+    frontPlate.position.set(0, 0.16, -0.42);
+    head.add(frontPlate);
+    // Two parietal plates — the pair of scales between the eyes
+    for (let s = -1; s <= 1; s += 2) {
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.025, 0.24), headShade);
+        plate.position.set(s * 0.10, 0.16, -0.05);
+        head.add(plate);
+    }
+    // Centre dorsal stripe — thin dark line down the middle of the head
+    const dorsalStripe = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.02, 0.7), headShade);
+    dorsalStripe.position.set(0, 0.18, -0.1);
+    head.add(dorsalStripe);
+    // Brow ridges above each eye — slight angled bumps for menace
+    for (let s = -1; s <= 1; s += 2) {
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.05, 0.22), headShade);
+        brow.position.set(s * 0.27, 0.16, -0.2);
+        brow.rotation.z = s * -0.18;
+        head.add(brow);
+    }
+    // Nostrils — two small dark dots on the snout
+    for (let s = -1; s <= 1; s += 2) {
+        const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), pupilMat);
+        nostril.position.set(s * 0.08, -0.05, -0.74);
+        head.add(nostril);
+    }
+    // Jaw line — subtle dark line where the upper jaw meets the cheek, both sides
+    for (let s = -1; s <= 1; s += 2) {
+        const jawLine = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.025, 0.7), headShade);
+        jawLine.position.set(s * 0.32, -0.10, -0.18);
+        jawLine.rotation.y = s * 0.04;
+        head.add(jawLine);
+    }
     // ── Eyes — yellow with vertical slits, set inside dark skull-pattern sockets ──
     for (let s = -1; s <= 1; s += 2) {
         // Black eye socket — disc behind/around the yellow eye to give the
         // skull-mask look from the reference
-        const socket = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), eyeSocketMat);
-        socket.scale.set(1.1, 0.9, 0.7);
-        socket.position.set(s * 0.27, 0.08, -0.16);
+        const socket = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), eyeSocketMat);
+        socket.scale.set(1.1, 0.95, 0.7);
+        socket.position.set(s * 0.24, 0.06, -0.30);
         head.add(socket);
         // Yellow eye — sits proud of the socket
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), eyeMat);
-        eye.position.set(s * 0.27, 0.08, -0.20);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), eyeMat);
+        eye.position.set(s * 0.26, 0.06, -0.34);
         head.add(eye);
         // Vertical slit pupil
-        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.11, 0.012), pupilMat);
-        pupil.position.set(s * 0.27, 0.08, -0.30);
+        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.10, 0.012), pupilMat);
+        pupil.position.set(s * 0.27, 0.06, -0.43);
         head.add(pupil);
         // Red marking — long curving stripe extending back over the head from the eye.
         // Built as 3 segmented box pieces that arc backward for the curved look.
-        const seg1 = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.05, 0.36), markingMat);
-        seg1.position.set(s * 0.32, 0.06, 0.06);
+        const seg1 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.4), markingMat);
+        seg1.position.set(s * 0.30, 0.04, -0.05);
         seg1.rotation.y = s * -0.25;
         head.add(seg1);
-        const seg2 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.045, 0.28), markingMat);
-        seg2.position.set(s * 0.34, 0.10, 0.30);
+        const seg2 = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.045, 0.32), markingMat);
+        seg2.position.set(s * 0.32, 0.09, 0.22);
         seg2.rotation.y = s * -0.45;
         head.add(seg2);
-        const seg3 = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.04, 0.20), markingMat);
-        seg3.position.set(s * 0.30, 0.12, 0.46);
+        const seg3 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.04, 0.24), markingMat);
+        seg3.position.set(s * 0.28, 0.13, 0.42);
         seg3.rotation.y = s * -0.65;
         head.add(seg3);
     }
-    // ── Open mouth — bright pink interior with a darker throat in back, ──
-    // matching the reference shikigami's wide-jawed bite pose.
+    // ── Wide open mouth — pink interior, dark throat, hanging lower jaw ──
     // Pink mouth cavity (the visible inside of the mouth)
-    const mouthCavity = new THREE.Mesh(new THREE.SphereGeometry(0.30, 14, 10), mouthInnerMat);
-    mouthCavity.scale.set(1.05, 0.7, 1.35);
-    mouthCavity.position.set(0, -0.22, -0.42);
+    const mouthCavity = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 10), mouthInnerMat);
+    mouthCavity.scale.set(0.85, 0.95, 1.35);
+    mouthCavity.position.set(0, -0.30, -0.55);
     head.add(mouthCavity);
-    // Darker throat — a smaller sphere set deeper in to give depth to the back of the mouth
-    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), throatMat);
-    throat.scale.set(0.85, 0.55, 1.1);
-    throat.position.set(0, -0.18, -0.20);
+    // Darker throat — set deeper in for depth at the back of the mouth
+    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), throatMat);
+    throat.scale.set(0.7, 0.7, 1.1);
+    throat.position.set(0, -0.26, -0.32);
     head.add(throat);
     // Upper-jaw lip — thin pink ridge along the top inside of the mouth
-    const upperLip = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.03, 6, 14, Math.PI), mouthInnerMat);
-    upperLip.position.set(0, -0.10, -0.42);
+    const upperLip = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 6, 14, Math.PI), mouthInnerMat);
+    upperLip.position.set(0, -0.16, -0.5);
     upperLip.rotation.x = Math.PI / 2;
     upperLip.rotation.z = Math.PI;
     head.add(upperLip);
-    // ── Lower jaw — hangs down at an angle, white outside, pink inside ──
+    // ── Lower jaw — hangs down clearly, white outside, pink inside ──
     const lowerJaw = new THREE.Group();
-    const lowerJawOuter = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), lowerJawOuterMat);
-    lowerJawOuter.scale.set(1.0, 0.45, 1.2);
+    const lowerJawOuter = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), lowerJawOuterMat);
+    lowerJawOuter.scale.set(0.85, 0.42, 1.3);
     lowerJaw.add(lowerJawOuter);
     // Pink inside surface of the lower jaw
-    const lowerJawInner = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), mouthInnerMat);
-    lowerJawInner.scale.set(1.0, 0.6, 1.2);
+    const lowerJawInner = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), mouthInnerMat);
+    lowerJawInner.scale.set(0.85, 0.6, 1.3);
     lowerJawInner.position.y = 0.04;
     lowerJaw.add(lowerJawInner);
-    lowerJaw.position.set(0, -0.36, -0.36);
-    lowerJaw.rotation.x = -0.45; // jaw drops open downward
+    // Lower jaw front tip — small pointed chin
+    const chinTip = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.14, 5), lowerJawOuterMat);
+    chinTip.position.set(0, -0.02, -0.30);
+    chinTip.rotation.x = -Math.PI / 2;
+    chinTip.scale.set(1.1, 0.6, 0.9);
+    lowerJaw.add(chinTip);
+    lowerJaw.position.set(0, -0.42, -0.42);
+    lowerJaw.rotation.x = -0.75; // jaw dropped wide open
     head.add(lowerJaw);
-    // ── Two long curved white fangs hanging from the upper jaw ──
+    // ── Two long curved white fangs — clearly visible hanging from the upper jaw ──
     for (let s = -1; s <= 1; s += 2) {
-        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.36, 6), fangMat);
-        fang.position.set(s * 0.16, -0.20, -0.58);
-        fang.rotation.x = Math.PI + 0.08; // tip down, slight forward angle
-        fang.rotation.z = s * -0.12;
+        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.42, 6), fangMat);
+        fang.position.set(s * 0.13, -0.26, -0.66);
+        fang.rotation.x = Math.PI + 0.12; // tip down, angled forward
+        fang.rotation.z = s * -0.10;
         head.add(fang);
     }
     // Two smaller front fangs for menace
     for (let s = -1; s <= 1; s += 2) {
-        const smallFang = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.18, 5), fangMat);
-        smallFang.position.set(s * 0.07, -0.15, -0.62);
-        smallFang.rotation.x = Math.PI + 0.05;
-        smallFang.rotation.z = s * -0.08;
+        const smallFang = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.20, 5), fangMat);
+        smallFang.position.set(s * 0.06, -0.20, -0.7);
+        smallFang.rotation.x = Math.PI + 0.08;
+        smallFang.rotation.z = s * -0.06;
         head.add(smallFang);
     }
-    // Forked tongue — long red tongue lolling forward + down
+    // Forked tongue — long red tongue lolling forward + down out of the open mouth
     const tongue = new THREE.Group();
-    const tongueShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.022, 0.65, 6), tongueMat);
-    tongueShaft.position.set(0, -0.42, -0.74);
-    tongueShaft.rotation.x = Math.PI / 2 + 0.45;
+    const tongueShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.020, 0.85, 6), tongueMat);
+    tongueShaft.position.set(0, -0.55, -0.92);
+    tongueShaft.rotation.x = Math.PI / 2 + 0.55;
     tongue.add(tongueShaft);
     for (let s = -1; s <= 1; s += 2) {
-        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.011, 0.26, 5), tongueMat);
-        tip.position.set(s * 0.06, -0.62, -1.0);
-        tip.rotation.x = Math.PI / 2 + 0.55;
-        tip.rotation.y = s * 0.38;
+        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.009, 0.34, 5), tongueMat);
+        tip.position.set(s * 0.07, -0.85, -1.22);
+        tip.rotation.x = Math.PI / 2 + 0.65;
+        tip.rotation.y = s * 0.40;
         tongue.add(tip);
     }
     head.add(tongue);
