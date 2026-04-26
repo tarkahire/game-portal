@@ -11735,18 +11735,6 @@ function buildCursedAura(color) {
     group.add(coreLight);
     group.userData._coreLight = coreLight;
 
-    // ── Ground glow disc — large soft halo on the floor
-    const discGeo = new THREE.CircleGeometry(1.4, 32);
-    const discMat = new THREE.MeshBasicMaterial({
-        color: c, transparent: true, opacity: 0.45,
-        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
-    });
-    const disc = new THREE.Mesh(discGeo, discMat);
-    disc.rotation.x = -Math.PI / 2;
-    disc.position.y = 0.04;
-    group.add(disc);
-    group.userData._disc = disc;
-
     return group;
 }
 
@@ -11757,7 +11745,8 @@ function updateCursedAura(group, dt, time) {
     const glows = group.userData._glows;
     const sparks = group.userData._sparks;
 
-    // Wisps — slow flowing flame tongues, stay translucent
+    // Wisps — emit FROM the body (start tight on torso) and flow outward
+    // as they rise, like cursed energy pouring off the character.
     for (let i = 0; i < wisps.length; i++) {
         const f = wisps[i];
         f._life += dt;
@@ -11765,24 +11754,27 @@ function updateCursedAura(group, dt, time) {
         if (k >= 1) {
             f._life = 0;
             f._baseAngle = Math.random() * Math.PI * 2;
-            f._baseRadius = 0.45 + Math.random() * 0.30;
-            f._lifeMax = 2.0 + Math.random() * 1.5;
-            f._riseHeight = 2.0 + Math.random() * 1.4;
-            f._widthBase = 1.1 + Math.random() * 0.7;
-            f._heightBase = 2.6 + Math.random() * 1.4;
+            f._spawnY = 0.7 + Math.random() * 0.9; // emit from chest/head height
+            f._radiusOut = 0.55 + Math.random() * 0.35; // final outward radius
+            f._lifeMax = 1.8 + Math.random() * 1.2;
+            f._riseHeight = 1.6 + Math.random() * 1.2;
+            f._widthBase = 1.0 + Math.random() * 0.6;
+            f._heightBase = 2.4 + Math.random() * 1.2;
         }
+        // Radius eases from ~0 (at body) outward to _radiusOut over lifetime
+        const radEase = Math.pow(k, 0.7);
+        const r = radEase * f._radiusOut;
         const ang = f._baseAngle + Math.sin(t * 0.7 + f._sway) * 0.20;
-        f.position.x = Math.cos(ang) * f._baseRadius;
-        f.position.z = Math.sin(ang) * f._baseRadius;
-        f.position.y = 0.4 + k * f._riseHeight;
+        f.position.x = Math.cos(ang) * r;
+        f.position.z = Math.sin(ang) * r;
+        f.position.y = f._spawnY + k * f._riseHeight;
         const env = Math.min(1, Math.sin(k * Math.PI) * 1.5);
         const breathe = 1 + Math.sin(t * 1.6 + f._sway) * 0.08;
         f.scale.set(f._widthBase * env * breathe, f._heightBase * env * breathe, 1);
-        // Translucent — never goes solid
         f.material.opacity = env * 0.55;
     }
 
-    // Inner glows — bright near-white halos centered tight on body
+    // Inner glows — stay tight on the body, bright near-white "hot core"
     for (let i = 0; i < glows.length; i++) {
         const f = glows[i];
         f._life += dt;
@@ -11790,21 +11782,23 @@ function updateCursedAura(group, dt, time) {
         if (k >= 1) {
             f._life = 0;
             f._baseAngle = Math.random() * Math.PI * 2;
-            f._baseRadius = 0.18 + Math.random() * 0.08;
-            f._lifeMax = 2.4 + Math.random() * 0.8;
-            f._riseHeight = 2.0 + Math.random() * 0.6;
+            f._spawnY = 0.8 + Math.random() * 0.5;
+            f._radiusOut = 0.18 + Math.random() * 0.10;
+            f._lifeMax = 2.2 + Math.random() * 0.8;
+            f._riseHeight = 1.6 + Math.random() * 0.5;
         }
+        const r = Math.pow(k, 0.7) * f._radiusOut;
         const ang = f._baseAngle + Math.sin(t * 0.5 + f._sway) * 0.15;
-        f.position.x = Math.cos(ang) * f._baseRadius;
-        f.position.z = Math.sin(ang) * f._baseRadius;
-        f.position.y = 0.6 + k * f._riseHeight;
+        f.position.x = Math.cos(ang) * r;
+        f.position.z = Math.sin(ang) * r;
+        f.position.y = f._spawnY + k * f._riseHeight;
         const env = Math.min(1, Math.sin(k * Math.PI) * 1.5);
         const breathe = 1 + Math.sin(t * 2.4 + f._sway) * 0.1;
         f.scale.set(f._widthBase * env * breathe, f._heightBase * env * breathe, 1);
         f.material.opacity = env * 0.42;
     }
 
-    // Sparks — dynamic, fast, additive — gives the energy a "live" feel
+    // Sparks — emit from anywhere on the body and shoot outward in a spiral
     for (let i = 0; i < sparks.length; i++) {
         const s = sparks[i];
         s._life += dt;
@@ -11812,18 +11806,19 @@ function updateCursedAura(group, dt, time) {
         if (k >= 1) {
             s._life = 0;
             s._baseAngle = Math.random() * Math.PI * 2;
-            s._baseRadius = 0.25 + Math.random() * 0.45;
+            s._spawnY = 0.5 + Math.random() * 1.5; // any height on the body
+            s._radiusOut = 0.7 + Math.random() * 0.7;
             s._lifeMax = 0.7 + Math.random() * 1.1;
-            s._riseHeight = 1.6 + Math.random() * 1.6;
+            s._riseHeight = 1.0 + Math.random() * 1.6;
             s._sizeMax = 0.18 + Math.random() * 0.18;
+            s._spiralPhase = Math.random() * Math.PI * 2;
         }
-        // Spirals upward and outward as it rises
-        const spiralAng = s._baseAngle + k * 1.4 * (s._spiralPhase > Math.PI ? 1 : -1);
-        const radOut = s._baseRadius * (0.6 + k * 0.9);
-        s.position.x = Math.cos(spiralAng) * radOut;
-        s.position.z = Math.sin(spiralAng) * radOut;
-        s.position.y = 0.3 + k * s._riseHeight;
-        // Quick fade-in, hold, fade-out — and twinkle
+        // Spirals OUT from body — radius grows from 0 to _radiusOut
+        const spiralAng = s._baseAngle + k * 1.6 * (s._spiralPhase > Math.PI ? 1 : -1);
+        const r = Math.pow(k, 0.6) * s._radiusOut;
+        s.position.x = Math.cos(spiralAng) * r;
+        s.position.z = Math.sin(spiralAng) * r;
+        s.position.y = s._spawnY + k * s._riseHeight;
         const env = Math.min(1, Math.sin(k * Math.PI) * 1.4);
         const twinkle = 0.7 + Math.sin(t * 14 + i) * 0.3;
         const sz = s._sizeMax * env * twinkle;
@@ -11837,12 +11832,6 @@ function updateCursedAura(group, dt, time) {
     }
     if (group.userData._coreLight) {
         group.userData._coreLight.intensity = 1.2 + Math.sin(t * 3.5) * 0.5;
-    }
-    // Ground disc pulse
-    if (group.userData._disc) {
-        group.userData._disc.material.opacity = 0.40 + Math.sin(t * 1.8) * 0.15;
-        const s = 1 + Math.sin(t * 1.4) * 0.10;
-        group.userData._disc.scale.set(s, s, 1);
     }
 }
 
