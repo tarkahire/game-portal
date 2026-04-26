@@ -3811,24 +3811,23 @@ function buildRikaMesh() {
         geo.computeVertexNormals();
         return new THREE.Mesh(geo, color);
     }
-    // Tail occupies mesh-local Y from 0 (floor) up to her waist (~1.5)
+    // Tail occupies mesh-local Y from 0 (floor) up to her waist (~1.5).
+    // Much skinnier silhouette than before — top 0.22 → base 0.05.
     const tailHeight = 1.5;
-    const tail = buildTail(0.40, 0.12, tailHeight, 18, blackMat);
+    const tail = buildTail(0.22, 0.05, tailHeight, 16, blackMat);
     tail.position.y = tailHeight / 2; // center so bottom is at Y=0
     group.add(tail);
-    // Soft fan-out at the very bottom — gives the tail a "puddle" feel
-    // where it meets the floor instead of a clean cut-off
-    const tailFoot = new THREE.Mesh(organicSphere(0.18, 0.20, 14), blackMat);
-    tailFoot.position.y = 0.04;
-    tailFoot.scale.set(1.4, 0.45, 1.4);
+    // Small puddle base where the tail meets the floor — scaled down to match
+    const tailFoot = new THREE.Mesh(organicSphere(0.12, 0.18, 12), blackMat);
+    tailFoot.position.y = 0.03;
+    tailFoot.scale.set(0.85, 0.40, 0.85);
     group.add(tailFoot);
-    // Wispy tendril trails — anchored on the tail surface, swaying outward.
-    // Capsules so the ends are rounded.
+    // Wispy tendril trails — pulled in tight against the slim tail
     for (let i = 0; i < 4; i++) {
         const ang = (i / 4) * Math.PI * 2;
-        const len = 0.45 + Math.random() * 0.30;
-        const w = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, len, 6, 10), blackMat);
-        w.position.set(Math.cos(ang) * 0.30, 0.30 + Math.random() * 0.30, Math.sin(ang) * 0.30);
+        const len = 0.35 + Math.random() * 0.25;
+        const w = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, len, 6, 10), blackMat);
+        w.position.set(Math.cos(ang) * 0.18, 0.30 + Math.random() * 0.30, Math.sin(ang) * 0.18);
         w.rotation.x = (Math.random() - 0.5) * 0.4;
         w.rotation.z = (Math.random() - 0.5) * 0.5;
         group.add(w);
@@ -4027,23 +4026,35 @@ function buildRikaMesh() {
         groove.position.set(x, 3.10, 0.36);
         group.add(groove);
     }
-    // Wide grinning mouth — dark cavity
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 8), blackHole);
-    mouth.scale.set(1.4, 0.42, 0.50);
-    mouth.position.set(0, 2.78, 0.34);
+    // Wider grinning mouth — bigger dark cavity that spans almost ear to ear
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 10), blackHole);
+    mouth.scale.set(2.0, 0.55, 0.55);
+    mouth.position.set(0, 2.78, 0.32);
     group.add(mouth);
-    // Top + bottom rows of fangs
-    for (let t = 0; t < 9; t++) {
-        const tx = -0.22 + t * 0.055;
-        const upper = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.11, 4), fangMat);
-        upper.position.set(tx, 2.83, 0.40);
+    // Inner pink throat behind the teeth for visual depth
+    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 8),
+        new THREE.MeshBasicMaterial({ color: '#5a0820' }));
+    throat.scale.set(2.0, 0.45, 0.55);
+    throat.position.set(0, 2.78, 0.22);
+    group.add(throat);
+    // Sharp interlocking teeth — many thin tall fangs filling the wider mouth.
+    // Upper and lower rows are offset by half a tooth so they zigzag together.
+    const toothCount = 18;
+    const toothSpan = 0.62;
+    const toothStep = toothSpan / toothCount;
+    for (let t = 0; t < toothCount; t++) {
+        const tx = -toothSpan / 2 + (t + 0.5) * toothStep;
+        // Upper tooth — long, sharp, tip pointing down into the mouth
+        const upper = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.20, 4), fangMat);
+        upper.position.set(tx, 2.86, 0.40);
         upper.rotation.x = Math.PI;
+        upper.rotation.z = (Math.random() - 0.5) * 0.18;
         group.add(upper);
-        if (t < 8) {
-            const lower = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.08, 4), fangMat);
-            lower.position.set(tx + 0.027, 2.74, 0.40);
-            group.add(lower);
-        }
+        // Lower tooth — offset half a step so it slots between the uppers
+        const lower = new THREE.Mesh(new THREE.ConeGeometry(0.013, 0.18, 4), fangMat);
+        lower.position.set(tx + toothStep * 0.5, 2.69, 0.40);
+        lower.rotation.z = (Math.random() - 0.5) * 0.18;
+        group.add(lower);
     }
 
     // ── Pink cursed-energy aura ──
