@@ -10107,6 +10107,7 @@ function spawnMinion(type, tileX, tileZ, data) {
         group.userData._head = sp.userData._head;
         group.userData._bodyMesh = sp.userData._bodyMesh;
         group.userData._radii = sp.userData._radii;
+        group.userData._colorFn = sp.userData._colorFn;
         group.userData._tongue = sp.userData._tongue;
 
     } else {
@@ -10968,13 +10969,18 @@ function buildSerpentMesh() {
 
     // ── Body — initially a straight lofted tube placeholder. The AI rebuilds
     // this geometry every frame from the chain positions for smooth slither.
+    // Radii are baked at full size (no group-scale multiplier) because the body
+    // geometry is rebuilt from world-space spine points each frame; scaling the
+    // parent group would multiply those world positions and offset the snake.
+    const SCALE = 2.2;
     const initSpine = [];
     for (let i = 0; i < 20; i++) initSpine.push(new THREE.Vector3(0, 0.55, -i * 0.5));
     // Wider, more imposing taper. Thick neck/upper body, gradual taper to a fine tail tip.
-    const radii = [
+    const baseRadii = [
         0.50, 0.58, 0.62, 0.60, 0.56, 0.51, 0.46, 0.42, 0.38, 0.34,
         0.31, 0.28, 0.25, 0.22, 0.20, 0.18, 0.15, 0.12, 0.09, 0.06
     ];
+    const radii = baseRadii.map(r => r * SCALE);
     const bodyGeo = buildLoftedTube(initSpine, radii, 14, colorFn);
     const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
     g.add(bodyMesh);
@@ -11045,6 +11051,11 @@ function buildSerpentMesh() {
     }
     head.add(tongue);
 
+    // Scale the head group itself rather than the outer `g`, since the AI sets
+    // the head's world position from the spine each frame — scaling `g` would
+    // multiply that world position and send the head far off the map.
+    head.scale.setScalar(SCALE);
+
     g.add(head);
     g.userData._head = head;
     g.userData._bodyMesh = bodyMesh;
@@ -11057,7 +11068,6 @@ function buildSerpentMesh() {
     aura.position.y = 0.8;
     g.add(aura);
 
-    g.scale.setScalar(2.2); // imposing size — much bigger, intimidating snake
     return g;
 }
 
