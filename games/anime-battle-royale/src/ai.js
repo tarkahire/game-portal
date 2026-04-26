@@ -64,8 +64,8 @@ export class BotBrain {
                 mvX = -dz / (dist || 1) * (Math.sin(performance.now() * 0.001 + this.wanderAng) > 0 ? 1 : -1);
                 mvZ =  dx / (dist || 1) * (Math.sin(performance.now() * 0.001 + this.wanderAng) > 0 ? 1 : -1);
             }
-            // Face target
-            f.yaw = Math.atan2(dx, dz);
+            // Face target (dungeon-crawler-3d convention: forward = -sin/-cos)
+            f.yaw = Math.atan2(-dx, -dz);
         } else {
             // Wander
             this.wanderAng += (Math.random() - 0.5) * 0.4;

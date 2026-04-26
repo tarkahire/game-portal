@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { CLASSES } from './classes/definitions.js';
 import { buildArena, ARENA_RADIUS, collidesCover } from './arena.js';
 import { Fighter, rollBotCharacters } from './fighter.js';
-import { ThirdPersonCamera } from './camera.js';
+import { PlayerCamera } from './camera.js';
 import { castAbility, castM1, tickVfx, clearVfx } from './abilities.js';
 import { BotBrain } from './ai.js';
 import { Storm } from './storm.js';
@@ -17,7 +17,7 @@ renderer.setClearColor(0x000000);
 
 let scene = null;
 let camera = null;
-let tpCamera = null;
+let pCam = null;
 let arenaCover = [];
 let fighters = [];
 let player = null;
@@ -84,10 +84,10 @@ function startMatch() {
 
     // Fresh scene
     if (scene) {
-        // Dispose previous fighters' meshes
         clearVfx(scene);
         for (const f of fighters) scene.remove(f.mesh);
     }
+    if (pCam) { pCam.dispose(); pCam = null; }
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 400);
     const arena = buildArena(scene);
@@ -102,7 +102,8 @@ function startMatch() {
     player = new Fighter(selectedKey, true);
     const spawnR = ARENA_RADIUS - 8;
     player.setPos(Math.cos(playerSpawnAng) * spawnR, Math.sin(playerSpawnAng) * spawnR);
-    player.yaw = Math.atan2(-player.x, -player.z);
+    // Face center: forward = (-sin(yaw), -cos(yaw)) -> yaw = atan2(x, z)
+    player.yaw = Math.atan2(player.x, player.z);
     scene.add(player.mesh);
     fighters.push(player);
 
@@ -111,14 +112,15 @@ function startMatch() {
         const ang = playerSpawnAng + ((i + 1) / spawnCount) * Math.PI * 2;
         const f = new Fighter(botKeys[i], false);
         f.setPos(Math.cos(ang) * spawnR, Math.sin(ang) * spawnR);
-        f.yaw = Math.atan2(-f.x, -f.z);
+        f.yaw = Math.atan2(f.x, f.z);
         scene.add(f.mesh);
         fighters.push(f);
         bots.push(new BotBrain(f));
     }
 
-    tpCamera = new ThirdPersonCamera(camera, player);
-    tpCamera.install(canvas);
+    pCam = new PlayerCamera(camera, canvas);
+    pCam.install();
+    pCam.setFighter(player);
 
     // HUD
     document.getElementById('hud-char-name').textContent = player.character.name;
@@ -157,8 +159,7 @@ window.addEventListener('keydown', (e) => {
     if (k === ' ') {
         // Dash
         if (player.alive) {
-            const fwd = tpCamera.forwardXZ();
-            // If moving, dash in movement direction; else forward
+            const fwd = pCam.forwardXZ();
             let dx = player.vx, dz = player.vz;
             const len = Math.hypot(dx, dz);
             if (len < 0.1) { dx = fwd.x; dz = fwd.z; }
@@ -205,7 +206,7 @@ function doPlayerDash(dx, dz) {
 function tryCastAbility(slot) {
     if (!player.character.abilities[slot]) return;
     if (!player.canUse(slot)) return;
-    const fwd = tpCamera.forwardXZ();
+    const fwd = pCam.forwardXZ();
     castAbility(player.character.abilities[slot], player,
         { scene, fighters, dirX: fwd.x, dirZ: fwd.z, cover: arenaCover });
     player.triggerCD(slot, player.character.abilityCooldowns[slot] || 5000);
@@ -215,7 +216,7 @@ function tryPlayerM1() {
     const now = performance.now();
     if (now < player.cooldowns.m1) return;
     if (!player.alive) return;
-    const fwd = tpCamera.forwardXZ();
+    const fwd = pCam.forwardXZ();
     castM1(player, { scene, fighters, dirX: fwd.x, dirZ: fwd.z });
     player.cooldowns.m1 = now + (player.character.attackSpeed || 250);
 }
@@ -229,33 +230,9 @@ function gameLoop() {
     const dt = Math.min(0.05, (now - lastFrame) / 1000);
     lastFrame = now;
 
-    // Player movement
-    if (player.alive) {
-        const fwd = tpCamera.forwardXZ();
-        const right = tpCamera.rightXZ();
-        let mvX = 0, mvZ = 0;
-        if (keys.has('w') || keys.has('arrowup'))    { mvX += fwd.x;   mvZ += fwd.z; }
-        if (keys.has('s') || keys.has('arrowdown'))  { mvX -= fwd.x;   mvZ -= fwd.z; }
-        if (keys.has('a') || keys.has('arrowleft'))  { mvX -= right.x; mvZ -= right.z; }
-        if (keys.has('d') || keys.has('arrowright')) { mvX += right.x; mvZ += right.z; }
-        const mlen = Math.hypot(mvX, mvZ);
-        if (mlen > 0) { mvX /= mlen; mvZ /= mlen; }
-        const sprintMul = keys.has('shift') ? 1.5 : 1.0;
-        const buffMul = (now < player.buffUntil) ? player.buffMul : 1.0;
-        const sp = player.speed * sprintMul * buffMul;
-        const nx = player.x + mvX * sp * dt;
-        const nz = player.z + mvZ * sp * dt;
-        if (!collidesCover(arenaCover, nx, player.z, 0.5)) player.x = nx;
-        if (!collidesCover(arenaCover, player.x, nz, 0.5)) player.z = nz;
-        // Clamp to outer bounds
-        const r = Math.hypot(player.x, player.z);
-        if (r > ARENA_RADIUS + 5) { player.x = player.x / r * (ARENA_RADIUS + 5); player.z = player.z / r * (ARENA_RADIUS + 5); }
-        player.vx = mvX * sp; player.vz = mvZ * sp;
-        player.mesh.position.set(player.x, 0, player.z);
-        player.yaw = Math.atan2(fwd.x, fwd.z);
-
-        if (mouseDown) tryPlayerM1();
-    }
+    // Player movement is handled by PlayerCamera.update()
+    pCam.update(dt, { cover: arenaCover });
+    if (player.alive && mouseDown) tryPlayerM1();
 
     // Bots
     for (const b of bots) b.tick(dt, { scene, fighters, cover: arenaCover, stormRadius: storm.radius });
@@ -291,7 +268,7 @@ function gameLoop() {
     storm.update(dt, fighters);
 
     // Camera
-    tpCamera.update();
+    // Camera position updated inside pCam.update() above
 
     // HUD updates
     updateHud();

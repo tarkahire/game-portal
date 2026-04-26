@@ -251,8 +251,8 @@ export class Fighter {
             if (armR) armR.rotation.x = -Math.sin(t * Math.PI) * 1.6;
         }
 
-        // Yaw face mesh
-        this.mesh.rotation.y = this.yaw;
+        // Match dungeon-crawler-3d convention: yaw=0 -> forward (-Z), so model rotates by yaw+π
+        this.mesh.rotation.y = this.yaw + Math.PI;
     }
 
     canUse(slot) {
