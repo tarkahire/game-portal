@@ -3657,20 +3657,68 @@ function todoBlackFlashFollowup() {
     // Trigger the head-grab arm animation (state-driven, runs in update loop)
     todoGrabAnimation();
 
-    // Apply massive damage at the moment the grip lands
+    // Head explosion at peak squeeze — timed so the squeeze pose registers
+    // before the head pops.
     setTimeout(() => {
         if (!target.data.alive) return;
-        dealDamageToEnemy(target, target.data.hp + 9999);
         const ex = target.data.x * TILE, ez = target.data.z * TILE;
-        emitParticles(ex, 1.4, ez, {
-            color: ['#aa0010', '#5a0010', '#ff0033', '#ffffff'],
-            count: 32, speed: 7, spread: 1.8,
-            gravity: -2, life: 18, size: 0.18, sizeEnd: 0, drag: 0.92
+        const headY = 1.7;
+        // Spawn the gore BEFORE killing so the visual lands at the head
+        // position even if dealDamageToEnemy hides the mesh.
+        // 1) Massive blood + bone-chunk burst
+        emitParticles(ex, headY, ez, {
+            color: ['#aa0010', '#5a0010', '#ff0033', '#7a0820', '#ffffff', '#e8e0d0'],
+            count: 70, speed: 10, spread: 2.2,
+            gravity: -5, life: 24, size: 0.22, sizeEnd: 0, drag: 0.92
         });
-        screenShake(0.6, 250);
-        triggerHitstop(180);
-        lightFlash(ex, 1.4, ez, '#ff0033', 12, 250);
-    }, 300);
+        // 2) Wet inner gore — slower, drippier
+        emitParticles(ex, headY - 0.2, ez, {
+            color: ['#5a0010', '#3a0008', '#aa0010'],
+            count: 24, speed: 4, spread: 1.4,
+            gravity: -8, life: 30, size: 0.14, sizeEnd: 0, drag: 0.88
+        });
+        // 3) Bone fragment chunks flying outward — small white cones with
+        //    physics so the user sees skull pieces scatter
+        for (let i = 0; i < 10; i++) {
+            const ang = (i / 10) * Math.PI * 2 + Math.random() * 0.5;
+            const speed = 4 + Math.random() * 3;
+            const fragGeo = new THREE.ConeGeometry(0.08 + Math.random() * 0.04, 0.20, 4);
+            const fragMat = new THREE.MeshBasicMaterial({ color: '#e8e0d0' });
+            const frag = new THREE.Mesh(fragGeo, fragMat);
+            frag.position.set(ex, headY, ez);
+            scene.add(frag);
+            const vx = Math.cos(ang) * speed;
+            const vy = 4 + Math.random() * 2;
+            const vz = Math.sin(ang) * speed;
+            const startTime = performance.now();
+            const animFrag = () => {
+                const t = (performance.now() - startTime) / 1000;
+                if (t > 1.5) {
+                    scene.remove(frag);
+                    fragGeo.dispose(); fragMat.dispose();
+                    return;
+                }
+                frag.position.set(
+                    ex + vx * t,
+                    headY + vy * t - 5 * t * t,
+                    ez + vz * t,
+                );
+                frag.rotation.x += 0.35;
+                frag.rotation.z += 0.22;
+                requestAnimationFrame(animFrag);
+            };
+            requestAnimationFrame(animFrag);
+        }
+        // 4) White impact flash, then a red wash for the gore lingering
+        screenFlash('#ffffff', 70);
+        setTimeout(() => screenFlash('#aa0010', 130), 70);
+        screenShake(0.85, 350);
+        triggerHitstop(220);
+        fovPunch(20, 0.16);
+        lightFlash(ex, headY, ez, '#ff0033', 18, 350);
+        // Lethal damage applied last
+        dealDamageToEnemy(target, target.data.hp + 9999);
+    }, 580);
 }
 
 // State-driven grab arm animation — runs in the main update loop AFTER
@@ -3716,11 +3764,18 @@ function updateTodoGrabAnim() {
         ra.rotation.set(-1.7 * ease, 0, -0.32 * ease);
         la.rotation.set(-1.7 * ease, 0, 0.32 * ease);
     } else {
-        // Hold the grip pose with a slight tension vibration
+        // Squeeze phase — hands progressively close TIGHTER (rotation.z grows
+        // inward) plus a fast tension vibration. Climbs to peak squeeze in
+        // the first ~70% of the hold so the explosion lands at peak.
         const t = (elapsed - ga.reachDur) / ga.holdDur;
-        const tension = Math.sin(t * 28) * 0.045;
-        ra.rotation.set(-1.7 + tension, 0, -0.32 - tension);
-        la.rotation.set(-1.7 - tension, 0, 0.32 + tension);
+        const squeeze = Math.min(1, t * 1.4);
+        const tension = Math.sin(t * 36) * 0.08 * squeeze;
+        const baseZ = 0.32 + squeeze * 0.30; // 0.32 → 0.62 (visibly tighter)
+        // Slightly pull arms in toward chest as squeeze peaks for the
+        // crushing motion
+        const xPull = -1.7 - squeeze * 0.10;
+        ra.rotation.set(xPull + tension, 0, -baseZ + tension * 0.5);
+        la.rotation.set(xPull - tension, 0,  baseZ - tension * 0.5);
     }
 }
 
@@ -3859,13 +3914,13 @@ function playerAttack() {
     const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh || isRen || isHoro;
     // Cursed-energy aura boost — 50% damage while active
     const auraMult = player._cursedAuraActive ? 1.5 : 1;
-    // Black Flash multiplier — 3× damage if primed and this M1 connects.
-    // Chain bonus: each Black Flash within 5s of the previous adds +0.5×, capped at 6×.
+    // Black Flash multiplier — 2× damage if primed and this M1 connects.
+    // Chain bonus: each Black Flash within 5s of the previous adds +0.25×, capped at 3×.
     const blackFlashPrimed = !!(player._blackFlashPrimed && now < player._blackFlashPrimed);
     let blackFlashMult = 1;
     if (blackFlashPrimed) {
         const chain = (player._blackFlashChainEnd && now < player._blackFlashChainEnd) ? (player._blackFlashChain || 0) : 0;
-        blackFlashMult = Math.min(6, 3 + chain * 0.5);
+        blackFlashMult = Math.min(3, 2 + chain * 0.25);
     }
     // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
     const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25 * auraMult * blackFlashMult) : Math.round(player.damage * step.dmgMult * auraMult * blackFlashMult);
