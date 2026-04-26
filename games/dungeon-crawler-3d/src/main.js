@@ -12802,14 +12802,25 @@ function updateMinions(dt, now) {
             const stopDist = chasing ? Math.max(m.data.attackRange * 0.7, 1.6) : 0.4;
             let isMoving = false;
             if (dist > stopDist) {
-                const moveSpeed = m.data.speed * dt;
+                // Glide forward in the direction she's currently FACING (not
+                // straight toward the target). Yaw smoothly lerps to face the
+                // target each frame, so she carves an arc instead of strafing
+                // sideways. She also won't move while still spun >90° away
+                // from the target — she pivots first, then accelerates.
+                const yaw = m.mesh.rotation.y;
+                const fwdX = Math.sin(yaw);
+                const fwdZ = Math.cos(yaw);
                 const dirX = dx / dist, dirZ = dz / dist;
-                const r = 0.4;
-                // Axis-separated wall collision (she still respects walls)
-                const newX = m.data.x + dirX * moveSpeed;
-                const newZ = m.data.z + dirZ * moveSpeed;
-                if (isWalkable(dungeon.map, newX, m.data.z)) { m.data.x = newX; isMoving = true; }
-                if (isWalkable(dungeon.map, m.data.x, newZ)) { m.data.z = newZ; isMoving = true; }
+                const align = dirX * fwdX + dirZ * fwdZ; // dot product, 1=aligned
+                if (align > 0) {
+                    const moveSpeed = m.data.speed * dt;
+                    // Scale speed by alignment so she eases out of turns
+                    const speedScale = Math.max(0.2, align);
+                    const newX = m.data.x + fwdX * moveSpeed * speedScale;
+                    const newZ = m.data.z + fwdZ * moveSpeed * speedScale;
+                    if (isWalkable(dungeon.map, newX, m.data.z)) { m.data.x = newX; isMoving = true; }
+                    if (isWalkable(dungeon.map, m.data.x, newZ)) { m.data.z = newZ; isMoving = true; }
+                }
             }
 
             // Teleport to Yuta if separated by walls
@@ -12833,24 +12844,16 @@ function updateMinions(dt, now) {
             m.mesh.rotation.x = m.data._tilt;
             m.mesh.position.set(m.data.x * TILE, m.data._hover, m.data.z * TILE);
 
-            // Face the enemy or movement direction (yaw rotation around world Y;
-            // applied AFTER the tilt thanks to default Three.js Euler XYZ order)
-            if (chasing && nearestEnemy) {
-                const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
-                if (Math.hypot(fdx, fdz) > 0.05) {
-                    const targetYaw = Math.atan2(fdx, fdz);
-                    let yawDiff = targetYaw - m.mesh.rotation.y;
-                    while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
-                    while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
-                    m.mesh.rotation.y += yawDiff * 0.18;
-                }
-            } else {
-                const targetYaw = fpsCamera.yaw + Math.PI;
-                let yawDiff = targetYaw - m.mesh.rotation.y;
-                while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
-                while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
-                m.mesh.rotation.y += yawDiff * 0.10;
-            }
+            // Face the target. Pivot quickly so she doesn't get stuck side-on
+            // (faster turn rate than other minions because she has to spin
+            // before her gliding-forward movement kicks in).
+            const targetYaw = (chasing && nearestEnemy)
+                ? Math.atan2(nearestEnemy.data.x - m.data.x, nearestEnemy.data.z - m.data.z)
+                : Math.atan2(targetX - m.data.x, targetZ - m.data.z);
+            let yawDiff = targetYaw - m.mesh.rotation.y;
+            while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+            while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+            m.mesh.rotation.y += yawDiff * 0.30;
             continue;
         }
 
