@@ -10939,35 +10939,58 @@ function buildSerpentMesh() {
     const eyeMat = new THREE.MeshBasicMaterial({ color: '#ffeb00' });
     const pupilMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
     const fangMat = new THREE.MeshStandardMaterial({ color: '#fff8e0', roughness: 0.3 });
-    const tongueMat = new THREE.MeshStandardMaterial({ color: '#c8202a', roughness: 0.4, emissive: '#5a0000', emissiveIntensity: 0.25 });
-    // Mouth interior — vivid pink/magenta like the reference, not a dark cavity
-    const mouthInnerMat = new THREE.MeshStandardMaterial({ color: '#b8284a', roughness: 0.55, emissive: '#3a0810', emissiveIntensity: 0.35 });
-    const throatMat = new THREE.MeshStandardMaterial({ color: '#5a0820', roughness: 0.6 });
+    const tongueMat = new THREE.MeshStandardMaterial({ color: '#d8202a', roughness: 0.4, emissive: '#5a0000', emissiveIntensity: 0.3 });
+    // Mouth interior — darker magenta/purple matching the reference (not bright pink)
+    const mouthInnerMat = new THREE.MeshStandardMaterial({ color: '#6a1530', roughness: 0.55, emissive: '#2a0510', emissiveIntensity: 0.3 });
+    const throatMat = new THREE.MeshStandardMaterial({ color: '#2a0510', roughness: 0.6 });
     const lowerJawOuterMat = headMat;
     const markingMat = new THREE.MeshBasicMaterial({ color: '#c8202a' });
+    const eyeSocketMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' }); // dark skull pattern around eyes
 
-    // Olive top, cream belly up front; black-and-white banded tail end.
+    // Olive top, bold cream belly up front; black-and-white banded tail end.
+    // Sharp belly demarcation matches the reference's clearly defined underside line.
     // t: 0 = head end, 1 = tail tip. j/segs maps around the body — sin(angle) > 0 = top, < 0 = belly.
     const colorFn = (t, j, segs) => {
         const a = (j / segs) * Math.PI * 2;
-        const ringMix = (Math.sin(a) + 1) * 0.5; // 1 = top, 0 = belly
+        const sinA = Math.sin(a);
+        // Sharp belly cutoff — anything below this latitude is bright cream
+        const isBelly = sinA < -0.15;
+        // Narrow transition band right at the belly line for a clean edge
+        const isTransition = sinA >= -0.15 && sinA < 0.0;
+        const cream = [0.96, 0.94, 0.82];
+
         if (t < 0.62) {
-            // Front body — olive yellow scales on top, lighter cream belly
-            const olive = [0.66, 0.62, 0.34];
-            const belly = [0.94, 0.92, 0.78];
+            // Front body — olive yellow scales on top, bold cream belly
+            if (isBelly) return cream;
             // Subtle scale banding along length for texture
-            const scaleBand = (Math.floor(t * 32) % 2 === 0) ? 1.0 : 0.88;
+            const scaleBand = (Math.floor(t * 32) % 2 === 0) ? 1.0 : 0.86;
+            const olive = [0.66 * scaleBand, 0.62 * scaleBand, 0.34 * scaleBand];
+            if (isTransition) {
+                const k = (sinA + 0.15) / 0.15; // 0 at belly edge, 1 at neutral
+                return [
+                    cream[0] * (1 - k) + olive[0] * k,
+                    cream[1] * (1 - k) + olive[1] * k,
+                    cream[2] * (1 - k) + olive[2] * k,
+                ];
+            }
+            return olive;
+        }
+        // Tail end — alternating black/white bands on top, cream belly continues
+        if (isBelly) return cream;
+        const bandT = (t - 0.62) * 18;
+        const isWhite = Math.floor(bandT) % 2 === 0;
+        const white = [0.96, 0.94, 0.88];
+        const black = [0.04, 0.04, 0.06];
+        if (isTransition) {
+            const k = (sinA + 0.15) / 0.15;
+            const top = isWhite ? white : black;
             return [
-                (olive[0] * ringMix + belly[0] * (1 - ringMix)) * (ringMix > 0.55 ? scaleBand : 1),
-                (olive[1] * ringMix + belly[1] * (1 - ringMix)) * (ringMix > 0.55 ? scaleBand : 1),
-                (olive[2] * ringMix + belly[2] * (1 - ringMix)) * (ringMix > 0.55 ? scaleBand : 1),
+                cream[0] * (1 - k) + top[0] * k,
+                cream[1] * (1 - k) + top[1] * k,
+                cream[2] * (1 - k) + top[2] * k,
             ];
         }
-        // Tail end — alternating black/white bands (top), cream belly stays light
-        const bandT = (t - 0.62) * 22;
-        const isWhite = Math.floor(bandT) % 2 === 0;
-        if (ringMix < 0.4) return [0.95, 0.93, 0.88]; // belly
-        return isWhite ? [0.96, 0.94, 0.90] : [0.05, 0.05, 0.07];
+        return isWhite ? white : black;
     };
 
     // ── Body — initially a straight lofted tube placeholder. The AI rebuilds
@@ -10988,43 +11011,59 @@ function buildSerpentMesh() {
     const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
     g.add(bodyMesh);
 
-    // ── Head — white cobra-style head, scaled up to match the wider body.
+    // ── Head — white cobra-style head, flatter on top for the angular look.
     const head = new THREE.Group();
-    // Skull — elongated white ovoid, bigger
+    // Skull — elongated white ovoid, flatter on top (low-poly anime look)
     const skull = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 12), headMat);
-    skull.scale.set(1.1, 0.9, 1.55);
+    skull.scale.set(1.1, 0.78, 1.55);
     head.add(skull);
     // Cheek widening — gives the head a cobra-like hooded look from the front
     for (let s = -1; s <= 1; s += 2) {
         const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), headMat);
-        cheek.position.set(s * 0.22, -0.04, 0.1);
-        cheek.scale.set(0.9, 0.6, 1.1);
+        cheek.position.set(s * 0.22, -0.05, 0.1);
+        cheek.scale.set(0.9, 0.55, 1.1);
         head.add(cheek);
     }
-    // Snout — forward bump
+    // Snout — forward bump, tapered slightly downward
     const snout = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), headMat);
-    snout.position.set(0, -0.06, -0.46);
-    snout.scale.set(1, 0.72, 1.15);
+    snout.position.set(0, -0.08, -0.46);
+    snout.scale.set(0.95, 0.65, 1.2);
     head.add(snout);
-    // Top-of-head shading (slightly darker plate)
+    // Top-of-head shading (slightly darker plate, flatter)
     const topShade = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), headShade);
-    topShade.scale.set(1.1, 0.42, 1.6);
-    topShade.position.y = 0.06;
+    topShade.scale.set(1.1, 0.34, 1.62);
+    topShade.position.y = 0.08;
     head.add(topShade);
-    // Yellow eyes — bigger
+    // ── Eyes — yellow with vertical slits, set inside dark skull-pattern sockets ──
     for (let s = -1; s <= 1; s += 2) {
+        // Black eye socket — disc behind/around the yellow eye to give the
+        // skull-mask look from the reference
+        const socket = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), eyeSocketMat);
+        socket.scale.set(1.1, 0.9, 0.7);
+        socket.position.set(s * 0.27, 0.08, -0.16);
+        head.add(socket);
+        // Yellow eye — sits proud of the socket
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), eyeMat);
-        eye.position.set(s * 0.26, 0.08, -0.14);
+        eye.position.set(s * 0.27, 0.08, -0.20);
         head.add(eye);
         // Vertical slit pupil
-        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.10, 0.012), pupilMat);
-        pupil.position.set(s * 0.26, 0.08, -0.25);
+        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.11, 0.012), pupilMat);
+        pupil.position.set(s * 0.27, 0.08, -0.30);
         head.add(pupil);
-        // Red marking — angled stripe extending back from each eye
-        const mark = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.05, 0.55), markingMat);
-        mark.position.set(s * 0.30, 0.04, 0.16);
-        mark.rotation.y = s * -0.22;
-        head.add(mark);
+        // Red marking — long curving stripe extending back over the head from the eye.
+        // Built as 3 segmented box pieces that arc backward for the curved look.
+        const seg1 = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.05, 0.36), markingMat);
+        seg1.position.set(s * 0.32, 0.06, 0.06);
+        seg1.rotation.y = s * -0.25;
+        head.add(seg1);
+        const seg2 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.045, 0.28), markingMat);
+        seg2.position.set(s * 0.34, 0.10, 0.30);
+        seg2.rotation.y = s * -0.45;
+        head.add(seg2);
+        const seg3 = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.04, 0.20), markingMat);
+        seg3.position.set(s * 0.30, 0.12, 0.46);
+        seg3.rotation.y = s * -0.65;
+        head.add(seg3);
     }
     // ── Open mouth — bright pink interior with a darker throat in back, ──
     // matching the reference shikigami's wide-jawed bite pose.
