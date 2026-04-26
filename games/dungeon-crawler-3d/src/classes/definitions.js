@@ -66,8 +66,8 @@ export const CLASSES = {
         abilities: { z: 'Divine Dog', x: 'Mahoraga', c: 'Nue', v: 'Chimera Shadow Garden', f: 'Shadow Dash' },
         abilityCooldowns: { z: 4000, x: 18000, c: 8000, v: 20000, f: 2500 }
     },
-    buff: {
-        name: 'Buff', type: 'fighter', maxHp: 220, speed: 3.0, attackRange: 35,
+    todo: {
+        name: 'TODO', type: 'fighter', maxHp: 220, speed: 3.0, attackRange: 35,
         attackDamage: 28, attackSpeed: 260, attackType: 'melee', color: '#d4a070',
         specialCooldown: 0, specialName: 'None', weaponType: 'fist',
         abilities: {},

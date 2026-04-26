@@ -2324,7 +2324,7 @@ function buildPlayerModelForClass(classId, labelPrefix) {
     else if (classId === 'ren') { pm = buildRenModel(); pm.scale.setScalar(0.85); addPlayerLabel(pm, labelPrefix + 'REN', '#9c27b0'); }
     else if (classId === 'horohoro') { pm = buildHorohoroModel(); pm.scale.setScalar(0.85); addPlayerLabel(pm, labelPrefix + 'HORO', '#42a5f5'); }
     else if (classId === 'megumi') { pm = buildMegumiModel(); addPlayerLabel(pm, labelPrefix + 'MEGUMI', '#1a237e'); }
-    else if (classId === 'buff') { pm = buildBuffModel(); addPlayerLabel(pm, labelPrefix + 'BUFF', '#d4a070'); }
+    else if (classId === 'todo') { pm = buildTodoModel(); addPlayerLabel(pm, labelPrefix + 'TODO', '#d4a070'); }
     else { pm = buildGenericPlayerModel(CLASSES[classId] || CLASSES['gojo']); }
     return pm;
 }
@@ -2403,9 +2403,9 @@ function startGame() {
     } else if (player.classId === 'megumi') {
         pm = buildMegumiModel();
         addPlayerLabel(pm, 'MEGUMI', '#1a237e');
-    } else if (player.classId === 'buff') {
-        pm = buildBuffModel();
-        addPlayerLabel(pm, 'BUFF', '#d4a070');
+    } else if (player.classId === 'todo') {
+        pm = buildTodoModel();
+        addPlayerLabel(pm, 'TODO', '#d4a070');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
@@ -2471,7 +2471,7 @@ function startGame() {
         else if (player2.classId === 'ren') { pm2 = buildRenModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 REN', '#9c27b0'); }
         else if (player2.classId === 'horohoro') { pm2 = buildHorohoroModel(); pm2.scale.setScalar(0.85); addPlayerLabel(pm2, 'P2 HORO', '#42a5f5'); }
         else if (player2.classId === 'megumi') { pm2 = buildMegumiModel(); addPlayerLabel(pm2, 'P2 MEGUMI', '#1a237e'); }
-        else if (player2.classId === 'buff') { pm2 = buildBuffModel(); addPlayerLabel(pm2, 'P2 BUFF', '#d4a070'); }
+        else if (player2.classId === 'todo') { pm2 = buildTodoModel(); addPlayerLabel(pm2, 'P2 TODO', '#d4a070'); }
         else { pm2 = buildGenericPlayerModel(cls2); }
         pm2.visible = false;
         scene.add(pm2);
@@ -3868,8 +3868,8 @@ function p2Dodge() {
 // ─── ABILITY DISPATCHER (Z/X/C/V/F) — clean slate ──────────────
 function fruitAbility(slot) {
     if (!player || !player.alive) return;
-    // Buff has no abilities — pure melee fighter
-    if (player.classId === 'buff') return;
+    // TODO has no abilities — pure melee fighter
+    if (player.classId === 'todo') return;
     const now = performance.now();
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const yaw = fpsCamera.yaw;
@@ -8347,8 +8347,8 @@ function buildMegumiModel() {
     return pm;
 }
 
-// ─── BUFF 3D MODEL — pure melee fighter, no abilities ──────
-function buildBuffModel() {
+// ─── TODO 3D MODEL — pure melee fighter, no abilities ──────
+function buildTodoModel() {
     const pm = new THREE.Group();
     const skinMat = new THREE.MeshStandardMaterial({ color: '#d4a070', roughness: 0.5 });
     const skinShade = new THREE.MeshStandardMaterial({ color: '#a8784a', roughness: 0.55 });
@@ -8550,10 +8550,10 @@ function buildBuffModel() {
     const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.30, 0.06, 8), beltMat);
     belt.position.y = 0.68; pm.add(belt);
 
-    // No special aura — Buff doesn't need cursed energy
+    // No special aura — TODO doesn't need cursed energy
     // Reuse Sukuna's walk animation (it suits the muscular swagger)
     pm._isSukuna = true;
-    pm._isBuff = true;
+    pm._isTodo = true;
 
     return pm;
 }
