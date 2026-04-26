@@ -4026,35 +4026,38 @@ function buildRikaMesh() {
         groove.position.set(x, 3.10, 0.36);
         group.add(groove);
     }
-    // Wider grinning mouth — bigger dark cavity that spans almost ear to ear
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 10), blackHole);
-    mouth.scale.set(2.0, 0.55, 0.55);
+    // Smaller, tighter mouth cavity — focused dark slit so the teeth fill it
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 10), blackHole);
+    mouth.scale.set(1.5, 0.65, 0.55);
     mouth.position.set(0, 2.78, 0.32);
     group.add(mouth);
-    // Inner pink throat behind the teeth for visual depth
-    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 8),
+    // Inner dark-red throat for depth
+    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8),
         new THREE.MeshBasicMaterial({ color: '#5a0820' }));
-    throat.scale.set(2.0, 0.45, 0.55);
+    throat.scale.set(1.5, 0.55, 0.55);
     throat.position.set(0, 2.78, 0.22);
     group.add(throat);
-    // Sharp interlocking teeth — many thin tall fangs filling the wider mouth.
-    // Upper and lower rows are offset by half a tooth so they zigzag together.
-    const toothCount = 18;
-    const toothSpan = 0.62;
+    // BIG BARED TEETH — far fewer but much larger and chunkier than before.
+    // Upper and lower rows interlock zigzag so the bared fangs dominate the
+    // smaller mouth opening.
+    const toothCount = 7;
+    const toothSpan = 0.46;
     const toothStep = toothSpan / toothCount;
     for (let t = 0; t < toothCount; t++) {
         const tx = -toothSpan / 2 + (t + 0.5) * toothStep;
-        // Upper tooth — long, sharp, tip pointing down into the mouth
-        const upper = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.20, 4), fangMat);
-        upper.position.set(tx, 2.86, 0.40);
+        // Big upper tooth (radius 0.030, height 0.32)
+        const upper = new THREE.Mesh(new THREE.ConeGeometry(0.030, 0.32, 5), fangMat);
+        upper.position.set(tx, 2.90, 0.40);
         upper.rotation.x = Math.PI;
         upper.rotation.z = (Math.random() - 0.5) * 0.18;
         group.add(upper);
-        // Lower tooth — offset half a step so it slots between the uppers
-        const lower = new THREE.Mesh(new THREE.ConeGeometry(0.013, 0.18, 4), fangMat);
-        lower.position.set(tx + toothStep * 0.5, 2.69, 0.40);
-        lower.rotation.z = (Math.random() - 0.5) * 0.18;
-        group.add(lower);
+        // Big lower tooth, offset half a step to slot between uppers
+        if (t < toothCount - 1) {
+            const lower = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.28, 5), fangMat);
+            lower.position.set(tx + toothStep * 0.5, 2.65, 0.40);
+            lower.rotation.z = (Math.random() - 0.5) * 0.18;
+            group.add(lower);
+        }
     }
 
     // ── Pink cursed-energy aura ──
@@ -12830,13 +12833,16 @@ function updateMinions(dt, now) {
             }
 
             // Pose: stationary → upright, tail on floor.
-            // Moving → hover above the floor with body tilted forward,
-            //          head leading, tail trailing behind.
-            // Both the forward tilt (rotation.x) and the hover height
-            // (position.y) ease toward their targets each frame so the
-            // transition feels natural.
-            const targetTilt  = isMoving ? Math.PI / 3 : 0; // 60° forward when moving
-            const targetHover = isMoving ? 1.4         : 0; // float ~1.4 units up
+            // Moving (or pivoting) → hover above the floor with body tilted
+            //   forward in the direction she's heading. Use `wantsToMove`
+            //   (target out of stop range) instead of the strict isMoving
+            //   flag, so she tilts the moment she starts spinning toward
+            //   a new heading — the tilt always aligns with where she's
+            //   going because rotation.x is body-local + rotation.y yaws
+            //   the tilted body around world Y.
+            const wantsToMove = dist > stopDist;
+            const targetTilt  = wantsToMove ? Math.PI / 3 : 0; // 60° forward
+            const targetHover = wantsToMove ? 1.4         : 0; // float ~1.4 up
             if (m.data._tilt  === undefined) m.data._tilt  = 0;
             if (m.data._hover === undefined) m.data._hover = 0;
             m.data._tilt  += (targetTilt  - m.data._tilt ) * 0.10;
