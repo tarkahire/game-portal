@@ -11001,10 +11001,12 @@ function buildSerpentMesh() {
     const SCALE = 2.2;
     const initSpine = [];
     for (let i = 0; i < 20; i++) initSpine.push(new THREE.Vector3(0, 0.55, -i * 0.5));
-    // Wider, more imposing taper. Thick neck/upper body, gradual taper to a fine tail tip.
+    // Skinny + uniform along most of the length. Only the last ~6 segments
+    // taper into a fine tail tip, matching how the reference body holds
+    // roughly the same width all the way down before the tail.
     const baseRadii = [
-        0.50, 0.58, 0.62, 0.60, 0.56, 0.51, 0.46, 0.42, 0.38, 0.34,
-        0.31, 0.28, 0.25, 0.22, 0.20, 0.18, 0.15, 0.12, 0.09, 0.06
+        0.30, 0.32, 0.32, 0.32, 0.32, 0.32, 0.32, 0.32, 0.32, 0.32,
+        0.32, 0.32, 0.31, 0.29, 0.25, 0.20, 0.15, 0.10, 0.06, 0.03
     ];
     const radii = baseRadii.map(r => r * SCALE);
     const bodyGeo = buildLoftedTube(initSpine, radii, 14, colorFn);
