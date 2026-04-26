@@ -2588,6 +2588,7 @@ function loadFloor(floor) {
     if (torchLights) { for (const l of torchLights) scene.remove(l); }
     for (const e of enemies3D) { scene.remove(e.mesh); if (e.label) scene.remove(e.label); }
     for (const p of projectiles3D) { scene.remove(p.mesh); }
+    clearBloodSplatters();
     // Keep permanent minions (shadows, clones, dogs) across floors
     const keepMinions = minions3D.filter(m => m.data.life === Infinity);
     const removeMinions = minions3D.filter(m => m.data.life !== Infinity);
@@ -3435,6 +3436,210 @@ function screenFlash(color, duration) {
 // ── Walking Animation (3rd person leg/arm bob) ──
 let walkCycle = 0;
 
+// ─── BLACK FLASH WALL-SPLAT BLOOD ─────────────────────────────────
+// When an enemy launched by Black Flash collides with a wall, we paint a
+// hyper-real-looking blood splat onto the wall surface plus several drip
+// streaks that grow downward over the next ~1.5 seconds.
+const bloodSplatters = []; // { group, drips, _bornAt }
+
+function spawnWallBlood(worldX, worldY, worldZ, normalAxis) {
+    // normalAxis: '-x', '+x', '-z', '+z' — the direction the wall face points
+    const group = new THREE.Group();
+    const darkRedMat = new THREE.MeshBasicMaterial({
+        color: '#3a0008', transparent: true, opacity: 0.95,
+        depthWrite: false, side: THREE.DoubleSide,
+    });
+    const brightRedMat = new THREE.MeshBasicMaterial({
+        color: '#7a0010', transparent: true, opacity: 0.95,
+        depthWrite: false, side: THREE.DoubleSide,
+    });
+    const innerRedMat = new THREE.MeshBasicMaterial({
+        color: '#aa0820', transparent: true, opacity: 0.85,
+        depthWrite: false, side: THREE.DoubleSide,
+    });
+
+    // Outer splat — irregular dark red blob
+    const outerGeo = new THREE.CircleGeometry(0.8, 18);
+    const oPos = outerGeo.attributes.position;
+    for (let i = 0; i < oPos.count; i++) {
+        const x = oPos.getX(i), y = oPos.getY(i);
+        const r2 = x * x + y * y;
+        if (r2 > 0.01) {
+            const k = 1 + (Math.random() - 0.5) * 0.45;
+            oPos.setXYZ(i, x * k, y * k, 0);
+        }
+    }
+    outerGeo.computeVertexNormals();
+    const outer = new THREE.Mesh(outerGeo, darkRedMat);
+    group.add(outer);
+
+    // Mid splat — slightly smaller, brighter red
+    const midGeo = new THREE.CircleGeometry(0.55, 16);
+    const mPos = midGeo.attributes.position;
+    for (let i = 0; i < mPos.count; i++) {
+        const x = mPos.getX(i), y = mPos.getY(i);
+        const r2 = x * x + y * y;
+        if (r2 > 0.01) {
+            const k = 1 + (Math.random() - 0.5) * 0.35;
+            mPos.setXYZ(i, x * k, y * k, 0);
+        }
+    }
+    midGeo.computeVertexNormals();
+    const mid = new THREE.Mesh(midGeo, brightRedMat);
+    mid.position.z = 0.001;
+    group.add(mid);
+
+    // Inner core — bright red impact center
+    const innerGeo = new THREE.CircleGeometry(0.30, 12);
+    const inner = new THREE.Mesh(innerGeo, innerRedMat);
+    inner.position.z = 0.002;
+    group.add(inner);
+
+    // Spatter dots scattered around the splat
+    for (let i = 0; i < 12; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 0.8 + Math.random() * 0.7;
+        const dotR = 0.04 + Math.random() * 0.10;
+        const dot = new THREE.Mesh(
+            new THREE.CircleGeometry(dotR, 6),
+            Math.random() < 0.5 ? darkRedMat : brightRedMat,
+        );
+        dot.position.set(Math.cos(angle) * dist, Math.sin(angle) * dist, 0.001);
+        group.add(dot);
+    }
+
+    // Drip streaks — thin tall rectangles that grow downward over time.
+    // Each one starts as a tiny rectangle at the splat top and elongates.
+    const drips = [];
+    const dripCount = 6 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < dripCount; i++) {
+        const w = 0.04 + Math.random() * 0.08;
+        const dripGeo = new THREE.PlaneGeometry(w, 1);
+        const dripMat = new THREE.MeshBasicMaterial({
+            color: i % 2 === 0 ? '#3a0008' : '#5a0010',
+            transparent: true, opacity: 0.92,
+            depthWrite: false, side: THREE.DoubleSide,
+        });
+        const drip = new THREE.Mesh(dripGeo, dripMat);
+        const xOff = (Math.random() - 0.5) * 1.0; // start somewhere across the splat
+        drip.position.set(xOff, 0, 0.001);
+        drip.scale.y = 0.001; // start invisibly short
+        // Each drip has its own max length and fall speed for natural variation
+        drip._maxLen = 0.6 + Math.random() * 1.8;
+        drip._growSpeed = 0.6 + Math.random() * 0.5;
+        drip._curLen = 0;
+        drip._startDelay = Math.random() * 0.25; // stagger so they don't all start at once
+        drip._delayElapsed = 0;
+        drip._w = w;
+        group.add(drip);
+        drips.push(drip);
+    }
+
+    // Position + orient against the correct wall face
+    group.position.set(worldX, worldY, worldZ);
+    if (normalAxis === '-x') group.rotation.y = -Math.PI / 2; // face faces -X (wall to the east)
+    else if (normalAxis === '+x') group.rotation.y = Math.PI / 2;  // face faces +X (wall to the west)
+    else if (normalAxis === '-z') group.rotation.y = Math.PI;      // face faces -Z (wall to the south)
+    else if (normalAxis === '+z') group.rotation.y = 0;            // face faces +Z (wall to the north)
+
+    scene.add(group);
+    bloodSplatters.push({ group, drips, _bornAt: performance.now() });
+    return group;
+}
+
+function updateBloodDrips(dt) {
+    for (const bs of bloodSplatters) {
+        for (const drip of bs.drips) {
+            if (drip._delayElapsed < drip._startDelay) {
+                drip._delayElapsed += dt;
+                continue;
+            }
+            if (drip._curLen < drip._maxLen) {
+                // Drips slow down as they fall (gravity / surface friction)
+                const remaining = drip._maxLen - drip._curLen;
+                const speed = drip._growSpeed * Math.max(0.2, remaining / drip._maxLen);
+                drip._curLen = Math.min(drip._maxLen, drip._curLen + speed * dt);
+                drip.scale.y = drip._curLen;
+                // Anchor top of drip at splat origin and grow downward
+                drip.position.y = -drip._curLen / 2;
+            }
+        }
+    }
+}
+
+function clearBloodSplatters() {
+    for (const bs of bloodSplatters) scene.remove(bs.group);
+    bloodSplatters.length = 0;
+}
+
+// ─── BLACK FLASH KNOCKBACK FLIGHT ─────────────────────────────
+// Each frame, advance any enemy with `_bfKnockback` along their velocity.
+// Check the next position for wall collision via dungeon.map. On wall hit,
+// snap to the impact point, paint blood, and finish the enemy off.
+function updateBlackFlashKnockback(dt) {
+    if (!dungeon || !dungeon.map) return;
+    for (const e of enemies3D) {
+        const kb = e.data && e.data._bfKnockback;
+        if (!kb) continue;
+        if (!e.data.alive) { e.data._bfKnockback = null; continue; }
+
+        kb.timeLeft -= dt;
+        if (kb.timeLeft <= 0) { e.data._bfKnockback = null; continue; }
+
+        const oldX = e.data.x, oldZ = e.data.z;
+        const newX = oldX + kb.vx * dt;
+        const newZ = oldZ + kb.vz * dt;
+
+        // Check collision separately on each axis — gives us the correct
+        // wall face for the splat decal.
+        const blockedX = !isWalkable(dungeon.map, newX, oldZ);
+        const blockedZ = !isWalkable(dungeon.map, oldX, newZ);
+
+        if (blockedX || blockedZ) {
+            // Compute the wall-impact world coordinates and which face was hit
+            let wallX, wallZ, normalAxis;
+            // Pick whichever axis collided (X takes priority if both)
+            if (blockedX) {
+                if (kb.vx > 0) {
+                    // Hit a wall to the east — wall west-face faces -X
+                    const colWall = Math.floor(newX);
+                    wallX = colWall * TILE - 0.04;
+                    wallZ = oldZ * TILE;
+                    normalAxis = '-x';
+                } else {
+                    const colWall = Math.floor(newX);
+                    wallX = (colWall + 1) * TILE + 0.04;
+                    wallZ = oldZ * TILE;
+                    normalAxis = '+x';
+                }
+            } else {
+                if (kb.vz > 0) {
+                    const rowWall = Math.floor(newZ);
+                    wallX = oldX * TILE;
+                    wallZ = rowWall * TILE - 0.04;
+                    normalAxis = '-z';
+                } else {
+                    const rowWall = Math.floor(newZ);
+                    wallX = oldX * TILE;
+                    wallZ = (rowWall + 1) * TILE + 0.04;
+                    normalAxis = '+z';
+                }
+            }
+            const wallY = WALL_HEIGHT * 0.45 + (Math.random() - 0.5) * 0.4;
+            spawnWallBlood(wallX, wallY, wallZ, normalAxis);
+            // Kill the enemy outright — they got Black-Flashed into a wall
+            if (e.data.hp > 0) dealDamageToEnemy(e, e.data.hp + 9999);
+            e.data._bfKnockback = null;
+            continue;
+        }
+
+        // Free flight — no wall in the way, just move
+        e.data.x = newX;
+        e.data.z = newZ;
+        e.mesh.position.set(newX * TILE, 0, newZ * TILE);
+    }
+}
+
 function updateWalkAnimation(dt) {
     const pm = fpsCamera.playerModel;
     if (!pm || !fpsCamera.thirdPerson) return;
@@ -3502,8 +3707,16 @@ function playerAttack() {
     const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh || isRen || isHoro;
     // Cursed-energy aura boost — 50% damage while active
     const auraMult = player._cursedAuraActive ? 1.5 : 1;
+    // Black Flash multiplier — 3× damage if primed and this M1 connects.
+    // Chain bonus: each Black Flash within 5s of the previous adds +0.5×, capped at 6×.
+    const blackFlashPrimed = !!(player._blackFlashPrimed && now < player._blackFlashPrimed);
+    let blackFlashMult = 1;
+    if (blackFlashPrimed) {
+        const chain = (player._blackFlashChainEnd && now < player._blackFlashChainEnd) ? (player._blackFlashChain || 0) : 0;
+        blackFlashMult = Math.min(6, 3 + chain * 0.5);
+    }
     // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
-    const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25 * auraMult) : Math.round(player.damage * step.dmgMult * auraMult);
+    const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25 * auraMult * blackFlashMult) : Math.round(player.damage * step.dmgMult * auraMult * blackFlashMult);
     const isFinisher = player._comboStep === 3;
 
     // Hit enemies in arc in front
@@ -3542,13 +3755,56 @@ function playerAttack() {
                 // Weapon combo M1s can't kill — leave at 1 HP so bisect can finish
                 const actualDmg = (hasWeaponCombo && e.data.hp - dmg <= 0) ? Math.max(0, e.data.hp - 1) : dmg;
                 dealDamageToEnemy(e, actualDmg);
-                // Weapon users use less KB to keep enemies in combo range
-                const kb = hasWeaponCombo ? step.kb * 0.3 : step.kb;
-                e.data.x += (dx / d) * kb;
-                e.data.z += (dz / d) * kb;
-                e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                // Black Flash launches the enemy at high speed in player's facing
+                // direction. They fly until they hit a wall and splat (or run out
+                // of flight time). Skip the regular knockback in that case.
+                if (blackFlashPrimed) {
+                    e.data._bfKnockback = {
+                        vx: fwdX * 26, vz: fwdZ * 26,
+                        timeLeft: 1.4,
+                        attacker: player,
+                    };
+                } else {
+                    // Weapon users use less KB to keep enemies in combo range
+                    const kb = hasWeaponCombo ? step.kb * 0.3 : step.kb;
+                    e.data.x += (dx / d) * kb;
+                    e.data.z += (dz / d) * kb;
+                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+                }
             }
         }
+    }
+
+    // Black Flash spectacle + chain-state bookkeeping (runs once even if multiple
+    // enemies got caught by the same hook). We always consume the prime — even
+    // if no enemy was hit, that matches the "phenomenon" feel: it either lands
+    // or it doesn't.
+    if (blackFlashPrimed) {
+        const aura = player._auraColor || '#ffd07a';
+        // Chain tracking — extend the chain window and bump the counter
+        const chainNow = (player._blackFlashChainEnd && now < player._blackFlashChainEnd) ? (player._blackFlashChain || 0) : 0;
+        player._blackFlashChain = Math.min(6, chainNow + 1);
+        player._blackFlashChainEnd = now + 5000;
+        player._blackFlashPrimed = 0;
+        // Cinematic impact VFX
+        screenShake(0.55, 220);
+        triggerHitstop(140);
+        fovPunch(18, 0.15);
+        screenFlash('#0a0010', 90);
+        setTimeout(() => screenFlash(aura, 130), 90);
+        // Dark distortion ring at the impact point
+        const fly = fpsCamera.flyHeight || 0;
+        const hitX = px * TILE + fwdX * 2, hitY = EYE_HEIGHT + fly, hitZ = pz * TILE + fwdZ * 2;
+        groundRing(hitX, hitZ, '#0a0010', 3.0, 600);
+        groundRing(hitX, hitZ, aura, 2.0, 450);
+        // 30 dark + aura-tinted sparks
+        emitParticles(hitX, hitY, hitZ, {
+            color: ['#0a0010', '#1a0a20', aura, '#ffffff'],
+            count: 30, speed: 9, spread: 2.0,
+            gravity: -2, life: 18, size: 0.16, sizeEnd: 0, drag: 0.92
+        });
+        // Bright pulse light
+        lightFlash(hitX, hitY, hitZ, aura, 12, 200);
     }
 
     // Visual effects per step
@@ -3970,8 +4226,8 @@ function p2Dodge() {
 // ─── ABILITY DISPATCHER (Z/X/C/V/F) — clean slate ──────────────
 function fruitAbility(slot) {
     if (!player || !player.alive) return;
-    // TODO has no abilities — pure melee fighter
-    if (player.classId === 'todo') return;
+    // TODO only has Z (Black Flash) — other slots no-op
+    if (player.classId === 'todo' && slot !== 'z') return;
     const now = performance.now();
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const yaw = fpsCamera.yaw;
@@ -3990,6 +4246,25 @@ function fruitAbility(slot) {
     const pullEnemies = (cx, cz, range, strength) => { for (const e of enemies3D) { if (!e.data.alive) continue; const dx=cx-e.data.x,dz=cz-e.data.z; const d=Math.hypot(dx,dz); if(d<range&&d>0.5){e.data.x+=(dx/d)*strength;e.data.z+=(dz/d)*strength;e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE);}}};
 
     const id = player.classId;
+
+    // ══════ TODO — Black Flash ══════
+    // Z primes the next M1 to land as a Black Flash for ~3 seconds. The
+    // payoff fires inside playerAttack() when an enemy is hit while primed.
+    if (id === 'todo' && slot === 'z') {
+        const aura = player._auraColor || '#ffd07a';
+        player._blackFlashPrimed = now + 3000;
+        // Visual cue at activation: a tight bright aura pulse + ground ring
+        // around the player so you can see the move is loaded
+        screenFlash(aura, 80);
+        const wx = px * TILE, wz = pz * TILE;
+        groundRing(wx, wz, '#ffffff', 1.6, 250);
+        emitParticles(wx, EYE_HEIGHT, wz, {
+            color: [aura, '#0a0010', '#ffffff'],
+            count: 14, speed: 4, spread: 1.5,
+            gravity: 0, life: 16, size: 0.10, sizeEnd: 0, drag: 0.92, upward: 1.5
+        });
+        return;
+    }
 
     // ══════ GOJO ══════
     if (id === 'gojo') {
@@ -12511,6 +12786,8 @@ function update() {
     updateParticles(dt);
     updateWalkAnimation(dt);
     updateMinions(dt, now);
+    updateBlackFlashKnockback(dt);
+    updateBloodDrips(dt);
     // (old Katakuri portal update removed — Blox Fruits system)
     updateFruitEffects(now, dt);
 
