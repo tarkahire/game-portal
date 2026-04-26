@@ -4026,38 +4026,59 @@ function buildRikaMesh() {
         groove.position.set(x, 3.10, 0.36);
         group.add(groove);
     }
-    // Smaller, tighter mouth cavity — focused dark slit so the teeth fill it
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 10), blackHole);
-    mouth.scale.set(1.5, 0.65, 0.55);
-    mouth.position.set(0, 2.78, 0.32);
+    // ── Mouth — bigger oval cavity so the teeth fit ENTIRELY inside ──
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.28, 18, 12), blackHole);
+    mouth.scale.set(1.55, 0.95, 0.55);
+    mouth.position.set(0, 2.78, 0.30);
     group.add(mouth);
-    // Inner dark-red throat for depth
-    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8),
-        new THREE.MeshBasicMaterial({ color: '#5a0820' }));
-    throat.scale.set(1.5, 0.55, 0.55);
-    throat.position.set(0, 2.78, 0.22);
+    // Inner deep-magenta throat for visual depth
+    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.20, 14, 10),
+        new THREE.MeshBasicMaterial({ color: '#4a1232' }));
+    throat.scale.set(1.55, 0.88, 0.55);
+    throat.position.set(0, 2.78, 0.20);
     group.add(throat);
-    // BIG BARED TEETH — far fewer but much larger and chunkier than before.
-    // Upper and lower rows interlock zigzag so the bared fangs dominate the
-    // smaller mouth opening.
-    const toothCount = 7;
-    const toothSpan = 0.46;
+
+    // Pink/magenta lip ring around the mouth opening — flat torus oval
+    const lipMat = new THREE.MeshStandardMaterial({ color: '#a83864', roughness: 0.45 });
+    const lipGeo = new THREE.TorusGeometry(0.22, 0.045, 10, 28);
+    const lip = new THREE.Mesh(lipGeo, lipMat);
+    lip.scale.set(1.55, 0.95, 0.40);
+    lip.position.set(0, 2.78, 0.36);
+    group.add(lip);
+
+    // ── PURE WHITE jagged teeth, contained INSIDE the mouth ──
+    // Bases sit at the upper / lower lip line; tips point inward into the
+    // dark cavity so the teeth never poke through the outer lip silhouette.
+    const fangPure = new THREE.MeshStandardMaterial({ color: '#f8f4f0', roughness: 0.3 });
+    const upperLipY = 2.78 + 0.28 * 0.475;  // = 2.913 — top edge of mouth
+    const lowerLipY = 2.78 - 0.28 * 0.475;  // = 2.647 — bottom edge of mouth
+    const teethZ = 0.34;                     // just inside the mouth opening
+    const toothCount = 8;
+    const toothSpan = 0.66;
     const toothStep = toothSpan / toothCount;
+    // Upper row — bases at upper lip, tips down. Alternating large/small for
+    // the jagged irregular silhouette from the reference.
     for (let t = 0; t < toothCount; t++) {
         const tx = -toothSpan / 2 + (t + 0.5) * toothStep;
-        // Big upper tooth (radius 0.030, height 0.32)
-        const upper = new THREE.Mesh(new THREE.ConeGeometry(0.030, 0.32, 5), fangMat);
-        upper.position.set(tx, 2.90, 0.40);
+        const isLarge = t % 2 === 0;
+        const h = isLarge ? 0.24 : 0.16;
+        const r = isLarge ? 0.032 : 0.022;
+        const upper = new THREE.Mesh(new THREE.ConeGeometry(r, h, 5), fangPure);
+        upper.position.set(tx, upperLipY - h / 2, teethZ);
         upper.rotation.x = Math.PI;
         upper.rotation.z = (Math.random() - 0.5) * 0.18;
         group.add(upper);
-        // Big lower tooth, offset half a step to slot between uppers
-        if (t < toothCount - 1) {
-            const lower = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.28, 5), fangMat);
-            lower.position.set(tx + toothStep * 0.5, 2.65, 0.40);
-            lower.rotation.z = (Math.random() - 0.5) * 0.18;
-            group.add(lower);
-        }
+    }
+    // Lower row — offset half a step so they zigzag between the uppers
+    for (let t = 0; t < toothCount - 1; t++) {
+        const tx = -toothSpan / 2 + (t + 1) * toothStep;
+        const isLarge = t % 2 === 0;
+        const h = isLarge ? 0.20 : 0.13;
+        const r = isLarge ? 0.030 : 0.020;
+        const lower = new THREE.Mesh(new THREE.ConeGeometry(r, h, 5), fangPure);
+        lower.position.set(tx, lowerLipY + h / 2, teethZ);
+        lower.rotation.z = (Math.random() - 0.5) * 0.18;
+        group.add(lower);
     }
 
     // ── Pink cursed-energy aura ──
