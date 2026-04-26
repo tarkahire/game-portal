@@ -12818,11 +12818,23 @@ function updateMinions(dt, now) {
                 m.data.x = px; m.data.z = pz;
             }
 
-            // Tail-anchored — keep her base on the floor at all times so the
-            // black trailing tail stays planted on the ground like a wisp.
-            m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
+            // Pose: stationary → upright, tail on floor.
+            // Moving → hover above the floor with body tilted forward,
+            //          head leading, tail trailing behind.
+            // Both the forward tilt (rotation.x) and the hover height
+            // (position.y) ease toward their targets each frame so the
+            // transition feels natural.
+            const targetTilt  = isMoving ? Math.PI / 3 : 0; // 60° forward when moving
+            const targetHover = isMoving ? 1.4         : 0; // float ~1.4 units up
+            if (m.data._tilt  === undefined) m.data._tilt  = 0;
+            if (m.data._hover === undefined) m.data._hover = 0;
+            m.data._tilt  += (targetTilt  - m.data._tilt ) * 0.10;
+            m.data._hover += (targetHover - m.data._hover) * 0.10;
+            m.mesh.rotation.x = m.data._tilt;
+            m.mesh.position.set(m.data.x * TILE, m.data._hover, m.data.z * TILE);
 
-            // Face the enemy or movement direction
+            // Face the enemy or movement direction (yaw rotation around world Y;
+            // applied AFTER the tilt thanks to default Three.js Euler XYZ order)
             if (chasing && nearestEnemy) {
                 const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
                 if (Math.hypot(fdx, fdz) > 0.05) {
