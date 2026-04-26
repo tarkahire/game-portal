@@ -238,7 +238,13 @@ function init() {
             if (e.code === 'KeyC') fruitAbility('c');     // P1 ability 3
             if (e.code === 'KeyV') fruitAbility('v');     // P1 ability 4
             if (e.code === 'KeyF') fruitAbility('f');     // P1 ability 5
-            if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else if (player?.classId === 'horohoro') horohoroOversoul(); else playerDodge(); }
+            if (e.code === 'KeyQ') {
+                if (player?.classId === 'yoh') yohOversoul();
+                else if (player?.classId === 'ren') renOversoul();
+                else if (player?.classId === 'horohoro') horohoroOversoul();
+                else if (player?.classId === 'todo') todoBlackFlashFollowup();
+                else playerDodge();
+            }
             if (e.code === 'KeyG' && player?.classId === 'megumi') megumiToad();
             if (e.code === 'KeyH' && player?.classId === 'megumi') megumiSerpent();
             if (e.code === 'KeyR') toggleCursedEnergy(player, fpsCamera); // toggle cursed-energy aura
@@ -3570,6 +3576,152 @@ function updateBloodDrips(dt) {
 function clearBloodSplatters() {
     for (const bs of bloodSplatters) scene.remove(bs.group);
     bloodSplatters.length = 0;
+}
+
+// ─── BLACK FLASH FOLLOWUP — teleport-grab finisher ─────────────────
+// Press Q after a Black Flash launches an enemy: TODO blinks past the
+// flying target, faces back toward them, the camera swings to a side
+// cinematic angle, and TODO grabs the enemy's head with both hands —
+// finishing them off. No-op if there's no in-flight target.
+function todoBlackFlashFollowup() {
+    if (!player || !player.alive || player.classId !== 'todo') return;
+    let target = null;
+    for (const e of enemies3D) {
+        if (e.data && e.data._bfKnockback && e.data.alive) { target = e; break; }
+    }
+    if (!target) return;
+
+    const kb = target.data._bfKnockback;
+    const flyMag = Math.hypot(kb.vx, kb.vz) || 1;
+    const dirX = kb.vx / flyMag;
+    const dirZ = kb.vz / flyMag;
+
+    // Teleport target — past the enemy in flight direction. Fall back to
+    // a closer spot if past-the-enemy isn't walkable.
+    let finalX = target.data.x + dirX * 1.4;
+    let finalZ = target.data.z + dirZ * 1.4;
+    if (!isWalkable(dungeon.map, finalX, finalZ)) {
+        finalX = target.data.x + dirX * 0.6;
+        finalZ = target.data.z + dirZ * 0.6;
+    }
+    if (!isWalkable(dungeon.map, finalX, finalZ)) {
+        finalX = target.data.x;
+        finalZ = target.data.z;
+    }
+
+    // VFX at the departure point
+    const dpx = fpsCamera.posX * TILE, dpz = fpsCamera.posZ * TILE;
+    emitParticles(dpx, EYE_HEIGHT, dpz, {
+        color: ['#0a0010', '#aa0010', '#ffffff'],
+        count: 16, speed: 5, spread: 1.4,
+        gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.92
+    });
+
+    // Teleport TODO and face back toward where the enemy came from
+    fpsCamera.posX = finalX;
+    fpsCamera.posZ = finalZ;
+    // Forward should point opposite to flight direction (back at the enemy).
+    // fpsCamera uses fwdX = -sin(yaw), fwdZ = -cos(yaw); we want fwd = -dir,
+    // so sin(yaw)=dirX, cos(yaw)=dirZ → yaw = atan2(dirX, dirZ).
+    fpsCamera.yaw = Math.atan2(dirX, dirZ);
+
+    // Pin the enemy in front of TODO and stop their flight (they're grabbed)
+    target.data._bfKnockback = null;
+    target.data.x = finalX - dirX * 0.7;
+    target.data.z = finalZ - dirZ * 0.7;
+    target.mesh.position.set(target.data.x * TILE, 0, target.data.z * TILE);
+
+    // VFX at the arrival point
+    const apx = finalX * TILE, apz = finalZ * TILE;
+    emitParticles(apx, EYE_HEIGHT, apz, {
+        color: ['#0a0010', '#aa0010', '#ffffff'],
+        count: 20, speed: 5, spread: 1.4,
+        gravity: 0, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92
+    });
+    screenFlash('#aa0010', 90);
+    fovPunch(8, 0.16);
+
+    // Cinematic camera: side-angle profile of the TODO + enemy axis so the
+    // grab reads clearly. Position perpendicular to the line between them.
+    const midTileX = (finalX + target.data.x) / 2;
+    const midTileZ = (finalZ + target.data.z) / 2;
+    const perpX = -dirZ, perpZ = dirX;
+    const camWorldX = (midTileX + perpX * 0.9) * TILE;
+    const camWorldY = EYE_HEIGHT + 0.4;
+    const camWorldZ = (midTileZ + perpZ * 0.9) * TILE;
+    const lookWorldX = midTileX * TILE;
+    const lookWorldY = EYE_HEIGHT - 0.2;
+    const lookWorldZ = midTileZ * TILE;
+    fpsCamera.setCinematic(camWorldX, camWorldY, camWorldZ, lookWorldX, lookWorldY, lookWorldZ, 1100);
+
+    // Trigger the head-grab arm animation (state-driven, runs in update loop)
+    todoGrabAnimation();
+
+    // Apply massive damage at the moment the grip lands
+    setTimeout(() => {
+        if (!target.data.alive) return;
+        dealDamageToEnemy(target, target.data.hp + 9999);
+        const ex = target.data.x * TILE, ez = target.data.z * TILE;
+        emitParticles(ex, 1.4, ez, {
+            color: ['#aa0010', '#5a0010', '#ff0033', '#ffffff'],
+            count: 32, speed: 7, spread: 1.8,
+            gravity: -2, life: 18, size: 0.18, sizeEnd: 0, drag: 0.92
+        });
+        screenShake(0.6, 250);
+        triggerHitstop(180);
+        lightFlash(ex, 1.4, ez, '#ff0033', 12, 250);
+    }, 300);
+}
+
+// State-driven grab arm animation — runs in the main update loop AFTER
+// updatePunchArms() so it can override active hook punches cleanly.
+function todoGrabAnimation() {
+    if (!player) return;
+    player._grabAnim = {
+        startTime: performance.now(),
+        reachDur: 280,
+        holdDur: 720,
+    };
+    const pm = fpsCamera.playerModel;
+    if (pm) {
+        // Drop any active hook punch on these arms so we own them
+        for (let i = activePunches.length - 1; i >= 0; i--) {
+            const a = activePunches[i].arm;
+            if (a === pm._rightArm || a === pm._leftArm) activePunches.splice(i, 1);
+        }
+        const lockUntil = performance.now() + 1100;
+        if (pm._rightArm) pm._rightArm._punchUntil = lockUntil;
+        if (pm._leftArm) pm._leftArm._punchUntil = lockUntil;
+    }
+}
+
+function updateTodoGrabAnim() {
+    const ga = player && player._grabAnim;
+    if (!ga) return;
+    const pm = fpsCamera.playerModel;
+    if (!pm || !pm._rightArm || !pm._leftArm) return;
+    const ra = pm._rightArm, la = pm._leftArm;
+    const elapsed = performance.now() - ga.startTime;
+    const total = ga.reachDur + ga.holdDur;
+    if (elapsed >= total) {
+        ra.rotation.set(0.05, 0, 0);
+        la.rotation.set(0.05, 0, 0);
+        player._grabAnim = null;
+        return;
+    }
+    if (elapsed < ga.reachDur) {
+        // Reach forward, hands curling inward toward each other (gripping)
+        const t = elapsed / ga.reachDur;
+        const ease = 1 - Math.pow(1 - t, 3);
+        ra.rotation.set(-1.7 * ease, 0, -0.32 * ease);
+        la.rotation.set(-1.7 * ease, 0, 0.32 * ease);
+    } else {
+        // Hold the grip pose with a slight tension vibration
+        const t = (elapsed - ga.reachDur) / ga.holdDur;
+        const tension = Math.sin(t * 28) * 0.045;
+        ra.rotation.set(-1.7 + tension, 0, -0.32 - tension);
+        la.rotation.set(-1.7 - tension, 0, 0.32 + tension);
+    }
 }
 
 // ─── BLACK FLASH KNOCKBACK FLIGHT ─────────────────────────────
@@ -12802,6 +12954,8 @@ function update() {
 
     // Punch swings — applied LAST so other animations can't overwrite them
     updatePunchArms();
+    // Grab finisher pose — applied AFTER punch swings so it owns the arms
+    updateTodoGrabAnim();
 
     // Dash speed restore
     if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }

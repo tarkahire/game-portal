@@ -25,6 +25,7 @@
 
 Q binding is class-specific:
 - **Yoh / Ren / Horohoro**: activates permanent Spirit oversoul (first press only — toggles on)
+- **TODO**: Black Flash followup — teleport-grab finisher on a launched enemy. Does nothing if no Black Flash target is in flight. (Dash for TODO is on Space only.)
 - **All others**: dash with 300ms invincibility
 
 ## Player 2 (Local Co-op only — disabled in Online mode)

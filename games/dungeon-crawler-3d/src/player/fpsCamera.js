@@ -115,6 +115,17 @@ export class FPSCamera {
         return false; // couldn't move at all
     }
 
+    // Override the camera to a fixed cinematic position + lookAt for `durationMs`.
+    // While active, normal first/third-person positioning is bypassed.
+    setCinematic(posX, posY, posZ, lookX, lookY, lookZ, durationMs) {
+        this._cineUntil = performance.now() + durationMs;
+        this._cinePos = { x: posX, y: posY, z: posZ };
+        this._cineLook = { x: lookX, y: lookY, z: lookZ };
+    }
+    clearCinematic() {
+        this._cineUntil = 0;
+    }
+
     update(dt, dungeonMap) {
         // Turn
         if (this._isKeyDown(this._keyTurnLeft)) { this.yaw += this.turnSpeed * dt; }
@@ -191,6 +202,13 @@ export class FPSCamera {
             this.camera.quaternion.setFromEuler(euler);
 
             if (this.playerModel) this.playerModel.visible = false;
+        }
+
+        // Cinematic override — applied AFTER normal positioning so it wins
+        if (this._cineUntil && performance.now() < this._cineUntil) {
+            this.camera.position.set(this._cinePos.x, this._cinePos.y, this._cinePos.z);
+            this.camera.lookAt(this._cineLook.x, this._cineLook.y, this._cineLook.z);
+            if (this.playerModel) this.playerModel.visible = true;
         }
     }
 
