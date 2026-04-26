@@ -11678,9 +11678,9 @@ function buildCursedAura(color) {
     }
     group.userData._wisps = wisps;
 
-    // ── Layer 2: BRIGHT INNER GLOW — bigger near-white wisps for the
-    //    luminous body silhouette without making the colour wash out
-    const GLOW_COUNT = 4;
+    // ── Layer 2: subtle inner glow — only 2 small sprites, kept off the
+    //    centre of the torso so the character stays clearly visible
+    const GLOW_COUNT = 2;
     const glows = [];
     for (let i = 0; i < GLOW_COUNT; i++) {
         const mat = new THREE.SpriteMaterial({
@@ -11689,12 +11689,12 @@ function buildCursedAura(color) {
         });
         const s = new THREE.Sprite(mat);
         s._baseAngle = (i / GLOW_COUNT) * Math.PI * 2;
-        s._baseRadius = 0.18 + Math.random() * 0.08;
+        s._baseRadius = 0.45 + Math.random() * 0.10;
         s._lifeMax = 2.4 + Math.random() * 0.8;
         s._life = Math.random() * s._lifeMax;
-        s._riseHeight = 2.0 + Math.random() * 0.6;
-        s._widthBase = 1.6;
-        s._heightBase = 3.2;
+        s._riseHeight = 1.6 + Math.random() * 0.6;
+        s._widthBase = 0.9;
+        s._heightBase = 1.8;
         s._sway = Math.random() * Math.PI * 2;
         group.add(s);
         glows.push(s);
@@ -11723,17 +11723,11 @@ function buildCursedAura(color) {
     }
     group.userData._sparks = sparks;
 
-    // ── Coloured point light — intense pulse in the chosen colour
-    const light = new THREE.PointLight(c, 6, TILE * 6, 1.5);
+    // ── Coloured point light — soft pulse, much lower intensity now
+    const light = new THREE.PointLight(c, 2.2, TILE * 4, 1.7);
     light.position.set(0, 1.2, 0);
     group.add(light);
     group.userData._light = light;
-
-    // ── Bright white core light at the body for the "hot center" feel
-    const coreLight = new THREE.PointLight(0xffffff, 1.5, TILE * 2.5, 2);
-    coreLight.position.set(0, 1.0, 0);
-    group.add(coreLight);
-    group.userData._coreLight = coreLight;
 
     return group;
 }
@@ -11771,10 +11765,11 @@ function updateCursedAura(group, dt, time) {
         const env = Math.min(1, Math.sin(k * Math.PI) * 1.5);
         const breathe = 1 + Math.sin(t * 1.6 + f._sway) * 0.08;
         f.scale.set(f._widthBase * env * breathe, f._heightBase * env * breathe, 1);
-        f.material.opacity = env * 0.55;
+        // Translucent — character stays clearly visible behind the wisps
+        f.material.opacity = env * 0.32;
     }
 
-    // Inner glows — stay tight on the body, bright near-white "hot core"
+    // Subtle inner glows — kept faint and off-centre so the character shows
     for (let i = 0; i < glows.length; i++) {
         const f = glows[i];
         f._life += dt;
@@ -11783,7 +11778,7 @@ function updateCursedAura(group, dt, time) {
             f._life = 0;
             f._baseAngle = Math.random() * Math.PI * 2;
             f._spawnY = 0.8 + Math.random() * 0.5;
-            f._radiusOut = 0.18 + Math.random() * 0.10;
+            f._radiusOut = 0.50 + Math.random() * 0.10;
             f._lifeMax = 2.2 + Math.random() * 0.8;
             f._riseHeight = 1.6 + Math.random() * 0.5;
         }
@@ -11795,7 +11790,7 @@ function updateCursedAura(group, dt, time) {
         const env = Math.min(1, Math.sin(k * Math.PI) * 1.5);
         const breathe = 1 + Math.sin(t * 2.4 + f._sway) * 0.1;
         f.scale.set(f._widthBase * env * breathe, f._heightBase * env * breathe, 1);
-        f.material.opacity = env * 0.42;
+        f.material.opacity = env * 0.20;
     }
 
     // Sparks — emit from anywhere on the body and shoot outward in a spiral
@@ -11823,15 +11818,12 @@ function updateCursedAura(group, dt, time) {
         const twinkle = 0.7 + Math.sin(t * 14 + i) * 0.3;
         const sz = s._sizeMax * env * twinkle;
         s.scale.set(sz, sz, 1);
-        s.material.opacity = env * 0.85 * twinkle;
+        s.material.opacity = env * 0.55 * twinkle;
     }
 
-    // Lights pulse together
+    // Soft coloured light pulse — gentle, doesn't overpower the scene
     if (group.userData._light) {
-        group.userData._light.intensity = 5 + Math.sin(t * 2.4) * 1.2;
-    }
-    if (group.userData._coreLight) {
-        group.userData._coreLight.intensity = 1.2 + Math.sin(t * 3.5) * 0.5;
+        group.userData._light.intensity = 2.0 + Math.sin(t * 2.4) * 0.6;
     }
 }
 
