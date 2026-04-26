@@ -3799,24 +3799,25 @@ function playerAttack() {
             swingRy: punchSide > 0 ? 0.85 : -0.85,
             swingRz: punchSide > 0 ? -0.35 : 0.35,
         });
-        spawnPunchImpact(hitX, hitY, hitZ, '#ffd07a');
+        const aura = player._auraColor || '#ffd07a';
+        spawnPunchImpact(hitX, hitY, hitZ, aura);
         // Heavyweight extras on every M1 — feels weighty, not just on the finisher
         screenShake(0.35, 110);
         triggerHitstop(45);
         fovPunch(11, 0.16);
-        // Extra sparks for impact spectacle
+        // Extra sparks for impact spectacle — match the cursed energy color
         emitParticles(hitX, hitY, hitZ, {
-            color: ['#ffd07a', '#ffffff', '#d4a070', '#a87850'],
+            color: [aura, '#ffffff'],
             count: 18, speed: 7, spread: 1.6,
             gravity: -3, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92
         });
-        groundRing(hitX, hitZ, '#ffd07a', 1.6, 350);
+        groundRing(hitX, hitZ, aura, 1.6, 350);
     } else {
         // Fist characters (gojo, megumi, pre-oversoul yoh/ren/horohoro) — boxing-style punch
         // Alternate hands per combo step and thrust the player model's arm forward
         const punchSide = (player._comboStep % 2 === 0) ? 1 : -1;
         triggerPunchArm(fpsCamera.playerModel, punchSide);
-        spawnPunchImpact(hitX, hitY, hitZ, player.cls.color);
+        spawnPunchImpact(hitX, hitY, hitZ, player._auraColor || player.cls.color);
     }
 
     // Per-character M1 VFX — add character-specific hit effects here
@@ -3826,13 +3827,14 @@ function playerAttack() {
         triggerSwordSwing(player._comboStep);
     }
 
-    // Finisher (4th hit) — extra effects
+    // Finisher (4th hit) — extra effects use the cursed-energy colour
     if (isFinisher) {
         screenShake(0.25, 100);
         triggerHitstop(50);
         fovPunch(8, 0.15);
-        if (hasWeaponCombo) setTimeout(() => spawnMeleeSlash(player.cls.color), 50);
-        else setTimeout(() => spawnPunchImpact(hitX, hitY, hitZ, player.cls.color), 50);
+        const aura = player._auraColor || player.cls.color;
+        if (hasWeaponCombo) setTimeout(() => spawnMeleeSlash(aura), 50);
+        else setTimeout(() => spawnPunchImpact(hitX, hitY, hitZ, aura), 50);
 
         // Toji dash-thrust — lunge forward on 4th hit
         if (isToji) {
@@ -3897,8 +3899,9 @@ function p2Attack() {
         }
     }
 
+    const p2Aura = player2._auraColor || player2.cls.color;
     if (hasWeap) {
-        spawnMeleeSlash(player2.cls.color, true);
+        spawnMeleeSlash(p2Aura, true);
     } else {
         // P2 fist character — boxing-style punch impact
         const fly2 = fpsCamera2.flyHeight || 0;
@@ -3907,7 +3910,7 @@ function p2Attack() {
         const hit2Z = pz * TILE + fwdZ * 2;
         const punchSide = (player2._comboStep % 2 === 0) ? 1 : -1;
         triggerPunchArm(fpsCamera2.playerModel, punchSide);
-        spawnPunchImpact(hit2X, hit2Y, hit2Z, player2.cls.color);
+        spawnPunchImpact(hit2X, hit2Y, hit2Z, p2Aura);
     }
 
     // P2 weapon swing on viewmodel
