@@ -25,7 +25,7 @@ Each character has 5 abilities mapped to Z/X/C/V/F. Megumi gets two extras on G 
 | Char | Z | X | C | V | F |
 |------|---|---|---|---|---|
 | Gojo | Blue (gravity pull) | Red (repulsion blast) | Hollow Purple (cutscene) | Domain Expansion (freeze) | Teleport |
-| Sukuna | Dismantle | Cleave | Fire Arrow | Malevolent Shrine | Dash |
+| Sukuna | Dismantle | — | Fire Arrow | Malevolent Shrine | Dash |
 | Toji | Inverted Spear | Chain Strike | Playful Cloud | Heavenly Restriction (buff) | Flash Step |
 | Brook | Hanauta Sancho | Soul Solid | Blizzard Slice | Soul King | Dash |
 | Denji | Chain Rip | Buzzsaw | Devil Charge | Full Devil (3× dmg) | Chain Dash |

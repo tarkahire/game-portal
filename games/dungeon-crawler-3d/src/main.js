@@ -6066,92 +6066,6 @@ function fruitAbility(slot) {
             lightFlash(spawnX, EYE_HEIGHT, spawnZ, '#ff2244', 3, 200);
         }
 
-        else if (slot === 'x') {
-            // ── CLEAVE — massive wide arc slash that hits everything in front ──
-            triggerSwordSwing(2); // horizontal sweep
-            screenShake(0.4, 200);
-            triggerHitstop(60);
-
-            const fly = fpsCamera.flyHeight || 0;
-
-            // Giant red arc slash visual
-            const arcGeo = new THREE.TorusGeometry(3, 0.04, 4, 32, Math.PI);
-            const arcMat = new THREE.MeshBasicMaterial({
-                color: '#ff2244', transparent: true, opacity: 0.9,
-                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
-            });
-            const arc = new THREE.Mesh(arcGeo, arcMat);
-            arc.position.set(worldPx + fwdX * 3, EYE_HEIGHT + fly, worldPz + fwdZ * 3);
-            arc.rotation.y = fpsCamera.yaw + Math.PI / 2;
-            arc.rotation.x = Math.PI / 2;
-            scene.add(arc);
-
-            // Second wider arc behind it
-            const arc2Geo = new THREE.TorusGeometry(3.5, 0.03, 4, 32, Math.PI);
-            const arc2Mat = new THREE.MeshBasicMaterial({
-                color: '#ff0000', transparent: true, opacity: 0.5,
-                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
-            });
-            const arc2 = new THREE.Mesh(arc2Geo, arc2Mat);
-            arc2.position.copy(arc.position);
-            arc2.rotation.copy(arc.rotation);
-            scene.add(arc2);
-
-            // Blood-red particles in the arc
-            emitParticles(worldPx + fwdX * 3, EYE_HEIGHT + fly, worldPz + fwdZ * 3, {
-                color: ['#ff2244', '#ff0000', '#cc0000', '#ff4466'],
-                count: 25, speed: 5, spread: 2,
-                gravity: -3, life: 15, size: 0.15, sizeEnd: 0, drag: 0.96, upward: 0.3
-            });
-
-            // Hit everything in a wide cone in front
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                const dx = e.data.x - px, dz = e.data.z - pz;
-                const d = Math.hypot(dx, dz);
-                if (d > 5 || d < 0.1) continue;
-                const a = Math.atan2(-dx, -dz);
-                let ad = a - yaw;
-                while (ad > Math.PI) ad -= Math.PI * 2;
-                while (ad < -Math.PI) ad += Math.PI * 2;
-                if (Math.abs(ad) < Math.PI * 0.6) { // wider arc than M1
-                    dealDamageToEnemy(e, Math.round(player.damage * 3));
-                    // Big knockback
-                    e.data.x += (dx / d) * 2;
-                    e.data.z += (dz / d) * 2;
-                    e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
-                }
-            }
-
-            // Fade arcs
-            const start = performance.now();
-            const fadeArc = () => {
-                const t = (performance.now() - start) / 400;
-                if (t >= 1) {
-                    scene.remove(arc); arc.geometry.dispose(); arc.material.dispose();
-                    scene.remove(arc2); arc2.geometry.dispose(); arc2.material.dispose();
-                    return;
-                }
-                arcMat.opacity = (1 - t) * 0.9;
-                arc2Mat.opacity = (1 - t) * 0.5;
-                arc.scale.setScalar(1 + t * 0.3);
-                arc2.scale.setScalar(1 + t * 0.4);
-                requestAnimationFrame(fadeArc);
-            };
-            requestAnimationFrame(fadeArc);
-
-            // Arm pose
-            const pm = fpsCamera.playerModel;
-            if (pm?._rightArm) {
-                pm._rightArm.rotation.set(-0.3, 0, -1.2);
-                setTimeout(() => { if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 500);
-            }
-
-            lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, '#ff2244', 5, 300);
-            groundRing(worldPx + fwdX * 3, worldPz + fwdZ * 3, '#ff2244', 4, 600);
-            fovPunch(10, 0.15);
-        }
-
         else if (slot === 'c') {
             // ── FIRE ARROW — charge up then fire a blazing projectile from the sword ──
             triggerSwordSwing(3); // overhead slam motion (charge up)
@@ -6281,7 +6195,7 @@ function fruitAbility(slot) {
                 }
             }, 100);
 
-            // Damage all enemies every 400ms — Dismantle + Cleave combo
+            // Damage all enemies every 400ms — Dismantle slashes
             let ticks = 0;
             const dmgInterval = setInterval(() => {
                 ticks++;

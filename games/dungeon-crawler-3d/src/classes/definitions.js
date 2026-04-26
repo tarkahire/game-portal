@@ -14,8 +14,8 @@ export const CLASSES = {
         name: 'Ryomen Sukuna', type: 'sorcerer', maxHp: 150, speed: 3.4, attackRange: 35,
         attackDamage: 12, attackSpeed: 250, attackType: 'melee', color: '#ff2244',
         specialCooldown: 5000, specialName: 'Malevolent Shrine', weaponType: 'fist',
-        abilities: { z: 'Dismantle', x: 'Cleave', c: 'Fire Arrow', v: 'Malevolent Shrine', f: 'Dash' },
-        abilityCooldowns: { z: 3000, x: 4000, c: 8000, v: 20000, f: 2500 }
+        abilities: { z: 'Dismantle', c: 'Fire Arrow', v: 'Malevolent Shrine', f: 'Dash' },
+        abilityCooldowns: { z: 3000, c: 8000, v: 20000, f: 2500 }
     },
     toji: {
         name: 'Toji Fushiguro', type: 'assassin', maxHp: 140, speed: 4.0, attackRange: 40,
