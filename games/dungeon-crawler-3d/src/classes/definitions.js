@@ -79,11 +79,11 @@ export const CLASSES = {
         specialCooldown: 5000, specialName: 'Cursed Queen Rika', weaponType: 'sword',
         abilities: {
             z: 'Rika',
-            x: 'Cursed Speech',
+            x: 'Crush',
             c: 'Black Flash',
             v: 'Reverse Cursed Technique',
-            f: 'Flash Step'
+            f: 'True Love Beam'
         },
-        abilityCooldowns: { z: 12000, x: 6000, c: 5000, v: 18000, f: 1500 }
+        abilityCooldowns: { z: 12000, x: 10000, c: 5000, v: 18000, f: 14000 }
     },
 };

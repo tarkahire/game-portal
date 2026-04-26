@@ -5374,14 +5374,14 @@ function fruitAbility(slot) {
     }
 
     // ══════ YUTA OKKOTSU ══════
-    // Z = Rika summon, X = Cursed Speech (Inumaki copy), C = Black Flash,
-    // V = Reverse Cursed Technique self-heal, F = Flash Step (Toji copy).
+    // Z = Rika summon, X = Crush (boulder instant-kill), C = Black Flash,
+    // V = Reverse Cursed Technique self-heal, F = True Love Beam.
     if (id === 'yuta') {
         if (slot === 'z') yutaSummonRika();
-        else if (slot === 'x') yutaCursedSpeech();
+        else if (slot === 'x') yutaCrush();
         else if (slot === 'c') yutaBlackFlash();
         else if (slot === 'v') yutaRCT();
-        else if (slot === 'f') yutaFlashStep();
+        else if (slot === 'f') yutaTrueLoveBeam();
         return;
     }
 
@@ -13712,67 +13712,153 @@ function yutaSummonRika() {
     }
 }
 
-// ─── YUTA — Cursed Speech (X) ──────────────────────────────────────
-// Inumaki-style cursed command: forward cone shockwave, heavy damage,
-// stuns caught enemies for 2s, knocks them back.
-function yutaCursedSpeech() {
+// ─── YUTA — Crush (X) ──────────────────────────────────────────────
+// Targets the nearest enemy in a forward cone. Spawns a giant boulder
+// high above, drops it onto them with accelerating fall + instant kill
+// + massive impact VFX. No-op if there's no enemy in front.
+function yutaCrush() {
     if (!player || !player.alive) return;
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const yaw = fpsCamera.yaw;
-    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-    const worldPx = px * TILE, worldPz = pz * TILE;
-    const fly = fpsCamera.flyHeight || 0;
-    const aura = player._auraColor || '#5a8aff';
-    const now = performance.now();
 
-    screenShake(0.55, 280);
-    triggerHitstop(80);
-    fovPunch(15, 0.16);
-    screenFlash('#ffffff', 90);
-
-    // Staggered cone of "voice" particle bursts radiating forward
-    for (let i = 0; i < 5; i++) {
-        setTimeout(() => {
-            const dx = worldPx + fwdX * (i * 1.0 + 1) * TILE * 0.25;
-            const dz = worldPz + fwdZ * (i * 1.0 + 1) * TILE * 0.25;
-            emitParticles(dx, EYE_HEIGHT + fly, dz, {
-                color: [aura, '#ffffff', '#0a0a0e'],
-                count: 16, speed: 6, spread: 1.5,
-                gravity: 0, life: 14, size: 0.16, sizeEnd: 0, drag: 0.92,
-            });
-        }, i * 50);
-    }
-    // Three expanding ground rings forward of the player
-    for (let i = 0; i < 3; i++) {
-        const rx = worldPx + fwdX * (i * 2 + 1);
-        const rz = worldPz + fwdZ * (i * 2 + 1);
-        groundRing(rx, rz, aura, 2.5 + i * 0.6, 500);
-    }
-    // Hit all enemies in the forward cone (range 6 tiles, 0.6π wide)
+    // Find nearest enemy in a forward cone (range 8 tiles, 0.45π half-angle)
+    let target = null, bestDist = Infinity;
     for (const e of enemies3D) {
         if (!e.data.alive) continue;
         const dx = e.data.x - px, dz = e.data.z - pz;
         const d = Math.hypot(dx, dz);
-        if (d > 6 || d < 0.1) continue;
+        if (d > 8) continue;
         const a = Math.atan2(-dx, -dz);
         let ad = a - yaw;
         while (ad > Math.PI) ad -= Math.PI * 2;
         while (ad < -Math.PI) ad += Math.PI * 2;
-        if (Math.abs(ad) < Math.PI * 0.6) {
-            dealDamageToEnemy(e, Math.round(player.damage * 3));
-            // Stun: push their next attack timer 2s into the future
-            e.data.lastAttack = now + 2000;
-            // Knockback away from player
-            const nx = e.data.x + (dx / d) * 1.5;
-            const nz = e.data.z + (dz / d) * 1.5;
-            if (isWalkable(dungeon.map, nx, nz)) {
-                e.data.x = nx;
-                e.data.z = nz;
-                e.mesh.position.set(nx * TILE, 0, nz * TILE);
-            }
+        if (Math.abs(ad) > Math.PI * 0.45) continue;
+        if (d < bestDist) { bestDist = d; target = e; }
+    }
+    if (!target) return;
+
+    const targetX = target.data.x * TILE;
+    const targetZ = target.data.z * TILE;
+
+    // ── Build a huge irregular boulder ──
+    const stoneMat = new THREE.MeshStandardMaterial({ color: '#5a5048', roughness: 0.9 });
+    const stoneShade = new THREE.MeshStandardMaterial({ color: '#3a3028', roughness: 0.92 });
+    const boulder = new THREE.Group();
+    const rockGeo = new THREE.SphereGeometry(0.85, 14, 12);
+    const rPos = rockGeo.attributes.position;
+    for (let i = 0; i < rPos.count; i++) {
+        const x = rPos.getX(i), y = rPos.getY(i), z = rPos.getZ(i);
+        const noise = Math.sin(x * 7 + 1.3) * Math.cos(y * 6 + 0.7) * Math.sin(z * 8 + 2.1) * 0.18;
+        const len = Math.sqrt(x * x + y * y + z * z);
+        if (len > 0.001) {
+            const k = 1 + noise / len;
+            rPos.setXYZ(i, x * k, y * k, z * k);
         }
     }
-    lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, aura, 8, 350);
+    rockGeo.computeVertexNormals();
+    boulder.add(new THREE.Mesh(rockGeo, stoneMat));
+    for (let i = 0; i < 8; i++) {
+        const bumpGeo = new THREE.SphereGeometry(0.16 + Math.random() * 0.10, 8, 8);
+        const bump = new THREE.Mesh(bumpGeo, stoneShade);
+        const ang = Math.random() * Math.PI * 2;
+        const tilt = (Math.random() - 0.5) * Math.PI;
+        bump.position.set(
+            Math.cos(ang) * Math.cos(tilt) * 0.78,
+            Math.sin(tilt) * 0.78,
+            Math.sin(ang) * Math.cos(tilt) * 0.78,
+        );
+        boulder.add(bump);
+    }
+    boulder.position.set(targetX, 12, targetZ);
+    scene.add(boulder);
+
+    // Floor shadow indicator beneath the falling rock
+    const shadowMat = new THREE.MeshBasicMaterial({
+        color: '#000000', transparent: true, opacity: 0.6,
+        depthWrite: false, side: THREE.DoubleSide,
+    });
+    const shadow = new THREE.Mesh(new THREE.CircleGeometry(1.0, 24), shadowMat);
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.set(targetX, 0.04, targetZ);
+    scene.add(shadow);
+
+    // Pin the target so it can't escape the drop
+    target.data._slamPinned = true;
+
+    // Initial cue — small particle puff at boulder spawn point
+    fovPunch(8, 0.15);
+    emitParticles(targetX, 12, targetZ, {
+        color: ['#ffffff', '#aa0010'],
+        count: 12, speed: 3, spread: 1.0,
+        gravity: 0, life: 16, size: 0.10, sizeEnd: 0, drag: 0.92,
+    });
+
+    // Animate fall — accelerates into the floor over 350ms
+    const startTime = performance.now();
+    const fallDur = 350;
+    const animFall = () => {
+        const t = (performance.now() - startTime) / fallDur;
+        if (t >= 1) {
+            // ── IMPACT ──
+            boulder.position.y = 0.85;
+            // Massive dust + blood + debris burst
+            emitParticles(targetX, 0.6, targetZ, {
+                color: ['#8a7860', '#5a4838', '#3a3028', '#aa0010', '#5a0010', '#ffffff'],
+                count: 60, speed: 9, spread: 2.5,
+                gravity: -4, life: 24, size: 0.22, sizeEnd: 0, drag: 0.92, upward: 1.5,
+            });
+            screenShake(1.0, 500);
+            triggerHitstop(220);
+            fovPunch(22, 0.16);
+            screenFlash('#aa0010', 120);
+            groundRing(targetX, targetZ, '#5a0010', 4, 700);
+            groundRing(targetX, targetZ, '#8a7860', 3, 600);
+            groundDecal(targetX, targetZ, '#3a3028', 2.0, 5000);
+            lightFlash(targetX, 0.6, targetZ, '#aa0010', 20, 400);
+            // Instant kill the pinned target
+            target.data._slamPinned = false;
+            if (target.data.alive) {
+                dealDamageToEnemy(target, target.data.hp + 9999);
+            }
+            // Remove shadow indicator
+            scene.remove(shadow);
+            shadow.geometry.dispose();
+            shadowMat.dispose();
+            // Boulder lingers on the ground for 1.5s then fades over 1s
+            setTimeout(() => {
+                const fadeStart = performance.now();
+                const fadeOut = () => {
+                    const ft = (performance.now() - fadeStart) / 1000;
+                    if (ft >= 1) {
+                        scene.remove(boulder);
+                        boulder.traverse(c => {
+                            if (c.isMesh) {
+                                c.geometry.dispose();
+                                if (c.material) c.material.dispose();
+                            }
+                        });
+                        return;
+                    }
+                    boulder.traverse(c => {
+                        if (c.isMesh && c.material) {
+                            c.material.transparent = true;
+                            c.material.opacity = 1 - ft;
+                        }
+                    });
+                    requestAnimationFrame(fadeOut);
+                };
+                requestAnimationFrame(fadeOut);
+            }, 1500);
+            return;
+        }
+        // Quadratic ease-in: accelerates as it falls
+        const ease = t * t;
+        boulder.position.y = 12 - ease * 11.15;
+        boulder.rotation.x += 0.15;
+        boulder.rotation.z += 0.10;
+        requestAnimationFrame(animFall);
+    };
+    requestAnimationFrame(animFall);
 }
 
 // ─── YUTA — Black Flash (C) ────────────────────────────────────────
@@ -13820,30 +13906,185 @@ function yutaRCT() {
     screenFlash(aura, 120);
 }
 
-// ─── YUTA — Flash Step (F) ─────────────────────────────────────────
-// Toji-style instant forward dash, ~4 tiles, 350ms invincibility.
-function yutaFlashStep() {
+// ─── YUTA — True Love Beam (F) ─────────────────────────────────────
+// Yuta raises his sword, Rika's head materialises beside him, and they
+// unleash a long pink beam streaked with black cursed-energy marks
+// straight ahead, vaporising everything in line.
+function yutaTrueLoveBeam() {
     if (!player || !player.alive) return;
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const yaw = fpsCamera.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-    const aura = player._auraColor || '#5a8aff';
+    const worldPx = px * TILE, worldPz = pz * TILE;
+    const fly = fpsCamera.flyHeight || 0;
+    const sideX = Math.cos(yaw); // perpendicular to facing — Rika spawns on this side
+    const sideZ = -Math.sin(yaw);
     const now = performance.now();
-    // Dash 4 tiles forward (safeMove respects walls, falls back to closer)
-    fpsCamera.safeMove(px + fwdX * 4, pz + fwdZ * 4, dungeon.map);
-    player.invincible = now + 350;
-    showSpeedLines(280);
-    fovPunch(10, 0.15);
-    // Departure trail
-    const wx = px * TILE, wz = pz * TILE;
-    emitParticles(wx, EYE_HEIGHT, wz, {
-        color: [aura, '#ffffff'],
-        count: 14, speed: 3, spread: 1.0,
-        gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.92,
+
+    // Sword raise — right arm goes up while charging
+    const pm = fpsCamera.playerModel;
+    if (pm && pm._rightArm) {
+        pm._rightArm.rotation.set(-2.5, 0, -0.3);
+        for (let i = activePunches.length - 1; i >= 0; i--) {
+            if (activePunches[i].arm === pm._rightArm) activePunches.splice(i, 1);
+        }
+        pm._rightArm._punchUntil = performance.now() + 1500;
+        setTimeout(() => {
+            if (pm._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+        }, 1400);
+    }
+
+    // Charge particles converging on Yuta during the wind-up
+    const chargeX = worldPx + fwdX * 0.6;
+    const chargeZ = worldPz + fwdZ * 0.6;
+    emitParticles(chargeX, EYE_HEIGHT + fly + 0.6, chargeZ, {
+        color: ['#ff5aaa', '#ffaadc', '#ff2288', '#ffffff'],
+        count: 28, speed: 2.5, spread: 1.6,
+        gravity: 0, life: 22, size: 0.13, sizeEnd: 0, drag: 0.94, upward: 0.5,
     });
-    // Arrival pop
-    const ax = fpsCamera.posX * TILE, az = fpsCamera.posZ * TILE;
-    lightFlash(ax, EYE_HEIGHT, az, aura, 5, 200);
+    fovPunch(8, 0.10);
+
+    // After 350ms wind-up — fire the beam
+    setTimeout(() => {
+        // ── Rika apparition beside Yuta — glowing pink-black orb ──
+        const rikaOrbMat = new THREE.MeshBasicMaterial({
+            color: '#ff5aaa', transparent: true, opacity: 0.85,
+            blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        const rikaOrb = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12), rikaOrbMat);
+        rikaOrb.position.set(
+            worldPx + sideX * 1.0,
+            EYE_HEIGHT + fly + 0.4,
+            worldPz + sideZ * 1.0,
+        );
+        scene.add(rikaOrb);
+        // Inner darker core inside the orb (the "black mark" core of cursed energy)
+        const rikaCoreMat = new THREE.MeshBasicMaterial({
+            color: '#1a0010', transparent: true, opacity: 0.95,
+            depthWrite: false,
+        });
+        const rikaCore = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), rikaCoreMat);
+        rikaCore.position.copy(rikaOrb.position);
+        scene.add(rikaCore);
+
+        // ── BEAM ── long pink cylinder oriented along player forward
+        const beamLen = 30;
+        const buildBeamCyl = (radTop, radBot, color, opacity, addBlend) => {
+            const geo = new THREE.CylinderGeometry(radTop, radBot, beamLen, 14);
+            geo.translate(0, beamLen / 2, 0); // origin at the back end
+            const mat = new THREE.MeshBasicMaterial({
+                color, transparent: true, opacity,
+                blending: addBlend ? THREE.AdditiveBlending : THREE.NormalBlending,
+                depthWrite: false,
+            });
+            const m = new THREE.Mesh(geo, mat);
+            // Orient cylinder along the player's facing direction
+            m.position.set(
+                worldPx + fwdX * 0.6,
+                EYE_HEIGHT + fly + 0.4,
+                worldPz + fwdZ * 0.6,
+            );
+            // Cylinder default axis is +Y; rotate so it points along forward (-sin, -cos)
+            m.lookAt(
+                m.position.x + fwdX,
+                m.position.y,
+                m.position.z + fwdZ,
+            );
+            // After lookAt, the cylinder's +Z aligns with forward — but cylinder body
+            // is along Y. Need an extra rotation to bring +Y → +Z direction (which lookAt did)
+            // Actually with the geometry translated and oriented along Y by default,
+            // lookAt orients the mesh's +Z toward the target. Apply additional rotation:
+            m.rotateX(Math.PI / 2); // -Y becomes -Z after this; the cylinder body now extends along +Z
+            return { mesh: m, mat };
+        };
+        // Outer glow (wider, fainter)
+        const beamOuter = buildBeamCyl(0.36, 0.28, '#ff5aaa', 0.55, true);
+        scene.add(beamOuter.mesh);
+        // Main beam (medium)
+        const beamMain = buildBeamCyl(0.20, 0.16, '#ff2288', 0.92, true);
+        scene.add(beamMain.mesh);
+        // Inner white-hot core (thin, brightest)
+        const beamCore = buildBeamCyl(0.07, 0.05, '#ffffff', 1.0, true);
+        scene.add(beamCore.mesh);
+        // Black streaks running along the beam — cursed-energy "marks"
+        const streaks = [];
+        for (let s = 0; s < 6; s++) {
+            const ang = (s / 6) * Math.PI * 2 + Math.random() * 0.3;
+            const offR = 0.10 + Math.random() * 0.06;
+            const streakObj = buildBeamCyl(0.022, 0.018, '#1a0010', 0.78, false);
+            streakObj.mesh.position.x += Math.cos(ang) * offR;
+            streakObj.mesh.position.z += Math.sin(ang) * offR;
+            scene.add(streakObj.mesh);
+            streaks.push(streakObj);
+        }
+
+        // Big cinematic VFX
+        screenShake(0.85, 480);
+        triggerHitstop(160);
+        fovPunch(22, 0.16);
+        screenFlash('#ffaadc', 110);
+        lightFlash(worldPx + fwdX * 6, EYE_HEIGHT + fly, worldPz + fwdZ * 6, '#ff5aaa', 18, 500);
+        // Ground impact ring at the muzzle
+        groundRing(worldPx + fwdX * 1.5, worldPz + fwdZ * 1.5, '#ff5aaa', 3.0, 600);
+        // Faint pink trail along the floor under the beam
+        for (let i = 0; i < 3; i++) {
+            const dx = worldPx + fwdX * (3 + i * 5);
+            const dz = worldPz + fwdZ * (3 + i * 5);
+            groundRing(dx, dz, '#ff2288', 2.0, 600);
+        }
+
+        // Hit detection — narrow forward LINE (5° each side of forward, range ~beamLen/TILE)
+        const beamRangeTiles = beamLen / TILE;
+        for (const e of enemies3D) {
+            if (!e.data.alive) continue;
+            const dx = e.data.x - px, dz = e.data.z - pz;
+            const d = Math.hypot(dx, dz);
+            if (d > beamRangeTiles || d < 0.1) continue;
+            const a = Math.atan2(-dx, -dz);
+            let ad = a - yaw;
+            while (ad > Math.PI) ad -= Math.PI * 2;
+            while (ad < -Math.PI) ad += Math.PI * 2;
+            // Tight beam — only enemies almost dead-ahead
+            if (Math.abs(ad) < Math.PI * 0.10) {
+                dealDamageToEnemy(e, Math.round(player.damage * 6));
+                // Knockback away along the beam direction
+                const nx = e.data.x + (dx / d) * 1.5;
+                const nz = e.data.z + (dz / d) * 1.5;
+                if (isWalkable(dungeon.map, nx, nz)) {
+                    e.data.x = nx; e.data.z = nz;
+                    e.mesh.position.set(nx * TILE, 0, nz * TILE);
+                }
+            }
+        }
+
+        // Fade out the entire beam assembly + Rika orb over 700ms
+        const fadeStart = performance.now();
+        const fade = () => {
+            const t = (performance.now() - fadeStart) / 700;
+            if (t >= 1) {
+                for (const o of [beamOuter, beamMain, beamCore, ...streaks]) {
+                    scene.remove(o.mesh);
+                    o.mesh.geometry.dispose();
+                    o.mat.dispose();
+                }
+                scene.remove(rikaOrb);
+                rikaOrb.geometry.dispose();
+                rikaOrbMat.dispose();
+                scene.remove(rikaCore);
+                rikaCore.geometry.dispose();
+                rikaCoreMat.dispose();
+                return;
+            }
+            beamOuter.mat.opacity = (1 - t) * 0.55;
+            beamMain.mat.opacity  = (1 - t) * 0.92;
+            beamCore.mat.opacity  = (1 - t) * 1.0;
+            for (const s of streaks) s.mat.opacity = (1 - t) * 0.78;
+            rikaOrbMat.opacity = (1 - t) * 0.85;
+            rikaCoreMat.opacity = (1 - t) * 0.95;
+            requestAnimationFrame(fade);
+        };
+        requestAnimationFrame(fade);
+    }, 350);
 }
 
 function megumiSerpent() {
