@@ -3743,6 +3743,151 @@ function todoGrabAnimation() {
     }
 }
 
+// ─── FACE SLAM (X) ─────────────────────────────────────────────────
+// Grab the nearest enemy in a forward cone, lift them by the head, slam
+// them into the floor. Heavy damage + ground crack + dust + blood.
+function todoFaceSlam() {
+    if (!player || !player.alive || player.classId !== 'todo') return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const range = 2.6;
+    let target = null, bestDist = Infinity;
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const dx = e.data.x - px, dz = e.data.z - pz;
+        const d = Math.hypot(dx, dz);
+        if (d > range) continue;
+        const a = Math.atan2(-dx, -dz);
+        let ad = a - yaw;
+        while (ad > Math.PI) ad -= Math.PI * 2;
+        while (ad < -Math.PI) ad += Math.PI * 2;
+        if (Math.abs(ad) > Math.PI * 0.45) continue; // ~80° forward cone
+        if (d < bestDist) { bestDist = d; target = e; }
+    }
+    if (!target) return; // whiffed — no target in front, no-op
+
+    // Lock the enemy directly in front of TODO at hand range
+    const grabX = px + fwdX * 1.0;
+    const grabZ = pz + fwdZ * 1.0;
+    target.data.x = grabX;
+    target.data.z = grabZ;
+    target.data._slamPinned = true;
+    target.mesh.position.set(grabX * TILE, 0, grabZ * TILE);
+
+    // Drop any active hook punch on the right arm so the slam animation owns it
+    const pm = fpsCamera.playerModel;
+    if (pm && pm._rightArm) {
+        for (let i = activePunches.length - 1; i >= 0; i--) {
+            if (activePunches[i].arm === pm._rightArm) activePunches.splice(i, 1);
+        }
+        pm._rightArm._punchUntil = performance.now() + 1000;
+    }
+
+    player._slamAnim = {
+        startTime: performance.now(),
+        target,
+        grabX, grabZ,
+        impacted: false,
+    };
+
+    // Cinematic side angle so the slam reads clearly
+    const midTileX = (px + grabX) / 2;
+    const midTileZ = (pz + grabZ) / 2;
+    const perpX = -fwdZ, perpZ = fwdX;
+    const camWorldX = (midTileX + perpX * 0.9) * TILE;
+    const camWorldY = EYE_HEIGHT + 0.3;
+    const camWorldZ = (midTileZ + perpZ * 0.9) * TILE;
+    fpsCamera.setCinematic(camWorldX, camWorldY, camWorldZ,
+        midTileX * TILE, EYE_HEIGHT - 0.3, midTileZ * TILE, 950);
+}
+
+// State-driven slam — animates TODO's right arm AND the enemy's mesh Y.
+// Runs after the enemy AI loop so the position writes win.
+function updateTodoSlamAnim() {
+    const sa = player && player._slamAnim;
+    if (!sa) return;
+    const pm = fpsCamera.playerModel;
+    if (!pm || !pm._rightArm) { player._slamAnim = null; return; }
+    const ra = pm._rightArm;
+    const target = sa.target;
+    const elapsed = performance.now() - sa.startTime;
+    const reachDur = 180;
+    const liftDur = 160;
+    const slamDur = 160;
+    const holdDur = 380;
+    const total = reachDur + liftDur + slamDur + holdDur;
+
+    if (elapsed >= total) {
+        ra.rotation.set(0.05, 0, 0);
+        if (target && target.data) target.data._slamPinned = false;
+        player._slamAnim = null;
+        return;
+    }
+
+    // Pin the enemy in front of TODO every frame (skip if already dead)
+    if (target && target.data) {
+        target.data.x = sa.grabX;
+        target.data.z = sa.grabZ;
+        target.data._slamPinned = true;
+    }
+
+    let armX, enemyY;
+    if (elapsed < reachDur) {
+        // Phase 1 — reach forward and grip the head
+        const t = elapsed / reachDur;
+        const ease = 1 - Math.pow(1 - t, 3);
+        armX = -1.7 * ease;
+        enemyY = 0.0;
+    } else if (elapsed < reachDur + liftDur) {
+        // Phase 2 — lift the enemy off the ground
+        const t = (elapsed - reachDur) / liftDur;
+        const ease = 1 - Math.pow(1 - t, 2);
+        armX = -1.7 - 0.3 * ease; // arm raises overhead a bit
+        enemyY = 1.4 * ease;
+    } else if (elapsed < reachDur + liftDur + slamDur) {
+        // Phase 3 — SLAM down hard (fast ease-in)
+        const t = (elapsed - reachDur - liftDur) / slamDur;
+        const ease = t * t; // ease-in, accelerates into the floor
+        armX = -2.0 + (-1.5 * ease); // -2.0 → -3.5 (past vertical, smashing)
+        enemyY = 1.4 * (1 - ease);
+        // Trigger impact at the moment of ground contact
+        if (!sa.impacted && t > 0.92) {
+            sa.impacted = true;
+            const ex = sa.grabX * TILE, ez = sa.grabZ * TILE;
+            // Massive ground impact VFX
+            screenShake(0.85, 350);
+            triggerHitstop(180);
+            fovPunch(15, 0.16);
+            screenFlash('#aa0010', 80);
+            groundRing(ex, ez, '#aa0010', 3.5, 600);
+            groundRing(ex, ez, '#0a0010', 2.4, 500);
+            groundDecal(ex, ez, '#3a0008', 1.6, 4000);
+            // Dust + blood burst
+            emitParticles(ex, 0.3, ez, {
+                color: ['#aa0010', '#5a0010', '#8a8070', '#c0b8a8', '#ffffff'],
+                count: 50, speed: 8, spread: 2.0,
+                gravity: -3, life: 22, size: 0.18, sizeEnd: 0, drag: 0.92, upward: 1.5
+            });
+            lightFlash(ex, 0.5, ez, '#ff0033', 14, 320);
+            // Heavy damage scaled off base damage so aura/buffs apply
+            if (target && target.data && target.data.alive) {
+                const dmg = Math.round(player.damage * 18 * (player._cursedAuraActive ? 1.5 : 1));
+                dealDamageToEnemy(target, dmg);
+            }
+        }
+    } else {
+        // Phase 4 — hold the slam pose at the floor briefly
+        armX = -3.5;
+        enemyY = 0;
+    }
+
+    ra.rotation.set(armX, 0, -0.18);
+    if (target && target.mesh && target.data && target.data.alive) {
+        target.mesh.position.set(sa.grabX * TILE, enemyY, sa.grabZ * TILE);
+    }
+}
+
 function updateTodoGrabAnim() {
     const ga = player && player._grabAnim;
     if (!ga) return;
@@ -4432,8 +4577,8 @@ function p2Dodge() {
 // ─── ABILITY DISPATCHER (Z/X/C/V/F) — clean slate ──────────────
 function fruitAbility(slot) {
     if (!player || !player.alive) return;
-    // TODO only has Z (Black Flash) — other slots no-op
-    if (player.classId === 'todo' && slot !== 'z') return;
+    // TODO has Z (Black Flash) and X (Face Slam) — other slots no-op
+    if (player.classId === 'todo' && slot !== 'z' && slot !== 'x') return;
     const now = performance.now();
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const yaw = fpsCamera.yaw;
@@ -4452,6 +4597,14 @@ function fruitAbility(slot) {
     const pullEnemies = (cx, cz, range, strength) => { for (const e of enemies3D) { if (!e.data.alive) continue; const dx=cx-e.data.x,dz=cz-e.data.z; const d=Math.hypot(dx,dz); if(d<range&&d>0.5){e.data.x+=(dx/d)*strength;e.data.z+=(dz/d)*strength;e.mesh.position.set(e.data.x*TILE,0,e.data.z*TILE);}}};
 
     const id = player.classId;
+
+    // ══════ TODO — Face Slam (X) ══════
+    // Grab the nearest enemy in front by the head, lift them off the ground,
+    // and slam them into the floor for heavy damage + ground crack.
+    if (id === 'todo' && slot === 'x') {
+        todoFaceSlam();
+        return;
+    }
 
     // ══════ TODO — Black Flash ══════
     // Z primes the next M1 to land as a Black Flash for ~3 seconds. The
@@ -13011,6 +13164,8 @@ function update() {
     updatePunchArms();
     // Grab finisher pose — applied AFTER punch swings so it owns the arms
     updateTodoGrabAnim();
+    // Face Slam — pin enemy + animate slam (also after punch swings)
+    updateTodoSlamAnim();
 
     // Dash speed restore
     if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }
@@ -13064,6 +13219,8 @@ function update() {
     // Update enemies
     for (const e of enemies3D) {
         if (!e.data.alive) continue;
+        // Pinned by TODO's Face Slam — skip AI/movement/attacks until released
+        if (e.data._slamPinned) continue;
 
         const distToPlayer = Math.hypot(px - e.data.x, pz - e.data.z);
         const eRoom = getRoomAt(dungeon.rooms, e.data.x, e.data.z);
