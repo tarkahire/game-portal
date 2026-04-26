@@ -3763,12 +3763,13 @@ function todoGrabAnimation() {
 // with crown of bone shards, no legs (trailing black robe-like lower body).
 function buildRikaMesh() {
     const group = new THREE.Group();
-    const skinMat = new THREE.MeshStandardMaterial({ color: '#e8e0d8', roughness: 0.5 });
-    const skinShade = new THREE.MeshStandardMaterial({ color: '#aa9d8e', roughness: 0.55 });
+    // Pink-tinted palette — matches Yuta's pink cursed energy aesthetic
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#f4d4d4', roughness: 0.5 });
+    const skinShade = new THREE.MeshStandardMaterial({ color: '#bf8a9a', roughness: 0.55 });
     const blackMat = new THREE.MeshStandardMaterial({ color: '#0a0a0e', roughness: 0.75 });
-    const boneMat = new THREE.MeshStandardMaterial({ color: '#f8f0d8', roughness: 0.4 });
-    const blackHole = new THREE.MeshBasicMaterial({ color: '#040006' });
-    const fangMat = new THREE.MeshStandardMaterial({ color: '#fffae8', roughness: 0.3 });
+    const boneMat = new THREE.MeshStandardMaterial({ color: '#f8e0e0', roughness: 0.4 });
+    const blackHole = new THREE.MeshBasicMaterial({ color: '#180010' });
+    const fangMat = new THREE.MeshStandardMaterial({ color: '#fff0f0', roughness: 0.3 });
 
     // ── Lower body — wide cone tapering down (the floating "robe" / trail) ──
     const lowerBody = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.6, 10), blackMat);
@@ -3937,8 +3938,8 @@ function buildRikaMesh() {
         }
     }
 
-    // ── Subtle aura ──
-    const aura = new THREE.PointLight('#aabaff', 1.4, TILE * 5, 1.4);
+    // ── Pink cursed-energy aura ──
+    const aura = new THREE.PointLight('#ff8aaa', 1.6, TILE * 5, 1.4);
     aura.position.y = 2.0;
     group.add(aura);
     group.userData._aura = aura;
@@ -12654,7 +12655,7 @@ function updateMinions(dt, now) {
                     1.6,
                     nearestEnemy.data.z * TILE,
                     {
-                        color: ['#aabaff', '#5a8aff', '#ffffff', '#0a0a0e'],
+                        color: ['#ff5aaa', '#ffaadc', '#ff2288', '#ffffff', '#0a0a0e'],
                         count: 14, speed: 5, spread: 1.0,
                         gravity: -3, life: 14, size: 0.10, sizeEnd: 0, drag: 0.92,
                     },
@@ -13509,16 +13510,36 @@ function yutaSummonRika() {
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const worldPx = px * TILE, worldPz = pz * TILE;
 
-    // Spawn VFX — pink cursed energy burst
-    screenShake(0.25, 200);
-    fovPunch(7, 0.15);
-    emitParticles(worldPx + fwdX * 1.8 * TILE, 0.4, worldPz + fwdZ * 1.8 * TILE, {
-        color: ['#ff5aaa', '#ffaadc', '#ff2288', '#0a0a0e', '#ffffff'],
-        count: 32, speed: 4, spread: 1.6,
-        gravity: 0, life: 18, size: 0.16, sizeEnd: 0, drag: 0.92, upward: 2,
+    // Spawn VFX — pink cursed-energy petal storm. A single bottom burst
+    // launching upward, plus 6 staggered bursts of slow falling pink petals
+    // raining down around the spawn for ~1s.
+    screenShake(0.30, 220);
+    fovPunch(8, 0.15);
+    const sx = worldPx + fwdX * 1.8 * TILE;
+    const sz = worldPz + fwdZ * 1.8 * TILE;
+    const pinks = ['#ff5aaa', '#ffaadc', '#ff2288', '#ff8acc', '#ffc8e0', '#ffffff'];
+    // Launching upward burst at the spawn point
+    emitParticles(sx, 0.3, sz, {
+        color: pinks,
+        count: 40, speed: 5, spread: 1.8,
+        gravity: 0, life: 22, size: 0.18, sizeEnd: 0, drag: 0.92, upward: 3,
     });
-    groundRing(worldPx + fwdX * 1.8 * TILE, worldPz + fwdZ * 1.8 * TILE, '#ff5aaa', 3, 700);
-    lightFlash(worldPx, EYE_HEIGHT, worldPz, '#ff2288', 5, 300);
+    // Staggered falling-petal showers raining down around Rika
+    for (let i = 0; i < 6; i++) {
+        setTimeout(() => {
+            const offX = (Math.random() - 0.5) * 5;
+            const offZ = (Math.random() - 0.5) * 5;
+            emitParticles(sx + offX, 4.5, sz + offZ, {
+                color: pinks,
+                count: 18, speed: 1.2, spread: 1.4,
+                gravity: -2.2, life: 36, size: 0.14, sizeEnd: 0, drag: 0.97,
+            });
+        }, i * 110);
+    }
+    groundRing(sx, sz, '#ff5aaa', 3.2, 700);
+    groundRing(sx, sz, '#ff2288', 2.0, 500);
+    lightFlash(sx, 1.5, sz, '#ff2288', 8, 380);
+    screenFlash('#ffaadc', 90);
 
     spawnMinion('rika', px + fwdX * 1.8, pz + fwdZ * 1.8, {
         color: '#aabaff', radius: 0.8, speed: 4.0,
