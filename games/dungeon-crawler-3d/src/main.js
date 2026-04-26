@@ -3714,16 +3714,22 @@ function playerAttack() {
         requestAnimationFrame(fadeImpact);
 
     } else if (player.classId === 'todo') {
-        // ── TODO — heavyweight bare-knuckle. Bigger wind-up, harder snap,
-        //          longer follow-through, dramatic impact VFX every hit.
+        // ── TODO — heavyweight HOOK punches. Arm winds wide to the side,
+        //          then sweeps horizontally across the body. Bigger windup,
+        //          harder snap, longer follow-through, dramatic VFX.
         const punchSide = (player._comboStep % 2 === 0) ? 1 : -1;
         triggerPunchArm(fpsCamera.playerModel, punchSide, {
             windup: 170, swing: 140, recover: 290,
-            windupRx: 1.25,
-            windupRz: punchSide > 0 ? 0.75 : -0.75,
-            windupRy: punchSide > 0 ? -0.55 : 0.55,
-            swingRx: -2.75,
-            swingRz: punchSide > 0 ? -0.9 : 0.9,
+            // Windup: arm raised horizontal forward, cocked WAY back to the
+            // outer side (right arm cocks right, left arm cocks left)
+            windupRx: -1.5,
+            windupRy: punchSide > 0 ? -1.25 : 1.25,
+            windupRz: punchSide > 0 ? 0.25 : -0.25,
+            // Swing: arm stays horizontal but sweeps ACROSS the body to the
+            // opposite side — that's the hook arc
+            swingRx: -1.55,
+            swingRy: punchSide > 0 ? 0.85 : -0.85,
+            swingRz: punchSide > 0 ? -0.35 : 0.35,
         });
         spawnPunchImpact(hitX, hitY, hitZ, '#ffd07a');
         // Heavyweight extras on every M1 — feels weighty, not just on the finisher
