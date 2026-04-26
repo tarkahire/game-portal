@@ -31,6 +31,7 @@ let coopMode = false;
 let p2ClassSelect = false;
 let auraColors = []; // chosen cursed-energy aura color per player (parallel to selectedClasses)
 let p2AuraSelect = false;
+let trainingMode = false; // when true, enemies don't move or attack — pure practice run
 let fpsSword = null; // 1st-person viewmodel weapon (child of camera)
 let fpsSword2 = null; // P2 viewmodel weapon
 let swordSwing = null; // active weapon swing animation state
@@ -137,9 +138,10 @@ function init() {
     buildClassGrid('lobby-class-grid', true);
 
     // UI bindings
-    document.getElementById('btn-solo').onclick = () => startRun(false);
-    document.getElementById('btn-coop').onclick = () => startRun(true);
-    document.getElementById('btn-online').onclick = () => showScreen('online-screen');
+    document.getElementById('btn-solo').onclick = () => { trainingMode = false; startRun(false); };
+    document.getElementById('btn-coop').onclick = () => { trainingMode = false; startRun(true); };
+    document.getElementById('btn-online').onclick = () => { trainingMode = false; showScreen('online-screen'); };
+    document.getElementById('btn-training').onclick = () => { trainingMode = true; startRun(false); };
     document.getElementById('btn-back-online').onclick = () => { cleanupNetwork(); showScreen('title-screen'); };
 
     // Online co-op buttons
@@ -13678,8 +13680,8 @@ function update() {
 
 
 
-        // Freeze enemies during cutscenes
-        if (player._cutsceneActive) continue;
+        // Freeze enemies during cutscenes or training mode (training: no AI/attacks)
+        if (player._cutsceneActive || trainingMode) continue;
 
         // Pick target — closer of player, divine dog, or mahoraga (summons can pull aggro)
         let targetX = px, targetZ = pz, targetDog = null;
@@ -13879,7 +13881,9 @@ function updateHUD() {
         slot.style.borderColor = ready ? '#ff0080' : '#333';
     });
 
-    document.getElementById('hud-floor').textContent = `Floor ${currentFloor}`;
+    document.getElementById('hud-floor').textContent = trainingMode
+        ? `TRAINING — Floor ${currentFloor}`
+        : `Floor ${currentFloor}`;
     document.getElementById('hud-lives').textContent = `Lives: ${lives}`;
     document.getElementById('hud-lives').style.color = lives > 2 ? '#00ffcc' : lives > 1 ? '#ffeb3b' : '#ff0055';
     document.getElementById('hud-gold').textContent = `Gold: ${runStats.goldCollected}`;
