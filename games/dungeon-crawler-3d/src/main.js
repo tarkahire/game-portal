@@ -3958,43 +3958,75 @@ function buildRikaMesh() {
     head.scale.set(1, 1.18, 1.10);
     group.add(head);
 
-    // ── Crown of bone spikes around the head ──
-    const spikes = [
-        // Top crown
-        { x:  0.00, y: 3.50, z:  0.00, rx:  0.00, rz:  0.00, h: 0.50 },
-        { x:  0.16, y: 3.45, z:  0.00, rx:  0.00, rz:  0.45, h: 0.42 },
-        { x: -0.16, y: 3.45, z:  0.00, rx:  0.00, rz: -0.45, h: 0.42 },
-        { x:  0.27, y: 3.32, z: -0.05, rx:  0.00, rz:  0.80, h: 0.36 },
-        { x: -0.27, y: 3.32, z: -0.05, rx:  0.00, rz: -0.80, h: 0.36 },
-        // Back of head
-        { x:  0.00, y: 3.32, z: -0.28, rx:  0.85, rz:  0.00, h: 0.42 },
-        { x:  0.16, y: 3.26, z: -0.22, rx:  0.70, rz:  0.30, h: 0.36 },
-        { x: -0.16, y: 3.26, z: -0.22, rx:  0.70, rz: -0.30, h: 0.36 },
-        // Side temples
-        { x:  0.32, y: 3.05, z:  0.05, rx: -0.30, rz:  1.10, h: 0.30 },
-        { x: -0.32, y: 3.05, z:  0.05, rx: -0.30, rz: -1.10, h: 0.30 },
-        // Forward-pointing horns over the brow
-        { x:  0.10, y: 3.20, z:  0.30, rx: -0.85, rz:  0.20, h: 0.28 },
-        { x: -0.10, y: 3.20, z:  0.30, rx: -0.85, rz: -0.20, h: 0.28 },
-    ];
-    for (const sp of spikes) {
-        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, sp.h, 5), boneMat);
-        spike.position.set(sp.x, sp.y, sp.z);
-        spike.rotation.set(sp.rx, 0, sp.rz);
-        group.add(spike);
+    // ── White dreadlock "hair" tubes draping from the top + back of the head ──
+    // Pure white capsule rods rather than sharp cones — matches the reference
+    // image's mane of flowing tubular hair-things.
+    const dreadMat = new THREE.MeshStandardMaterial({ color: '#f4ece4', roughness: 0.55 });
+    const dreadAccentMat = new THREE.MeshStandardMaterial({ color: '#9080a0', roughness: 0.6 });
+
+    function buildDread(px, py, pz, len, rx, rz, accent) {
+        const radius = 0.052;
+        const dread = new THREE.Mesh(new THREE.CapsuleGeometry(radius, len, 6, 12), dreadMat);
+        dread.position.set(px, py, pz);
+        dread.rotation.set(rx, 0, rz);
+        group.add(dread);
+        // A thin darker accent stripe running along the dread for the
+        // banded pattern visible on the reference
+        if (accent) {
+            const stripe = new THREE.Mesh(
+                new THREE.CapsuleGeometry(radius * 0.45, len * 0.92, 4, 8),
+                dreadAccentMat,
+            );
+            stripe.position.copy(dread.position);
+            // Offset the stripe slightly to one side of the dread axis
+            stripe.position.x += Math.cos(rz) * radius * 0.3;
+            stripe.position.z += Math.sin(rz) * radius * 0.3;
+            stripe.rotation.copy(dread.rotation);
+            group.add(stripe);
+        }
     }
 
-    // ── Face — black eye sockets, wide grinning fanged mouth ──
-    for (let s = -1; s <= 1; s += 2) {
-        const socket = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 8), blackHole);
-        socket.position.set(s * 0.13, 3.13, 0.30);
-        socket.scale.set(1.2, 0.7, 0.45);
-        group.add(socket);
+    // Inner top crown — short, arching backward over the head
+    const topCount = 7;
+    for (let i = 0; i < topCount; i++) {
+        const ang = -Math.PI / 2 + (i / (topCount - 1)) * Math.PI; // arc -π/2 → π/2
+        const tx = Math.sin(ang) * 0.28;
+        const ty = 3.42 + Math.cos(ang) * 0.06;
+        const tz = -Math.cos(ang) * 0.10 - 0.05; // pulls back slightly
+        buildDread(tx, ty, tz, 0.50, -0.35, -ang * 0.55, i % 2 === 0);
     }
-    // Nose hole
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.06, 4), blackHole);
-    nose.position.set(0, 2.97, 0.36);
-    group.add(nose);
+    // Side / back outer mane — longer hanging dreads
+    const outerCount = 10;
+    for (let i = 0; i < outerCount; i++) {
+        const ang = -Math.PI / 2 + (i / (outerCount - 1)) * Math.PI; // -π/2 → π/2
+        const tx = Math.sin(ang) * 0.42;
+        const ty = 3.05 + (Math.random() - 0.5) * 0.06;
+        const tz = -Math.abs(Math.cos(ang)) * 0.30;
+        const len = 0.85 + Math.random() * 0.40;
+        const tilt = -ang * 0.18;
+        buildDread(tx, ty, tz, len, -0.05 + (Math.random() - 0.5) * 0.10, tilt, i % 2 === 0);
+    }
+    // A few extra long ones at the very back, draping past her shoulders
+    for (let i = 0; i < 4; i++) {
+        const tx = (i - 1.5) * 0.10;
+        const len = 1.10 + Math.random() * 0.30;
+        buildDread(tx, 2.95, -0.32, len, 0.10, (Math.random() - 0.5) * 0.15, i % 2 === 0);
+    }
+
+    // ── Face — NO eyes (mask-like). Subtle vertical grooves running down
+    //    the front of the face like a continuation of the teeth pattern.
+    const grooveMat = new THREE.MeshStandardMaterial({ color: '#7a4858', roughness: 0.7 });
+    const grooveCount = 6;
+    for (let g = 0; g < grooveCount; g++) {
+        const grooveLen = 0.42;
+        const x = -0.18 + (g + 0.5) * (0.36 / grooveCount);
+        const groove = new THREE.Mesh(
+            new THREE.CapsuleGeometry(0.012, grooveLen, 4, 8),
+            grooveMat,
+        );
+        groove.position.set(x, 3.10, 0.36);
+        group.add(groove);
+    }
     // Wide grinning mouth — dark cavity
     const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 8), blackHole);
     mouth.scale.set(1.4, 0.42, 0.50);
