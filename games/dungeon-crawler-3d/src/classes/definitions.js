@@ -68,7 +68,7 @@ export const CLASSES = {
     },
     todo: {
         name: 'TODO', type: 'fighter', maxHp: 220, speed: 3.0, attackRange: 35,
-        attackDamage: 28, attackSpeed: 260, attackType: 'melee', color: '#d4a070',
+        attackDamage: 50, attackSpeed: 320, attackType: 'melee', color: '#d4a070',
         specialCooldown: 0, specialName: 'None', weaponType: 'fist',
         abilities: {},
         abilityCooldowns: {}

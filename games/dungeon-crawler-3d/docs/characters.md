@@ -15,7 +15,7 @@
 | Tao Ren | shaman | 140 | 3.8 | 18 | 210 | 40 | fist (Bason on Q) |
 | Horohoro | shaman | 135 | 3.5 | 15 | 230 | 38 | fist (Ice fists on Q) |
 | Megumi Fushiguro | sorcerer | 130 | 3.5 | 16 | 240 | 35 | fist |
-| TODO | fighter | **220** | 3.0 | **28** | 260 | 35 | fist (no abilities) |
+| TODO | fighter | **220** | 3.0 | **50** | 320 | 35 | fist (no abilities) |
 
 ## Abilities
 

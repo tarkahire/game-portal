@@ -2987,14 +2987,15 @@ function spawnPunchImpact(wx, wy, wz, color) {
 // each frame so the swing isn't overwritten by per-character idle/run anims.
 // arm._punchUntil is a timestamp the per-char anims check to skip writing.
 const activePunches = [];
-function triggerPunchArm(pm, side) {
+function triggerPunchArm(pm, side, opts) {
     if (!pm) return;
     const arm = side > 0
         ? (pm._rightArm || (pm.userData && pm.userData._rightArm))
         : (pm._leftArm || (pm.userData && pm.userData._leftArm));
     if (!arm) return;
+    const o = opts || {};
     const start = performance.now();
-    const windup = 110, swing = 170, recover = 230;
+    const windup = o.windup ?? 110, swing = o.swing ?? 170, recover = o.recover ?? 230;
     arm._punchUntil = start + windup + swing + recover;
     // Cancel any prior punch on this arm
     for (let i = activePunches.length - 1; i >= 0; i--) {
@@ -3002,14 +3003,14 @@ function triggerPunchArm(pm, side) {
     }
     activePunches.push({
         arm, side, start, windup, swing, recover,
-        // Big windup back/up + slight inward twist
-        windupRx: 0.95,
-        windupRz: side > 0 ? 0.55 : -0.55,
-        windupRy: side > 0 ? -0.4 : 0.4,
+        // Big windup back/up + slight inward twist (overridable for heavier characters)
+        windupRx: o.windupRx ?? 0.95,
+        windupRz: o.windupRz ?? (side > 0 ? 0.55 : -0.55),
+        windupRy: o.windupRy ?? (side > 0 ? -0.4 : 0.4),
         // Massive forward extension at peak — almost straight out
-        swingRx: -2.55,
-        swingRz: side > 0 ? -0.7 : 0.7,
-        swingRy: side > 0 ? 0.3 : -0.3,
+        swingRx: o.swingRx ?? -2.55,
+        swingRz: o.swingRz ?? (side > 0 ? -0.7 : 0.7),
+        swingRy: o.swingRy ?? (side > 0 ? 0.3 : -0.3),
     });
 }
 
@@ -3712,6 +3713,30 @@ function playerAttack() {
         };
         requestAnimationFrame(fadeImpact);
 
+    } else if (player.classId === 'todo') {
+        // ── TODO — heavyweight bare-knuckle. Bigger wind-up, harder snap,
+        //          longer follow-through, dramatic impact VFX every hit.
+        const punchSide = (player._comboStep % 2 === 0) ? 1 : -1;
+        triggerPunchArm(fpsCamera.playerModel, punchSide, {
+            windup: 170, swing: 140, recover: 290,
+            windupRx: 1.25,
+            windupRz: punchSide > 0 ? 0.75 : -0.75,
+            windupRy: punchSide > 0 ? -0.55 : 0.55,
+            swingRx: -2.75,
+            swingRz: punchSide > 0 ? -0.9 : 0.9,
+        });
+        spawnPunchImpact(hitX, hitY, hitZ, '#ffd07a');
+        // Heavyweight extras on every M1 — feels weighty, not just on the finisher
+        screenShake(0.35, 110);
+        triggerHitstop(45);
+        fovPunch(11, 0.16);
+        // Extra sparks for impact spectacle
+        emitParticles(hitX, hitY, hitZ, {
+            color: ['#ffd07a', '#ffffff', '#d4a070', '#a87850'],
+            count: 18, speed: 7, spread: 1.6,
+            gravity: -3, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92
+        });
+        groundRing(hitX, hitZ, '#ffd07a', 1.6, 350);
     } else {
         // Fist characters (gojo, megumi, pre-oversoul yoh/ren/horohoro) — boxing-style punch
         // Alternate hands per combo step and thrust the player model's arm forward
@@ -8445,104 +8470,166 @@ function buildTodoModel() {
         torsoPivot.add(ear);
     }
 
-    // ── Right arm — huge bicep, thick forearm ──
+    // ── Right arm — bodybuilder proportions: massive deltoid, peaked bicep,
+    //    thick tricep, vascular forearm, oversized fist with knuckle ridge ──
     const rightArmPivot = new THREE.Group();
-    rightArmPivot.position.set(0.50, 0.95, 0);
-    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), skinMat)); // deltoid
-    // Bicep bulge
-    const rBicep = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), skinMat);
-    rBicep.position.set(0, -0.22, 0.04); rBicep.scale.set(1, 1.6, 1); rightArmPivot.add(rBicep);
-    // Tricep
-    const rTricep = new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 6), skinShade);
-    rTricep.position.set(0, -0.28, -0.06); rTricep.scale.set(1, 1.5, 0.9); rightArmPivot.add(rTricep);
-    // Upper arm cylinder filling
-    const rUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.085, 0.45, 6), skinMat);
-    rUpper.position.y = -0.30; rightArmPivot.add(rUpper);
-    // Elbow
-    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.085, 6, 6), skinMat).translateY(-0.55));
-    // Forearm — thick
-    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.075, 0.42, 6), skinMat);
-    rForearm.position.y = -0.78; rightArmPivot.add(rForearm);
-    // Forearm muscle bulge
-    const rFmuscle = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), skinShade);
-    rFmuscle.position.set(0, -0.66, 0.05); rFmuscle.scale.set(1, 1.3, 1); rightArmPivot.add(rFmuscle);
-    // Fist — clenched
-    const rFist = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.13, 0.14), skinMat);
-    rFist.position.set(0, -1.04, 0.02); rightArmPivot.add(rFist);
-    // Knuckle ridge
-    const rKnuckles = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.04), skinShade);
-    rKnuckles.position.set(0, -1.00, 0.10); rightArmPivot.add(rKnuckles);
+    rightArmPivot.position.set(0.55, 0.95, 0);
+    // Deltoid cap — big rounded shoulder ball
+    const rDelt = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
+    rDelt.scale.set(1.05, 0.95, 1.05); rightArmPivot.add(rDelt);
+    // Deltoid head separation lines (front + side)
+    const rDeltLine = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.18, 0.04), skinShade);
+    rDeltLine.position.set(0.04, -0.05, 0.10); rDeltLine.rotation.z = -0.2;
+    rightArmPivot.add(rDeltLine);
+    // Bicep bulge — peaked
+    const rBicep = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 10), skinMat);
+    rBicep.position.set(0, -0.24, 0.07); rBicep.scale.set(1.05, 1.85, 1.05);
+    rightArmPivot.add(rBicep);
+    // Bicep peak highlight
+    const rBicepPeak = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), skinShade);
+    rBicepPeak.position.set(0.02, -0.20, 0.14); rBicepPeak.scale.set(0.9, 1.1, 0.7);
+    rightArmPivot.add(rBicepPeak);
+    // Tricep — back of upper arm, thick
+    const rTricep = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), skinShade);
+    rTricep.position.set(0, -0.30, -0.08); rTricep.scale.set(1.0, 1.7, 0.95);
+    rightArmPivot.add(rTricep);
+    // Upper arm cylinder filling — much thicker
+    const rUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.115, 0.5, 8), skinMat);
+    rUpper.position.y = -0.32; rightArmPivot.add(rUpper);
+    // Elbow — bigger
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.115, 6, 6), skinMat).translateY(-0.60));
+    // Forearm — thick, muscular
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.10, 0.46, 8), skinMat);
+    rForearm.position.y = -0.85; rightArmPivot.add(rForearm);
+    // Brachioradialis bulge — outer forearm muscle
+    const rFmuscle = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), skinShade);
+    rFmuscle.position.set(0, -0.72, 0.07); rFmuscle.scale.set(1.0, 1.5, 1.05);
+    rightArmPivot.add(rFmuscle);
+    // Forearm vein highlights — couple thin lines for vascular look
+    for (let v = 0; v < 2; v++) {
+        const vein = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.006, 0.32, 4), skinShade);
+        vein.position.set(0.06 - v * 0.04, -0.78, 0.10);
+        vein.rotation.z = 0.05 - v * 0.04;
+        rightArmPivot.add(vein);
+    }
+    // Wrist
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 6), skinMat).translateY(-1.10));
+    // Fist — oversized, clenched
+    const rFist = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.20), skinMat);
+    rFist.position.set(0, -1.20, 0.03); rightArmPivot.add(rFist);
+    // Knuckle ridge — pronounced row across fingers
+    const rKnuckles = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.06), skinShade);
+    rKnuckles.position.set(0, -1.16, 0.14); rightArmPivot.add(rKnuckles);
+    // Thumb knuckle bump
+    const rThumb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat);
+    rThumb.position.set(-0.10, -1.15, 0.06); rightArmPivot.add(rThumb);
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
 
     // ── Left arm — mirrored ──
     const leftArmPivot = new THREE.Group();
-    leftArmPivot.position.set(-0.50, 0.95, 0);
-    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), skinMat));
-    const lBicep = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), skinMat);
-    lBicep.position.set(0, -0.22, 0.04); lBicep.scale.set(1, 1.6, 1); leftArmPivot.add(lBicep);
-    const lTricep = new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 6), skinShade);
-    lTricep.position.set(0, -0.28, -0.06); lTricep.scale.set(1, 1.5, 0.9); leftArmPivot.add(lTricep);
-    const lUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.085, 0.45, 6), skinMat);
-    lUpper.position.y = -0.30; leftArmPivot.add(lUpper);
-    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.085, 6, 6), skinMat).translateY(-0.55));
-    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.075, 0.42, 6), skinMat);
-    lForearm.position.y = -0.78; leftArmPivot.add(lForearm);
-    const lFmuscle = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), skinShade);
-    lFmuscle.position.set(0, -0.66, 0.05); lFmuscle.scale.set(1, 1.3, 1); leftArmPivot.add(lFmuscle);
-    const lFist = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.13, 0.14), skinMat);
-    lFist.position.set(0, -1.04, 0.02); leftArmPivot.add(lFist);
-    const lKnuckles = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.04), skinShade);
-    lKnuckles.position.set(0, -1.00, 0.10); leftArmPivot.add(lKnuckles);
+    leftArmPivot.position.set(-0.55, 0.95, 0);
+    const lDelt = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
+    lDelt.scale.set(1.05, 0.95, 1.05); leftArmPivot.add(lDelt);
+    const lDeltLine = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.18, 0.04), skinShade);
+    lDeltLine.position.set(-0.04, -0.05, 0.10); lDeltLine.rotation.z = 0.2;
+    leftArmPivot.add(lDeltLine);
+    const lBicep = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 10), skinMat);
+    lBicep.position.set(0, -0.24, 0.07); lBicep.scale.set(1.05, 1.85, 1.05);
+    leftArmPivot.add(lBicep);
+    const lBicepPeak = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), skinShade);
+    lBicepPeak.position.set(-0.02, -0.20, 0.14); lBicepPeak.scale.set(0.9, 1.1, 0.7);
+    leftArmPivot.add(lBicepPeak);
+    const lTricep = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), skinShade);
+    lTricep.position.set(0, -0.30, -0.08); lTricep.scale.set(1.0, 1.7, 0.95);
+    leftArmPivot.add(lTricep);
+    const lUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.115, 0.5, 8), skinMat);
+    lUpper.position.y = -0.32; leftArmPivot.add(lUpper);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.115, 6, 6), skinMat).translateY(-0.60));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.10, 0.46, 8), skinMat);
+    lForearm.position.y = -0.85; leftArmPivot.add(lForearm);
+    const lFmuscle = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), skinShade);
+    lFmuscle.position.set(0, -0.72, 0.07); lFmuscle.scale.set(1.0, 1.5, 1.05);
+    leftArmPivot.add(lFmuscle);
+    for (let v = 0; v < 2; v++) {
+        const vein = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.006, 0.32, 4), skinShade);
+        vein.position.set(-0.06 + v * 0.04, -0.78, 0.10);
+        vein.rotation.z = -0.05 + v * 0.04;
+        leftArmPivot.add(vein);
+    }
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 6), skinMat).translateY(-1.10));
+    const lFist = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.20), skinMat);
+    lFist.position.set(0, -1.20, 0.03); leftArmPivot.add(lFist);
+    const lKnuckles = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.06), skinShade);
+    lKnuckles.position.set(0, -1.16, 0.14); leftArmPivot.add(lKnuckles);
+    const lThumb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat);
+    lThumb.position.set(0.10, -1.15, 0.06); leftArmPivot.add(lThumb);
     torsoPivot.add(leftArmPivot);
     pm._leftArm = leftArmPivot;
 
     pm.add(torsoPivot);
     pm._torso = torsoPivot;
 
-    // ── Right leg — quads + calf ──
+    // ── Right leg — bodybuilder: massive quads, sweep, big calves ──
     const rightLegPivot = new THREE.Group();
-    rightLegPivot.position.set(0.13, 0.7, 0);
-    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), shortsMat));
-    // Shorts wrap upper thigh
-    const rShorts = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.115, 0.30, 6), shortsMat);
+    rightLegPivot.position.set(0.16, 0.7, 0);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.13, 6, 6), shortsMat));
+    // Shorts wrap upper thigh — wider
+    const rShorts = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 0.32, 8), shortsMat);
     rShorts.position.y = -0.20; rightLegPivot.add(rShorts);
-    // Lower thigh — bare skin
-    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.20, 6), skinMat);
-    rThigh.position.y = -0.45; rightLegPivot.add(rThigh);
-    // Quad bulge
-    const rQuad = new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 6), skinShade);
-    rQuad.position.set(0, -0.40, 0.06); rQuad.scale.set(1, 1.2, 1); rightLegPivot.add(rQuad);
+    // Lower thigh — bare skin, much thicker
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.22, 8), skinMat);
+    rThigh.position.y = -0.46; rightLegPivot.add(rThigh);
+    // Quad sweep — outer thigh muscle
+    const rQuadOuter = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), skinShade);
+    rQuadOuter.position.set(0.05, -0.40, 0.06); rQuadOuter.scale.set(1.0, 1.4, 1.0);
+    rightLegPivot.add(rQuadOuter);
+    // Quad inner head
+    const rQuadInner = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), skinShade);
+    rQuadInner.position.set(-0.04, -0.42, 0.07); rQuadInner.scale.set(0.9, 1.3, 1.0);
+    rightLegPivot.add(rQuadInner);
     // Knee
-    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat).translateY(-0.58));
-    // Calf — bulky
-    const rCalf = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.42, 6), skinMat);
-    rCalf.position.y = -0.82; rightLegPivot.add(rCalf);
-    const rCalfBulge = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinShade);
-    rCalfBulge.position.set(0, -0.74, -0.04); rCalfBulge.scale.set(1, 1.3, 0.9); rightLegPivot.add(rCalfBulge);
-    // Sneaker
-    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.07, 0.20), shoeMat);
-    rShoe.position.set(0, -1.06, 0.04); rightLegPivot.add(rShoe);
+    rightLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.105, 6, 6), skinMat).translateY(-0.62));
+    // Calf — bulkier
+    const rCalf = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.085, 0.46, 8), skinMat);
+    rCalf.position.y = -0.88; rightLegPivot.add(rCalf);
+    // Calf bulge — pronounced gastrocnemius
+    const rCalfBulge = new THREE.Mesh(new THREE.SphereGeometry(0.115, 8, 8), skinShade);
+    rCalfBulge.position.set(0, -0.78, -0.06); rCalfBulge.scale.set(1.05, 1.4, 0.95);
+    rightLegPivot.add(rCalfBulge);
+    // Achilles taper above the ankle
+    const rAchilles = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.085, 0.10, 6), skinMat);
+    rAchilles.position.y = -1.08; rightLegPivot.add(rAchilles);
+    // Sneaker — bigger, chunky
+    const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.10, 0.24), shoeMat);
+    rShoe.position.set(0, -1.16, 0.05); rightLegPivot.add(rShoe);
     pm.add(rightLegPivot);
     pm._rightLeg = rightLegPivot;
 
     // ── Left leg — mirrored ──
     const leftLegPivot = new THREE.Group();
-    leftLegPivot.position.set(-0.13, 0.7, 0);
-    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), shortsMat));
-    const lShorts = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.115, 0.30, 6), shortsMat);
+    leftLegPivot.position.set(-0.16, 0.7, 0);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.13, 6, 6), shortsMat));
+    const lShorts = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 0.32, 8), shortsMat);
     lShorts.position.y = -0.20; leftLegPivot.add(lShorts);
-    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.20, 6), skinMat);
-    lThigh.position.y = -0.45; leftLegPivot.add(lThigh);
-    const lQuad = new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 6), skinShade);
-    lQuad.position.set(0, -0.40, 0.06); lQuad.scale.set(1, 1.2, 1); leftLegPivot.add(lQuad);
-    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat).translateY(-0.58));
-    const lCalf = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.42, 6), skinMat);
-    lCalf.position.y = -0.82; leftLegPivot.add(lCalf);
-    const lCalfBulge = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinShade);
-    lCalfBulge.position.set(0, -0.74, -0.04); lCalfBulge.scale.set(1, 1.3, 0.9); leftLegPivot.add(lCalfBulge);
-    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.07, 0.20), shoeMat);
-    lShoe.position.set(0, -1.06, 0.04); leftLegPivot.add(lShoe);
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.22, 8), skinMat);
+    lThigh.position.y = -0.46; leftLegPivot.add(lThigh);
+    const lQuadOuter = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), skinShade);
+    lQuadOuter.position.set(-0.05, -0.40, 0.06); lQuadOuter.scale.set(1.0, 1.4, 1.0);
+    leftLegPivot.add(lQuadOuter);
+    const lQuadInner = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), skinShade);
+    lQuadInner.position.set(0.04, -0.42, 0.07); lQuadInner.scale.set(0.9, 1.3, 1.0);
+    leftLegPivot.add(lQuadInner);
+    leftLegPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.105, 6, 6), skinMat).translateY(-0.62));
+    const lCalf = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.085, 0.46, 8), skinMat);
+    lCalf.position.y = -0.88; leftLegPivot.add(lCalf);
+    const lCalfBulge = new THREE.Mesh(new THREE.SphereGeometry(0.115, 8, 8), skinShade);
+    lCalfBulge.position.set(0, -0.78, -0.06); lCalfBulge.scale.set(1.05, 1.4, 0.95);
+    leftLegPivot.add(lCalfBulge);
+    const lAchilles = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.085, 0.10, 6), skinMat);
+    lAchilles.position.y = -1.08; leftLegPivot.add(lAchilles);
+    const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.10, 0.24), shoeMat);
+    lShoe.position.set(0, -1.16, 0.05); leftLegPivot.add(lShoe);
     pm.add(leftLegPivot);
     pm._leftLeg = leftLegPivot;
 
