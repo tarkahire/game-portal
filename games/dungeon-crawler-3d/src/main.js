@@ -4027,43 +4027,66 @@ function buildRikaMesh() {
         groove.position.set(x, 3.10, 0.36);
         group.add(groove);
     }
-    // ── Smaller mouth — tighter oval so the teeth read as proportionally
-    //    bigger and dominate the silhouette.
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.28, 18, 12), blackHole);
-    mouth.scale.set(1.15, 0.85, 0.55);
-    mouth.position.set(0, 2.78, 0.30);
-    group.add(mouth);
-    // Inner deep-magenta throat for visual depth
-    const throat = new THREE.Mesh(new THREE.SphereGeometry(0.20, 14, 10),
-        new THREE.MeshBasicMaterial({ color: '#4a1232' }));
-    throat.scale.set(1.15, 0.78, 0.55);
-    throat.position.set(0, 2.78, 0.20);
-    group.add(throat);
+    // ── Mouth — built from FLAT discs (CircleGeometry) instead of opaque
+    //    spheres so the teeth in front aren't occluded.
+    //
+    //    Layer order (back → front):
+    //      0.300 — dark cavity backdrop (the void inside the mouth)
+    //      0.310 — magenta inner ring (wet pink throat colour)
+    //      0.340 — teeth (cones)
+    //      0.360 — pink/magenta lip torus framing the opening
+    //
+    //    Disc sizes are smaller than the lip's outer rim so they fit
+    //    INSIDE the lip ring's hole and don't bleed out onto the face.
+    const lipTorusMajor = 0.22;
+    const lipTorusTube  = 0.045;
+    const lipScaleX = 1.15, lipScaleY = 0.85;
+    // Inner edge of the lip ring (the visible mouth opening)
+    const innerHalfX = (lipTorusMajor - lipTorusTube) * lipScaleX; // = 0.175 * 1.15 = 0.201
+    const innerHalfY = (lipTorusMajor - lipTorusTube) * lipScaleY; // = 0.175 * 0.85 = 0.149
+    // Cavity disc — sized to just fill the lip opening
+    const cavityMat = new THREE.MeshBasicMaterial({ color: '#180010' });
+    const cavity = new THREE.Mesh(new THREE.CircleGeometry(lipTorusMajor - lipTorusTube + 0.01, 32), cavityMat);
+    cavity.scale.set(lipScaleX, lipScaleY, 1);
+    cavity.position.set(0, 2.78, 0.30);
+    group.add(cavity);
+    // Magenta inner ring just in front of the void
+    const innerMat = new THREE.MeshBasicMaterial({ color: '#5a1228' });
+    const innerThroat = new THREE.Mesh(new THREE.CircleGeometry((lipTorusMajor - lipTorusTube) * 0.7, 32), innerMat);
+    innerThroat.scale.set(lipScaleX, lipScaleY, 1);
+    innerThroat.position.set(0, 2.78, 0.31);
+    group.add(innerThroat);
 
-    // Pink/magenta lip ring around the mouth opening — flat torus oval
+    // Pink/magenta lip ring — flat torus oval framing the opening
     const lipMat = new THREE.MeshStandardMaterial({ color: '#a83864', roughness: 0.45 });
-    const lipGeo = new THREE.TorusGeometry(0.22, 0.045, 10, 28);
+    const lipGeo = new THREE.TorusGeometry(lipTorusMajor, lipTorusTube, 10, 28);
     const lip = new THREE.Mesh(lipGeo, lipMat);
-    lip.scale.set(1.15, 0.85, 0.40);
+    lip.scale.set(lipScaleX, lipScaleY, 0.40);
     lip.position.set(0, 2.78, 0.36);
     group.add(lip);
 
-    // ── PURE WHITE jagged teeth — fewer but CHUNKIER so they read clearly
-    //    against the smaller mouth. Bases pinned to the upper/lower lip Y
-    //    so they stay strictly contained inside the mouth opening.
+    // ── PURE WHITE jagged teeth — bases pinned to the lip's inner edge,
+    //    tips pointing inward so they stay strictly inside the mouth.
+    //    teethZ at 0.34 sits between the magenta backdrop and the lip ring,
+    //    so the teeth render against the dark backdrop with the lip framing
+    //    them. Above all of that, the head face occludes nothing because
+    //    everything mouth-related is forward of the head's z extent.
     const fangPure = new THREE.MeshStandardMaterial({ color: '#f8f4f0', roughness: 0.3 });
-    // Lip Y values from the new mouth scale (radius 0.28 * scaleY 0.85 / 2)
-    const upperLipY = 2.78 + 0.28 * 0.425;  // = 2.899 — top edge of mouth
-    const lowerLipY = 2.78 - 0.28 * 0.425;  // = 2.661 — bottom edge of mouth
-    const teethZ = 0.36;                    // pushed forward to be highly visible
-    const toothSpan = 0.50;
+    const upperLipY = 2.78 + innerHalfY;  // top of the lip's hole
+    const lowerLipY = 2.78 - innerHalfY;  // bottom of the lip's hole
+    const teethZ = 0.34;
+    // Tooth span fits inside the lip's actual inner X width (innerHalfX * 2,
+    // minus a touch so the outer teeth aren't pressed against the rim).
+    const toothSpan = innerHalfX * 1.7;
     const stepUpper = toothSpan / 6;
+    // Tooth heights sized to fit within the mouth opening height (innerHalfY * 2)
+    const mouthH = innerHalfY * 2;
     // Upper row — 6 teeth, alternating large/small, bases at upper lip
     for (let t = 0; t < 6; t++) {
         const tx = -toothSpan / 2 + (t + 0.5) * stepUpper;
         const isLarge = t % 2 === 0;
-        const h = isLarge ? 0.22 : 0.15;
-        const r = isLarge ? 0.040 : 0.028;
+        const h = isLarge ? mouthH * 0.85 : mouthH * 0.55;
+        const r = isLarge ? 0.034 : 0.024;
         const upper = new THREE.Mesh(new THREE.ConeGeometry(r, h, 5), fangPure);
         upper.position.set(tx, upperLipY - h / 2, teethZ);
         upper.rotation.x = Math.PI;
@@ -4074,8 +4097,8 @@ function buildRikaMesh() {
     for (let t = 0; t < 5; t++) {
         const tx = -toothSpan / 2 + (t + 1) * stepUpper;
         const isLarge = t % 2 === 0;
-        const h = isLarge ? 0.20 : 0.13;
-        const r = isLarge ? 0.038 : 0.026;
+        const h = isLarge ? mouthH * 0.75 : mouthH * 0.50;
+        const r = isLarge ? 0.032 : 0.022;
         const lower = new THREE.Mesh(new THREE.ConeGeometry(r, h, 5), fangPure);
         lower.position.set(tx, lowerLipY + h / 2, teethZ);
         lower.rotation.z = (Math.random() - 0.5) * 0.18;
