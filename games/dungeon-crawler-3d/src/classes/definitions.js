@@ -77,7 +77,13 @@ export const CLASSES = {
         name: 'Yuta Okkotsu', type: 'sorcerer', maxHp: 135, speed: 3.6, attackRange: 38,
         attackDamage: 12, attackSpeed: 220, attackType: 'melee', color: '#5a8aff',
         specialCooldown: 5000, specialName: 'Cursed Queen Rika', weaponType: 'sword',
-        abilities: { z: 'Rika' },
-        abilityCooldowns: { z: 12000 }
+        abilities: {
+            z: 'Rika',
+            x: 'Cursed Speech',
+            c: 'Black Flash',
+            v: 'Reverse Cursed Technique',
+            f: 'Flash Step'
+        },
+        abilityCooldowns: { z: 12000, x: 6000, c: 5000, v: 18000, f: 1500 }
     },
 };

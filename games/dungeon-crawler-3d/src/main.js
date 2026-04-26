@@ -5373,11 +5373,15 @@ function fruitAbility(slot) {
         return;
     }
 
-    // ══════ YUTA — summon Rika (Z) ══════
-    // Summons Yuta's Cursed Queen Rika — a massive floating humanoid horror
-    // that follows him and autonomously attacks nearby enemies for 15 seconds.
-    if (id === 'yuta' && slot === 'z') {
-        yutaSummonRika();
+    // ══════ YUTA OKKOTSU ══════
+    // Z = Rika summon, X = Cursed Speech (Inumaki copy), C = Black Flash,
+    // V = Reverse Cursed Technique self-heal, F = Flash Step (Toji copy).
+    if (id === 'yuta') {
+        if (slot === 'z') yutaSummonRika();
+        else if (slot === 'x') yutaCursedSpeech();
+        else if (slot === 'c') yutaBlackFlash();
+        else if (slot === 'v') yutaRCT();
+        else if (slot === 'f') yutaFlashStep();
         return;
     }
 
@@ -13706,6 +13710,140 @@ function yutaSummonRika() {
         summoned.data._hpBar = bar;
         summoned.data._floatPhase = Math.random() * Math.PI * 2;
     }
+}
+
+// ─── YUTA — Cursed Speech (X) ──────────────────────────────────────
+// Inumaki-style cursed command: forward cone shockwave, heavy damage,
+// stuns caught enemies for 2s, knocks them back.
+function yutaCursedSpeech() {
+    if (!player || !player.alive) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const worldPx = px * TILE, worldPz = pz * TILE;
+    const fly = fpsCamera.flyHeight || 0;
+    const aura = player._auraColor || '#5a8aff';
+    const now = performance.now();
+
+    screenShake(0.55, 280);
+    triggerHitstop(80);
+    fovPunch(15, 0.16);
+    screenFlash('#ffffff', 90);
+
+    // Staggered cone of "voice" particle bursts radiating forward
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            const dx = worldPx + fwdX * (i * 1.0 + 1) * TILE * 0.25;
+            const dz = worldPz + fwdZ * (i * 1.0 + 1) * TILE * 0.25;
+            emitParticles(dx, EYE_HEIGHT + fly, dz, {
+                color: [aura, '#ffffff', '#0a0a0e'],
+                count: 16, speed: 6, spread: 1.5,
+                gravity: 0, life: 14, size: 0.16, sizeEnd: 0, drag: 0.92,
+            });
+        }, i * 50);
+    }
+    // Three expanding ground rings forward of the player
+    for (let i = 0; i < 3; i++) {
+        const rx = worldPx + fwdX * (i * 2 + 1);
+        const rz = worldPz + fwdZ * (i * 2 + 1);
+        groundRing(rx, rz, aura, 2.5 + i * 0.6, 500);
+    }
+    // Hit all enemies in the forward cone (range 6 tiles, 0.6π wide)
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const dx = e.data.x - px, dz = e.data.z - pz;
+        const d = Math.hypot(dx, dz);
+        if (d > 6 || d < 0.1) continue;
+        const a = Math.atan2(-dx, -dz);
+        let ad = a - yaw;
+        while (ad > Math.PI) ad -= Math.PI * 2;
+        while (ad < -Math.PI) ad += Math.PI * 2;
+        if (Math.abs(ad) < Math.PI * 0.6) {
+            dealDamageToEnemy(e, Math.round(player.damage * 3));
+            // Stun: push their next attack timer 2s into the future
+            e.data.lastAttack = now + 2000;
+            // Knockback away from player
+            const nx = e.data.x + (dx / d) * 1.5;
+            const nz = e.data.z + (dz / d) * 1.5;
+            if (isWalkable(dungeon.map, nx, nz)) {
+                e.data.x = nx;
+                e.data.z = nz;
+                e.mesh.position.set(nx * TILE, 0, nz * TILE);
+            }
+        }
+    }
+    lightFlash(worldPx + fwdX * 3, EYE_HEIGHT, worldPz + fwdZ * 3, aura, 8, 350);
+}
+
+// ─── YUTA — Black Flash (C) ────────────────────────────────────────
+// Same priming mechanic as TODO's Z. Next M1 within 3s lands as a
+// Black Flash; chain bonus stacks if multiple are landed within 5s.
+function yutaBlackFlash() {
+    if (!player || !player.alive) return;
+    player._blackFlashPrimed = performance.now() + 3000;
+    screenFlash('#aa0010', 80);
+    const wx = fpsCamera.posX * TILE, wz = fpsCamera.posZ * TILE;
+    groundRing(wx, wz, '#aa0010', 1.6, 250);
+    emitParticles(wx, EYE_HEIGHT, wz, {
+        color: ['#0a0010', '#5a0010', '#aa0010', '#ffffff'],
+        count: 14, speed: 4, spread: 1.5,
+        gravity: 0, life: 16, size: 0.10, sizeEnd: 0, drag: 0.92, upward: 1.5,
+    });
+}
+
+// ─── YUTA — Reverse Cursed Technique (V) ───────────────────────────
+// Channels healing cursed energy. Restores 40% of max HP over 1.5s in
+// 5 ticks with converging-particle VFX.
+function yutaRCT() {
+    if (!player || !player.alive) return;
+    const aura = player._auraColor || '#5a8aff';
+    const wx = fpsCamera.posX * TILE, wz = fpsCamera.posZ * TILE;
+    const totalHeal = Math.round(player.maxHp * 0.40);
+    const ticks = 5;
+    const perTick = Math.round(totalHeal / ticks);
+    let remaining = ticks;
+    const handle = setInterval(() => {
+        if (!player || !player.alive) { clearInterval(handle); return; }
+        player.hp = Math.min(player.maxHp, player.hp + perTick);
+        const px = fpsCamera.posX * TILE, pz = fpsCamera.posZ * TILE;
+        emitParticles(px, EYE_HEIGHT * 0.5, pz, {
+            color: [aura, '#ffffff', '#a8c8ff'],
+            count: 8, speed: 2, spread: 1.0,
+            gravity: 2, life: 18, size: 0.10, sizeEnd: 0, drag: 0.94, upward: 0.5,
+        });
+        remaining--;
+        if (remaining <= 0) clearInterval(handle);
+    }, 300);
+    // Spawn flash + ring + light
+    groundRing(wx, wz, aura, 2.0, 600);
+    lightFlash(wx, EYE_HEIGHT, wz, aura, 6, 400);
+    screenFlash(aura, 120);
+}
+
+// ─── YUTA — Flash Step (F) ─────────────────────────────────────────
+// Toji-style instant forward dash, ~4 tiles, 350ms invincibility.
+function yutaFlashStep() {
+    if (!player || !player.alive) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const aura = player._auraColor || '#5a8aff';
+    const now = performance.now();
+    // Dash 4 tiles forward (safeMove respects walls, falls back to closer)
+    fpsCamera.safeMove(px + fwdX * 4, pz + fwdZ * 4, dungeon.map);
+    player.invincible = now + 350;
+    showSpeedLines(280);
+    fovPunch(10, 0.15);
+    // Departure trail
+    const wx = px * TILE, wz = pz * TILE;
+    emitParticles(wx, EYE_HEIGHT, wz, {
+        color: [aura, '#ffffff'],
+        count: 14, speed: 3, spread: 1.0,
+        gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.92,
+    });
+    // Arrival pop
+    const ax = fpsCamera.posX * TILE, az = fpsCamera.posZ * TILE;
+    lightFlash(ax, EYE_HEIGHT, az, aura, 5, 200);
 }
 
 function megumiSerpent() {
