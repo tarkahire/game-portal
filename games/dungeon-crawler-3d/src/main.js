@@ -3771,33 +3771,54 @@ function buildRikaMesh() {
     const blackHole = new THREE.MeshBasicMaterial({ color: '#180010' });
     const fangMat = new THREE.MeshStandardMaterial({ color: '#fff0f0', roughness: 0.3 });
 
-    // ── Lower body — wide cone tapering down (the floating "robe" / trail) ──
-    const lowerBody = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.6, 10), blackMat);
-    lowerBody.position.y = 0.8;
-    lowerBody.rotation.x = Math.PI; // wide at top, point at bottom
-    group.add(lowerBody);
-    // Tapered tail tip below — gives the "no feet, just a wisp" look
-    const trailTip = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.03, 0.7, 6), blackMat);
-    trailTip.position.y = -0.4;
-    group.add(trailTip);
-    // Random tendril wisps trailing off the lower body
+    // ── Helper: deformed sphere with smooth noise — flowing organic shape ──
+    function organicSphere(radius, deformAmount, segs, hStretch) {
+        const geo = new THREE.SphereGeometry(radius, segs, Math.floor(segs * 0.75));
+        const pos = geo.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+            const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+            const n = Math.sin(x * 7 + 1.3) * Math.cos(y * 6 + 0.7) * Math.sin(z * 8 + 2.1);
+            const noise = n * deformAmount * radius;
+            const len = Math.sqrt(x * x + y * y + z * z);
+            if (len > 0.001) {
+                const s = 1 + noise / len;
+                pos.setXYZ(i, x * s, y * s, z * s);
+            }
+        }
+        geo.computeVertexNormals();
+        return geo;
+    }
+
+    // ── Lower body — soft flowing blob (was a hard cone) ──
+    const lower = new THREE.Mesh(organicSphere(0.78, 0.14, 16), blackMat);
+    lower.position.y = 0.75;
+    lower.scale.set(1.0, 1.55, 1.0);
+    group.add(lower);
+    // Tail tip — stretched smooth sphere instead of a cylinder/cone with hard edges
+    const tail = new THREE.Mesh(organicSphere(0.16, 0.10, 12), blackMat);
+    tail.position.y = -0.35;
+    tail.scale.set(1, 3.4, 1);
+    group.add(tail);
+    // Wispy tendril trails — capsules so the ends are rounded, not pointed
     for (let i = 0; i < 4; i++) {
         const ang = (i / 4) * Math.PI * 2;
-        const w = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.5 + Math.random() * 0.3, 4), blackMat);
-        w.position.set(Math.cos(ang) * 0.3, 0.1 + Math.random() * 0.3, Math.sin(ang) * 0.3);
-        w.rotation.x = Math.PI + (Math.random() - 0.5) * 0.4;
+        const len = 0.45 + Math.random() * 0.30;
+        const w = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, len, 6, 10), blackMat);
+        w.position.set(Math.cos(ang) * 0.32, 0.15 + Math.random() * 0.20, Math.sin(ang) * 0.32);
+        w.rotation.x = (Math.random() - 0.5) * 0.4;
         w.rotation.z = (Math.random() - 0.5) * 0.5;
         group.add(w);
     }
 
-    // ── Torso — pale, slim, exposed ribs visible ──
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 1.2, 8), skinMat);
+    // ── Torso — soft pink blob, no cylinder edges ──
+    const torso = new THREE.Mesh(organicSphere(0.50, 0.13, 18), skinMat);
     torso.position.y = 1.95;
+    torso.scale.set(0.95, 1.35, 0.95);
     group.add(torso);
-    // Ribs (bone) wrapping the front of the torso
+    // Ribs (bone) wrapping the front of the torso — already curved
     for (let i = 0; i < 6; i++) {
         const rib = new THREE.Mesh(
-            new THREE.TorusGeometry(0.46 - i * 0.022, 0.04, 4, 14, Math.PI * 0.95),
+            new THREE.TorusGeometry(0.46 - i * 0.022, 0.04, 6, 18, Math.PI * 0.95),
             boneMat,
         );
         rib.position.set(0, 1.55 + i * 0.13, 0.08);
@@ -3805,50 +3826,54 @@ function buildRikaMesh() {
         rib.rotation.z = Math.PI;
         group.add(rib);
     }
-    // Sternum line down the centre
-    const sternum = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.7, 0.05), boneMat);
+    // Sternum — stretched smooth sphere instead of a box
+    const sternum = new THREE.Mesh(organicSphere(0.05, 0.08, 10), boneMat);
     sternum.position.set(0, 1.85, 0.42);
+    sternum.scale.set(1, 7, 1);
     group.add(sternum);
-    // Visible rib outlines on the sides — gaunt look
+    // Side rib outlines — small stretched smooth blobs
     for (let s = -1; s <= 1; s += 2) {
         for (let r = 0; r < 4; r++) {
-            const sideRib = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.025, 0.04), boneMat);
+            const sideRib = new THREE.Mesh(organicSphere(0.022, 0.08, 8), boneMat);
             sideRib.position.set(s * 0.42, 1.65 + r * 0.18, 0.0);
+            sideRib.scale.set(2.5, 1, 2);
             sideRib.rotation.z = s * 0.05;
             group.add(sideRib);
         }
     }
 
-    // ── Long bony arms with elongated forearms + claws ──
+    // ── Long bony arms — capsules for limbs, blob for hand, sharp cones for claws ──
     function buildArm(side) {
         const arm = new THREE.Group();
-        // Shoulder joint
-        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.20, 8, 8), skinMat);
+        // Shoulder — organic round shoulder cap
+        const shoulder = new THREE.Mesh(organicSphere(0.20, 0.10, 12), skinMat);
         arm.add(shoulder);
-        // Upper arm
-        const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.085, 1.0, 6), skinMat);
+        // Upper arm — capsule so both ends are rounded
+        const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.10, 0.85, 6, 14), skinMat);
         upper.position.set(side * 0.18, -0.55, 0);
         upper.rotation.z = side * 0.32;
         arm.add(upper);
-        // Elbow
-        const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 6), skinMat);
+        // Elbow — round joint
+        const elbow = new THREE.Mesh(organicSphere(0.105, 0.10, 10), skinMat);
         elbow.position.set(side * 0.45, -1.05, 0);
         arm.add(elbow);
-        // Forearm — long, slightly bent forward
-        const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.06, 1.15, 6), skinMat);
+        // Forearm — capsule, slightly tapered look via scaling
+        const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 1.0, 6, 14), skinMat);
         forearm.position.set(side * 0.62, -1.55, 0.18);
         forearm.rotation.z = side * -0.18;
         forearm.rotation.x = -0.42;
+        forearm.scale.set(1, 1, 0.95);
         arm.add(forearm);
         // Wrist
-        const wrist = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat);
+        const wrist = new THREE.Mesh(organicSphere(0.085, 0.10, 8), skinMat);
         wrist.position.set(side * 0.78, -2.00, 0.42);
         arm.add(wrist);
-        // Hand palm
-        const hand = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.20, 0.10), skinMat);
+        // Hand — stretched smooth blob (was box)
+        const hand = new THREE.Mesh(organicSphere(0.10, 0.08, 12), skinMat);
         hand.position.set(side * 0.82, -2.16, 0.50);
+        hand.scale.set(1.55, 2.0, 1.0);
         arm.add(hand);
-        // Long sharp claws
+        // Long sharp claws — KEPT as sharp cones per the request
         for (let f = 0; f < 4; f++) {
             const claw = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.34, 5), boneMat);
             claw.position.set(side * 0.82 + (f - 1.5) * 0.04, -2.40, 0.55);
@@ -3866,18 +3891,18 @@ function buildRikaMesh() {
     group.userData._rightArm = rightArm;
     group.userData._leftArm = leftArm;
 
-    // ── Neck — thin, exposed vertebrae visible at the back ──
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.30, 6), skinMat);
+    // ── Neck — capsule for smooth rounded ends instead of cylinder ──
+    const neck = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.20, 6, 12), skinMat);
     neck.position.y = 2.65;
     group.add(neck);
     for (let v = 0; v < 4; v++) {
-        const vert = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), boneMat);
+        const vert = new THREE.Mesh(organicSphere(0.075, 0.12, 8), boneMat);
         vert.position.set(0, 2.55 + v * 0.07, -0.13);
         group.add(vert);
     }
 
-    // ── Head — elongated skull-shape ──
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 10, 10), skinMat);
+    // ── Head — organic skull-shape, elongated and noisy ──
+    const head = new THREE.Mesh(organicSphere(0.36, 0.09, 18), skinMat);
     head.position.y = 3.05;
     head.scale.set(1, 1.18, 1.10);
     group.add(head);
