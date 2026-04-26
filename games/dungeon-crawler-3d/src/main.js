@@ -11596,64 +11596,65 @@ function buildSerpentMesh() {
     return g;
 }
 
-// ─── CURSED ENERGY AURA — flowing wispy energy around the player ──────
-// Builds a Group of curved tendril tubes + an aura point light, all in the
-// chosen color. Per-frame animation in updateCursedAura() rotates and bobs
-// the tendrils so they read as flowing flame-like energy.
+// ─── CURSED ENERGY AURA — billboarded fire wisps surrounding the player ─
+// Procedurally bakes a flame-shaped sprite texture and spawns ~36 sprites
+// in a shell around the body. Each sprite has its own lifetime: it spawns
+// near the feet, rises while scaling up and fading, then respawns. Continuous
+// emission gives a sustained flowing-fire look rather than tube tentacles.
+let _cursedFlameTex = null;
+function getFlameTexture() {
+    if (_cursedFlameTex) return _cursedFlameTex;
+    const W = 64, H = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    // Vertical flame gradient — bright/wide at bottom, fading and narrowing toward top
+    const grad = ctx.createRadialGradient(W * 0.5, H * 0.78, 4, W * 0.5, H * 0.55, 50);
+    grad.addColorStop(0,   'rgba(255,255,255,1)');
+    grad.addColorStop(0.25,'rgba(255,255,255,0.85)');
+    grad.addColorStop(0.6, 'rgba(255,255,255,0.35)');
+    grad.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    // Pinch the top with a vertical fade so the wisp tapers more like a flame tongue
+    const topFade = ctx.createLinearGradient(0, 0, 0, H);
+    topFade.addColorStop(0,   'rgba(0,0,0,1)');
+    topFade.addColorStop(0.25,'rgba(0,0,0,0.4)');
+    topFade.addColorStop(0.5, 'rgba(0,0,0,0)');
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = topFade;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+    _cursedFlameTex = new THREE.CanvasTexture(canvas);
+    return _cursedFlameTex;
+}
+
 function buildCursedAura(color) {
     const group = new THREE.Group();
     const c = new THREE.Color(color);
+    const tex = getFlameTexture();
 
-    // Translucent emissive material — strong glow, low opacity so layered
-    // tendrils blend into a wispy mass instead of a solid shape.
-    const mat = new THREE.MeshBasicMaterial({
-        color: c, transparent: true, opacity: 0.55,
-        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
-    });
-    const matInner = new THREE.MeshBasicMaterial({
-        color: '#ffffff', transparent: true, opacity: 0.35,
-        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
-    });
-
-    const TENDRIL_COUNT = 10;
-    const tendrils = [];
-    for (let i = 0; i < TENDRIL_COUNT; i++) {
-        const angle = (i / TENDRIL_COUNT) * Math.PI * 2;
-        const radius = 0.45 + Math.random() * 0.15;
-        const baseHeight = 0.4 + Math.random() * 0.6;
-        const topHeight = 1.8 + Math.random() * 1.4;
-
-        // Each tendril is a curved tube rising from waist height up past the
-        // shoulders, curving outward and back inward like a flame
-        const points = [];
-        const segs = 8;
-        for (let s = 0; s <= segs; s++) {
-            const t = s / segs;
-            const r = radius * (1 - t * 0.4); // narrows toward the top
-            const heightOffset = baseHeight + (topHeight - baseHeight) * t;
-            const swirl = Math.sin(t * Math.PI * 1.5 + i) * 0.3;
-            points.push(new THREE.Vector3(
-                Math.cos(angle + swirl) * r,
-                heightOffset,
-                Math.sin(angle + swirl) * r,
-            ));
-        }
-        const curve = new THREE.CatmullRomCurve3(points);
-        const tubeGeo = new THREE.TubeGeometry(curve, 16, 0.16, 6, false);
-        const mesh = new THREE.Mesh(tubeGeo, mat);
-        // Inner brighter core — same shape, smaller radius
-        const innerGeo = new THREE.TubeGeometry(curve, 16, 0.07, 5, false);
-        const innerMesh = new THREE.Mesh(innerGeo, matInner);
-        const tendril = new THREE.Group();
-        tendril.add(mesh);
-        tendril.add(innerMesh);
-        tendril._baseAngle = angle;
-        tendril._phase = Math.random() * Math.PI * 2;
-        tendril._scaleBase = 0.85 + Math.random() * 0.3;
-        group.add(tendril);
-        tendrils.push(tendril);
+    const FLAME_COUNT = 36;
+    const flames = [];
+    for (let i = 0; i < FLAME_COUNT; i++) {
+        // Per-sprite material so we can animate opacity independently
+        const mat = new THREE.SpriteMaterial({
+            map: tex, color: c, transparent: true, opacity: 0,
+            blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        const s = new THREE.Sprite(mat);
+        s._baseAngle = Math.random() * Math.PI * 2;
+        s._baseRadius = 0.42 + Math.random() * 0.30;
+        s._lifeMax = 0.9 + Math.random() * 1.1;
+        s._life = Math.random() * s._lifeMax; // stagger so they aren't all in sync
+        s._riseHeight = 1.4 + Math.random() * 1.2;
+        s._sizeMax = 0.55 + Math.random() * 0.45;
+        s._flicker = Math.random() * Math.PI * 2;
+        s.scale.set(0.001, 0.001, 1);
+        group.add(s);
+        flames.push(s);
     }
-    group.userData._tendrils = tendrils;
+    group.userData._flames = flames;
     group.userData._color = c;
 
     // Bright aura point light pulsing in the chosen color
@@ -11663,7 +11664,7 @@ function buildCursedAura(color) {
     group.userData._light = light;
 
     // Soft ground glow disc under the player's feet
-    const discGeo = new THREE.CircleGeometry(0.85, 24);
+    const discGeo = new THREE.CircleGeometry(0.95, 24);
     const discMat = new THREE.MeshBasicMaterial({
         color: c, transparent: true, opacity: 0.4,
         blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
@@ -11674,22 +11675,65 @@ function buildCursedAura(color) {
     group.add(disc);
     group.userData._disc = disc;
 
+    // Inner core sprite — bigger, hotter wisp that surrounds the torso for
+    // the "intense glow at the body, wisps trailing off" silhouette
+    const coreMat = new THREE.SpriteMaterial({
+        map: tex, color: '#ffffff', transparent: true, opacity: 0.55,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const core = new THREE.Sprite(coreMat);
+    core.scale.set(1.6, 2.6, 1);
+    core.position.y = 1.0;
+    group.add(core);
+    group.userData._core = core;
+
     return group;
 }
 
 function updateCursedAura(group, dt, time) {
-    if (!group || !group.userData._tendrils) return;
+    if (!group || !group.userData._flames) return;
     const t = time * 0.001;
-    const tendrils = group.userData._tendrils;
-    // Rotate the whole aura slowly so tendrils swirl around the body
-    group.rotation.y += dt * 0.6;
-    // Each tendril bobs and breathes individually for a flowing flame feel
-    for (let i = 0; i < tendrils.length; i++) {
-        const td = tendrils[i];
-        const breathe = td._scaleBase + Math.sin(t * 2.1 + td._phase) * 0.18;
-        td.scale.set(breathe, 1 + Math.sin(t * 1.6 + td._phase) * 0.18, breathe);
-        td.position.y = Math.sin(t * 1.4 + td._phase) * 0.08;
+    const flames = group.userData._flames;
+    for (let i = 0; i < flames.length; i++) {
+        const f = flames[i];
+        f._life += dt;
+        const k = f._life / f._lifeMax;
+
+        if (k >= 1) {
+            // Respawn at a new random spot around the player
+            f._life = 0;
+            f._baseAngle = Math.random() * Math.PI * 2;
+            f._baseRadius = 0.42 + Math.random() * 0.30;
+            f._lifeMax = 0.9 + Math.random() * 1.1;
+            f._riseHeight = 1.4 + Math.random() * 1.2;
+            f._sizeMax = 0.55 + Math.random() * 0.45;
+        }
+
+        // Position: sit in a shell around the player, rise upward over lifetime
+        const ang = f._baseAngle + Math.sin(t * 1.4 + i) * 0.12; // slight swirl
+        const rad = f._baseRadius * (1 + Math.sin(t * 2 + f._flicker) * 0.05);
+        f.position.x = Math.cos(ang) * rad;
+        f.position.z = Math.sin(ang) * rad;
+        f.position.y = 0.2 + k * f._riseHeight;
+
+        // Scale: ease in, peak, ease out — and flicker
+        const envelope = Math.sin(k * Math.PI); // 0 → 1 → 0 across lifetime
+        const flick = 0.85 + Math.sin(t * 8 + f._flicker) * 0.15;
+        const sx = f._sizeMax * envelope * flick * 0.7;
+        const sy = f._sizeMax * envelope * flick * 1.4;
+        f.scale.set(sx, sy, 1);
+
+        // Opacity: ease in, hold, ease out — plus rapid flicker for fire feel
+        f.material.opacity = envelope * (0.5 + Math.sin(t * 12 + f._flicker) * 0.15);
     }
+
+    // Inner core wisp — gentle breathing scale + opacity flicker
+    if (group.userData._core) {
+        const coreScale = 1 + Math.sin(t * 2.2) * 0.08;
+        group.userData._core.scale.set(1.6 * coreScale, 2.6 * coreScale, 1);
+        group.userData._core.material.opacity = 0.45 + Math.sin(t * 5) * 0.12;
+    }
+
     // Light pulse + ground disc pulse
     if (group.userData._light) {
         group.userData._light.intensity = 3.5 + Math.sin(t * 3) * 0.8;
