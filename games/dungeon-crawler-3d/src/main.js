@@ -3778,33 +3778,32 @@ function playerAttack() {
     // Black Flash spectacle + chain-state bookkeeping (runs once even if multiple
     // enemies got caught by the same hook). We always consume the prime — even
     // if no enemy was hit, that matches the "phenomenon" feel: it either lands
-    // or it doesn't.
+    // or it doesn't. Themed RED + BLACK to match the JJK black-flash motif.
     if (blackFlashPrimed) {
-        const aura = player._auraColor || '#ffd07a';
         // Chain tracking — extend the chain window and bump the counter
         const chainNow = (player._blackFlashChainEnd && now < player._blackFlashChainEnd) ? (player._blackFlashChain || 0) : 0;
         player._blackFlashChain = Math.min(6, chainNow + 1);
         player._blackFlashChainEnd = now + 5000;
         player._blackFlashPrimed = 0;
-        // Cinematic impact VFX
+        // Cinematic impact: black void slam → red shockwave flash
         screenShake(0.55, 220);
         triggerHitstop(140);
         fovPunch(18, 0.15);
-        screenFlash('#0a0010', 90);
-        setTimeout(() => screenFlash(aura, 130), 90);
-        // Dark distortion ring at the impact point
+        screenFlash('#0a0010', 90);                            // black void
+        setTimeout(() => screenFlash('#aa0010', 130), 90);     // bright red
         const fly = fpsCamera.flyHeight || 0;
         const hitX = px * TILE + fwdX * 2, hitY = EYE_HEIGHT + fly, hitZ = pz * TILE + fwdZ * 2;
+        // Black distortion ring + red shockwave ring layered over it
         groundRing(hitX, hitZ, '#0a0010', 3.0, 600);
-        groundRing(hitX, hitZ, aura, 2.0, 450);
-        // 30 dark + aura-tinted sparks
+        groundRing(hitX, hitZ, '#aa0010', 2.0, 450);
+        // 30 sparks — black void + dark red + bright red + white pop
         emitParticles(hitX, hitY, hitZ, {
-            color: ['#0a0010', '#1a0a20', aura, '#ffffff'],
+            color: ['#0a0010', '#5a0010', '#aa0010', '#ffffff'],
             count: 30, speed: 9, spread: 2.0,
             gravity: -2, life: 18, size: 0.16, sizeEnd: 0, drag: 0.92
         });
-        // Bright pulse light
-        lightFlash(hitX, hitY, hitZ, aura, 12, 200);
+        // Bright red pulse light
+        lightFlash(hitX, hitY, hitZ, '#ff0033', 12, 200);
     }
 
     // Visual effects per step
@@ -4251,15 +4250,13 @@ function fruitAbility(slot) {
     // Z primes the next M1 to land as a Black Flash for ~3 seconds. The
     // payoff fires inside playerAttack() when an enemy is hit while primed.
     if (id === 'todo' && slot === 'z') {
-        const aura = player._auraColor || '#ffd07a';
         player._blackFlashPrimed = now + 3000;
-        // Visual cue at activation: a tight bright aura pulse + ground ring
-        // around the player so you can see the move is loaded
-        screenFlash(aura, 80);
+        // Priming cue — red + black themed so it visually rhymes with the impact
+        screenFlash('#aa0010', 80);
         const wx = px * TILE, wz = pz * TILE;
-        groundRing(wx, wz, '#ffffff', 1.6, 250);
+        groundRing(wx, wz, '#aa0010', 1.6, 250);
         emitParticles(wx, EYE_HEIGHT, wz, {
-            color: [aura, '#0a0010', '#ffffff'],
+            color: ['#0a0010', '#5a0010', '#aa0010', '#ffffff'],
             count: 14, speed: 4, spread: 1.5,
             gravity: 0, life: 16, size: 0.10, sizeEnd: 0, drag: 0.92, upward: 1.5
         });
