@@ -10166,6 +10166,12 @@ function updateMinions(dt, now) {
             if (m.data._hpBar) scene.remove(m.data._hpBar);
             scene.remove(m.mesh);
             minions3D.splice(i, 1);
+            // If the player was surfing this serpent, drop them back to the floor
+            if (m.data.type === 'serpent' && player && player._ridingSerpent === m) {
+                player._serpentRiding = false;
+                player._ridingSerpent = null;
+                if (fpsCamera) fpsCamera.flyHeight = 0;
+            }
             continue;
         }
         // Clones are immortal
@@ -10517,6 +10523,17 @@ function updateMinions(dt, now) {
 
         // ── Serpent AI ──
         if (m.data.type === 'serpent') {
+            // ── Surfing override ── while the player is riding this serpent,
+            // pin the head just ahead of the player along their facing direction
+            // so the snake's body trails behind them like a long surfboard.
+            const riding = player && player._serpentRiding && m.data._owner === player;
+            if (riding) {
+                const yaw = fpsCamera.yaw;
+                const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+                m.data.x = fpsCamera.posX + fwdX * 1.4;
+                m.data.z = fpsCamera.posZ + fwdZ * 1.4;
+            }
+
             // HP bar update — follow the head's actual world position when the
             // spine has been initialised, otherwise fall back to logical pos.
             if (m.data._hpBar) {
@@ -10624,6 +10641,16 @@ function updateMinions(dt, now) {
                 const dx = target.data.x - m.data.x, dz = target.data.z - m.data.z;
                 const d = Math.hypot(dx, dz) || 1;
                 hX = dx / d; hZ = dz / d;
+            }
+            // While surfing, the head faces where the player faces — and we
+            // force the slither wobble on whenever the player is actively
+            // moving, so the body whips behind them like a real snake mount.
+            if (riding) {
+                const yaw = fpsCamera.yaw;
+                hX = -Math.sin(yaw); hZ = -Math.cos(yaw);
+                const k = fpsCamera.keys || {};
+                moving = !!(k['KeyW'] || k['KeyS'] || k['KeyA'] || k['KeyD']
+                    || k['ArrowUp'] || k['ArrowDown'] || k['ArrowLeft'] || k['ArrowRight']);
             }
             const perpX = -hZ, perpZ = hX;
             const wobble = moving ? Math.sin(m.data._slitherT) * 0.18 : 0;
@@ -11187,16 +11214,40 @@ function buildSerpentMesh() {
     return g;
 }
 
-// Megumi H — summon the Great Serpent shikigami (one at a time)
+// Dismount and despawn the player's currently-ridden serpent (if any)
+function dismountSerpent() {
+    for (let i = minions3D.length - 1; i >= 0; i--) {
+        const m = minions3D[i];
+        if (m.data.type === 'serpent' && m.data._owner === player) {
+            if (m.data._hpBar) scene.remove(m.data._hpBar);
+            scene.remove(m.mesh);
+            minions3D.splice(i, 1);
+        }
+    }
+    if (player) {
+        player._serpentRiding = false;
+        player._ridingSerpent = null;
+    }
+    if (fpsCamera) fpsCamera.flyHeight = 0;
+}
+
+// Megumi H — summon + ride the Great Serpent (toggle: press again to dismount)
 function megumiSerpent() {
     if (!player || !player.alive) return;
     if (player.classId !== 'megumi') return;
+
+    // Toggle: if already surfing, dismount and despawn
+    if (player._serpentRiding) {
+        dismountSerpent();
+        return;
+    }
+
     const now = performance.now();
     if (!player._serpentCd) player._serpentCd = 0;
     if (now - player._serpentCd < 8000) return; // 8s cooldown
     player._serpentCd = now;
 
-    // Despawn existing serpent if any
+    // Despawn any existing serpent (shouldn't normally exist, but stay safe)
     for (let i = minions3D.length - 1; i >= 0; i--) {
         if (minions3D[i].data.type === 'serpent' && minions3D[i].data._owner === player) {
             if (minions3D[i].data._hpBar) scene.remove(minions3D[i].data._hpBar);
@@ -11238,6 +11289,11 @@ function megumiSerpent() {
         summoned.data._headZ = summoned.data.z;
         summoned.data._slitherT = 0;
     }
+
+    // ── Mount up — surf on the snake ──
+    player._serpentRiding = true;
+    player._ridingSerpent = summoned;
+    fpsCamera.flyHeight = 0.9; // sit on top of the snake's body
 }
 
 function buildToadMesh() {
@@ -11708,6 +11764,8 @@ function dealDamageToPlayer(dmg) {
 
     if (player.hp <= 0) {
         player.alive = false;
+        // Drop off the serpent if currently surfing
+        if (player._serpentRiding) dismountSerpent();
         lives--;
         if (lives <= 0) { gameOver(); }
         else {
