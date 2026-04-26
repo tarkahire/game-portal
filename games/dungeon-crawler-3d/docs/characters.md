@@ -1,6 +1,6 @@
 # Characters
 
-10 playable anime characters across 4 categories. All defined in `src/classes/definitions.js`. Models built in `src/main.js` via `build<Name>Model()` functions and dispatched in `buildPlayerModelForClass(classId, labelPrefix)`.
+11 playable characters. All defined in `src/classes/definitions.js`. Models built in `src/main.js` via `build<Name>Model()` functions and dispatched in `buildPlayerModelForClass(classId, labelPrefix)`.
 
 ## Stats Summary
 
@@ -15,6 +15,7 @@
 | Tao Ren | shaman | 140 | 3.8 | 18 | 210 | 40 | fist (Bason on Q) |
 | Horohoro | shaman | 135 | 3.5 | 15 | 230 | 38 | fist (Ice fists on Q) |
 | Megumi Fushiguro | sorcerer | 130 | 3.5 | 16 | 240 | 35 | fist |
+| Buff | fighter | **220** | 3.0 | **28** | 260 | 35 | fist (no abilities) |
 
 ## Abilities
 
