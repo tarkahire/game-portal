@@ -49,6 +49,16 @@ body { background: #020208; color: #00ffcc; font-family: 'Segoe UI', sans-serif;
 .class-card .class-stats-line { font-size: 0.6rem; color: #555; margin-top: 0.2rem; }
 .p2-label { font-size: 1.1rem; color: #4a9eff; margin-bottom: 1rem; letter-spacing: 0.1em; }
 
+/* Cursed energy color picker */
+.aura-color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; padding: 1rem; max-width: 640px; }
+.aura-swatch { width: 100px; height: 100px; border-radius: 50%; border: 2px solid #2a2a3a; cursor: pointer;
+    transition: all 0.2s; position: relative; overflow: hidden;
+    box-shadow: 0 0 20px var(--swatch-glow, rgba(0,255,200,0.3)); }
+.aura-swatch:hover { transform: scale(1.1); border-color: #fff; box-shadow: 0 0 35px var(--swatch-glow, rgba(0,255,200,0.6)); }
+.aura-swatch.selected { border-color: #fff; box-shadow: 0 0 40px var(--swatch-glow, rgba(0,255,200,0.9)); }
+.aura-swatch-label { position: absolute; bottom: 5px; left: 0; right: 0; text-align: center; font-size: 0.7rem;
+    color: #fff; text-shadow: 0 0 4px #000; letter-spacing: 0.1em; }
+
 /* Online / Lobby */
 .join-row { display: flex; gap: 0.5rem; align-items: center; }
 .code-input { background: #1a1520; border: 1px solid #3a3040; color: #fff; padding: 0.8rem 1rem;

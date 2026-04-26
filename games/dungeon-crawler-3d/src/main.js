@@ -29,6 +29,8 @@ let clock;
 let selectedClasses = [];
 let coopMode = false;
 let p2ClassSelect = false;
+let auraColors = []; // chosen cursed-energy aura color per player (parallel to selectedClasses)
+let p2AuraSelect = false;
 let fpsSword = null; // 1st-person viewmodel weapon (child of camera)
 let fpsSword2 = null; // P2 viewmodel weapon
 let swordSwing = null; // active weapon swing animation state
@@ -212,6 +214,11 @@ function init() {
 
     document.getElementById('btn-leave-lobby').onclick = () => { cleanupRemotePlayers(); cleanupNetwork(); onlineMode = false; showScreen('title-screen'); };
     document.getElementById('btn-back-title').onclick = () => showScreen('title-screen');
+    document.getElementById('btn-back-aura').onclick = () => {
+        // Pop the last picked class so the user can re-choose
+        if (selectedClasses.length > 0) selectedClasses.pop();
+        showScreen('class-screen');
+    };
     document.getElementById('btn-retry').onclick = () => { showScreen('class-screen'); p2ClassSelect = false; selectedClasses = []; };
     document.getElementById('btn-menu').onclick = () => { cleanupRemotePlayers(); if (onlineMode) cleanupNetwork(); onlineMode = false; showScreen('title-screen'); };
     document.getElementById('btn-resume').onclick = resumeGame;
@@ -234,6 +241,7 @@ function init() {
             if (e.code === 'KeyQ') { if (player?.classId === 'yoh') yohOversoul(); else if (player?.classId === 'ren') renOversoul(); else if (player?.classId === 'horohoro') horohoroOversoul(); else playerDodge(); }
             if (e.code === 'KeyG' && player?.classId === 'megumi') megumiToad();
             if (e.code === 'KeyH' && player?.classId === 'megumi') megumiSerpent();
+            if (e.code === 'KeyR') toggleCursedEnergy(player, fpsCamera); // toggle cursed-energy aura
             if (e.code === 'Space') playerDodge();        // P1 dodge alt
 
             // ── P2 controls (local co-op only — disabled in online) ──
@@ -310,10 +318,28 @@ function updateLobbyUI(players) {
 function startRun(coop) {
     coopMode = coop;
     p2ClassSelect = false;
+    p2AuraSelect = false;
     selectedClasses = [];
+    auraColors = [];
     document.getElementById('p2-class-label').style.display = 'none';
     showScreen('class-screen');
 }
+
+// Preset cursed-energy palette shown on the aura color picker
+const AURA_PRESETS = [
+    { name: 'Cyan',   hex: '#00ffcc' },
+    { name: 'Teal',   hex: '#00d4a8' },
+    { name: 'Blue',   hex: '#3a7aff' },
+    { name: 'Purple', hex: '#aa00ff' },
+    { name: 'Pink',   hex: '#ff3aaa' },
+    { name: 'Red',    hex: '#ff2233' },
+    { name: 'Orange', hex: '#ff8800' },
+    { name: 'Gold',   hex: '#ffcc33' },
+    { name: 'Green',  hex: '#33ff77' },
+    { name: 'White',  hex: '#f0f4ff' },
+    { name: 'Black',  hex: '#1a1a26' },
+    { name: 'Crimson',hex: '#aa0033' },
+];
 
 function selectClass(classId) {
     // Highlight
@@ -322,14 +348,52 @@ function selectClass(classId) {
 
     if (!p2ClassSelect) {
         selectedClasses = [classId];
-        if (coopMode) {
-            p2ClassSelect = true;
-            document.getElementById('p2-class-label').style.display = '';
-            return;
-        }
     } else {
         selectedClasses.push(classId);
     }
+
+    // Now go pick the cursed-energy color for this player
+    p2AuraSelect = p2ClassSelect; // if we're on P2 class select, we're on P2 aura select too
+    showAuraPicker();
+}
+
+function buildAuraGrid() {
+    const grid = document.getElementById('aura-color-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const preset of AURA_PRESETS) {
+        const sw = document.createElement('div');
+        sw.className = 'aura-swatch';
+        sw.dataset.color = preset.hex;
+        sw.style.background = `radial-gradient(circle, ${preset.hex} 0%, rgba(0,0,0,0.4) 90%)`;
+        sw.style.setProperty('--swatch-glow', preset.hex + 'cc');
+        sw.innerHTML = `<div class="aura-swatch-label">${preset.name.toUpperCase()}</div>`;
+        sw.onclick = () => selectAuraColor(preset.hex);
+        grid.appendChild(sw);
+    }
+}
+
+function showAuraPicker() {
+    document.getElementById('aura-screen-label').textContent = p2AuraSelect
+        ? 'Player 2 — choose your cursed energy aura color'
+        : 'Choose your cursed energy aura color';
+    showScreen('aura-screen');
+    buildAuraGrid();
+}
+
+function selectAuraColor(hex) {
+    auraColors.push(hex);
+
+    // If this was P1's pick and we're in coop, advance to P2 class pick
+    if (!p2ClassSelect && coopMode) {
+        p2ClassSelect = true;
+        p2AuraSelect = false;
+        document.getElementById('p2-class-label').style.display = '';
+        showScreen('class-screen');
+        return;
+    }
+
+    // Otherwise we're done — start the game
     startGame();
 }
 
@@ -2355,6 +2419,7 @@ function startGame() {
         specialCooldown: cls.specialCooldown,
         level: 1, xp: 0, xpToNext: 50,
         alive: true, dodgeCd: 0, invincible: 0,
+        _auraColor: auraColors[localClassIdx] || '#00ffcc',
     };
     fpsCamera.speed = cls.speed;
 
@@ -2451,6 +2516,7 @@ function startGame() {
             _transformed: false, _flying: false,
             _abilityCds: { z: 0, x: 0, c: 0, v: 0, f: 0 },
             _comboStep: 0, _comboTimer: 0,
+            _auraColor: auraColors[1] || '#ff3aaa',
         };
         fpsCamera2.speed = cls2.speed;
         fpsCamera2.flyHeight = 0;
@@ -3434,8 +3500,10 @@ function playerAttack() {
     const isRen = player.classId === 'ren' && player._renOversoulsActive;
     const isHoro = player.classId === 'horohoro' && player._horoOversoulsActive;
     const hasWeaponCombo = isSukuna || isToji || isBrook || isDenji || isYoh || isRen || isHoro;
+    // Cursed-energy aura boost — 50% damage while active
+    const auraMult = player._cursedAuraActive ? 1.5 : 1;
     // Weapon combo characters do less M1 damage — the real kill is the 4th hit execute
-    const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25) : Math.round(player.damage * step.dmgMult);
+    const dmg = hasWeaponCombo ? Math.round(player.damage * step.dmgMult * 0.25 * auraMult) : Math.round(player.damage * step.dmgMult * auraMult);
     const isFinisher = player._comboStep === 3;
 
     // Hit enemies in arc in front
@@ -11528,6 +11596,131 @@ function buildSerpentMesh() {
     return g;
 }
 
+// ─── CURSED ENERGY AURA — flowing wispy energy around the player ──────
+// Builds a Group of curved tendril tubes + an aura point light, all in the
+// chosen color. Per-frame animation in updateCursedAura() rotates and bobs
+// the tendrils so they read as flowing flame-like energy.
+function buildCursedAura(color) {
+    const group = new THREE.Group();
+    const c = new THREE.Color(color);
+
+    // Translucent emissive material — strong glow, low opacity so layered
+    // tendrils blend into a wispy mass instead of a solid shape.
+    const mat = new THREE.MeshBasicMaterial({
+        color: c, transparent: true, opacity: 0.55,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const matInner = new THREE.MeshBasicMaterial({
+        color: '#ffffff', transparent: true, opacity: 0.35,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+
+    const TENDRIL_COUNT = 10;
+    const tendrils = [];
+    for (let i = 0; i < TENDRIL_COUNT; i++) {
+        const angle = (i / TENDRIL_COUNT) * Math.PI * 2;
+        const radius = 0.45 + Math.random() * 0.15;
+        const baseHeight = 0.4 + Math.random() * 0.6;
+        const topHeight = 1.8 + Math.random() * 1.4;
+
+        // Each tendril is a curved tube rising from waist height up past the
+        // shoulders, curving outward and back inward like a flame
+        const points = [];
+        const segs = 8;
+        for (let s = 0; s <= segs; s++) {
+            const t = s / segs;
+            const r = radius * (1 - t * 0.4); // narrows toward the top
+            const heightOffset = baseHeight + (topHeight - baseHeight) * t;
+            const swirl = Math.sin(t * Math.PI * 1.5 + i) * 0.3;
+            points.push(new THREE.Vector3(
+                Math.cos(angle + swirl) * r,
+                heightOffset,
+                Math.sin(angle + swirl) * r,
+            ));
+        }
+        const curve = new THREE.CatmullRomCurve3(points);
+        const tubeGeo = new THREE.TubeGeometry(curve, 16, 0.16, 6, false);
+        const mesh = new THREE.Mesh(tubeGeo, mat);
+        // Inner brighter core — same shape, smaller radius
+        const innerGeo = new THREE.TubeGeometry(curve, 16, 0.07, 5, false);
+        const innerMesh = new THREE.Mesh(innerGeo, matInner);
+        const tendril = new THREE.Group();
+        tendril.add(mesh);
+        tendril.add(innerMesh);
+        tendril._baseAngle = angle;
+        tendril._phase = Math.random() * Math.PI * 2;
+        tendril._scaleBase = 0.85 + Math.random() * 0.3;
+        group.add(tendril);
+        tendrils.push(tendril);
+    }
+    group.userData._tendrils = tendrils;
+    group.userData._color = c;
+
+    // Bright aura point light pulsing in the chosen color
+    const light = new THREE.PointLight(c, 4, TILE * 5, 1.5);
+    light.position.set(0, 1.2, 0);
+    group.add(light);
+    group.userData._light = light;
+
+    // Soft ground glow disc under the player's feet
+    const discGeo = new THREE.CircleGeometry(0.85, 24);
+    const discMat = new THREE.MeshBasicMaterial({
+        color: c, transparent: true, opacity: 0.4,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const disc = new THREE.Mesh(discGeo, discMat);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = 0.05;
+    group.add(disc);
+    group.userData._disc = disc;
+
+    return group;
+}
+
+function updateCursedAura(group, dt, time) {
+    if (!group || !group.userData._tendrils) return;
+    const t = time * 0.001;
+    const tendrils = group.userData._tendrils;
+    // Rotate the whole aura slowly so tendrils swirl around the body
+    group.rotation.y += dt * 0.6;
+    // Each tendril bobs and breathes individually for a flowing flame feel
+    for (let i = 0; i < tendrils.length; i++) {
+        const td = tendrils[i];
+        const breathe = td._scaleBase + Math.sin(t * 2.1 + td._phase) * 0.18;
+        td.scale.set(breathe, 1 + Math.sin(t * 1.6 + td._phase) * 0.18, breathe);
+        td.position.y = Math.sin(t * 1.4 + td._phase) * 0.08;
+    }
+    // Light pulse + ground disc pulse
+    if (group.userData._light) {
+        group.userData._light.intensity = 3.5 + Math.sin(t * 3) * 0.8;
+    }
+    if (group.userData._disc) {
+        group.userData._disc.material.opacity = 0.3 + Math.sin(t * 2.5) * 0.15;
+        const s = 1 + Math.sin(t * 2) * 0.15;
+        group.userData._disc.scale.set(s, s, 1);
+    }
+}
+
+function toggleCursedEnergy(p, cam) {
+    if (!p || !p.alive) return;
+    if (p._cursedAuraActive) {
+        // Off — remove aura mesh, clear flag
+        if (p._cursedAuraMesh) {
+            scene.remove(p._cursedAuraMesh);
+            p._cursedAuraMesh = null;
+        }
+        p._cursedAuraActive = false;
+        return;
+    }
+    // On — build aura in the player's chosen color
+    const color = p._auraColor || '#00ffcc';
+    const aura = buildCursedAura(color);
+    aura.position.set(cam.posX * TILE, 0, cam.posZ * TILE);
+    scene.add(aura);
+    p._cursedAuraMesh = aura;
+    p._cursedAuraActive = true;
+}
+
 // Dismount and despawn the player's currently-ridden serpent (if any)
 function dismountSerpent() {
     for (let i = minions3D.length - 1; i >= 0; i--) {
@@ -12082,6 +12275,8 @@ function dealDamageToPlayer(dmg) {
         player.alive = false;
         // Drop off the serpent if currently surfing
         if (player._serpentRiding) dismountSerpent();
+        // Disperse cursed energy aura on death
+        if (player._cursedAuraActive) toggleCursedEnergy(player, fpsCamera);
         lives--;
         if (lives <= 0) { gameOver(); }
         else {
@@ -12189,6 +12384,18 @@ function update() {
     updateMinions(dt, now);
     // (old Katakuri portal update removed — Blox Fruits system)
     updateFruitEffects(now, dt);
+
+    // Cursed-energy aura — follow each player and animate flowing tendrils
+    if (player?._cursedAuraActive && player._cursedAuraMesh) {
+        const fly = fpsCamera.flyHeight || 0;
+        player._cursedAuraMesh.position.set(fpsCamera.posX * TILE, fly, fpsCamera.posZ * TILE);
+        updateCursedAura(player._cursedAuraMesh, dt, time);
+    }
+    if (player2?._cursedAuraActive && player2._cursedAuraMesh) {
+        const fly2 = fpsCamera2.flyHeight || 0;
+        player2._cursedAuraMesh.position.set(fpsCamera2.posX * TILE, fly2, fpsCamera2.posZ * TILE);
+        updateCursedAura(player2._cursedAuraMesh, dt, time);
+    }
 
     // Punch swings — applied LAST so other animations can't overwrite them
     updatePunchArms();

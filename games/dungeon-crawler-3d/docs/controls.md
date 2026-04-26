@@ -18,6 +18,7 @@
 | Ability 5 (mobility) | F |
 | Dash / Oversoul activate | Q |
 | Dash (alt) | Space |
+| Cursed Energy aura (toggle) | R |
 | Toggle 1st/3rd person camera | T |
 | Pause | ESC |
 | Toggle debug overlay (force-on in solo) | F3 |
