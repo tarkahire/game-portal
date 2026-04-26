@@ -3789,22 +3789,46 @@ function buildRikaMesh() {
         return geo;
     }
 
-    // ── Lower body — soft flowing blob (was a hard cone) ──
-    const lower = new THREE.Mesh(organicSphere(0.78, 0.14, 16), blackMat);
-    lower.position.y = 0.75;
-    lower.scale.set(1.0, 1.55, 1.0);
-    group.add(lower);
-    // Tail tip — stretched smooth sphere instead of a cylinder/cone with hard edges
-    const tail = new THREE.Mesh(organicSphere(0.16, 0.10, 12), blackMat);
-    tail.position.y = -0.35;
-    tail.scale.set(1, 3.4, 1);
+    // ── Lower body — single flowing TAIL anchored to the floor. Mesh-local
+    //    Y=0 is the floor (mesh.position.y stays 0), so the tail base sits
+    //    on the ground and tapers up to her waist. Built as a noise-displaced
+    //    cone with high segment count so it reads smooth, not blocky.
+    function buildTail(topRadius, baseRadius, height, segs, color) {
+        // Cylinder with two different radii (top vs bottom). Cylinder has a
+        // built-in radial smoothness; we displace vertices for organic flow.
+        const geo = new THREE.CylinderGeometry(topRadius, baseRadius, height, segs, 8);
+        const pos = geo.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+            const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+            // Smooth pseudo-noise — gentle wobble around the radial axis only
+            const n = Math.sin(y * 5 + x * 3) * Math.cos(z * 4 + y * 2) * 0.07;
+            const r = Math.sqrt(x * x + z * z);
+            if (r > 0.001) {
+                const s = 1 + n;
+                pos.setXYZ(i, x * s, y, z * s);
+            }
+        }
+        geo.computeVertexNormals();
+        return new THREE.Mesh(geo, color);
+    }
+    // Tail occupies mesh-local Y from 0 (floor) up to her waist (~1.5)
+    const tailHeight = 1.5;
+    const tail = buildTail(0.40, 0.12, tailHeight, 18, blackMat);
+    tail.position.y = tailHeight / 2; // center so bottom is at Y=0
     group.add(tail);
-    // Wispy tendril trails — capsules so the ends are rounded, not pointed
+    // Soft fan-out at the very bottom — gives the tail a "puddle" feel
+    // where it meets the floor instead of a clean cut-off
+    const tailFoot = new THREE.Mesh(organicSphere(0.18, 0.20, 14), blackMat);
+    tailFoot.position.y = 0.04;
+    tailFoot.scale.set(1.4, 0.45, 1.4);
+    group.add(tailFoot);
+    // Wispy tendril trails — anchored on the tail surface, swaying outward.
+    // Capsules so the ends are rounded.
     for (let i = 0; i < 4; i++) {
         const ang = (i / 4) * Math.PI * 2;
         const len = 0.45 + Math.random() * 0.30;
         const w = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, len, 6, 10), blackMat);
-        w.position.set(Math.cos(ang) * 0.32, 0.15 + Math.random() * 0.20, Math.sin(ang) * 0.32);
+        w.position.set(Math.cos(ang) * 0.30, 0.30 + Math.random() * 0.30, Math.sin(ang) * 0.30);
         w.rotation.x = (Math.random() - 0.5) * 0.4;
         w.rotation.z = (Math.random() - 0.5) * 0.5;
         group.add(w);
@@ -12724,9 +12748,9 @@ function updateMinions(dt, now) {
                 m.data.x = px; m.data.z = pz;
             }
 
-            // Bobbing float — Y oscillates over time around 1.0 world units
-            const bob = 1.0 + Math.sin(now * 0.0025 + (m.data._floatPhase || 0)) * 0.25;
-            m.mesh.position.set(m.data.x * TILE, bob, m.data.z * TILE);
+            // Tail-anchored — keep her base on the floor at all times so the
+            // black trailing tail stays planted on the ground like a wisp.
+            m.mesh.position.set(m.data.x * TILE, 0, m.data.z * TILE);
 
             // Face the enemy or movement direction
             if (chasing && nearestEnemy) {
