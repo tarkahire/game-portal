@@ -76,8 +76,8 @@ export const CLASSES = {
     yuta: {
         name: 'Yuta Okkotsu', type: 'sorcerer', maxHp: 135, speed: 3.6, attackRange: 38,
         attackDamage: 17, attackSpeed: 220, attackType: 'melee', color: '#5a8aff',
-        specialCooldown: 5000, specialName: 'Cursed Sword', weaponType: 'sword',
-        abilities: {},
-        abilityCooldowns: {}
+        specialCooldown: 5000, specialName: 'Cursed Queen Rika', weaponType: 'sword',
+        abilities: { z: 'Rika' },
+        abilityCooldowns: { z: 12000 }
     },
 };

@@ -3757,6 +3757,197 @@ function todoGrabAnimation() {
     }
 }
 
+// ─── RIKA (Yuta Z) ────────────────────────────────────────────────
+// Builds Rika — Yuta's Cursed Queen. Massive floating horror: pale skin,
+// exposed ribs, bony elongated arms with claws, skull-like grinning head
+// with crown of bone shards, no legs (trailing black robe-like lower body).
+function buildRikaMesh() {
+    const group = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#e8e0d8', roughness: 0.5 });
+    const skinShade = new THREE.MeshStandardMaterial({ color: '#aa9d8e', roughness: 0.55 });
+    const blackMat = new THREE.MeshStandardMaterial({ color: '#0a0a0e', roughness: 0.75 });
+    const boneMat = new THREE.MeshStandardMaterial({ color: '#f8f0d8', roughness: 0.4 });
+    const blackHole = new THREE.MeshBasicMaterial({ color: '#040006' });
+    const fangMat = new THREE.MeshStandardMaterial({ color: '#fffae8', roughness: 0.3 });
+
+    // ── Lower body — wide cone tapering down (the floating "robe" / trail) ──
+    const lowerBody = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.6, 10), blackMat);
+    lowerBody.position.y = 0.8;
+    lowerBody.rotation.x = Math.PI; // wide at top, point at bottom
+    group.add(lowerBody);
+    // Tapered tail tip below — gives the "no feet, just a wisp" look
+    const trailTip = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.03, 0.7, 6), blackMat);
+    trailTip.position.y = -0.4;
+    group.add(trailTip);
+    // Random tendril wisps trailing off the lower body
+    for (let i = 0; i < 4; i++) {
+        const ang = (i / 4) * Math.PI * 2;
+        const w = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.5 + Math.random() * 0.3, 4), blackMat);
+        w.position.set(Math.cos(ang) * 0.3, 0.1 + Math.random() * 0.3, Math.sin(ang) * 0.3);
+        w.rotation.x = Math.PI + (Math.random() - 0.5) * 0.4;
+        w.rotation.z = (Math.random() - 0.5) * 0.5;
+        group.add(w);
+    }
+
+    // ── Torso — pale, slim, exposed ribs visible ──
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 1.2, 8), skinMat);
+    torso.position.y = 1.95;
+    group.add(torso);
+    // Ribs (bone) wrapping the front of the torso
+    for (let i = 0; i < 6; i++) {
+        const rib = new THREE.Mesh(
+            new THREE.TorusGeometry(0.46 - i * 0.022, 0.04, 4, 14, Math.PI * 0.95),
+            boneMat,
+        );
+        rib.position.set(0, 1.55 + i * 0.13, 0.08);
+        rib.rotation.x = Math.PI / 2;
+        rib.rotation.z = Math.PI;
+        group.add(rib);
+    }
+    // Sternum line down the centre
+    const sternum = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.7, 0.05), boneMat);
+    sternum.position.set(0, 1.85, 0.42);
+    group.add(sternum);
+    // Visible rib outlines on the sides — gaunt look
+    for (let s = -1; s <= 1; s += 2) {
+        for (let r = 0; r < 4; r++) {
+            const sideRib = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.025, 0.04), boneMat);
+            sideRib.position.set(s * 0.42, 1.65 + r * 0.18, 0.0);
+            sideRib.rotation.z = s * 0.05;
+            group.add(sideRib);
+        }
+    }
+
+    // ── Long bony arms with elongated forearms + claws ──
+    function buildArm(side) {
+        const arm = new THREE.Group();
+        // Shoulder joint
+        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.20, 8, 8), skinMat);
+        arm.add(shoulder);
+        // Upper arm
+        const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.085, 1.0, 6), skinMat);
+        upper.position.set(side * 0.18, -0.55, 0);
+        upper.rotation.z = side * 0.32;
+        arm.add(upper);
+        // Elbow
+        const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 6), skinMat);
+        elbow.position.set(side * 0.45, -1.05, 0);
+        arm.add(elbow);
+        // Forearm — long, slightly bent forward
+        const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.06, 1.15, 6), skinMat);
+        forearm.position.set(side * 0.62, -1.55, 0.18);
+        forearm.rotation.z = side * -0.18;
+        forearm.rotation.x = -0.42;
+        arm.add(forearm);
+        // Wrist
+        const wrist = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat);
+        wrist.position.set(side * 0.78, -2.00, 0.42);
+        arm.add(wrist);
+        // Hand palm
+        const hand = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.20, 0.10), skinMat);
+        hand.position.set(side * 0.82, -2.16, 0.50);
+        arm.add(hand);
+        // Long sharp claws
+        for (let f = 0; f < 4; f++) {
+            const claw = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.34, 5), boneMat);
+            claw.position.set(side * 0.82 + (f - 1.5) * 0.04, -2.40, 0.55);
+            claw.rotation.x = -Math.PI / 2 + 0.35;
+            arm.add(claw);
+        }
+        // Pivot at shoulder height — used by triggerPunchArm
+        arm.position.set(side * 0.55, 2.7, 0);
+        return arm;
+    }
+    const rightArm = buildArm(1);
+    const leftArm = buildArm(-1);
+    group.add(rightArm);
+    group.add(leftArm);
+    group.userData._rightArm = rightArm;
+    group.userData._leftArm = leftArm;
+
+    // ── Neck — thin, exposed vertebrae visible at the back ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.30, 6), skinMat);
+    neck.position.y = 2.65;
+    group.add(neck);
+    for (let v = 0; v < 4; v++) {
+        const vert = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), boneMat);
+        vert.position.set(0, 2.55 + v * 0.07, -0.13);
+        group.add(vert);
+    }
+
+    // ── Head — elongated skull-shape ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 10, 10), skinMat);
+    head.position.y = 3.05;
+    head.scale.set(1, 1.18, 1.10);
+    group.add(head);
+
+    // ── Crown of bone spikes around the head ──
+    const spikes = [
+        // Top crown
+        { x:  0.00, y: 3.50, z:  0.00, rx:  0.00, rz:  0.00, h: 0.50 },
+        { x:  0.16, y: 3.45, z:  0.00, rx:  0.00, rz:  0.45, h: 0.42 },
+        { x: -0.16, y: 3.45, z:  0.00, rx:  0.00, rz: -0.45, h: 0.42 },
+        { x:  0.27, y: 3.32, z: -0.05, rx:  0.00, rz:  0.80, h: 0.36 },
+        { x: -0.27, y: 3.32, z: -0.05, rx:  0.00, rz: -0.80, h: 0.36 },
+        // Back of head
+        { x:  0.00, y: 3.32, z: -0.28, rx:  0.85, rz:  0.00, h: 0.42 },
+        { x:  0.16, y: 3.26, z: -0.22, rx:  0.70, rz:  0.30, h: 0.36 },
+        { x: -0.16, y: 3.26, z: -0.22, rx:  0.70, rz: -0.30, h: 0.36 },
+        // Side temples
+        { x:  0.32, y: 3.05, z:  0.05, rx: -0.30, rz:  1.10, h: 0.30 },
+        { x: -0.32, y: 3.05, z:  0.05, rx: -0.30, rz: -1.10, h: 0.30 },
+        // Forward-pointing horns over the brow
+        { x:  0.10, y: 3.20, z:  0.30, rx: -0.85, rz:  0.20, h: 0.28 },
+        { x: -0.10, y: 3.20, z:  0.30, rx: -0.85, rz: -0.20, h: 0.28 },
+    ];
+    for (const sp of spikes) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, sp.h, 5), boneMat);
+        spike.position.set(sp.x, sp.y, sp.z);
+        spike.rotation.set(sp.rx, 0, sp.rz);
+        group.add(spike);
+    }
+
+    // ── Face — black eye sockets, wide grinning fanged mouth ──
+    for (let s = -1; s <= 1; s += 2) {
+        const socket = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 8), blackHole);
+        socket.position.set(s * 0.13, 3.13, 0.30);
+        socket.scale.set(1.2, 0.7, 0.45);
+        group.add(socket);
+    }
+    // Nose hole
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.06, 4), blackHole);
+    nose.position.set(0, 2.97, 0.36);
+    group.add(nose);
+    // Wide grinning mouth — dark cavity
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 8), blackHole);
+    mouth.scale.set(1.4, 0.42, 0.50);
+    mouth.position.set(0, 2.78, 0.34);
+    group.add(mouth);
+    // Top + bottom rows of fangs
+    for (let t = 0; t < 9; t++) {
+        const tx = -0.22 + t * 0.055;
+        const upper = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.11, 4), fangMat);
+        upper.position.set(tx, 2.83, 0.40);
+        upper.rotation.x = Math.PI;
+        group.add(upper);
+        if (t < 8) {
+            const lower = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.08, 4), fangMat);
+            lower.position.set(tx + 0.027, 2.74, 0.40);
+            group.add(lower);
+        }
+    }
+
+    // ── Subtle aura ──
+    const aura = new THREE.PointLight('#aabaff', 1.4, TILE * 5, 1.4);
+    aura.position.y = 2.0;
+    group.add(aura);
+    group.userData._aura = aura;
+
+    // Scale up — Rika should tower over Yuta (~2.5x)
+    group.scale.setScalar(1.6);
+    return group;
+}
+
 // ─── BLOOD SCREEN SPLATTER ─────────────────────────────────────────
 // Many transparent-background blood drips dripping down — the dark areas
 // stay clear so the game scene is still visible behind the streaks. Holds
@@ -5046,6 +5237,14 @@ function fruitAbility(slot) {
     // a fast tumbling projectile that explodes on impact.
     if (id === 'todo' && slot === 'c') {
         todoBoulderKick();
+        return;
+    }
+
+    // ══════ YUTA — summon Rika (Z) ══════
+    // Summons Yuta's Cursed Queen Rika — a massive floating humanoid horror
+    // that follows him and autonomously attacks nearby enemies for 15 seconds.
+    if (id === 'yuta' && slot === 'z') {
+        yutaSummonRika();
         return;
     }
 
@@ -11802,6 +12001,13 @@ function spawnMinion(type, tileX, tileZ, data) {
         group.userData._colorFn = sp.userData._colorFn;
         group.userData._tongue = sp.userData._tongue;
 
+    } else if (type === 'rika') {
+        // ── Rika — Yuta's Cursed Queen ──
+        const r = buildRikaMesh();
+        group.add(r);
+        group.userData._rightArm = r.userData._rightArm;
+        group.userData._leftArm = r.userData._leftArm;
+
     } else {
         // ── Default humanoid minion ──
 
@@ -12410,6 +12616,109 @@ function updateMinions(dt, now) {
 
             // The mesh group itself stays at world origin — all spine + head positions are world.
             m.mesh.position.set(0, 0, 0);
+            continue;
+        }
+
+        // ── Rika AI ── floats around Yuta, claws nearby enemies
+        if (m.data.type === 'rika') {
+            // HP bar follows the head
+            if (m.data._hpBar) {
+                const bar = m.data._hpBar;
+                bar.position.set(m.data.x * TILE, 6.0, m.data.z * TILE);
+                bar.lookAt(camera.position);
+                const ratio = Math.max(0, m.data.hp / m.data.maxHp);
+                bar._fg.scale.x = ratio;
+                bar._fg.position.x = -(1 - ratio) * 0.55;
+                if (ratio > 0.5) bar._fgMat.color.set('#aabaff');
+                else if (ratio > 0.25) bar._fgMat.color.set('#ffcc00');
+                else bar._fgMat.color.set('#ff2244');
+            }
+
+            // Find nearest enemy
+            let nearestEnemy = null, nearestDist = Infinity;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                const d = Math.hypot(e.data.x - m.data.x, e.data.z - m.data.z);
+                if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
+            }
+
+            // Attack when in range
+            if (nearestEnemy && nearestDist < m.data.attackRange &&
+                now - m.data.lastAttack > m.data.attackSpeed) {
+                m.data.lastAttack = now;
+                dealDamageToEnemy(nearestEnemy, m.data.damage);
+                m.data._punchSide = (m.data._punchSide || 1) * -1;
+                triggerPunchArm(m.mesh, m.data._punchSide);
+                emitParticles(
+                    nearestEnemy.data.x * TILE,
+                    1.6,
+                    nearestEnemy.data.z * TILE,
+                    {
+                        color: ['#aabaff', '#5a8aff', '#ffffff', '#0a0a0e'],
+                        count: 14, speed: 5, spread: 1.0,
+                        gravity: -3, life: 14, size: 0.10, sizeEnd: 0, drag: 0.92,
+                    },
+                );
+                screenShake(0.18, 90);
+            }
+
+            // Move — chase nearest enemy in 12 tiles, otherwise heel near Yuta
+            let targetX, targetZ, chasing = false;
+            if (nearestEnemy && nearestDist < 12) {
+                targetX = nearestEnemy.data.x;
+                targetZ = nearestEnemy.data.z;
+                chasing = true;
+            } else {
+                // Heel slightly behind and to the side of Yuta
+                const playerYaw = fpsCamera.yaw;
+                const pFwdX = -Math.sin(playerYaw), pFwdZ = -Math.cos(playerYaw);
+                const pPerpX = Math.cos(playerYaw), pPerpZ = -Math.sin(playerYaw);
+                targetX = px - pFwdX * 2.0 + pPerpX * 1.4;
+                targetZ = pz - pFwdZ * 2.0 + pPerpZ * 1.4;
+            }
+
+            const dx = targetX - m.data.x, dz = targetZ - m.data.z;
+            const dist = Math.hypot(dx, dz);
+            const stopDist = chasing ? Math.max(m.data.attackRange * 0.7, 1.6) : 0.4;
+            let isMoving = false;
+            if (dist > stopDist) {
+                const moveSpeed = m.data.speed * dt;
+                const dirX = dx / dist, dirZ = dz / dist;
+                const r = 0.4;
+                // Axis-separated wall collision (she still respects walls)
+                const newX = m.data.x + dirX * moveSpeed;
+                const newZ = m.data.z + dirZ * moveSpeed;
+                if (isWalkable(dungeon.map, newX, m.data.z)) { m.data.x = newX; isMoving = true; }
+                if (isWalkable(dungeon.map, m.data.x, newZ)) { m.data.z = newZ; isMoving = true; }
+            }
+
+            // Teleport to Yuta if separated by walls
+            const playerDist = Math.hypot(px - m.data.x, pz - m.data.z);
+            if (playerDist > 14 && isWalkable(dungeon.map, px, pz)) {
+                m.data.x = px; m.data.z = pz;
+            }
+
+            // Bobbing float — Y oscillates over time around 1.0 world units
+            const bob = 1.0 + Math.sin(now * 0.0025 + (m.data._floatPhase || 0)) * 0.25;
+            m.mesh.position.set(m.data.x * TILE, bob, m.data.z * TILE);
+
+            // Face the enemy or movement direction
+            if (chasing && nearestEnemy) {
+                const fdx = nearestEnemy.data.x - m.data.x, fdz = nearestEnemy.data.z - m.data.z;
+                if (Math.hypot(fdx, fdz) > 0.05) {
+                    const targetYaw = Math.atan2(fdx, fdz);
+                    let yawDiff = targetYaw - m.mesh.rotation.y;
+                    while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                    while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                    m.mesh.rotation.y += yawDiff * 0.18;
+                }
+            } else {
+                const targetYaw = fpsCamera.yaw + Math.PI;
+                let yawDiff = targetYaw - m.mesh.rotation.y;
+                while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                m.mesh.rotation.y += yawDiff * 0.10;
+            }
             continue;
         }
 
@@ -13178,6 +13487,56 @@ function dismountSerpent() {
 }
 
 // Megumi H — summon + ride the Great Serpent (toggle: press again to dismount)
+// ─── YUTA — summon Rika ──────────────────────────────────────────
+// Spawns Rika ahead of Yuta. One-at-a-time: re-pressing Z while she's
+// alive replaces her. Rika is timed (15s) and autonomous — chases the
+// nearest enemy within 12 tiles, claws on attack, otherwise heels.
+function yutaSummonRika() {
+    if (!player || !player.alive) return;
+    if (player.classId !== 'yuta') return;
+
+    // Despawn existing Rika so only one is out
+    for (let i = minions3D.length - 1; i >= 0; i--) {
+        if (minions3D[i].data.type === 'rika' && minions3D[i].data._owner === player) {
+            if (minions3D[i].data._hpBar) scene.remove(minions3D[i].data._hpBar);
+            scene.remove(minions3D[i].mesh);
+            minions3D.splice(i, 1);
+        }
+    }
+
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const worldPx = px * TILE, worldPz = pz * TILE;
+
+    // Spawn VFX — dark blue cursed energy burst from a shadow puddle
+    screenShake(0.25, 200);
+    fovPunch(7, 0.15);
+    emitParticles(worldPx + fwdX * 1.8 * TILE, 0.4, worldPz + fwdZ * 1.8 * TILE, {
+        color: ['#aabaff', '#0a0a0e', '#5a8aff', '#ffffff'],
+        count: 32, speed: 4, spread: 1.6,
+        gravity: 0, life: 18, size: 0.16, sizeEnd: 0, drag: 0.92, upward: 2,
+    });
+    groundRing(worldPx + fwdX * 1.8 * TILE, worldPz + fwdZ * 1.8 * TILE, '#aabaff', 3, 700);
+    lightFlash(worldPx, EYE_HEIGHT, worldPz, '#5a8aff', 5, 300);
+
+    spawnMinion('rika', px + fwdX * 1.8, pz + fwdZ * 1.8, {
+        color: '#aabaff', radius: 0.8, speed: 4.0,
+        damage: Math.round(player.damage * 1.5),
+        attackRange: 2.6, attackSpeed: 1500,
+        hp: 250, maxHp: 250,
+        life: performance.now() + 15000,
+        _owner: player,
+    });
+    const summoned = minions3D[minions3D.length - 1];
+    if (summoned) {
+        const bar = buildDogHpBar();
+        scene.add(bar);
+        summoned.data._hpBar = bar;
+        summoned.data._floatPhase = Math.random() * Math.PI * 2;
+    }
+}
+
 function megumiSerpent() {
     if (!player || !player.alive) return;
     if (player.classId !== 'megumi') return;
