@@ -3866,46 +3866,73 @@ function buildRikaMesh() {
         }
     }
 
-    // ── Long bony arms — capsules for limbs, blob for hand, sharp cones for claws ──
+    // ── Hinge-articulated arms — shoulder → elbow → wrist → hand chain.
+    //    Each child group's origin sits at the parent joint center, and joint
+    //    spheres are wider than the connecting capsules so they overlap and
+    //    leave no visible gaps when the arm rotates.
     function buildArm(side) {
+        // Top-level arm group = shoulder hinge (rotated by triggerPunchArm)
         const arm = new THREE.Group();
-        // Shoulder — organic round shoulder cap
-        const shoulder = new THREE.Mesh(organicSphere(0.20, 0.10, 12), skinMat);
-        arm.add(shoulder);
-        // Upper arm — capsule so both ends are rounded
-        const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.10, 0.85, 6, 14), skinMat);
-        upper.position.set(side * 0.18, -0.55, 0);
-        upper.rotation.z = side * 0.32;
+
+        // Shoulder cap at origin — wide enough to swallow the capsule top
+        arm.add(new THREE.Mesh(organicSphere(0.22, 0.10, 12), skinMat));
+
+        // Upper arm capsule hangs straight down from origin. Capsule body
+        // length L means total height L + 2R; with center at y=-L/2 the top
+        // hemisphere extends UP to +R, sitting INSIDE the shoulder sphere.
+        const upperLen = 0.85;
+        const upperR = 0.105;
+        const upper = new THREE.Mesh(new THREE.CapsuleGeometry(upperR, upperLen, 8, 16), skinMat);
+        upper.position.y = -upperLen / 2;
         arm.add(upper);
-        // Elbow — round joint
-        const elbow = new THREE.Mesh(organicSphere(0.105, 0.10, 10), skinMat);
-        elbow.position.set(side * 0.45, -1.05, 0);
-        arm.add(elbow);
-        // Forearm — capsule, slightly tapered look via scaling
-        const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 1.0, 6, 14), skinMat);
-        forearm.position.set(side * 0.62, -1.55, 0.18);
-        forearm.rotation.z = side * -0.18;
-        forearm.rotation.x = -0.42;
-        forearm.scale.set(1, 1, 0.95);
-        arm.add(forearm);
-        // Wrist
-        const wrist = new THREE.Mesh(organicSphere(0.085, 0.10, 8), skinMat);
-        wrist.position.set(side * 0.78, -2.00, 0.42);
-        arm.add(wrist);
-        // Hand — stretched smooth blob (was box)
-        const hand = new THREE.Mesh(organicSphere(0.10, 0.08, 12), skinMat);
-        hand.position.set(side * 0.82, -2.16, 0.50);
-        hand.scale.set(1.55, 2.0, 1.0);
-        arm.add(hand);
-        // Long sharp claws — KEPT as sharp cones per the request
+
+        // Elbow hinge group at the end of the upper arm. Forearm rotates
+        // around this pivot — pre-rotated forward for a natural bent-arm rest.
+        const elbowGroup = new THREE.Group();
+        elbowGroup.position.y = -upperLen;
+        elbowGroup.rotation.x = -0.45; // bent forward at rest
+        arm.add(elbowGroup);
+
+        // Elbow sphere — sits at the hinge centre, wider than both connecting
+        // capsules so it covers their hemispheres for a smooth joint
+        elbowGroup.add(new THREE.Mesh(organicSphere(0.135, 0.10, 12), skinMat));
+
+        // Forearm capsule hangs from the elbow group origin
+        const fLen = 1.0;
+        const fR = 0.092;
+        const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(fR, fLen, 8, 16), skinMat);
+        forearm.position.y = -fLen / 2;
+        elbowGroup.add(forearm);
+
+        // Wrist hinge group at the end of the forearm
+        const wristGroup = new THREE.Group();
+        wristGroup.position.y = -fLen;
+        elbowGroup.add(wristGroup);
+
+        // Wrist sphere — covers forearm bottom + hand top
+        wristGroup.add(new THREE.Mesh(organicSphere(0.115, 0.10, 10), skinMat));
+
+        // Hand below wrist — stretched organic blob
+        const hand = new THREE.Mesh(organicSphere(0.11, 0.08, 14), skinMat);
+        hand.position.y = -0.18;
+        hand.scale.set(1.45, 1.75, 1.0);
+        wristGroup.add(hand);
+
+        // Long sharp claws (KEPT as sharp cones per request)
         for (let f = 0; f < 4; f++) {
-            const claw = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.34, 5), boneMat);
-            claw.position.set(side * 0.82 + (f - 1.5) * 0.04, -2.40, 0.55);
-            claw.rotation.x = -Math.PI / 2 + 0.35;
-            arm.add(claw);
+            const claw = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.40, 5), boneMat);
+            claw.position.set((f - 1.5) * 0.045, -0.42, 0.07);
+            claw.rotation.x = Math.PI; // tip pointing down/forward
+            wristGroup.add(claw);
         }
-        // Pivot at shoulder height — used by triggerPunchArm
-        arm.position.set(side * 0.55, 2.7, 0);
+
+        // Static outward tilt at the shoulder — gives her the canonical
+        // arms-spread-wide silhouette without baking the angle into the
+        // top-level rotation (so triggerPunchArm can still drive .rotation.x)
+        arm.rotation.z = side * 0.30;
+
+        // Position the whole arm at the shoulder world point on the body
+        arm.position.set(side * 0.50, 2.7, 0);
         return arm;
     }
     const rightArm = buildArm(1);
