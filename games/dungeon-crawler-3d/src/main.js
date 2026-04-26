@@ -232,7 +232,10 @@ function init() {
         }
         if (gameState === 'playing') {
             // ── P1 controls ──
-            if (e.code === 'KeyE') playerAttack();       // P1 attack
+            if (e.code === 'KeyE') {
+                if (player?.classId === 'todo') todoBoogieWoogie();
+                else playerAttack();
+            }
             if (e.code === 'KeyZ') fruitAbility('z');     // P1 ability 1
             if (e.code === 'KeyX') fruitAbility('x');     // P1 ability 2
             if (e.code === 'KeyC') fruitAbility('c');     // P1 ability 3
@@ -3740,6 +3743,232 @@ function todoGrabAnimation() {
         const lockUntil = performance.now() + 1100;
         if (pm._rightArm) pm._rightArm._punchUntil = lockUntil;
         if (pm._leftArm) pm._leftArm._punchUntil = lockUntil;
+    }
+}
+
+// ─── BLOOD SCREEN SPLATTER ─────────────────────────────────────────
+// Heavy red splatter overlays the screen, holds briefly, then slides
+// downward off the bottom of the viewport while fading. Used by the
+// Boogie Woogie uppercut finisher.
+function spawnBloodScreenSplatter() {
+    const div = document.createElement('div');
+    div.style.cssText = `
+        position: fixed; top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        pointer-events: none; z-index: 50;
+        opacity: 0;
+        transition: opacity 60ms ease-out;
+        will-change: transform, opacity;
+    `;
+    div.innerHTML = `
+        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="bw-splat" cx="50%" cy="20%" r="65%">
+                    <stop offset="0%"   stop-color="#aa0010" stop-opacity="0.95"/>
+                    <stop offset="40%"  stop-color="#7a0008" stop-opacity="0.85"/>
+                    <stop offset="80%"  stop-color="#3a0008" stop-opacity="0.5"/>
+                    <stop offset="100%" stop-color="#3a0008" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+            <ellipse cx="50" cy="14" rx="62" ry="22" fill="url(#bw-splat)"/>
+            <ellipse cx="20" cy="22" rx="14" ry="9"  fill="#aa0010" fill-opacity="0.78"/>
+            <ellipse cx="78" cy="18" rx="16" ry="7"  fill="#aa0010" fill-opacity="0.78"/>
+            <ellipse cx="42" cy="26" rx="9"  ry="5"  fill="#5a0008" fill-opacity="0.85"/>
+            <ellipse cx="62" cy="29" rx="11" ry="5"  fill="#5a0008" fill-opacity="0.85"/>
+            <rect x="14" y="20" width="2.5" height="38" fill="#5a0008" fill-opacity="0.85"/>
+            <rect x="26" y="22" width="2"   height="46" fill="#7a0008" fill-opacity="0.82"/>
+            <rect x="38" y="14" width="3"   height="58" fill="#5a0008" fill-opacity="0.85"/>
+            <rect x="52" y="22" width="2.5" height="38" fill="#7a0008" fill-opacity="0.82"/>
+            <rect x="60" y="18" width="2"   height="50" fill="#5a0008" fill-opacity="0.85"/>
+            <rect x="72" y="22" width="3"   height="44" fill="#5a0008" fill-opacity="0.85"/>
+            <rect x="84" y="24" width="2"   height="32" fill="#7a0008" fill-opacity="0.82"/>
+        </svg>
+    `;
+    document.body.appendChild(div);
+    // Phase 1 — appear quickly (opacity 0 → 1)
+    requestAnimationFrame(() => { div.style.opacity = '1'; });
+    // Phase 2 — slide off downward + fade out after a short hold
+    setTimeout(() => {
+        div.style.transition = 'transform 1.2s cubic-bezier(.4,.05,.6,1), opacity 1.2s ease-out';
+        div.style.transform = 'translateY(112vh)';
+        div.style.opacity = '0';
+    }, 220);
+    setTimeout(() => div.remove(), 1500);
+}
+
+// ─── BOOGIE WOOGIE (E) — swap places, then uppercut on second press ─
+function todoBoogieWoogie() {
+    if (!player || !player.alive || player.classId !== 'todo') return;
+    const now = performance.now();
+
+    // Second press within 5s of the first AND the marked target is still
+    // alive → uppercut finisher
+    if (player._boogieFollowupTarget &&
+        player._boogieFollowupTarget.data &&
+        player._boogieFollowupTarget.data.alive &&
+        (now - (player._boogieFollowupTime || 0)) < 5000) {
+        const target = player._boogieFollowupTarget;
+        // Teleport TODO right in front of the marked target, facing them
+        const dx = target.data.x - fpsCamera.posX;
+        const dz = target.data.z - fpsCamera.posZ;
+        const d = Math.hypot(dx, dz) || 1;
+        const dirX = dx / d, dirZ = dz / d;
+        let nx = target.data.x - dirX * 0.9;
+        let nz = target.data.z - dirZ * 0.9;
+        if (!isWalkable(dungeon.map, nx, nz)) {
+            nx = target.data.x;
+            nz = target.data.z;
+        }
+        fpsCamera.posX = nx;
+        fpsCamera.posZ = nz;
+        // Face the enemy: fwd = (dirX, dirZ); fwdX = -sin(yaw), fwdZ = -cos(yaw)
+        fpsCamera.yaw = Math.atan2(-dirX, -dirZ);
+        // Trigger the uppercut animation on this target
+        todoUppercut(target);
+        // Clear the followup state
+        player._boogieFollowupTarget = null;
+        player._boogieFollowupTime = 0;
+        return;
+    }
+
+    // Otherwise: first-press swap with the nearest enemy
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    let target = null, bestDist = Infinity;
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const d = Math.hypot(e.data.x - px, e.data.z - pz);
+        if (d > 8) continue;
+        if (d < bestDist) { bestDist = d; target = e; }
+    }
+    if (!target) return; // no nearby enemy — silent no-op
+
+    // Swap positions
+    const tx = target.data.x, tz = target.data.z;
+    target.data.x = px;
+    target.data.z = pz;
+    target.mesh.position.set(px * TILE, 0, pz * TILE);
+    fpsCamera.posX = tx;
+    fpsCamera.posZ = tz;
+
+    // VFX at both swap points
+    const aura = player._auraColor || '#ffffff';
+    const oldWX = px * TILE, oldWZ = pz * TILE;
+    const newWX = tx * TILE, newWZ = tz * TILE;
+    emitParticles(oldWX, EYE_HEIGHT * 0.5, oldWZ, {
+        color: [aura, '#ffffff', '#0a0010'],
+        count: 18, speed: 5, spread: 1.4,
+        gravity: 0, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92,
+    });
+    emitParticles(newWX, EYE_HEIGHT * 0.5, newWZ, {
+        color: [aura, '#ffffff', '#0a0010'],
+        count: 18, speed: 5, spread: 1.4,
+        gravity: 0, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92,
+    });
+    screenFlash('#ffffff', 60);
+    triggerHitstop(40);
+
+    player._boogieFollowupTarget = target;
+    player._boogieFollowupTime = now;
+}
+
+// Set up an uppercut animation on `target` — runs in updateTodoUppercutAnim()
+function todoUppercut(target) {
+    if (!target || !target.data || !target.data.alive) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const grabX = px + fwdX * 0.9;
+    const grabZ = pz + fwdZ * 0.9;
+    target.data.x = grabX;
+    target.data.z = grabZ;
+    target.data._uppercutPinned = true;
+
+    const pm = fpsCamera.playerModel;
+    if (pm && pm._rightArm) {
+        for (let i = activePunches.length - 1; i >= 0; i--) {
+            if (activePunches[i].arm === pm._rightArm) activePunches.splice(i, 1);
+        }
+        pm._rightArm._punchUntil = performance.now() + 800;
+    }
+
+    player._uppercutAnim = {
+        startTime: performance.now(),
+        target,
+        grabX, grabZ,
+        impacted: false,
+    };
+}
+
+function updateTodoUppercutAnim() {
+    const ua = player && player._uppercutAnim;
+    if (!ua) return;
+    const pm = fpsCamera.playerModel;
+    if (!pm || !pm._rightArm) { player._uppercutAnim = null; return; }
+    const ra = pm._rightArm;
+    const target = ua.target;
+    const elapsed = performance.now() - ua.startTime;
+    const windupDur = 130;
+    const swingDur = 130;
+    const recoverDur = 250;
+    const total = windupDur + swingDur + recoverDur;
+
+    if (elapsed >= total) {
+        ra.rotation.set(0.05, 0, 0);
+        if (target && target.data) target.data._uppercutPinned = false;
+        player._uppercutAnim = null;
+        return;
+    }
+
+    if (target && target.data) {
+        target.data.x = ua.grabX;
+        target.data.z = ua.grabZ;
+        target.data._uppercutPinned = true;
+    }
+
+    let armX, enemyY = 0;
+    if (elapsed < windupDur) {
+        // Wind-up — arm pulls back/down for the uppercut load
+        const t = elapsed / windupDur;
+        const ease = 1 - Math.pow(1 - t, 2);
+        armX = 0.7 * ease;
+        enemyY = 0;
+    } else if (elapsed < windupDur + swingDur) {
+        // SWING — fast upward whip
+        const t = (elapsed - windupDur) / swingDur;
+        const ease = 1 - Math.pow(1 - t, 3);
+        armX = 0.7 + (-3.0 * ease); // 0.7 → -2.3 (arm goes from down/back to up/forward)
+        enemyY = ease * 2.8; // enemy launches upward with the punch
+        if (!ua.impacted && t > 0.85) {
+            ua.impacted = true;
+            const ex = ua.grabX * TILE, ez = ua.grabZ * TILE;
+            // Bloody screen splatter — the camera "gets blood on it"
+            spawnBloodScreenSplatter();
+            // Massive blood + bone burst at the enemy's chin
+            emitParticles(ex, 1.7, ez, {
+                color: ['#aa0010', '#5a0010', '#ff0033', '#7a0820', '#ffffff', '#e8e0d0'],
+                count: 55, speed: 8, spread: 2.1,
+                gravity: -3, life: 22, size: 0.20, sizeEnd: 0, drag: 0.92,
+            });
+            screenShake(0.7, 300);
+            triggerHitstop(180);
+            fovPunch(15, 0.16);
+            lightFlash(ex, 1.7, ez, '#ff0033', 14, 320);
+            // Lethal damage
+            if (target && target.data && target.data.alive) {
+                dealDamageToEnemy(target, target.data.hp + 9999);
+            }
+        }
+    } else {
+        // Recovery — arm eases back to neutral; enemy continues upward briefly
+        const t = (elapsed - windupDur - swingDur) / recoverDur;
+        const ease = 1 - Math.pow(1 - t, 2);
+        armX = -2.3 * (1 - ease);
+        enemyY = 2.8 + ease * 0.8; // gentle continued rise after the hit
+    }
+
+    ra.rotation.set(armX, 0, 0);
+    if (target && target.mesh && target.data && target.data.alive) {
+        target.mesh.position.set(ua.grabX * TILE, enemyY, ua.grabZ * TILE);
     }
 }
 
@@ -13351,6 +13580,8 @@ function update() {
     updateTodoSlamAnim();
     // Boulder Kick — animate the leg + spawn projectile at kick frame
     updateTodoBoulderKick();
+    // Boogie Woogie uppercut — pin enemy + animate uppercut
+    updateTodoUppercutAnim();
 
     // Dash speed restore
     if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }
@@ -13404,8 +13635,8 @@ function update() {
     // Update enemies
     for (const e of enemies3D) {
         if (!e.data.alive) continue;
-        // Pinned by TODO's Face Slam — skip AI/movement/attacks until released
-        if (e.data._slamPinned) continue;
+        // Pinned by TODO's Face Slam or Boogie Woogie uppercut — skip AI
+        if (e.data._slamPinned || e.data._uppercutPinned) continue;
 
         const distToPlayer = Math.hypot(px - e.data.x, pz - e.data.z);
         const eRoom = getRoomAt(dungeon.rooms, e.data.x, e.data.z);
