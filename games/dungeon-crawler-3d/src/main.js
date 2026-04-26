@@ -3747,9 +3747,9 @@ function todoGrabAnimation() {
 }
 
 // ─── BLOOD SCREEN SPLATTER ─────────────────────────────────────────
-// Heavy red splatter overlays the screen, holds briefly, then slides
-// downward off the bottom of the viewport while fading. Used by the
-// Boogie Woogie uppercut finisher.
+// Many transparent-background blood drips dripping down — the dark areas
+// stay clear so the game scene is still visible behind the streaks. Holds
+// briefly then slides off the bottom of the viewport while fading.
 function spawnBloodScreenSplatter() {
     const div = document.createElement('div');
     div.style.cssText = `
@@ -3760,34 +3760,53 @@ function spawnBloodScreenSplatter() {
         transition: opacity 60ms ease-out;
         will-change: transform, opacity;
     `;
-    div.innerHTML = `
-        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <radialGradient id="bw-splat" cx="50%" cy="20%" r="65%">
-                    <stop offset="0%"   stop-color="#aa0010" stop-opacity="0.95"/>
-                    <stop offset="40%"  stop-color="#7a0008" stop-opacity="0.85"/>
-                    <stop offset="80%"  stop-color="#3a0008" stop-opacity="0.5"/>
-                    <stop offset="100%" stop-color="#3a0008" stop-opacity="0"/>
-                </radialGradient>
-            </defs>
-            <ellipse cx="50" cy="14" rx="62" ry="22" fill="url(#bw-splat)"/>
-            <ellipse cx="20" cy="22" rx="14" ry="9"  fill="#aa0010" fill-opacity="0.78"/>
-            <ellipse cx="78" cy="18" rx="16" ry="7"  fill="#aa0010" fill-opacity="0.78"/>
-            <ellipse cx="42" cy="26" rx="9"  ry="5"  fill="#5a0008" fill-opacity="0.85"/>
-            <ellipse cx="62" cy="29" rx="11" ry="5"  fill="#5a0008" fill-opacity="0.85"/>
-            <rect x="14" y="20" width="2.5" height="38" fill="#5a0008" fill-opacity="0.85"/>
-            <rect x="26" y="22" width="2"   height="46" fill="#7a0008" fill-opacity="0.82"/>
-            <rect x="38" y="14" width="3"   height="58" fill="#5a0008" fill-opacity="0.85"/>
-            <rect x="52" y="22" width="2.5" height="38" fill="#7a0008" fill-opacity="0.82"/>
-            <rect x="60" y="18" width="2"   height="50" fill="#5a0008" fill-opacity="0.85"/>
-            <rect x="72" y="22" width="3"   height="44" fill="#5a0008" fill-opacity="0.85"/>
-            <rect x="84" y="24" width="2"   height="32" fill="#7a0008" fill-opacity="0.82"/>
-        </svg>
-    `;
+
+    // Build the SVG procedurally for natural-looking variation
+    const colors = ['#7a0008', '#5a0010', '#aa0010', '#3a0008', '#9a0014'];
+    let svg = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">';
+
+    // Sparse top spatter blobs — anchor the impression that blood "hit" the camera
+    const blobCount = 7;
+    for (let i = 0; i < blobCount; i++) {
+        const cx = (i + 0.5) * (100 / blobCount) + (Math.random() - 0.5) * 8;
+        const cy = 1 + Math.random() * 6;
+        const rx = 3.5 + Math.random() * 5;
+        const ry = 1.5 + Math.random() * 2;
+        const op = 0.55 + Math.random() * 0.25;
+        const c = colors[Math.floor(Math.random() * colors.length)];
+        svg += `<ellipse cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" rx="${rx.toFixed(2)}" ry="${ry.toFixed(2)}" fill="${c}" fill-opacity="${op.toFixed(2)}"/>`;
+    }
+
+    // Many drip streaks — varied width, length, and starting position. Each
+    // drip is a tiny head circle at the top + a thin rectangle running down +
+    // a slightly bigger drop circle at the bottom (the "ball" of falling blood).
+    const dripCount = 28;
+    for (let i = 0; i < dripCount; i++) {
+        const x = Math.random() * 100;
+        const startY = Math.random() * 9;
+        const length = 22 + Math.random() * 75;
+        const width = 0.4 + Math.random() * 2.2;
+        const c = colors[Math.floor(Math.random() * colors.length)];
+        const op = 0.7 + Math.random() * 0.25;
+        const cx = x + width / 2;
+        // Top stub (where the drip emerges)
+        svg += `<circle cx="${cx.toFixed(2)}" cy="${startY.toFixed(2)}" r="${(width * 0.85).toFixed(2)}" fill="${c}" fill-opacity="${op.toFixed(2)}"/>`;
+        // Streak running down
+        svg += `<rect x="${x.toFixed(2)}" y="${startY.toFixed(2)}" width="${width.toFixed(2)}" height="${length.toFixed(2)}" fill="${c}" fill-opacity="${op.toFixed(2)}"/>`;
+        // Bottom droplet (only on some drips, for variety)
+        if (Math.random() < 0.7) {
+            const dropR = width * (0.6 + Math.random() * 0.6);
+            svg += `<circle cx="${cx.toFixed(2)}" cy="${(startY + length).toFixed(2)}" r="${dropR.toFixed(2)}" fill="${c}" fill-opacity="${op.toFixed(2)}"/>`;
+        }
+    }
+
+    svg += '</svg>';
+    div.innerHTML = svg;
+
     document.body.appendChild(div);
-    // Phase 1 — appear quickly (opacity 0 → 1)
+    // Phase 1 — appear quickly
     requestAnimationFrame(() => { div.style.opacity = '1'; });
-    // Phase 2 — slide off downward + fade out after a short hold
+    // Phase 2 — slide off downward + fade after a short hold
     setTimeout(() => {
         div.style.transition = 'transform 1.2s cubic-bezier(.4,.05,.6,1), opacity 1.2s ease-out';
         div.style.transform = 'translateY(112vh)';
