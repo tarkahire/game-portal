@@ -10655,7 +10655,10 @@ function updateMinions(dt, now) {
             const perpX = -hZ, perpZ = hX;
             const wobble = moving ? Math.sin(m.data._slitherT) * 0.18 : 0;
             const headWX = (m.data.x + perpX * wobble) * TILE;
-            const headWY = 0.55; // body height off the ground
+            // Body Y must clear the floor at the snake's max body radius.
+            // Max radius = 0.32 (uniform) * 2.6 (SCALE) = 0.832 world units, so
+            // sitting the body centre at 0.9 puts the underside just above floor.
+            const headWY = 0.9;
             const headWZ = (m.data.z + perpZ * wobble) * TILE;
 
             // Initialise / step the chain of world-space spine points
@@ -11025,7 +11028,7 @@ function buildSerpentMesh() {
     // Radii are baked at full size (no group-scale multiplier) because the body
     // geometry is rebuilt from world-space spine points each frame; scaling the
     // parent group would multiply those world positions and offset the snake.
-    const SCALE = 2.2;
+    const SCALE = 2.6;
     const initSpine = [];
     for (let i = 0; i < 20; i++) initSpine.push(new THREE.Vector3(0, 0.55, -i * 0.5));
     // Skinny + uniform along most of the length. Only the last ~25% tapers
@@ -11290,10 +11293,12 @@ function megumiSerpent() {
         summoned.data._slitherT = 0;
     }
 
-    // ── Mount up — surf on the snake ──
+    // ── Mount up — surf on top of the snake (no intersection) ──
+    // Body sits at Y=0.9 (centre) with max radius 0.832 → top of body at 1.732.
+    // Player feet pinned at 1.85 puts them cleanly above the snake's back.
     player._serpentRiding = true;
     player._ridingSerpent = summoned;
-    fpsCamera.flyHeight = 0.9; // sit on top of the snake's body
+    fpsCamera.flyHeight = 1.85;
 }
 
 function buildToadMesh() {
