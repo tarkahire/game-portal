@@ -3743,6 +3743,162 @@ function todoGrabAnimation() {
     }
 }
 
+// ─── BOULDER KICK (C) ──────────────────────────────────────────────
+// Build an irregular stone — sphere with vertex displacement plus a few
+// surface bumps for a chunky boulder silhouette.
+function buildBoulderMesh() {
+    const stoneMat = new THREE.MeshStandardMaterial({
+        color: '#5a5048', roughness: 0.9, metalness: 0.05,
+    });
+    const stoneShade = new THREE.MeshStandardMaterial({
+        color: '#3a3028', roughness: 0.92, metalness: 0.05,
+    });
+    const group = new THREE.Group();
+    const rockGeo = new THREE.SphereGeometry(0.30, 12, 10);
+    const pos = rockGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const noise = Math.sin(x * 9 + 1) * Math.cos(y * 8 + 0.5) * Math.sin(z * 7 + 2) * 0.10;
+        const len = Math.sqrt(x * x + y * y + z * z);
+        if (len > 0.001) {
+            const k = 1 + noise / len;
+            pos.setXYZ(i, x * k, y * k, z * k);
+        }
+    }
+    rockGeo.computeVertexNormals();
+    group.add(new THREE.Mesh(rockGeo, stoneMat));
+    // A handful of darker surface bumps
+    for (let i = 0; i < 5; i++) {
+        const bumpGeo = new THREE.SphereGeometry(0.07 + Math.random() * 0.05, 6, 6);
+        const bump = new THREE.Mesh(bumpGeo, stoneShade);
+        const ang = Math.random() * Math.PI * 2;
+        const tilt = (Math.random() - 0.5) * Math.PI;
+        bump.position.set(
+            Math.cos(ang) * Math.cos(tilt) * 0.28,
+            Math.sin(tilt) * 0.28,
+            Math.sin(ang) * Math.cos(tilt) * 0.28,
+        );
+        group.add(bump);
+    }
+    return group;
+}
+
+function todoBoulderKick() {
+    if (!player || !player.alive || player.classId !== 'todo') return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ;
+    const yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+
+    // Spawn the boulder at the floor in front of TODO's foot
+    const boulder = buildBoulderMesh();
+    const wx = (px + fwdX * 0.8) * TILE;
+    const wz = (pz + fwdZ * 0.8) * TILE;
+    boulder.position.set(wx, 0.30, wz);
+    scene.add(boulder);
+
+    // Dust kick-up at the boulder's spawn point — like he just yanked it loose
+    emitParticles(wx, 0.2, wz, {
+        color: ['#8a7860', '#a89880', '#c0b8a0', '#5a4838'],
+        count: 18, speed: 4, spread: 1.4,
+        gravity: -3, life: 14, size: 0.16, sizeEnd: 0, drag: 0.92, upward: 1.2,
+    });
+
+    // Drop any active hook punch / grab on the right leg's pivot — this
+    // animation owns the leg now
+    const pm = fpsCamera.playerModel;
+
+    player._boulderKick = {
+        startTime: performance.now(),
+        boulder,
+        fwdX, fwdZ,
+        spawnYaw: yaw,
+        launched: false,
+    };
+
+    // Cinematic side angle — show TODO's profile so the kick reads
+    const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+    const camWorldX = (px + fwdX * 0.6 + perpX * 1.1) * TILE;
+    const camWorldY = EYE_HEIGHT - 0.1;
+    const camWorldZ = (pz + fwdZ * 0.6 + perpZ * 1.1) * TILE;
+    fpsCamera.setCinematic(camWorldX, camWorldY, camWorldZ,
+        (px + fwdX * 0.6) * TILE, EYE_HEIGHT - 0.4, (pz + fwdZ * 0.6) * TILE, 700);
+}
+
+// State-driven kick animation — wind-up → kick → recovery. Runs after
+// the per-character walk anim so its leg-rotation writes win.
+function updateTodoBoulderKick() {
+    const bk = player && player._boulderKick;
+    if (!bk) return;
+    const pm = fpsCamera.playerModel;
+    if (!pm || !pm._rightLeg) { player._boulderKick = null; return; }
+    const leg = pm._rightLeg;
+    const elapsed = performance.now() - bk.startTime;
+    const windupDur = 240;
+    const kickDur = 130;
+    const recoverDur = 200;
+    const total = windupDur + kickDur + recoverDur;
+
+    if (elapsed >= total) {
+        leg.rotation.set(0, 0, 0);
+        player._boulderKick = null;
+        return;
+    }
+
+    if (elapsed < windupDur) {
+        // Wind-up — leg rises slightly back
+        const t = elapsed / windupDur;
+        const ease = 1 - Math.pow(1 - t, 2);
+        leg.rotation.x = 0.8 * ease; // pull leg back/up
+        // Boulder hovers up to foot height during wind-up
+        if (bk.boulder) {
+            const wx = (fpsCamera.posX + bk.fwdX * 0.8) * TILE;
+            const wz = (fpsCamera.posZ + bk.fwdZ * 0.8) * TILE;
+            bk.boulder.position.set(wx, 0.30 + ease * 0.25, wz);
+            bk.boulder.rotation.y += 0.05;
+        }
+    } else if (elapsed < windupDur + kickDur) {
+        // Kick — leg snaps forward fast
+        const t = (elapsed - windupDur) / kickDur;
+        const ease = 1 - Math.pow(1 - t, 3);
+        leg.rotation.x = 0.8 + (-2.4 * ease); // 0.8 → -1.6 (powerful forward swing)
+
+        if (!bk.launched && t > 0.55) {
+            bk.launched = true;
+            // Convert the prop boulder into a real projectile travelling forward
+            const startX = bk.boulder.position.x;
+            const startZ = bk.boulder.position.z;
+            bk.boulder.position.y = 0.85; // launch at chest height
+            projectiles3D.push({
+                mesh: bk.boulder,
+                vx: bk.fwdX * 18,
+                vz: bk.fwdZ * 18,
+                damage: Math.round(player.damage * 16 * (player._cursedAuraActive ? 1.5 : 1)),
+                owner: 'player',
+                traveled: 0,
+                range: 30,
+                _isBoulder: true,
+            });
+            // Kick burst — dust at the foot + impact feel
+            const aura = player._auraColor || '#ffaa00';
+            emitParticles(startX, 0.4, startZ, {
+                color: [aura, '#8a7860', '#c0b8a0', '#ffffff'],
+                count: 22, speed: 6, spread: 1.4,
+                gravity: -3, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92,
+            });
+            screenShake(0.30, 110);
+            triggerHitstop(40);
+            fovPunch(8, 0.16);
+            // Forget the prop reference — it lives in projectiles3D now
+            bk.boulder = null;
+        }
+    } else {
+        // Recovery — leg eases back to neutral
+        const t = (elapsed - windupDur - kickDur) / recoverDur;
+        const ease = 1 - Math.pow(1 - t, 2);
+        leg.rotation.x = -1.6 * (1 - ease);
+    }
+}
+
 // ─── FACE SLAM (X) ─────────────────────────────────────────────────
 // Grab the nearest enemy in a forward cone, lift them by the head, slam
 // them into the floor. Heavy damage + ground crack + dust + blood.
@@ -4577,8 +4733,8 @@ function p2Dodge() {
 // ─── ABILITY DISPATCHER (Z/X/C/V/F) — clean slate ──────────────
 function fruitAbility(slot) {
     if (!player || !player.alive) return;
-    // TODO has Z (Black Flash) and X (Face Slam) — other slots no-op
-    if (player.classId === 'todo' && slot !== 'z' && slot !== 'x') return;
+    // TODO has Z (Black Flash), X (Face Slam), and C (Boulder Kick) — others no-op
+    if (player.classId === 'todo' && slot !== 'z' && slot !== 'x' && slot !== 'c') return;
     const now = performance.now();
     const px = fpsCamera.posX, pz = fpsCamera.posZ;
     const yaw = fpsCamera.yaw;
@@ -4603,6 +4759,14 @@ function fruitAbility(slot) {
     // and slam them into the floor for heavy damage + ground crack.
     if (id === 'todo' && slot === 'x') {
         todoFaceSlam();
+        return;
+    }
+
+    // ══════ TODO — Boulder Kick (C) ══════
+    // Picks up a stone from the floor, winds up, and kicks it forward as
+    // a fast tumbling projectile that explodes on impact.
+    if (id === 'todo' && slot === 'c') {
+        todoBoulderKick();
         return;
     }
 
@@ -13166,6 +13330,8 @@ function update() {
     updateTodoGrabAnim();
     // Face Slam — pin enemy + animate slam (also after punch swings)
     updateTodoSlamAnim();
+    // Boulder Kick — animate the leg + spawn projectile at kick frame
+    updateTodoBoulderKick();
 
     // Dash speed restore
     if (player._dashEnd && now > player._dashEnd) { fpsCamera.speed = player._dashRestore || player.speed; player._dashEnd = 0; }
@@ -13307,6 +13473,12 @@ function update() {
         p.mesh.position.x += dx;
         p.mesh.position.z += dz;
         p.traveled += Math.sqrt(dx * dx + dz * dz);
+        // Boulder Kick projectile — tumble in flight
+        if (p._isBoulder) {
+            p.mesh.rotation.x += 0.45;
+            p.mesh.rotation.z += 0.32;
+            p.mesh.rotation.y += 0.18;
+        }
 
         // Wall collision
         const tileX = p.mesh.position.x / TILE, tileZ = p.mesh.position.z / TILE;
@@ -13323,6 +13495,27 @@ function update() {
                 const dist = Math.hypot(e.data.x - tileX, e.data.z - tileZ);
                 if (dist < e.data.radius + 0.3) {
                     dealDamageToEnemy(e, p.damage);
+                    // Boulder Kick impact — heavy dust + debris + screen shake
+                    if (p._isBoulder) {
+                        const hx = p.mesh.position.x, hz = p.mesh.position.z;
+                        emitParticles(hx, 0.6, hz, {
+                            color: ['#8a7860', '#a89880', '#c0b8a0', '#5a4838', '#3a3028', '#aa0010'],
+                            count: 36, speed: 7, spread: 1.7,
+                            gravity: -4, life: 20, size: 0.18, sizeEnd: 0, drag: 0.92, upward: 1.0,
+                        });
+                        groundRing(hx, hz, '#8a7860', 1.6, 450);
+                        groundDecal(hx, hz, '#3a3028', 1.0, 3000);
+                        screenShake(0.5, 200);
+                        triggerHitstop(80);
+                        fovPunch(10, 0.16);
+                        // Light splash damage to nearby enemies
+                        for (const e2 of enemies3D) {
+                            if (!e2.data.alive || e2 === e) continue;
+                            if (Math.hypot(e2.data.x - tileX, e2.data.z - tileZ) < 1.5) {
+                                dealDamageToEnemy(e2, Math.round(p.damage * 0.4));
+                            }
+                        }
+                    }
                     // Fire Arrow explosion on impact
                     if (p._isFireArrow) {
                         const hx = p.mesh.position.x, hz = p.mesh.position.z;
