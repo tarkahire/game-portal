@@ -2589,7 +2589,6 @@ function loadFloor(floor) {
     for (const e of enemies3D) { scene.remove(e.mesh); if (e.label) scene.remove(e.label); }
     for (const p of projectiles3D) { scene.remove(p.mesh); }
     clearBloodSplatters();
-    clearBlackFlashAfterimages();
     // Keep permanent minions (shadows, clones, dogs) across floors
     const keepMinions = minions3D.filter(m => m.data.life === Infinity);
     const removeMinions = minions3D.filter(m => m.data.life !== Infinity);
@@ -3437,90 +3436,6 @@ function screenFlash(color, duration) {
 // ── Walking Animation (3rd person leg/arm bob) ──
 let walkCycle = 0;
 
-// ─── BLACK FLASH AFTERIMAGE SILHOUETTES ───────────────────────────
-// Spawn two flat-colored clones of the player model — one black to the
-// player's left, one red to the right — that fade out over ~350ms. This
-// is the iconic JJK time-distortion afterimage shown when a Black Flash
-// triggers (one figure frozen in the past, one in the present).
-const blackFlashAfterimages = []; // { group, mats, bornAt, duration }
-
-function spawnBlackFlashAfterimages() {
-    const pm = fpsCamera && fpsCamera.playerModel;
-    if (!pm) return;
-    const px = fpsCamera.posX * TILE;
-    const pz = fpsCamera.posZ * TILE;
-    const fly = fpsCamera.flyHeight || 0;
-    const yaw = fpsCamera.yaw;
-    // Right-side perpendicular vector relative to player facing
-    const rightX = Math.cos(yaw);
-    const rightZ = -Math.sin(yaw);
-    const offset = 1.0;
-
-    function makeSilhouette(color, sideSign) {
-        const clone = pm.clone(true);
-        // Override every mesh material with a single flat colour, then make
-        // sure every node is visible (the original may be invisible in
-        // first-person mode).
-        const replacementMats = [];
-        const mat = new THREE.MeshBasicMaterial({
-            color, transparent: true, opacity: 0.95,
-            depthWrite: false,
-        });
-        clone.traverse(c => {
-            c.visible = true;
-            if (c.isMesh) {
-                c.material = mat;
-            } else if (c.isSprite || c.isLight || c.isPoints) {
-                // Drop labels/lights/aura point lights from the clone — the
-                // afterimage is just the body silhouette, not the gear.
-                c.visible = false;
-            }
-        });
-        replacementMats.push(mat);
-        clone.position.set(px + rightX * offset * sideSign, fly, pz + rightZ * offset * sideSign);
-        clone.rotation.y = yaw + Math.PI;
-        clone.scale.copy(pm.scale);
-        clone.visible = true;
-        scene.add(clone);
-        return { group: clone, mats: replacementMats };
-    }
-
-    const black = makeSilhouette('#000000', -1); // left side, black "past" silhouette
-    const red   = makeSilhouette('#ff0010', +1); // right side, red "present" silhouette
-
-    blackFlashAfterimages.push({
-        groups: [black.group, red.group],
-        mats: [...black.mats, ...red.mats],
-        bornAt: performance.now(),
-        duration: 350,
-    });
-}
-
-function updateBlackFlashAfterimages() {
-    const now = performance.now();
-    for (let i = blackFlashAfterimages.length - 1; i >= 0; i--) {
-        const a = blackFlashAfterimages[i];
-        const t = (now - a.bornAt) / a.duration;
-        if (t >= 1) {
-            for (const g of a.groups) scene.remove(g);
-            for (const m of a.mats) m.dispose();
-            blackFlashAfterimages.splice(i, 1);
-            continue;
-        }
-        // Hold mostly opaque for the first half, then fade
-        const opacity = t < 0.5 ? 0.95 : 0.95 * (1 - (t - 0.5) * 2);
-        for (const m of a.mats) m.opacity = opacity;
-    }
-}
-
-function clearBlackFlashAfterimages() {
-    for (const a of blackFlashAfterimages) {
-        for (const g of a.groups) scene.remove(g);
-        for (const m of a.mats) m.dispose();
-    }
-    blackFlashAfterimages.length = 0;
-}
-
 // ─── BLACK FLASH WALL-SPLAT BLOOD ─────────────────────────────────
 // When an enemy launched by Black Flash collides with a wall, we paint a
 // hyper-real-looking blood splat onto the wall surface plus several drip
@@ -3889,9 +3804,6 @@ function playerAttack() {
         });
         // Bright red pulse light
         lightFlash(hitX, hitY, hitZ, '#ff0033', 12, 200);
-        // Black + red afterimage silhouettes flanking the player — the
-        // signature JJK time-distortion frame
-        spawnBlackFlashAfterimages();
     }
 
     // Visual effects per step
@@ -12873,7 +12785,6 @@ function update() {
     updateMinions(dt, now);
     updateBlackFlashKnockback(dt);
     updateBloodDrips(dt);
-    updateBlackFlashAfterimages();
     // (old Katakuri portal update removed — Blox Fruits system)
     updateFruitEffects(now, dt);
 
