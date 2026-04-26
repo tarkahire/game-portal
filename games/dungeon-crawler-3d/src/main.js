@@ -11596,77 +11596,149 @@ function buildSerpentMesh() {
     return g;
 }
 
-// ─── CURSED ENERGY AURA — billboarded fire wisps surrounding the player ─
-// Procedurally bakes a flame-shaped sprite texture and spawns ~36 sprites
-// in a shell around the body. Each sprite has its own lifetime: it spawns
-// near the feet, rises while scaling up and fading, then respawns. Continuous
-// emission gives a sustained flowing-fire look rather than tube tentacles.
+// ─── CURSED ENERGY AURA — bold flame tongues like JJK anime cursed energy ─
+// Big sprite-based flame tongues with anime-style outlines. Fewer, larger
+// wisps with slower flowing motion than a fire emitter — closer to the
+// reference's bold sweeping flame shapes. Each tongue has a coloured fill
+// PLUS a slightly bigger dark outline behind for the bold anime silhouette.
+
 let _cursedFlameTex = null;
-function getFlameTexture() {
-    if (_cursedFlameTex) return _cursedFlameTex;
-    const W = 64, H = 128;
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    // Vertical flame gradient — bright/wide at bottom, fading and narrowing toward top
-    const grad = ctx.createRadialGradient(W * 0.5, H * 0.78, 4, W * 0.5, H * 0.55, 50);
-    grad.addColorStop(0,   'rgba(255,255,255,1)');
-    grad.addColorStop(0.25,'rgba(255,255,255,0.85)');
-    grad.addColorStop(0.6, 'rgba(255,255,255,0.35)');
-    grad.addColorStop(1,   'rgba(255,255,255,0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-    // Pinch the top with a vertical fade so the wisp tapers more like a flame tongue
-    const topFade = ctx.createLinearGradient(0, 0, 0, H);
-    topFade.addColorStop(0,   'rgba(0,0,0,1)');
-    topFade.addColorStop(0.25,'rgba(0,0,0,0.4)');
-    topFade.addColorStop(0.5, 'rgba(0,0,0,0)');
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = topFade;
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalCompositeOperation = 'source-over';
-    _cursedFlameTex = new THREE.CanvasTexture(canvas);
-    return _cursedFlameTex;
+let _cursedOutlineTex = null;
+function getFlameTextures() {
+    if (_cursedFlameTex && _cursedOutlineTex) {
+        return { fill: _cursedFlameTex, outline: _cursedOutlineTex };
+    }
+    const W = 128, H = 256;
+
+    // Procedural anime flame-tongue silhouette: wider at the base, tapering
+    // up with a curved drop shape. We bake it once via a path so the inner
+    // fill and the outline both match.
+    function drawFlameSilhouette(ctx, paddingX, paddingY) {
+        ctx.beginPath();
+        const cx = W / 2;
+        // Curved teardrop: bottom centre wide, narrowing to a soft point at the top
+        ctx.moveTo(cx, H - paddingY); // bottom centre
+        ctx.bezierCurveTo(
+            W - paddingX, H - paddingY * 0.55,
+            W - paddingX * 0.6, H * 0.35,
+            cx + 8, paddingY,
+        );
+        ctx.bezierCurveTo(
+            cx + 4, paddingY * 1.3,
+            cx - 4, paddingY * 1.3,
+            cx - 8, paddingY,
+        );
+        ctx.bezierCurveTo(
+            paddingX * 0.6, H * 0.35,
+            paddingX, H - paddingY * 0.55,
+            cx, H - paddingY,
+        );
+        ctx.closePath();
+    }
+
+    // Outline (dark backing) — solid silhouette filled with black, slightly
+    // bigger than the fill so it reads as a thin dark border in the JJK style.
+    {
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'rgba(8, 6, 16, 0.85)';
+        drawFlameSilhouette(ctx, 6, 8);
+        ctx.fill();
+        // Soften the edges slightly
+        ctx.globalCompositeOperation = 'destination-out';
+        const fade = ctx.createRadialGradient(W*0.5, H*0.7, 5, W*0.5, H*0.55, W*0.6);
+        fade.addColorStop(0, 'rgba(0,0,0,0)');
+        fade.addColorStop(0.85, 'rgba(0,0,0,0)');
+        fade.addColorStop(1, 'rgba(0,0,0,0.5)');
+        ctx.fillStyle = fade;
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'source-over';
+        _cursedOutlineTex = new THREE.CanvasTexture(canvas);
+    }
+
+    // Coloured fill — the main wisp body
+    {
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        // Solid white silhouette, then mask with a soft radial gradient so
+        // the body of the flame is bright but the edges fade naturally.
+        ctx.fillStyle = '#ffffff';
+        drawFlameSilhouette(ctx, 12, 14);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'destination-in';
+        const grad = ctx.createRadialGradient(W*0.5, H*0.72, 4, W*0.5, H*0.55, W*0.55);
+        grad.addColorStop(0,   'rgba(255,255,255,1)');
+        grad.addColorStop(0.45,'rgba(255,255,255,0.95)');
+        grad.addColorStop(0.85,'rgba(255,255,255,0.4)');
+        grad.addColorStop(1,   'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'source-over';
+        _cursedFlameTex = new THREE.CanvasTexture(canvas);
+    }
+    return { fill: _cursedFlameTex, outline: _cursedOutlineTex };
 }
 
 function buildCursedAura(color) {
     const group = new THREE.Group();
     const c = new THREE.Color(color);
-    const tex = getFlameTexture();
+    const { fill: fillTex, outline: outlineTex } = getFlameTextures();
 
-    const FLAME_COUNT = 36;
+    // 14 big bold flame tongues. Each one is a sprite (always faces camera)
+    // PLUS a slightly bigger dark outline sprite behind for the anime look.
+    // A few are mid-size foreground tongues, others are tall background ones.
+    const FLAME_COUNT = 14;
     const flames = [];
     for (let i = 0; i < FLAME_COUNT; i++) {
-        // Per-sprite material so we can animate opacity independently
-        const mat = new THREE.SpriteMaterial({
-            map: tex, color: c, transparent: true, opacity: 0,
-            blending: THREE.AdditiveBlending, depthWrite: false,
+        const isBig = i < 6; // first 6 are large background tongues
+        const fillMat = new THREE.SpriteMaterial({
+            map: fillTex, color: c, transparent: true, opacity: 0,
+            blending: THREE.NormalBlending, depthWrite: false,
         });
-        const s = new THREE.Sprite(mat);
-        s._baseAngle = Math.random() * Math.PI * 2;
-        s._baseRadius = 0.42 + Math.random() * 0.30;
-        s._lifeMax = 0.9 + Math.random() * 1.1;
-        s._life = Math.random() * s._lifeMax; // stagger so they aren't all in sync
-        s._riseHeight = 1.4 + Math.random() * 1.2;
-        s._sizeMax = 0.55 + Math.random() * 0.45;
-        s._flicker = Math.random() * Math.PI * 2;
-        s.scale.set(0.001, 0.001, 1);
-        group.add(s);
-        flames.push(s);
+        const fill = new THREE.Sprite(fillMat);
+
+        // Outline backing — slightly bigger, drawn behind via renderOrder
+        const outlineMat = new THREE.SpriteMaterial({
+            map: outlineTex, color: 0x000000, transparent: true, opacity: 0,
+            blending: THREE.NormalBlending, depthWrite: false,
+        });
+        const outline = new THREE.Sprite(outlineMat);
+        outline.renderOrder = -1;
+        fill.renderOrder = 0;
+
+        const wrap = new THREE.Group();
+        wrap.add(outline);
+        wrap.add(fill);
+
+        wrap._fill = fill;
+        wrap._outline = outline;
+        wrap._baseAngle = (i / FLAME_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+        wrap._baseRadius = isBig ? 0.55 + Math.random() * 0.25 : 0.40 + Math.random() * 0.25;
+        wrap._lifeMax = isBig ? 2.4 + Math.random() * 1.2 : 1.6 + Math.random() * 1.0;
+        wrap._life = Math.random() * wrap._lifeMax; // stagger
+        wrap._riseHeight = isBig ? 2.4 + Math.random() * 1.0 : 1.6 + Math.random() * 0.8;
+        wrap._widthBase = isBig ? 1.5 + Math.random() * 0.6 : 1.0 + Math.random() * 0.5;
+        wrap._heightBase = isBig ? 3.5 + Math.random() * 1.2 : 2.4 + Math.random() * 0.8;
+        wrap._sway = Math.random() * Math.PI * 2;
+        wrap._isBig = isBig;
+        group.add(wrap);
+        flames.push(wrap);
     }
     group.userData._flames = flames;
     group.userData._color = c;
 
-    // Bright aura point light pulsing in the chosen color
-    const light = new THREE.PointLight(c, 4, TILE * 5, 1.5);
+    // Strong aura point light in the chosen colour
+    const light = new THREE.PointLight(c, 5.5, TILE * 6, 1.5);
     light.position.set(0, 1.2, 0);
     group.add(light);
     group.userData._light = light;
 
-    // Soft ground glow disc under the player's feet
-    const discGeo = new THREE.CircleGeometry(0.95, 24);
+    // Ground glow disc underneath
+    const discGeo = new THREE.CircleGeometry(1.1, 32);
     const discMat = new THREE.MeshBasicMaterial({
-        color: c, transparent: true, opacity: 0.4,
+        color: c, transparent: true, opacity: 0.5,
         blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
     });
     const disc = new THREE.Mesh(discGeo, discMat);
@@ -11674,18 +11746,6 @@ function buildCursedAura(color) {
     disc.position.y = 0.05;
     group.add(disc);
     group.userData._disc = disc;
-
-    // Inner core sprite — bigger, hotter wisp that surrounds the torso for
-    // the "intense glow at the body, wisps trailing off" silhouette
-    const coreMat = new THREE.SpriteMaterial({
-        map: tex, color: '#ffffff', transparent: true, opacity: 0.55,
-        blending: THREE.AdditiveBlending, depthWrite: false,
-    });
-    const core = new THREE.Sprite(coreMat);
-    core.scale.set(1.6, 2.6, 1);
-    core.position.y = 1.0;
-    group.add(core);
-    group.userData._core = core;
 
     return group;
 }
@@ -11700,47 +11760,46 @@ function updateCursedAura(group, dt, time) {
         const k = f._life / f._lifeMax;
 
         if (k >= 1) {
-            // Respawn at a new random spot around the player
+            // Respawn at a new spot around the player. Keep the same isBig
+            // class so big background tongues stay big when they cycle.
             f._life = 0;
             f._baseAngle = Math.random() * Math.PI * 2;
-            f._baseRadius = 0.42 + Math.random() * 0.30;
-            f._lifeMax = 0.9 + Math.random() * 1.1;
-            f._riseHeight = 1.4 + Math.random() * 1.2;
-            f._sizeMax = 0.55 + Math.random() * 0.45;
+            f._baseRadius = f._isBig ? 0.55 + Math.random() * 0.25 : 0.40 + Math.random() * 0.25;
+            f._lifeMax = f._isBig ? 2.4 + Math.random() * 1.2 : 1.6 + Math.random() * 1.0;
+            f._riseHeight = f._isBig ? 2.4 + Math.random() * 1.0 : 1.6 + Math.random() * 0.8;
+            f._widthBase = f._isBig ? 1.5 + Math.random() * 0.6 : 1.0 + Math.random() * 0.5;
+            f._heightBase = f._isBig ? 3.5 + Math.random() * 1.2 : 2.4 + Math.random() * 0.8;
         }
 
-        // Position: sit in a shell around the player, rise upward over lifetime
-        const ang = f._baseAngle + Math.sin(t * 1.4 + i) * 0.12; // slight swirl
-        const rad = f._baseRadius * (1 + Math.sin(t * 2 + f._flicker) * 0.05);
+        // Slow sway around the body — gives the flowing energy feel
+        const ang = f._baseAngle + Math.sin(t * 0.6 + f._sway) * 0.18;
+        const rad = f._baseRadius;
         f.position.x = Math.cos(ang) * rad;
         f.position.z = Math.sin(ang) * rad;
-        f.position.y = 0.2 + k * f._riseHeight;
+        // Rise from waist to overhead
+        f.position.y = 0.5 + k * f._riseHeight;
 
-        // Scale: ease in, peak, ease out — and flicker
-        const envelope = Math.sin(k * Math.PI); // 0 → 1 → 0 across lifetime
-        const flick = 0.85 + Math.sin(t * 8 + f._flicker) * 0.15;
-        const sx = f._sizeMax * envelope * flick * 0.7;
-        const sy = f._sizeMax * envelope * flick * 1.4;
-        f.scale.set(sx, sy, 1);
+        // Soft envelope — flame ease in, hold long, ease out (flat-top sin)
+        const env = Math.min(1, Math.sin(k * Math.PI) * 1.6);
+        const breathe = 1 + Math.sin(t * 2.0 + f._sway) * 0.05;
+        const sx = f._widthBase * env * breathe;
+        const sy = f._heightBase * env * breathe;
+        f._fill.scale.set(sx, sy, 1);
+        // Outline slightly bigger than fill for the anime border
+        f._outline.scale.set(sx * 1.15, sy * 1.06, 1);
 
-        // Opacity: ease in, hold, ease out — plus rapid flicker for fire feel
-        f.material.opacity = envelope * (0.5 + Math.sin(t * 12 + f._flicker) * 0.15);
+        // Opacity — fill is bold (no rapid flicker), outline a bit fainter
+        f._fill.material.opacity = env * 0.92;
+        f._outline.material.opacity = env * 0.80;
     }
 
-    // Inner core wisp — gentle breathing scale + opacity flicker
-    if (group.userData._core) {
-        const coreScale = 1 + Math.sin(t * 2.2) * 0.08;
-        group.userData._core.scale.set(1.6 * coreScale, 2.6 * coreScale, 1);
-        group.userData._core.material.opacity = 0.45 + Math.sin(t * 5) * 0.12;
-    }
-
-    // Light pulse + ground disc pulse
+    // Light + ground disc pulse
     if (group.userData._light) {
-        group.userData._light.intensity = 3.5 + Math.sin(t * 3) * 0.8;
+        group.userData._light.intensity = 4.5 + Math.sin(t * 2.4) * 1.0;
     }
     if (group.userData._disc) {
-        group.userData._disc.material.opacity = 0.3 + Math.sin(t * 2.5) * 0.15;
-        const s = 1 + Math.sin(t * 2) * 0.15;
+        group.userData._disc.material.opacity = 0.4 + Math.sin(t * 2) * 0.15;
+        const s = 1 + Math.sin(t * 1.5) * 0.10;
         group.userData._disc.scale.set(s, s, 1);
     }
 }
