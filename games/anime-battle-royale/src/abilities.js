@@ -232,100 +232,501 @@ export function castAbility(abilityName, owner, ctx) {
     const baseDmg = owner.character.attackDamage;
 
     switch (abilityName) {
-        // ══════════ GOJO ══════════
+        // ══════════ GOJO — full DC3D port ══════════
         case 'Blue': {
+            // Cursed Technique Lapse: Blue — gravitational pull point
             const tx = owner.x + dirX * 5, tz = owner.z + dirZ * 5;
-            // Blue orb at target
-            const orb = new THREE.Mesh(
-                new THREE.SphereGeometry(0.4, 12, 12),
-                new THREE.MeshBasicMaterial({ color: '#1565c0', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
-            );
-            orb.position.set(tx, EYE_HEIGHT * 0.6, tz);
+            const orbY = EYE_HEIGHT * 0.6;
+
+            // Layered orb: outer glow + inner core + spinning rings + light
+            const orbGeo = new THREE.SphereGeometry(0.4, 12, 12);
+            const orbMat = new THREE.MeshBasicMaterial({
+                color: '#1565c0', transparent: true, opacity: 0.8,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            orb.position.set(tx, orbY, tz);
             ctx.scene.add(orb);
-            // Spinning rings
+            const coreGeo = new THREE.SphereGeometry(0.15, 8, 8);
+            const coreMat = new THREE.MeshBasicMaterial({
+                color: '#82b1ff', transparent: true, opacity: 1,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            orb.add(new THREE.Mesh(coreGeo, coreMat));
+            const ringGeos = [], ringMats = [];
             for (let r = 0; r < 3; r++) {
-                const ring = new THREE.Mesh(
-                    new THREE.TorusGeometry(0.5 + r * 0.15, 0.02, 6, 16),
-                    new THREE.MeshBasicMaterial({ color: '#4fc3f7', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
-                );
+                const rg = new THREE.TorusGeometry(0.5 + r * 0.15, 0.02, 6, 16);
+                const rm = new THREE.MeshBasicMaterial({
+                    color: '#4fc3f7', transparent: true, opacity: 0.5,
+                    blending: THREE.AdditiveBlending, depthWrite: false
+                });
+                const ring = new THREE.Mesh(rg, rm);
                 ring.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
                 orb.add(ring);
+                ringGeos.push(rg); ringMats.push(rm);
             }
-            const blueLight = new THREE.PointLight('#1565c0', 5, TILE * 6, 2);
-            orb.add(blueLight);
+            orb.add(new THREE.PointLight('#1565c0', 5, 24, 2));
+
             groundRing(tx, tz, '#1565c0', 3, 800);
             groundDecal(tx, tz, '#0d47a1', 2, 2000);
-            emitParticles(tx, EYE_HEIGHT * 0.6, tz, {
+            emitParticles(tx, orbY, tz, {
                 color: ['#1565c0', '#1e88e5', '#42a5f5', '#82b1ff'],
                 count: 30, speed: 4, spread: 3,
                 gravity: 0, life: 20, lifeVar: 10,
                 size: 0.12, sizeEnd: 0.02, drag: 0.92
             });
-            pullEnemiesOverTime(ctx.scene, owner, ctx.fighters, tx, tz, 6, 5, 1500, 300, baseDmg * 0.8 * buffMul, '#1565c0');
-            // Spin + implode
-            const spinStart = performance.now();
+
+            // Hand pose — caster reaches forward
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            if (arm) {
+                arm.rotation.x = -1.2;
+                setTimeout(() => { if (arm) arm.rotation.x = 0.05; }, 1500);
+            }
+
+            // Pull + DOT for 1.5s, then implode
+            const start = performance.now();
             _vfx.push({
-                cleanup() { ctx.scene.remove(orb); },
-                tick() {
-                    const e = performance.now() - spinStart;
-                    orb.children.forEach(c => {
-                        if (c.geometry?.type === 'TorusGeometry') {
-                            c.rotation.x += 0.15; c.rotation.y += 0.1;
+                cleanup() {
+                    ctx.scene.remove(orb);
+                    orbGeo.dispose(); orbMat.dispose();
+                    coreGeo.dispose(); coreMat.dispose();
+                    for (const g of ringGeos) g.dispose();
+                    for (const m of ringMats) m.dispose();
+                },
+                _lastDmg: start,
+                _lastPull: start,
+                tick(dt, c) {
+                    if (!owner.alive) return false;
+                    const now = performance.now();
+                    // Spin the rings
+                    orb.children.forEach(child => {
+                        if (child.geometry?.type === 'TorusGeometry') {
+                            child.rotation.x += 0.15; child.rotation.y += 0.1;
                         }
                     });
-                    if (e > 1500) {
-                        applyAOE(ctx.scene, owner, ctx.fighters, tx, tz, 3.5, baseDmg * 2 * buffMul, '#1565c0');
+                    // Pull every 100ms
+                    if (now - this._lastPull > 100) {
+                        this._lastPull = now;
+                        for (const f of c.fighters) {
+                            if (f === owner || !f.alive) continue;
+                            const dx = tx - f.x, dz = tz - f.z;
+                            const d = Math.hypot(dx, dz);
+                            if (d < 6 && d > 0.5) {
+                                f.x += (dx / d) * 0.8;
+                                f.z += (dz / d) * 0.8;
+                                f.mesh.position.set(f.x, 0, f.z);
+                            }
+                        }
+                        emitParticles(tx, orbY, tz, {
+                            color: ['#1565c0', '#42a5f5'], count: 5, speed: 2, spread: 2.5,
+                            gravity: 0, life: 8, size: 0.08, sizeEnd: 0, drag: 0.9
+                        });
+                    }
+                    // Damage every 300ms
+                    if (now - this._lastDmg > 300) {
+                        this._lastDmg = now;
+                        for (const f of c.fighters) {
+                            if (f === owner || !f.alive) continue;
+                            if (Math.hypot(f.x - tx, f.z - tz) < 3) {
+                                const dmg = Math.round(owner.character.attackDamage * 0.8 * buffMul);
+                                f.takeDamage(dmg, owner);
+                                spawnDmgNumber(f.x, EYE_HEIGHT * 0.7, f.z, dmg, '#1565c0');
+                            }
+                        }
+                    }
+                    if (now - start > 1500) {
+                        // Final implode AOE
+                        applyAOE(ctx.scene, owner, c.fighters, tx, tz, 3.5,
+                            owner.character.attackDamage * 2 * buffMul, '#1565c0');
+                        groundRing(tx, tz, '#42a5f5', 4, 500);
+                        triggerHitstop(50);
                         return false;
                     }
                     return true;
                 }
             });
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#4fc3f7', 2, 200);
             break;
         }
+
         case 'Red': {
-            // Red orb shoots forward with knockback
-            spawnProjectile(ctx.scene, owner, ctx, {
-                color: '#d50000', dirX, dirZ, damage: baseDmg * 1.5 * buffMul,
-                radius: 0.5, knockback: 3, aoeRadius: 3, speed: 26, lifetime: 1.0,
-                trailColor: '#ff5252'
+            // Cursed Technique Reversal: Red — charge then fast projectile
+            const spawnX = owner.x + dirX * 1.5, spawnZ = owner.z + dirZ * 1.5;
+            const spawnY = EYE_HEIGHT - 0.2;
+
+            // Charging orb at hand for 200ms
+            const chargeGeo = new THREE.SphereGeometry(0.35, 10, 10);
+            const chargeMat = new THREE.MeshBasicMaterial({
+                color: '#d50000', transparent: true, opacity: 0.9,
+                blending: THREE.AdditiveBlending, depthWrite: false
             });
+            const chargeOrb = new THREE.Mesh(chargeGeo, chargeMat);
+            const chargeCoreGeo = new THREE.SphereGeometry(0.12, 8, 8);
+            const chargeCoreMat = new THREE.MeshBasicMaterial({
+                color: '#ff8a80', blending: THREE.AdditiveBlending,
+                transparent: true, opacity: 1, depthWrite: false
+            });
+            chargeOrb.add(new THREE.Mesh(chargeCoreGeo, chargeCoreMat));
+            chargeOrb.add(new THREE.PointLight('#d50000', 6, 20, 2));
+            chargeOrb.position.set(spawnX, spawnY, spawnZ);
+            ctx.scene.add(chargeOrb);
+
+            emitParticles(spawnX, spawnY, spawnZ, {
+                color: ['#d50000', '#ff1744', '#ff5252', '#ff8a80'],
+                count: 20, speed: 3, spread: 2,
+                gravity: 0, life: 8, size: 0.1, sizeEnd: 0, drag: 0.88
+            });
+
+            const larm = owner.charMesh && owner.charMesh._leftArm;
+            if (larm) {
+                larm.rotation.x = -1.3;
+                setTimeout(() => { if (larm) larm.rotation.x = 0.05; }, 800);
+            }
+
+            setTimeout(() => {
+                ctx.scene.remove(chargeOrb);
+                chargeGeo.dispose(); chargeMat.dispose();
+                chargeCoreGeo.dispose(); chargeCoreMat.dispose();
+                // Fire fast projectile with knockback + AOE explosion
+                spawnProjectile(ctx.scene, owner, ctx, {
+                    color: '#d50000', dirX, dirZ,
+                    damage: owner.character.attackDamage * 3 * buffMul,
+                    radius: 0.5, knockback: 4, aoeRadius: 3.5,
+                    speed: 32, lifetime: 1.4, trailColor: '#ff5252'
+                });
+                lightFlash(spawnX, EYE_HEIGHT, spawnZ, '#ff1744', 4, 200);
+            }, 200);
             screenFlash('#d50000', 100);
             break;
         }
+
         case 'Hollow Purple': {
-            // Massive purple beam — twisted blue+red
-            castBeamLine(ctx.scene, owner, ctx.fighters, dirX, dirZ, 35, baseDmg * 5 * buffMul, '#aa00ff');
-            // Charge particles at caster
-            emitParticles(owner.x, EYE_HEIGHT * 0.7, owner.z, {
-                color: ['#1565c0', '#d50000', '#aa00ff', '#ffffff'],
-                count: 40, speed: 5, spread: 1.0, gravity: 0,
-                life: 18, size: 0.2, sizeEnd: 0, drag: 0.92
-            });
-            screenFlash('#aa00ff', 200);
-            triggerHitstop(60);
+            // Cutscene only for the player; bots just fire the projectile
+            const baseFireDmg = owner.character.attackDamage * 6 * buffMul;
+            const fireProjectile = () => {
+                const projOrb = new THREE.Mesh(
+                    new THREE.SphereGeometry(1.0, 14, 14),
+                    new THREE.MeshBasicMaterial({
+                        color: '#7c4dff', transparent: true, opacity: 0.9,
+                        blending: THREE.AdditiveBlending, depthWrite: false
+                    })
+                );
+                const projCore = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.4, 10, 10),
+                    new THREE.MeshBasicMaterial({
+                        color: '#ffffff', blending: THREE.AdditiveBlending,
+                        transparent: true, opacity: 0.8, depthWrite: false
+                    })
+                );
+                projOrb.add(projCore);
+                projOrb.add(new THREE.PointLight('#7c4dff', 8, 32, 2));
+                projOrb.position.set(owner.x + dirX * 1.5, EYE_HEIGHT, owner.z + dirZ * 1.5);
+                ctx.scene.add(projOrb);
+
+                _vfx.push({
+                    mesh: projOrb,
+                    x: projOrb.position.x, y: EYE_HEIGHT, z: projOrb.position.z,
+                    dx: dirX * 22, dz: dirZ * 22,
+                    life: 2.0, owner, hitSet: new Set(),
+                    cleanup() {
+                        ctx.scene.remove(projOrb);
+                        projOrb.geometry.dispose();
+                        if (projOrb.material) projOrb.material.dispose();
+                    },
+                    tick(dt, c) {
+                        if (!owner.alive) return false;
+                        this.life -= dt;
+                        if (this.life <= 0) return false;
+                        this.x += this.dx * dt; this.z += this.dz * dt;
+                        projOrb.position.set(this.x, this.y, this.z);
+                        // Trail
+                        emitParticles(this.x, this.y, this.z, {
+                            color: ['#7c4dff', '#b388ff', '#ea80fc', '#ffffff'],
+                            count: 4, speed: 2, spread: 0.5,
+                            gravity: 0, life: 12, size: 0.2, sizeEnd: 0, drag: 0.96
+                        });
+                        groundDecal(this.x, this.z, '#7c4dff', 1, 2000);
+                        // Hit fighters in a fat radius (wide beam-of-light feel)
+                        for (const f of c.fighters) {
+                            if (f === owner || !f.alive || this.hitSet.has(f)) continue;
+                            const ddx = f.x - this.x, ddz = f.z - this.z;
+                            if (ddx * ddx + ddz * ddz < 2.5 * 2.5) {
+                                this.hitSet.add(f);
+                                f.takeDamage(baseFireDmg, owner);
+                                spawnDmgNumber(f.x, this.y + 0.5, f.z, Math.round(baseFireDmg), '#7c4dff');
+                                // Big explosion at impact
+                                applyAOE(ctx.scene, owner, c.fighters, this.x, this.z, 4,
+                                    baseFireDmg * 0.7, '#7c4dff');
+                                triggerHitstop(120);
+                                return false;
+                            }
+                        }
+                        // Off-arena bail
+                        if (Math.hypot(this.x, this.z) > 90) return false;
+                        return true;
+                    }
+                });
+                screenFlash('rgba(124,77,255,0.3)', 200);
+                lightFlash(projOrb.position.x, EYE_HEIGHT, projOrb.position.z, '#7c4dff', 8, 300);
+            };
+
+            if (!ctx.isPlayer) {
+                // Bot version — just fire it
+                fireProjectile();
+                break;
+            }
+
+            // ── PLAYER CUTSCENE ──
+            owner.invulnUntil = performance.now() + 5000;
+            const pCam = ctx.pCam;
+            const perpX = Math.cos(owner.yaw), perpZ = -Math.sin(owner.yaw);
+            const camX = owner.x + dirX * 4;
+            const camZ = owner.z + dirZ * 4;
+            const camY = EYE_HEIGHT + 0.5;
+            if (pCam) pCam.setCinematic(camX, camY, camZ, owner.x, EYE_HEIGHT - 0.2, owner.z, 2200);
+
+            const pm = owner.charMesh;
+            if (pm?._rightArm) pm._rightArm.rotation.set(-0.5, 0, -0.8);
+            if (pm?._leftArm) pm._leftArm.rotation.set(-0.5, 0, 0.8);
+
+            const vignette = document.createElement('div');
+            vignette.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.7) 100%);';
+            document.body.appendChild(vignette);
+
+            // Side orbs
+            const blueOrbPos = new THREE.Vector3(owner.x - perpX * 2, EYE_HEIGHT + 0.5, owner.z - perpZ * 2);
+            const redOrbPos = new THREE.Vector3(owner.x + perpX * 2, EYE_HEIGHT + 0.5, owner.z + perpZ * 2);
+            const mergeCenter = new THREE.Vector3(owner.x, EYE_HEIGHT + 0.3, owner.z);
+
+            const makeOrb = (color, coreColor, ringColor) => {
+                const g = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.6, 14, 14),
+                    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
+                );
+                g.add(new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 10),
+                    new THREE.MeshBasicMaterial({ color: coreColor, blending: THREE.AdditiveBlending, transparent: true, opacity: 1, depthWrite: false })));
+                g.add(new THREE.PointLight(color, 6, 20, 2));
+                for (let r = 0; r < 2; r++) {
+                    const ring = new THREE.Mesh(
+                        new THREE.TorusGeometry(0.7 + r * 0.2, 0.02, 6, 16),
+                        new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+                    );
+                    ring.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                    g.add(ring);
+                }
+                return g;
+            };
+            const blueOrb = makeOrb('#1565c0', '#82b1ff', '#42a5f5');
+            blueOrb.position.copy(blueOrbPos);
+            ctx.scene.add(blueOrb);
+            const redOrb = makeOrb('#d50000', '#ff8a80', '#ff5252');
+            redOrb.position.copy(redOrbPos);
+            ctx.scene.add(redOrb);
+
+            const swirlInt = setInterval(() => {
+                if (!owner.alive || !blueOrb.parent) { clearInterval(swirlInt); return; }
+                emitParticles(blueOrb.position.x, blueOrb.position.y, blueOrb.position.z, {
+                    color: ['#1565c0', '#42a5f5', '#82b1ff'], count: 4, speed: 1.5, spread: 0.8,
+                    gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
+                });
+                emitParticles(redOrb.position.x, redOrb.position.y, redOrb.position.z, {
+                    color: ['#d50000', '#ff1744', '#ff8a80'], count: 4, speed: 1.5, spread: 0.8,
+                    gravity: 0, life: 10, size: 0.1, sizeEnd: 0, drag: 0.93
+                });
+                blueOrb.children.forEach(c => { if (c.geometry?.type === 'TorusGeometry') { c.rotation.x += 0.08; c.rotation.y += 0.06; }});
+                redOrb.children.forEach(c => { if (c.geometry?.type === 'TorusGeometry') { c.rotation.x += 0.08; c.rotation.y += 0.06; }});
+            }, 60);
+
+            // 1000ms: orbs slide together
+            let mergeFrame = 0;
+            const mergeAnim = setInterval(() => {
+                mergeFrame++;
+                const t = Math.min(mergeFrame / 15, 1);
+                const ease = t * t;
+                blueOrb.position.lerpVectors(blueOrbPos, mergeCenter, ease);
+                redOrb.position.lerpVectors(redOrbPos, mergeCenter, ease);
+                const s = 1 - ease * 0.4;
+                blueOrb.scale.setScalar(s); redOrb.scale.setScalar(s);
+                if (pm?._rightArm) pm._rightArm.rotation.set(-1.0 * ease - 0.5, 0, -0.8 + ease * 0.8);
+                if (pm?._leftArm) pm._leftArm.rotation.set(-1.0 * ease - 0.5, 0, 0.8 - ease * 0.8);
+                if (t >= 1) clearInterval(mergeAnim);
+            }, 33);
+
+            // 1500ms: collision flash + purple orb
+            setTimeout(() => {
+                clearInterval(swirlInt);
+                blueOrb.traverse(c => { if (c.isMesh) { c.geometry?.dispose(); c.material?.dispose(); }});
+                redOrb.traverse(c => { if (c.isMesh) { c.geometry?.dispose(); c.material?.dispose(); }});
+                ctx.scene.remove(blueOrb); ctx.scene.remove(redOrb);
+
+                screenFlash('rgba(255,255,255,0.6)', 200);
+                triggerHitstop(120);
+
+                const purpleOrb = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.8, 14, 14),
+                    new THREE.MeshBasicMaterial({ color: '#7c4dff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
+                );
+                purpleOrb.position.copy(mergeCenter);
+                purpleOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 10),
+                    new THREE.MeshBasicMaterial({ color: '#ea80fc', blending: THREE.AdditiveBlending, transparent: true, opacity: 1, depthWrite: false })));
+                purpleOrb.add(new THREE.PointLight('#7c4dff', 10, 32, 2));
+                for (let r = 0; r < 3; r++) {
+                    const ring = new THREE.Mesh(
+                        new THREE.TorusGeometry(1.0 + r * 0.2, 0.025, 6, 20),
+                        new THREE.MeshBasicMaterial({ color: '#b388ff', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })
+                    );
+                    ring.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                    purpleOrb.add(ring);
+                }
+                ctx.scene.add(purpleOrb);
+                emitParticles(mergeCenter.x, mergeCenter.y, mergeCenter.z, {
+                    color: ['#1565c0', '#d50000', '#7c4dff', '#ea80fc', '#ffffff'],
+                    count: 50, speed: 5, spread: 0.5,
+                    gravity: 0, life: 15, lifeVar: 8,
+                    size: 0.15, sizeEnd: 0, drag: 0.95, upward: 0.5
+                });
+
+                let growFrame = 0;
+                const growAnim = setInterval(() => {
+                    growFrame++;
+                    purpleOrb.scale.setScalar(1 + growFrame * 0.05);
+                    purpleOrb.children.forEach(c => { if (c.geometry?.type === 'TorusGeometry') { c.rotation.x += 0.12; c.rotation.y += 0.08; }});
+                    if (growFrame > 15) clearInterval(growAnim);
+                }, 40);
+
+                // 700ms later: snap back + fire
+                setTimeout(() => {
+                    vignette.remove();
+                    purpleOrb.traverse(c => { if (c.isMesh) { c.geometry?.dispose(); c.material?.dispose(); }});
+                    ctx.scene.remove(purpleOrb);
+                    if (pCam) pCam.clearCinematic();
+                    if (pm?._rightArm) pm._rightArm.rotation.set(-1.5, 0, 0);
+                    if (pm?._leftArm) pm._leftArm.rotation.set(-1.5, 0, 0);
+                    setTimeout(() => {
+                        if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                        if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+                    }, 600);
+                    fireProjectile();
+                }, 700);
+            }, 1500);
             break;
         }
+
         case 'Domain Expansion': {
-            // Limitless blue dome — big AOE around caster
-            owner.invulnUntil = performance.now() + 1000;
-            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 12, baseDmg * 6 * buffMul, '#4fc3f7');
-            groundRing(owner.x, owner.z, '#4fc3f7', 12, 1200);
-            screenFlash('#4fc3f7', 400);
-            triggerHitstop(80);
+            // Unlimited Void — dome that freezes + DOTs everyone
+            const cx = owner.x, cz = owner.z;
+            const pm = owner.charMesh;
+            if (pm?._rightArm) pm._rightArm.rotation.x = -0.8;
+            if (pm?._leftArm) pm._leftArm.rotation.x = -0.8;
+
+            if (ctx.isPlayer) screenFlash('rgba(0,0,0,0.8)', 1500);
+
+            const domeGeo = new THREE.SphereGeometry(1, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const domeMat = new THREE.MeshBasicMaterial({
+                color: '#1a1a3e', transparent: true, opacity: 0.4,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const dome = new THREE.Mesh(domeGeo, domeMat);
+            dome.position.set(cx, 0.1, cz);
+            ctx.scene.add(dome);
+            const innerGeo = new THREE.SphereGeometry(0.8, 8, 8);
+            const innerMat = new THREE.MeshBasicMaterial({
+                color: '#311b92', wireframe: true, transparent: true, opacity: 0.3,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const inner = new THREE.Mesh(innerGeo, innerMat);
+            dome.add(inner);
+            dome.add(new THREE.PointLight('#7c4dff', 4, 40, 2));
+
+            const expandStart = performance.now();
+            const dmgPerTick = Math.round(owner.character.attackDamage * 1 * buffMul);
+            const initialDmg = Math.round(owner.character.attackDamage * 2 * buffMul);
+
+            // Initial freeze + damage burst at 800ms
+            setTimeout(() => {
+                if (!owner.alive) return;
+                for (const f of ctx.fighters) {
+                    if (f === owner || !f.alive) continue;
+                    if (Math.hypot(f.x - cx, f.z - cz) > 12) continue;
+                    f.takeDamage(initialDmg, owner);
+                    spawnDmgNumber(f.x, EYE_HEIGHT, f.z, initialDmg, '#7c4dff');
+                    f.invulnUntil = Math.max(f.invulnUntil, performance.now()); // not invuln, but stunned via cooldown
+                    f.cooldowns.m1 = performance.now() + 5000;
+                }
+                owner.invulnUntil = performance.now() + 5500;
+                triggerHitstop(80);
+                lightFlash(cx, 2, cz, '#311b92', 8, 800);
+            }, 800);
+
+            // 5s domain — DOT every 500ms, 10 ticks
+            _vfx.push({
+                _started: expandStart,
+                _ticks: 0,
+                _expandFrame: 0,
+                cleanup() {
+                    dome.traverse(c => { if (c.isMesh) { c.geometry?.dispose(); c.material?.dispose(); }});
+                    ctx.scene.remove(dome);
+                    if (pm?._rightArm) pm._rightArm.rotation.x = 0.05;
+                    if (pm?._leftArm) pm._leftArm.rotation.x = 0.05;
+                },
+                tick(dt, c) {
+                    if (!owner.alive) return false;
+                    this._expandFrame++;
+                    const s = Math.min(this._expandFrame * 0.8, 10);
+                    dome.scale.setScalar(s);
+                    inner.rotation.x += 0.02; inner.rotation.y += 0.03;
+                    const elapsed = performance.now() - this._started;
+                    if (elapsed > 800 && elapsed - 800 > this._ticks * 500) {
+                        this._ticks++;
+                        for (const f of c.fighters) {
+                            if (f === owner || !f.alive) continue;
+                            if (Math.hypot(f.x - cx, f.z - cz) > 12) continue;
+                            f.takeDamage(dmgPerTick, owner);
+                            spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmgPerTick, '#7c4dff');
+                            f.cooldowns.m1 = performance.now() + 600;
+                        }
+                        // Swirl particles
+                        const a = this._ticks * 0.5;
+                        for (let i = 0; i < 6; i++) {
+                            const pa = a + (i / 6) * Math.PI * 2;
+                            emitParticles(cx + Math.cos(pa) * 4, 1, cz + Math.sin(pa) * 4,
+                                { color: ['#311b92', '#7c4dff'], count: 2, speed: 0.8, spread: 0.5,
+                                  gravity: 0.5, life: 10, size: 0.08, sizeEnd: 0, drag: 0.97 });
+                        }
+                    }
+                    if (this._ticks >= 10) {
+                        groundRing(cx, cz, '#7c4dff', 8, 800);
+                        emitParticles(cx, 2, cz, {
+                            color: ['#311b92', '#7c4dff', '#ffffff'],
+                            count: 50, speed: 5, spread: 2,
+                            gravity: -2, life: 20, lifeVar: 10,
+                            size: 0.15, sizeEnd: 0, drag: 0.96, upward: 1
+                        });
+                        lightFlash(cx, 2, cz, '#7c4dff', 6, 400);
+                        return false;
+                    }
+                    return true;
+                }
+            });
+            groundRing(cx, cz, '#311b92', 6, 1000);
+            groundDecal(cx, cz, '#1a1a3e', 5, 6000);
             break;
         }
+
         case 'Teleport': {
-            // Vanish + reappear forward
+            // Vanish + reappear forward — keep simple but flashy (DC3D has no impl)
             emitParticles(owner.x, EYE_HEIGHT * 0.7, owner.z, {
-                color: ['#1565c0', '#82b1ff'], count: 16, speed: 5, spread: 0.5,
+                color: ['#1565c0', '#82b1ff'], count: 24, speed: 5, spread: 0.5,
                 gravity: 0, life: 14, size: 0.2, sizeEnd: 0, drag: 0.9
             });
-            doDash(owner, dirX, dirZ, 12);
+            lightFlash(owner.x, EYE_HEIGHT * 0.7, owner.z, '#4fc3f7', 5, 200);
+            doDash(owner, dirX, dirZ, 14);
             emitParticles(owner.x, EYE_HEIGHT * 0.7, owner.z, {
-                color: ['#1565c0', '#82b1ff'], count: 16, speed: 5, spread: 0.5,
+                color: ['#1565c0', '#82b1ff'], count: 24, speed: 5, spread: 0.5,
                 gravity: 0, life: 14, size: 0.2, sizeEnd: 0, drag: 0.9
             });
-            lightFlash(owner.x, EYE_HEIGHT * 0.7, owner.z, '#4fc3f7', 4, 200);
+            lightFlash(owner.x, EYE_HEIGHT * 0.7, owner.z, '#4fc3f7', 5, 200);
+            screenFlash('rgba(79,195,247,0.2)', 80);
             break;
         }
 

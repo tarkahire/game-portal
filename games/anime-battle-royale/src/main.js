@@ -242,7 +242,7 @@ function tryCastAbility(slot) {
     if (!player.canUse(slot)) return;
     const fwd = pCam.forwardXZ();
     castAbility(player.character.abilities[slot], player,
-        { scene, fighters, dirX: fwd.x, dirZ: fwd.z, cover: arenaCover });
+        { scene, fighters, dirX: fwd.x, dirZ: fwd.z, cover: arenaCover, pCam, isPlayer: true });
     player.triggerCD(slot, player.character.abilityCooldowns[slot] || 5000);
 }
 
