@@ -161,8 +161,10 @@ window.addEventListener('keydown', (e) => {
     if (['z', 'x', 'c', 'v', 'f'].includes(k)) {
         tryCastAbility(k);
     }
-    if (k === ' ') {
-        // Dash
+    if (k === ' ' && !e.repeat) {
+        // Dash — ignore the OS key-repeat stream (was teleporting the
+        // player ~30 times/sec straight off-arena, which spiralled into
+        // a freeze as bots all repathed onto the storm-killed player).
         if (player.alive) {
             const fwd = pCam.forwardXZ();
             let dx = player.vx, dz = player.vz;
@@ -198,13 +200,27 @@ function togglePause() {
     else { canvas.requestPointerLock?.(); lastFrame = performance.now(); }
 }
 
+let _lastDashAt = 0;
 function doPlayerDash(dx, dz) {
-    player.invulnUntil = performance.now() + 240;
-    player.x += dx * 6;
-    player.z += dz * 6;
-    // Cover collision: bail if collides
-    if (collidesCover(arenaCover, player.x, player.z, 0.5)) {
-        player.x -= dx * 6; player.z -= dz * 6;
+    const now = performance.now();
+    // Soft min-interval so finger-mashing can't overrun the i-frame window.
+    if (now - _lastDashAt < 220) return;
+    _lastDashAt = now;
+    player.invulnUntil = now + 240;
+    const newX = player.x + dx * 6;
+    const newZ = player.z + dz * 6;
+    if (collidesCover(arenaCover, newX, newZ, 0.5)) return;
+    // Clamp inside playable arena so a dash can never punt the player into
+    // the storm and trigger a death-spiral with all bots repathing.
+    const r = Math.hypot(newX, newZ);
+    const maxR = ARENA_RADIUS - 1;
+    if (r > maxR) {
+        const k = maxR / r;
+        player.x = newX * k;
+        player.z = newZ * k;
+    } else {
+        player.x = newX;
+        player.z = newZ;
     }
 }
 
