@@ -127,6 +127,11 @@ function startMatch() {
 
     initVfx(scene, camera);
 
+    // Compile every material's shader up-front. With 9 detailed character
+    // models the lazy first-render compile was hanging the opening frame
+    // long enough to look like a hard freeze.
+    try { renderer.compile(scene, camera); } catch (e) { console.warn('[br] precompile failed', e); }
+
     // HUD
     document.getElementById('hud-char-name').textContent = player.character.name;
     document.getElementById('hud-killfeed').innerHTML = '';
@@ -193,6 +198,14 @@ window.addEventListener('resize', () => {
     }
 });
 
+// Browser sometimes steals ESC and exits pointer lock without firing our
+// keydown handler — auto-pause on lock loss so controls never silently go
+// dead with the game still running underneath.
+document.addEventListener('pointerlockchange', () => {
+    if (!running || paused) return;
+    if (document.pointerLockElement !== canvas) togglePause();
+});
+
 function togglePause() {
     paused = !paused;
     pauseEl.style.display = paused ? 'flex' : 'none';
@@ -247,6 +260,17 @@ function gameLoop() {
     if (!running) return;
     if (paused) { lastFrame = performance.now(); requestAnimationFrame(gameLoop); return; }
 
+    // Wrap the whole frame so a single thrown error can't kill the rAF
+    // chain (which previously presented as a hard freeze).
+    try {
+        gameLoopBody();
+    } catch (e) {
+        console.error('[br] frame error', e);
+    }
+    requestAnimationFrame(gameLoop);
+}
+
+function gameLoopBody() {
     const now = performance.now();
     const dt = Math.min(0.05, (now - lastFrame) / 1000);
     lastFrame = now;
@@ -316,7 +340,6 @@ function gameLoop() {
     }
 
     renderer.render(scene, camera);
-    requestAnimationFrame(gameLoop);
 }
 
 function updateHud() {

@@ -14,6 +14,23 @@ export function initVfx(scene, camera) {
     _scene = scene;
     _camera = camera;
     _hitstopUntil = 0;
+    // Pools below are lazily allocated into _scene the first time they're
+    // used. When a new match builds a fresh scene, the old pool meshes
+    // become orphans living in a discarded scene — emitting silently.
+    // Reset the init flags so each pool gets re-built into the live scene
+    // on next use, and clear any per-match state.
+    _particlePoolReady = false;
+    _particles.length = 0;
+    _sparkPoolInit = false;
+    _sparkPool.length = 0;
+    _slashPoolInit = false;
+    _slashPool.length = 0;
+    _slashTrails.length = 0;
+    for (const d of _dmgNumbers) {
+        if (d.sprite.material.map) d.sprite.material.map.dispose();
+        d.sprite.material.dispose();
+    }
+    _dmgNumbers.length = 0;
 }
 
 // ─── HITSTOP ──────────────────────────────────────────────
