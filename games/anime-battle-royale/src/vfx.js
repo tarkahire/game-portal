@@ -24,9 +24,21 @@ export function triggerHitstop(durationMs) {
 export function inHitstop() { return performance.now() < _hitstopUntil; }
 
 // ─── DAMAGE NUMBERS ────────────────────────────────────────
+// Each spawn used to allocate a fresh canvas + CanvasTexture (which forces
+// a synchronous GPU upload on the next render) — sprays of damage from bot
+// AOEs were stalling whole frames. We now cap concurrent sprites and skip
+// any that would render far behind the player anyway.
 const _dmgNumbers = [];
+const MAX_DMG_NUMBERS = 24;
+const DMG_CULL_DIST_SQ = 45 * 45;
 export function spawnDmgNumber(worldX, worldY, worldZ, amount, color) {
     if (!_scene) return;
+    if (_dmgNumbers.length >= MAX_DMG_NUMBERS) return;
+    if (_camera) {
+        const cdx = worldX - _camera.position.x;
+        const cdz = worldZ - _camera.position.z;
+        if (cdx * cdx + cdz * cdz > DMG_CULL_DIST_SQ) return;
+    }
     const canvas = document.createElement('canvas');
     canvas.width = 128; canvas.height = 48;
     const ctx = canvas.getContext('2d');
