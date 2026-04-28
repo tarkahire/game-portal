@@ -193,6 +193,19 @@ export class Fighter {
         this.hp = this.maxHp;
         this.alive = true;
         this.mesh = buildHumanoid(this.character, charKey);
+        // Cache the named children once — the per-frame loop used to do three
+        // getObjectByName traversals per fighter, which deep-walks a ~150-mesh
+        // character tree.
+        this.charMesh = this.mesh.getObjectByName('charMesh');
+        this.hpBar = this.mesh.getObjectByName('hpBar');
+        this.nameTag = this.mesh.getObjectByName('nameTag');
+        // Bots don't need their own PointLight aura — forward rendering pays
+        // a per-fragment cost for every active light. Keep the player's only.
+        if (!isPlayer && this.charMesh) {
+            const lights = [];
+            this.charMesh.traverse(o => { if (o.isPointLight) lights.push(o); });
+            for (const l of lights) l.parent.remove(l);
+        }
         this.walkCycle = 0;
         this.x = 0;
         this.z = 0;
@@ -229,13 +242,11 @@ export class Fighter {
             this.hp = 0;
             this.die();
         }
-        // Update HP bar width
-        const bar = this.mesh.getObjectByName('hpBar');
-        if (bar) {
-            const fg = bar.userData.fg;
+        if (this.hpBar) {
+            const fg = this.hpBar.userData.fg;
             const ratio = Math.max(0, this.hp / this.maxHp);
             fg.scale.x = ratio;
-            fg.position.x = -bar.userData.fg.userData.fullWidth * (1 - ratio) / 2;
+            fg.position.x = -fg.userData.fullWidth * (1 - ratio) / 2;
         }
     }
 
@@ -247,15 +258,16 @@ export class Fighter {
         }
     }
 
-    // Per-frame: dispatch to the imported per-character animator
-    tick(dt) {
+    // Per-frame: dispatch to the imported per-character animator. `animate`
+    // can be false to skip the limb-pivot work for fighters that are far
+    // off-camera — yaw still updates so they face the right way.
+    tick(dt, animate = true) {
         if (!this.alive) return;
         const moving = (this.vx * this.vx + this.vz * this.vz) > 0.05;
-        // walkCycle advances faster while moving (matches dungeon-crawler-3d feel)
         this.walkCycle += dt * (moving ? 6 : 1);
-        const charMesh = this.mesh.getObjectByName('charMesh');
-        if (charMesh) animateCharacter(charMesh, this.key, dt, moving, this.walkCycle);
-
+        if (animate && this.charMesh) {
+            animateCharacter(this.charMesh, this.key, dt, moving, this.walkCycle);
+        }
         // Match dungeon-crawler-3d convention: yaw=0 -> forward (-Z), so model rotates by yaw+π
         this.mesh.rotation.y = this.yaw + Math.PI;
     }

@@ -12,7 +12,9 @@ import { initVfx, tickAllVfx } from './vfx.js';
 // === Three.js setup ===
 const canvas = document.getElementById('game-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Cap below 2 — characters are 100+ meshes each so fragment cost is the
+// bottleneck on retina, and 1.5 still looks crisp.
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000);
 
@@ -252,16 +254,21 @@ function gameLoop() {
         }
     }
 
-    // Tick fighter animations
-    for (const f of fighters) f.tick(dt);
-
-    // Billboard HP bars + name tags toward camera
+    // Tick fighter animations — skip the limb-pivot work for fighters far
+    // off-camera. 40m radius keeps anyone the player can plausibly see live.
+    const camPos = camera.position;
+    const ANIM_DIST_SQ = 40 * 40;
     for (const f of fighters) {
         if (!f.alive) continue;
-        const bar = f.mesh.getObjectByName('hpBar');
-        const tag = f.mesh.getObjectByName('nameTag');
-        if (bar) bar.lookAt(camera.position);
-        if (tag) tag.lookAt(camera.position);
+        const dx = f.x - camPos.x, dz = f.z - camPos.z;
+        f.tick(dt, (dx * dx + dz * dz) < ANIM_DIST_SQ);
+    }
+
+    // Billboard HP bars + name tags toward camera (cached refs)
+    for (const f of fighters) {
+        if (!f.alive) continue;
+        if (f.hpBar) f.hpBar.lookAt(camPos);
+        if (f.nameTag) f.nameTag.lookAt(camPos);
     }
 
     // VFX (active orbs/projectiles + particle system + slashes + dmg numbers)

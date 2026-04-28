@@ -22,22 +22,27 @@ export class Storm {
         this.phaseTimer = this.phases[0].delay;
         this.shrinking = false;
 
-        // Visual: cylinder shell at storm radius edge
+        // Visual: cylinder shell + ground ring built at unit radius. We scale
+        // them per frame instead of rebuilding the geometry — disposing and
+        // recreating buffer geometry every frame for the entire shrink phase
+        // was the biggest single frame-time hog.
         const mat = new THREE.MeshBasicMaterial({
             color: 0xff00aa, transparent: true, opacity: 0.18,
             side: THREE.BackSide, depthWrite: false
         });
-        this.shellGeo = new THREE.CylinderGeometry(this.radius, this.radius, 60, 64, 1, true);
+        this.shellGeo = new THREE.CylinderGeometry(1, 1, 60, 32, 1, true);
         this.shell = new THREE.Mesh(this.shellGeo, mat);
         this.shell.position.y = 30;
+        this.shell.scale.set(this.radius, 1, this.radius);
         scene.add(this.shell);
 
-        // Ground edge ring
         const ringMat = new THREE.MeshBasicMaterial({ color: 0xff00aa, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
-        this.ringGeo = new THREE.RingGeometry(this.radius - 0.3, this.radius + 0.3, 96);
+        // Thin unit ring; world thickness ≈ 0.6 at the starting radius.
+        this.ringGeo = new THREE.RingGeometry(1 - 0.0043, 1 + 0.0043, 64);
         this.ring = new THREE.Mesh(this.ringGeo, ringMat);
         this.ring.rotation.x = -Math.PI / 2;
         this.ring.position.y = 0.06;
+        this.ring.scale.set(this.radius, this.radius, 1);
         scene.add(this.ring);
     }
 
@@ -61,8 +66,8 @@ export class Storm {
                     this.phaseTimer = this.phases[this.phaseIndex].delay;
                 }
             }
-            // Rebuild geometries
-            this._rebuildGeo();
+            this.shell.scale.set(this.radius, 1, this.radius);
+            this.ring.scale.set(this.radius, this.radius, 1);
         }
 
         // Damage tick
@@ -77,13 +82,6 @@ export class Storm {
                 }
             }
         }
-    }
-
-    _rebuildGeo() {
-        this.shell.geometry.dispose();
-        this.shell.geometry = new THREE.CylinderGeometry(this.radius, this.radius, 60, 64, 1, true);
-        this.ring.geometry.dispose();
-        this.ring.geometry = new THREE.RingGeometry(this.radius - 0.3, this.radius + 0.3, 96);
     }
 
     timerLabel() {
