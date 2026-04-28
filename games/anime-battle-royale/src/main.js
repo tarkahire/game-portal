@@ -7,6 +7,7 @@ import { PlayerCamera } from './camera.js';
 import { castAbility, castM1, tickVfx, clearVfx } from './abilities.js';
 import { BotBrain } from './ai.js';
 import { Storm } from './storm.js';
+import { initVfx, tickAllVfx } from './vfx.js';
 
 // === Three.js setup ===
 const canvas = document.getElementById('game-canvas');
@@ -80,7 +81,7 @@ function buildCharGrid() {
 // === Match setup ===
 function startMatch() {
     showScreen(null);
-    document.body.requestPointerLock?.();
+    canvas.requestPointerLock?.();
 
     // Fresh scene
     if (scene) {
@@ -121,6 +122,8 @@ function startMatch() {
     pCam = new PlayerCamera(camera, canvas);
     pCam.install();
     pCam.setFighter(player);
+
+    initVfx(scene, camera);
 
     // HUD
     document.getElementById('hud-char-name').textContent = player.character.name;
@@ -190,7 +193,7 @@ function togglePause() {
     paused = !paused;
     pauseEl.style.display = paused ? 'flex' : 'none';
     if (paused) document.exitPointerLock?.();
-    else { document.body.requestPointerLock?.(); lastFrame = performance.now(); }
+    else { canvas.requestPointerLock?.(); lastFrame = performance.now(); }
 }
 
 function doPlayerDash(dx, dz) {
@@ -261,8 +264,9 @@ function gameLoop() {
         if (tag) tag.lookAt(camera.position);
     }
 
-    // VFX
+    // VFX (active orbs/projectiles + particle system + slashes + dmg numbers)
     tickVfx(scene, dt, { scene, fighters });
+    tickAllVfx(dt);
 
     // Storm
     storm.update(dt, fighters);
