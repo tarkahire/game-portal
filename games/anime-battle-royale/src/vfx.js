@@ -249,6 +249,28 @@ export function screenFlash(color, duration) {
 
 // ─── SCREEN SHAKE (no-op, matches dungeon-crawler-3d) ──────
 export function screenShake() { /* disabled */ }
+// ─── FOV PUNCH — brief FOV bump on the active camera ──────
+let _fovPunchTarget = 0, _fovPunchDecay = 0;
+const _BASE_FOV = 72;
+export function fovPunch(amount, decayRate) {
+    _fovPunchTarget = amount || 0;
+    _fovPunchDecay = decayRate || 0.1;
+}
+export function updateFovPunch() {
+    if (!_camera || !_camera.fov) return;
+    if (_fovPunchTarget > 0.01) {
+        _camera.fov = _BASE_FOV + _fovPunchTarget;
+        _camera.updateProjectionMatrix();
+        _fovPunchTarget *= 1 - _fovPunchDecay;
+    } else if (_camera.fov !== _BASE_FOV) {
+        _camera.fov = _BASE_FOV;
+        _camera.updateProjectionMatrix();
+    }
+}
+// ─── SPEED LINES (no-op stub) ─────────────────────────────
+export function showSpeedLines() { /* DC3D-only DOM overlay; stub */ }
+// ─── SWORD SWING (no-op stub — BR has no FPS viewmodel) ──
+export function triggerSwordSwing() { /* stub */ }
 
 // ─── BEAM EFFECT ──────────────────────────────────────────
 export function beamEffect(startX, startY, startZ, endX, endY, endZ, color, duration, width) {
@@ -518,4 +540,5 @@ export function tickAllVfx(dt) {
     updateSparks();
     updateMeleeSlashes();
     updateDmgNumbers();
+    updateFovPunch();
 }

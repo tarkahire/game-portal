@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import {
     emitParticles, groundRing, groundDecal, lightFlash, screenFlash,
     beamEffect, fireEffect, spawnPunchImpact, spawnImpactSparks,
-    spawnDmgNumber, spawnMeleeSlash, triggerHitstop
+    spawnDmgNumber, spawnMeleeSlash, triggerHitstop,
+    fovPunch, screenShake, showSpeedLines, triggerSwordSwing
 } from './vfx.js';
 
 const TILE = 4;
@@ -730,113 +731,452 @@ export function castAbility(abilityName, owner, ctx) {
             break;
         }
 
-        // ══════════ SUKUNA ══════════
+        // ══════════ SUKUNA — full DC3D port ══════════
         case 'Dismantle': {
-            // Curved slash projectile
-            spawnProjectile(ctx.scene, owner, ctx, {
-                color: '#ff2244', dirX, dirZ, damage: baseDmg * 1.5 * buffMul,
-                radius: 0.4, speed: 32, lifetime: 1.0, trailColor: '#ff6688'
-            });
-            spawnMeleeSlash('#ff2244', owner.x, EYE_HEIGHT * 0.7, owner.z, owner.yaw, 0);
-            break;
-        }
-        case 'Cleave': {
-            // 3-slash forward cone
-            for (let i = -1; i <= 1; i++) {
-                const ang = Math.atan2(-dirX, -dirZ) + Math.PI + i * 0.18;
-                const dx = -Math.sin(ang), dz = -Math.cos(ang);
-                spawnProjectile(ctx.scene, owner, ctx, {
-                    color: '#ff2244', dirX: dx, dirZ: dz,
-                    damage: baseDmg * 1.0 * buffMul, radius: 0.5, speed: 28, lifetime: 0.7
-                });
-            }
-            spawnMeleeSlash('#ff2244', owner.x, EYE_HEIGHT * 0.7, owner.z, owner.yaw, 1);
-            break;
-        }
-        case 'Fire Arrow': {
-            // Flaming projectile — explodes
-            spawnProjectile(ctx.scene, owner, ctx, {
-                color: '#ff6600', dirX, dirZ, damage: baseDmg * 2.5 * buffMul,
-                radius: 0.7, aoeRadius: 4, speed: 30, lifetime: 1.4,
-                trailColor: '#ffaa00'
-            });
-            fireEffect(owner.x + dirX * 1.5, EYE_HEIGHT * 0.7, owner.z + dirZ * 1.5, 0.7);
-            break;
-        }
-        case 'Malevolent Shrine': {
-            // Wide red domain
-            owner.invulnUntil = performance.now() + 1000;
-            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 14, baseDmg * 7 * buffMul, '#ff2244');
-            groundRing(owner.x, owner.z, '#ff2244', 14, 1500);
-            screenFlash('#ff2244', 400);
-            triggerHitstop(100);
-            break;
-        }
-        case 'Dash':
-        case 'Flash Step':
-        case 'Chain Dash':
-        case 'Shadow Dash':
-        case 'Ice Dash':
-        case 'Spirit Dash':
-        case 'Thunder Dash': {
-            // Generic anime dash with particle trail in character's color
-            const c = owner.character.color;
-            emitParticles(owner.x, EYE_HEIGHT * 0.5, owner.z, {
-                color: [c, '#ffffff'], count: 14, speed: 4, spread: 0.4,
-                gravity: 0, life: 12, size: 0.18, sizeEnd: 0, drag: 0.9
-            });
-            doDash(owner, dirX, dirZ, abilityName === 'Flash Step' ? 14 :
-                                        abilityName === 'Chain Dash' ? 16 :
-                                        abilityName === 'Thunder Dash' ? 14 : 12);
-            emitParticles(owner.x, EYE_HEIGHT * 0.5, owner.z, {
-                color: [c, '#ffffff'], count: 14, speed: 4, spread: 0.4,
-                gravity: 0, life: 12, size: 0.18, sizeEnd: 0, drag: 0.9
-            });
-            lightFlash(owner.x, EYE_HEIGHT * 0.7, owner.z, c, 3, 180);
-            break;
-        }
-
-        // ══════════ TOJI ══════════
-        case 'Inverted Spear': {
-            spawnProjectile(ctx.scene, owner, ctx, {
-                color: '#88cc88', dirX, dirZ, damage: baseDmg * 1.6 * buffMul,
-                radius: 0.4, speed: 36, lifetime: 1.0, knockback: 2,
-                trailColor: '#aaffaa'
-            });
-            break;
-        }
-        case 'Chain Strike': {
+            // 5 invisible slash waves traveling forward
+            const sx0 = owner.x + dirX * 1.5, sz0 = owner.z + dirZ * 1.5;
             for (let i = 0; i < 5; i++) {
-                const ang = Math.atan2(-dirX, -dirZ) + Math.PI + (i - 2) * 0.12;
-                const dx = -Math.sin(ang), dz = -Math.cos(ang);
-                spawnProjectile(ctx.scene, owner, ctx, {
-                    color: '#aaaa44', dirX: dx, dirZ: dz,
-                    damage: baseDmg * 0.6 * buffMul, radius: 0.3, speed: 30, lifetime: 0.8
-                });
+                setTimeout(() => {
+                    const dist = (2 + i * 2.5) * TILE / 4 + 2 + i * 2.5;
+                    const sx = owner.x + dirX * (2 + i * 2.5);
+                    const sz = owner.z + dirZ * (2 + i * 2.5);
+                    const slashGeo = new THREE.PlaneGeometry(3, 0.04);
+                    const slashMat = new THREE.MeshBasicMaterial({
+                        color: '#ff2244', transparent: true, opacity: 0.9,
+                        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+                    });
+                    const slash = new THREE.Mesh(slashGeo, slashMat);
+                    slash.position.set(sx, EYE_HEIGHT, sz);
+                    slash.lookAt(owner.x, EYE_HEIGHT, owner.z);
+                    slash.rotateZ(i % 2 === 0 ? 0.5 : -0.5);
+                    ctx.scene.add(slash);
+                    emitParticles(sx, EYE_HEIGHT, sz, {
+                        color: ['#ff2244', '#ff0000', '#ff4466'],
+                        count: 6, speed: 3, spread: 1.5,
+                        gravity: -4, life: 10, size: 0.08, sizeEnd: 0, drag: 0.95
+                    });
+                    for (const f of ctx.fighters) {
+                        if (f === owner || !f.alive) continue;
+                        if (Math.hypot(f.x - sx, f.z - sz) < 2) {
+                            const dmg = Math.round(owner.character.attackDamage * 1.5 * buffMul);
+                            f.takeDamage(dmg, owner);
+                            spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff2244');
+                        }
+                    }
+                    const start = performance.now();
+                    const fadeSlash = () => {
+                        const t = (performance.now() - start) / 300;
+                        if (t >= 1) { ctx.scene.remove(slash); slashGeo.dispose(); slashMat.dispose(); return; }
+                        slashMat.opacity = (1 - t) * 0.9;
+                        slash.scale.x = 1 + t * 0.5;
+                        requestAnimationFrame(fadeSlash);
+                    };
+                    requestAnimationFrame(fadeSlash);
+                }, i * 60);
             }
-            break;
-        }
-        case 'Playful Cloud': {
-            spawnProjectile(ctx.scene, owner, ctx, {
-                color: '#884422', dirX, dirZ, damage: baseDmg * 2 * buffMul,
-                radius: 0.9, speed: 22, lifetime: 1.2, aoeRadius: 3, knockback: 4,
-                trailColor: '#aa6644'
-            });
-            break;
-        }
-        case 'Heavenly Restriction': {
-            owner.buffUntil = performance.now() + 8000;
-            owner.buffMul = 1.8;
-            owner.invulnUntil = performance.now() + 600;
-            emitParticles(owner.x, EYE_HEIGHT * 0.7, owner.z, {
-                color: ['#88cc88', '#ffffff'], count: 24, speed: 4,
-                spread: 0.6, gravity: -1, life: 22, size: 0.18, sizeEnd: 0, drag: 0.92
-            });
-            lightFlash(owner.x, EYE_HEIGHT * 0.7, owner.z, '#88cc88', 5, 600);
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            if (arm) { arm.rotation.set(-1.5, 0, -0.6); setTimeout(() => { if (arm) arm.rotation.set(0.05, 0, 0); }, 400); }
+            lightFlash(sx0, EYE_HEIGHT, sz0, '#ff2244', 3, 200);
             break;
         }
 
-        // ══════════ BROOK ══════════
+        case 'Cleave': {
+            // Wide arc that hits all in front + big knockback
+            triggerHitstop(60);
+            const cx = owner.x + dirX * 3, cz = owner.z + dirZ * 3;
+            // Arc visuals
+            const arcGeo = new THREE.TorusGeometry(3, 0.04, 4, 32, Math.PI);
+            const arcMat = new THREE.MeshBasicMaterial({
+                color: '#ff2244', transparent: true, opacity: 0.9,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const arc = new THREE.Mesh(arcGeo, arcMat);
+            arc.position.set(cx, EYE_HEIGHT, cz);
+            arc.rotation.y = owner.yaw + Math.PI / 2;
+            arc.rotation.x = Math.PI / 2;
+            ctx.scene.add(arc);
+            const arc2Geo = new THREE.TorusGeometry(3.5, 0.03, 4, 32, Math.PI);
+            const arc2Mat = new THREE.MeshBasicMaterial({
+                color: '#ff0000', transparent: true, opacity: 0.5,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const arc2 = new THREE.Mesh(arc2Geo, arc2Mat);
+            arc2.position.copy(arc.position);
+            arc2.rotation.copy(arc.rotation);
+            ctx.scene.add(arc2);
+            emitParticles(cx, EYE_HEIGHT, cz, {
+                color: ['#ff2244', '#ff0000', '#cc0000', '#ff4466'],
+                count: 25, speed: 5, spread: 2,
+                gravity: -3, life: 15, size: 0.15, sizeEnd: 0, drag: 0.96, upward: 0.3
+            });
+            // Damage all in 5-tile wide cone (0.6π half-angle)
+            const dirAng = Math.atan2(dirX, dirZ);
+            for (const f of ctx.fighters) {
+                if (f === owner || !f.alive) continue;
+                const dx = f.x - owner.x, dz = f.z - owner.z;
+                const d = Math.hypot(dx, dz);
+                if (d > 5 * TILE || d < 0.1) continue;
+                const a = Math.atan2(-dx, -dz);
+                let ad = a - owner.yaw;
+                while (ad > Math.PI) ad -= Math.PI * 2;
+                while (ad < -Math.PI) ad += Math.PI * 2;
+                if (Math.abs(ad) < Math.PI * 0.6) {
+                    const dmg = Math.round(owner.character.attackDamage * 3 * buffMul);
+                    f.takeDamage(dmg, owner);
+                    spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff2244');
+                    f.x += (dx / d) * 2 * TILE;
+                    f.z += (dz / d) * 2 * TILE;
+                    f.mesh.position.set(f.x, 0, f.z);
+                }
+            }
+            const start = performance.now();
+            const fadeArc = () => {
+                const t = (performance.now() - start) / 400;
+                if (t >= 1) {
+                    ctx.scene.remove(arc); arcGeo.dispose(); arcMat.dispose();
+                    ctx.scene.remove(arc2); arc2Geo.dispose(); arc2Mat.dispose();
+                    return;
+                }
+                arcMat.opacity = (1 - t) * 0.9;
+                arc2Mat.opacity = (1 - t) * 0.5;
+                arc.scale.setScalar(1 + t * 0.3);
+                arc2.scale.setScalar(1 + t * 0.4);
+                requestAnimationFrame(fadeArc);
+            };
+            requestAnimationFrame(fadeArc);
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            if (arm) { arm.rotation.set(-0.3, 0, -1.2); setTimeout(() => { if (arm) arm.rotation.set(0.05, 0, 0); }, 500); }
+            lightFlash(cx, EYE_HEIGHT, cz, '#ff2244', 5, 300);
+            groundRing(cx, cz, '#ff2244', 4, 600);
+            fovPunch(10, 0.15);
+            break;
+        }
+
+        case 'Fire Arrow': {
+            // Charge then fire flaming arrow
+            const sx = owner.x + dirX * 1.5, sz = owner.z + dirZ * 1.5;
+            const chargeInt = setInterval(() => {
+                if (!owner.alive) { clearInterval(chargeInt); return; }
+                emitParticles(sx, EYE_HEIGHT, sz, {
+                    color: ['#ff6600', '#ff4400', '#ff8800', '#ffaa00'],
+                    count: 4, speed: 2, spread: 1.5,
+                    gravity: 0, life: 6, size: 0.1, sizeEnd: 0, drag: 0.9
+                });
+            }, 60);
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            if (arm) arm.rotation.set(-2.0, 0, 0);
+            setTimeout(() => {
+                clearInterval(chargeInt);
+                spawnProjectile(ctx.scene, owner, ctx, {
+                    color: '#ff4400', dirX, dirZ,
+                    damage: owner.character.attackDamage * 4 * buffMul,
+                    radius: 0.7, aoeRadius: 4, speed: 36, lifetime: 1.6,
+                    trailColor: '#ffaa00'
+                });
+                fireEffect(sx, EYE_HEIGHT, sz, 1.0);
+                fovPunch(10, 0.12);
+                lightFlash(sx, EYE_HEIGHT, sz, '#ff4400', 5, 300);
+                if (arm) { arm.rotation.set(-0.5, 0, 0); setTimeout(() => { if (arm) arm.rotation.set(0.05, 0, 0); }, 300); }
+            }, 400);
+            break;
+        }
+
+        case 'Malevolent Shrine': {
+            // Dark red dome — random slashes everywhere + DOT for 4.8s
+            const cx = owner.x, cz = owner.z;
+            owner.invulnUntil = performance.now() + 5500;
+            if (ctx.isPlayer) screenFlash('rgba(100,0,0,0.8)', 1500);
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            const larm = owner.charMesh && owner.charMesh._leftArm;
+            if (arm) arm.rotation.set(-0.8, 0, 0);
+            if (larm) larm.rotation.set(-0.8, 0, 0);
+
+            const domeGeo = new THREE.SphereGeometry(1, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const domeMat = new THREE.MeshBasicMaterial({
+                color: '#3a0000', transparent: true, opacity: 0.4,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const dome = new THREE.Mesh(domeGeo, domeMat);
+            dome.position.set(cx, 0.1, cz);
+            ctx.scene.add(dome);
+            const domeStart = performance.now();
+            const expandDome = () => {
+                const t = (performance.now() - domeStart) / 800;
+                if (t >= 1 || !owner.alive) return;
+                dome.scale.setScalar(1 + t * 8);
+                requestAnimationFrame(expandDome);
+            };
+            requestAnimationFrame(expandDome);
+
+            const slashInt = setInterval(() => {
+                if (!owner.alive) { clearInterval(slashInt); return; }
+                for (let i = 0; i < 3; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = (1 + Math.random() * 6) * TILE;
+                    const sxx = cx + Math.cos(angle) * dist;
+                    const szz = cz + Math.sin(angle) * dist;
+                    const slashGeo = new THREE.PlaneGeometry(1.5 + Math.random(), 0.03);
+                    const slashMat = new THREE.MeshBasicMaterial({
+                        color: '#ff2244', transparent: true, opacity: 0.8,
+                        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+                    });
+                    const slash = new THREE.Mesh(slashGeo, slashMat);
+                    slash.position.set(sxx, 0.5 + Math.random() * 2, szz);
+                    slash.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                    ctx.scene.add(slash);
+                    setTimeout(() => { ctx.scene.remove(slash); slashGeo.dispose(); slashMat.dispose(); }, 300);
+                }
+            }, 100);
+
+            let ticks = 0;
+            const dmgInt = setInterval(() => {
+                if (!owner.alive) { clearInterval(dmgInt); clearInterval(slashInt); ctx.scene.remove(dome); domeGeo.dispose(); domeMat.dispose(); return; }
+                ticks++;
+                for (const f of ctx.fighters) {
+                    if (f === owner || !f.alive) continue;
+                    if (Math.hypot(f.x - cx, f.z - cz) < 8 * TILE) {
+                        const dmg = Math.round(owner.character.attackDamage * 1.5 * buffMul);
+                        f.takeDamage(dmg, owner);
+                        spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff2244');
+                    }
+                }
+                emitParticles(cx, 1.5, cz, {
+                    color: ['#ff2244', '#ff0000', '#cc0000'],
+                    count: 8, speed: 3, spread: 4,
+                    gravity: -2, life: 12, size: 0.1, sizeEnd: 0, drag: 0.97, upward: 0.5
+                });
+                if (ticks >= 12) {
+                    clearInterval(dmgInt); clearInterval(slashInt);
+                    ctx.scene.remove(dome); domeGeo.dispose(); domeMat.dispose();
+                    emitParticles(cx, 2, cz, {
+                        color: ['#ff2244', '#ff0000', '#880000', '#ffffff'],
+                        count: 60, speed: 6, spread: 2,
+                        gravity: -3, life: 25, lifeVar: 15,
+                        size: 0.2, sizeEnd: 0, drag: 0.96, upward: 1.5
+                    });
+                    groundRing(cx, cz, '#ff2244', 8, 800);
+                    lightFlash(cx, 2, cz, '#ff2244', 8, 500);
+                    if (arm) arm.rotation.set(0.05, 0, 0);
+                    if (larm) larm.rotation.set(0.05, 0, 0);
+                }
+            }, 400);
+            groundRing(cx, cz, '#ff0000', 6, 1000);
+            groundDecal(cx, cz, '#3a0000', 5, 6000);
+            break;
+        }
+
+        // ══════════ TOJI — full DC3D port ══════════
+        case 'Inverted Spear': {
+            // 6-stage piercing thrust line + lunge
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const dist = 1.5 + i * 1.2;
+                    const sx = owner.x + dirX * dist;
+                    const sz = owner.z + dirZ * dist;
+                    const impactGeo = new THREE.PlaneGeometry(0.6, 0.6);
+                    const impactMat = new THREE.MeshBasicMaterial({
+                        color: '#aaffcc', transparent: true, opacity: 0.8,
+                        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+                    });
+                    const impact = new THREE.Mesh(impactGeo, impactMat);
+                    impact.position.set(sx, EYE_HEIGHT, sz);
+                    impact.lookAt(owner.x, EYE_HEIGHT, owner.z);
+                    ctx.scene.add(impact);
+                    emitParticles(sx, EYE_HEIGHT, sz, {
+                        color: ['#aaffcc', '#66ddaa', '#ffffff'],
+                        count: 4, speed: 2, spread: 0.5,
+                        gravity: -3, life: 8, size: 0.06, sizeEnd: 0, drag: 0.95
+                    });
+                    for (const f of ctx.fighters) {
+                        if (f === owner || !f.alive) continue;
+                        if (Math.hypot(f.x - sx, f.z - sz) < 1.5 * TILE) {
+                            const dmg = Math.round(owner.character.attackDamage * 2 * buffMul);
+                            f.takeDamage(dmg, owner);
+                            spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#aaffcc');
+                            // Perpendicular knockback
+                            const perpX = -dirZ, perpZ = dirX;
+                            const dx = f.x - sx, dz = f.z - sz;
+                            const side = (dx * perpX + dz * perpZ) > 0 ? 1 : -1;
+                            f.x += perpX * side * 0.5 * TILE;
+                            f.z += perpZ * side * 0.5 * TILE;
+                            f.mesh.position.set(f.x, 0, f.z);
+                        }
+                    }
+                    const start = performance.now();
+                    const fadeImpact = () => {
+                        const t = (performance.now() - start) / 200;
+                        if (t >= 1) { ctx.scene.remove(impact); impactGeo.dispose(); impactMat.dispose(); return; }
+                        impactMat.opacity = (1 - t) * 0.8;
+                        impact.scale.setScalar(1 + t * 0.5);
+                        requestAnimationFrame(fadeImpact);
+                    };
+                    requestAnimationFrame(fadeImpact);
+                }, i * 40);
+            }
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            if (arm) { arm.rotation.set(-1.6, 0, 0); setTimeout(() => { if (arm) arm.rotation.set(0.05, 0, 0); }, 400); }
+            // Small lunge
+            owner.x += dirX * 1.5 * TILE;
+            owner.z += dirZ * 1.5 * TILE;
+            owner.mesh.position.set(owner.x, 0, owner.z);
+            fovPunch(10, 0.1);
+            lightFlash(owner.x + dirX * 3, EYE_HEIGHT, owner.z + dirZ * 3, '#aaffcc', 3, 200);
+            break;
+        }
+
+        case 'Chain Strike': {
+            // Worm extends forward, bite + pull enemies inward
+            const lungeRange = 7 * TILE;
+            const wormBodyMat = new THREE.MeshStandardMaterial({ color: '#5a2d82', roughness: 0.4 });
+            const wormHeadMat = new THREE.MeshStandardMaterial({ color: '#7a3db2', roughness: 0.3 });
+            const wormParts = [];
+            const wormSegCount = 16;
+            for (let i = 0; i < wormSegCount; i++) {
+                const t = i / (wormSegCount - 1);
+                const segX = owner.x + dirX * t * lungeRange;
+                const segZ = owner.z + dirZ * t * lungeRange;
+                const perpX = -dirZ, perpZ = dirX;
+                const wave = Math.sin(t * Math.PI * 3) * 0.4;
+                const segSize = 0.12 + Math.sin(t * Math.PI) * 0.06;
+                const seg = new THREE.Mesh(
+                    new THREE.SphereGeometry(segSize, 6, 6),
+                    i === wormSegCount - 1 ? wormHeadMat : wormBodyMat
+                );
+                seg.position.set(segX + perpX * wave, EYE_HEIGHT - 0.3 + Math.sin(t * Math.PI * 2) * 0.2, segZ + perpZ * wave);
+                seg.scale.set(1, 0.8, 1);
+                seg.visible = false;
+                ctx.scene.add(seg);
+                wormParts.push(seg);
+            }
+            for (let i = 0; i < wormParts.length; i++) {
+                setTimeout(() => { wormParts[i].visible = true; }, i * 20);
+            }
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    const t = i / 7;
+                    const sx = owner.x + dirX * t * lungeRange;
+                    const sz = owner.z + dirZ * t * lungeRange;
+                    emitParticles(sx, EYE_HEIGHT - 0.3, sz, {
+                        color: ['#5a2d82', '#7a4da2', '#9a6dc2'],
+                        count: 3, speed: 1.5, spread: 0.4,
+                        gravity: -6, life: 12, size: 0.06, sizeEnd: 0, drag: 0.96
+                    });
+                }, i * 30);
+            }
+            setTimeout(() => {
+                for (const f of ctx.fighters) {
+                    if (f === owner || !f.alive) continue;
+                    const dx = f.x - owner.x, dz = f.z - owner.z;
+                    const d = Math.hypot(dx, dz);
+                    if (d > lungeRange + TILE || d < 0.5) continue;
+                    const dot = dx * dirX + dz * dirZ;
+                    if (dot < 0) continue;
+                    const perpDist = Math.abs(dx * dirZ - dz * dirX);
+                    if (perpDist < 1.5 * TILE) {
+                        const dmg = Math.round(owner.character.attackDamage * 2 * buffMul);
+                        f.takeDamage(dmg, owner);
+                        spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#7a3db2');
+                        // Pull toward caster
+                        f.x -= (dx / d) * 2 * TILE;
+                        f.z -= (dz / d) * 2 * TILE;
+                        f.mesh.position.set(f.x, 0, f.z);
+                        f.cooldowns.m1 = performance.now() + 1200;
+                    }
+                }
+                triggerHitstop(40);
+            }, wormSegCount * 20);
+            // Retract
+            setTimeout(() => {
+                for (let i = wormParts.length - 1; i >= 0; i--) {
+                    setTimeout(() => {
+                        ctx.scene.remove(wormParts[i]);
+                        if (wormParts[i].geometry) wormParts[i].geometry.dispose();
+                    }, (wormParts.length - 1 - i) * 15);
+                }
+            }, wormSegCount * 20 + 200);
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            if (arm) { arm.rotation.set(-1.3, 0, 0); setTimeout(() => { if (arm) arm.rotation.set(0.05, 0, 0); }, 500); }
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#7a3db2', 3, 200);
+            break;
+        }
+
+        case 'Playful Cloud': {
+            // Wind-up then massive AOE slam
+            const ix = owner.x + dirX * 3, iz = owner.z + dirZ * 3;
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            if (arm) arm.rotation.set(-2.2, 0, 0);
+            setTimeout(() => {
+                triggerHitstop(100);
+                fovPunch(15, 0.2);
+                groundRing(ix, iz, '#ffffff', 5, 800);
+                groundDecal(ix, iz, '#555555', 2.5, 3000);
+                emitParticles(ix, 0.5, iz, {
+                    color: ['#aaaaaa', '#888888', '#cccccc', '#666666'],
+                    count: 35, speed: 6, spread: 1,
+                    gravity: -8, life: 20, lifeVar: 10,
+                    size: 0.2, sizeEnd: 0.05, drag: 0.96, upward: 2
+                });
+                emitParticles(ix, 0.2, iz, {
+                    color: ['#997755', '#886644'],
+                    count: 20, speed: 4, spread: 2,
+                    gravity: -3, life: 25, size: 0.15, sizeEnd: 0, drag: 0.97, upward: 0.3
+                });
+                for (const f of ctx.fighters) {
+                    if (f === owner || !f.alive) continue;
+                    const dx = f.x - ix, dz = f.z - iz;
+                    const d = Math.hypot(dx, dz);
+                    if (d < 4 * TILE) {
+                        const falloff = 1 - (d / (4 * TILE)) * 0.5;
+                        const dmg = Math.round(owner.character.attackDamage * 5 * falloff * buffMul);
+                        f.takeDamage(dmg, owner);
+                        spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ffffff');
+                        if (d > 0.3) {
+                            f.x += (dx / d) * 3 * TILE;
+                            f.z += (dz / d) * 3 * TILE;
+                            f.mesh.position.set(f.x, 0, f.z);
+                        }
+                    }
+                }
+                lightFlash(ix, 1, iz, '#ffffff', 8, 400);
+                screenFlash('rgba(255,255,255,0.3)', 200);
+                if (arm) { arm.rotation.set(0.3, 0, 0); setTimeout(() => { if (arm) arm.rotation.set(0.05, 0, 0); }, 300); }
+            }, 250);
+            break;
+        }
+
+        case 'Heavenly Restriction': {
+            // Massive buff for 8 seconds
+            screenFlash('rgba(40,110,60,0.6)', 1000);
+            emitParticles(owner.x, EYE_HEIGHT, owner.z, {
+                color: ['#2a6e3f', '#44aa66', '#88ffaa', '#ffffff'],
+                count: 40, speed: 4, spread: 1,
+                gravity: -1, life: 25, lifeVar: 15,
+                size: 0.15, sizeEnd: 0, drag: 0.97, upward: 2
+            });
+            groundRing(owner.x, owner.z, '#2a6e3f', 4, 800);
+            owner.buffUntil = performance.now() + 8000;
+            owner.buffMul = 2.5;
+            owner.invulnUntil = performance.now() + 1000;
+            const aura = new THREE.PointLight('#2a6e3f', 3, 20, 2);
+            aura.position.y = 1.2;
+            owner.mesh.add(aura);
+            const buffParticles = setInterval(() => {
+                if (!owner.alive || performance.now() > owner.buffUntil) {
+                    clearInterval(buffParticles);
+                    owner.mesh.remove(aura);
+                    return;
+                }
+                emitParticles(owner.x, 0.5, owner.z, {
+                    color: ['#2a6e3f', '#44aa66'], count: 3, speed: 1.5, spread: 0.5,
+                    gravity: -1, life: 10, size: 0.06, sizeEnd: 0, drag: 0.97, upward: 2
+                });
+            }, 150);
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#2a6e3f', 5, 400);
+            triggerHitstop(60);
+            break;
+        }
+
+        // ══════════ BROOK (kept simplified — no DC3D impl exists) ══════════
         case 'Hanauta Sancho': {
             for (let i = 0; i < 3; i++) {
                 setTimeout(() => spawnProjectile(ctx.scene, owner, ctx, {
@@ -855,8 +1195,8 @@ export function castAbility(abilityName, owner, ctx) {
             break;
         }
         case 'Blizzard Slice': {
-            const tx = owner.x + dirX * 6, tz = owner.z + dirZ * 6;
-            applyAOE(ctx.scene, owner, ctx.fighters, tx, tz, 6, baseDmg * 3.5 * buffMul, '#88ccff');
+            const tx = owner.x + dirX * 6 * TILE, tz = owner.z + dirZ * 6 * TILE;
+            applyAOE(ctx.scene, owner, ctx.fighters, tx, tz, 6 * TILE, baseDmg * 3.5 * buffMul, '#88ccff');
             emitParticles(tx, EYE_HEIGHT * 0.6, tz, {
                 color: ['#88ccff', '#ffffff', '#bbeeff'], count: 40, speed: 5,
                 spread: 2, gravity: -2, life: 25, size: 0.18, sizeEnd: 0, drag: 0.95
@@ -865,51 +1205,240 @@ export function castAbility(abilityName, owner, ctx) {
         }
         case 'Soul King': {
             owner.invulnUntil = performance.now() + 800;
-            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 12, baseDmg * 6 * buffMul, '#4488ff');
+            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 12 * TILE, baseDmg * 6 * buffMul, '#4488ff');
             screenFlash('#4488ff', 350);
             break;
         }
 
-        // ══════════ DENJI ══════════
+        // ══════════ DENJI — full DC3D port ══════════
         case 'Chain Rip': {
-            spawnProjectile(ctx.scene, owner, ctx, {
-                color: '#ffaa00', dirX, dirZ, damage: baseDmg * 1.4 * buffMul,
-                radius: 0.5, speed: 28, lifetime: 1.0, trailColor: '#ffcc44'
-            });
-            break;
-        }
-        case 'Buzzsaw': {
-            for (let i = 0; i < 4; i++) {
-                const ang = Math.atan2(-dirX, -dirZ) + Math.PI + (i - 1.5) * 0.25;
-                const dx = -Math.sin(ang), dz = -Math.cos(ang);
-                spawnProjectile(ctx.scene, owner, ctx, {
-                    color: '#ff6600', dirX: dx, dirZ: dz,
-                    damage: baseDmg * 0.8 * buffMul, radius: 0.5, speed: 26, lifetime: 1.2
-                });
+            // Ripcord pull then chainsaw teeth shoot forward
+            triggerHitstop(60);
+            fovPunch(10, 0.15);
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            if (arm) {
+                arm.rotation.set(0.8, 0, -0.3);
+                setTimeout(() => { if (arm) arm.rotation.set(-1.5, 0, 0); }, 200);
+                setTimeout(() => { if (arm) arm.rotation.set(0.05, 0, 0); }, 800);
             }
-            break;
-        }
-        case 'Devil Charge': {
-            doDash(owner, dirX, dirZ, 16);
-            emitParticles(owner.x, EYE_HEIGHT * 0.5, owner.z, {
-                color: ['#ff4400', '#ff8800'], count: 24, speed: 6, spread: 0.8,
-                gravity: -1, life: 18, size: 0.2, sizeEnd: 0, drag: 0.93
+            emitParticles(owner.x, EYE_HEIGHT, owner.z, {
+                color: ['#ff6600', '#ff4400', '#ffaa00', '#ff8800'],
+                count: 20, speed: 3, spread: 0.8,
+                gravity: -2, life: 10, size: 0.1, sizeEnd: 0, drag: 0.96, upward: 1
             });
-            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 4, baseDmg * 2.5 * buffMul, '#ff4400');
-            break;
-        }
-        case 'Full Devil': {
-            owner.buffUntil = performance.now() + 8000;
-            owner.buffMul = 2.0;
-            owner.invulnUntil = performance.now() + 800;
-            fireEffect(owner.x, EYE_HEIGHT * 0.7, owner.z, 1.5);
-            screenFlash('#ff4400', 300);
+            setTimeout(() => {
+                for (let i = 0; i < 8; i++) {
+                    setTimeout(() => {
+                        const dist = 1.5 + i * 1;
+                        const sx = owner.x + dirX * dist;
+                        const sz = owner.z + dirZ * dist;
+                        const toothGeo = new THREE.ConeGeometry(0.15, 0.3, 3);
+                        const toothMat = new THREE.MeshBasicMaterial({
+                            color: '#ff6600', transparent: true, opacity: 0.9,
+                            blending: THREE.AdditiveBlending, depthWrite: false
+                        });
+                        const tooth = new THREE.Mesh(toothGeo, toothMat);
+                        tooth.position.set(sx, EYE_HEIGHT - 0.2, sz);
+                        tooth.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                        ctx.scene.add(tooth);
+                        emitParticles(sx, EYE_HEIGHT, sz, {
+                            color: ['#ff8800', '#ffaa00', '#ffffff', '#ff4400'],
+                            count: 6, speed: 4, spread: 0.6,
+                            gravity: -8, life: 8, size: 0.06, sizeEnd: 0, drag: 0.95
+                        });
+                        for (const f of ctx.fighters) {
+                            if (f === owner || !f.alive) continue;
+                            if (Math.hypot(f.x - sx, f.z - sz) < 1.5 * TILE) {
+                                const dmg = Math.round(owner.character.attackDamage * 2.5 * buffMul);
+                                f.takeDamage(dmg, owner);
+                                spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff6600');
+                                f.x += dirX * 0.8 * TILE;
+                                f.z += dirZ * 0.8 * TILE;
+                                f.mesh.position.set(f.x, 0, f.z);
+                            }
+                        }
+                        const start = performance.now();
+                        const fadeTooth = () => {
+                            const t = (performance.now() - start) / 250;
+                            if (t >= 1) { ctx.scene.remove(tooth); toothGeo.dispose(); toothMat.dispose(); return; }
+                            toothMat.opacity = (1 - t) * 0.9;
+                            tooth.scale.setScalar(1 + t * 0.5);
+                            tooth.rotation.z += 0.3;
+                            requestAnimationFrame(fadeTooth);
+                        };
+                        requestAnimationFrame(fadeTooth);
+                    }, i * 50);
+                }
+                lightFlash(owner.x + dirX * 3, EYE_HEIGHT, owner.z + dirZ * 3, '#ff6600', 5, 300);
+                groundDecal(owner.x + dirX * 4, owner.z + dirZ * 4, '#cc4400', 1.5, 2000);
+            }, 200);
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#ff8800', 3, 200);
             break;
         }
 
-        // ══════════ MEGUMI ══════════
+        case 'Buzzsaw': {
+            // Spinning sawblade ring around caster, AOE damage for 0.8s
+            triggerHitstop(40);
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            const larm = owner.charMesh && owner.charMesh._leftArm;
+            if (arm) arm.rotation.set(-0.5, 0, -1.2);
+            if (larm) larm.rotation.set(-0.5, 0, 1.2);
+            const sawRingGeo = new THREE.TorusGeometry(2.5, 0.08, 4, 24);
+            const sawRingMat = new THREE.MeshBasicMaterial({
+                color: '#ff6600', transparent: true, opacity: 0.8,
+                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const sawRing = new THREE.Mesh(sawRingGeo, sawRingMat);
+            sawRing.position.set(owner.x, EYE_HEIGHT - 0.5, owner.z);
+            sawRing.rotation.x = Math.PI / 2;
+            ctx.scene.add(sawRing);
+            const sawRing2Geo = new THREE.TorusGeometry(1.8, 0.05, 4, 24);
+            const sawRing2Mat = new THREE.MeshBasicMaterial({ color: '#ffaa00', transparent: true, opacity: 0.5, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false });
+            const sawRing2 = new THREE.Mesh(sawRing2Geo, sawRing2Mat);
+            sawRing2.position.copy(sawRing.position);
+            sawRing2.rotation.x = Math.PI / 2;
+            ctx.scene.add(sawRing2);
+            let sawTicks = 0;
+            const sawInt = setInterval(() => {
+                if (!owner.alive) { clearInterval(sawInt); ctx.scene.remove(sawRing); ctx.scene.remove(sawRing2); sawRingGeo.dispose(); sawRingMat.dispose(); sawRing2Geo.dispose(); sawRing2Mat.dispose(); return; }
+                sawTicks++;
+                sawRing.position.set(owner.x, EYE_HEIGHT - 0.5, owner.z);
+                sawRing2.position.copy(sawRing.position);
+                sawRing.rotation.z += 0.5;
+                sawRing2.rotation.z -= 0.6;
+                const angle = sawTicks * 0.8;
+                emitParticles(owner.x + Math.cos(angle) * 2.5, EYE_HEIGHT - 0.3, owner.z + Math.sin(angle) * 2.5, {
+                    color: ['#ff8800', '#ffaa00', '#ffffff'], count: 3, speed: 4, spread: 0.3,
+                    gravity: -6, life: 8, size: 0.06, sizeEnd: 0, drag: 0.95
+                });
+                for (const f of ctx.fighters) {
+                    if (f === owner || !f.alive) continue;
+                    const d = Math.hypot(f.x - owner.x, f.z - owner.z);
+                    if (d < 3.5 * TILE) {
+                        const dmg = Math.round(owner.character.attackDamage * 1.2 * buffMul);
+                        f.takeDamage(dmg, owner);
+                        spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff6600');
+                        const dx = f.x - owner.x, dz = f.z - owner.z;
+                        if (d > 0.3) {
+                            f.x += (dx / d) * 0.4 * TILE;
+                            f.z += (dz / d) * 0.4 * TILE;
+                            f.mesh.position.set(f.x, 0, f.z);
+                        }
+                    }
+                }
+                if (sawTicks >= 8) {
+                    clearInterval(sawInt);
+                    ctx.scene.remove(sawRing); sawRingGeo.dispose(); sawRingMat.dispose();
+                    ctx.scene.remove(sawRing2); sawRing2Geo.dispose(); sawRing2Mat.dispose();
+                    if (arm) arm.rotation.set(0.05, 0, 0);
+                    if (larm) larm.rotation.set(0.05, 0, 0);
+                }
+            }, 100);
+            groundRing(owner.x, owner.z, '#ff6600', 3, 600);
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#ff6600', 5, 400);
+            fovPunch(8, 0.2);
+            break;
+        }
+
+        case 'Devil Charge': {
+            // All-fours charge — sustained dash with damage
+            const chargeDist = 7 * TILE;
+            const chargeDur = 500;
+            owner.invulnUntil = performance.now() + chargeDur + 200;
+            fovPunch(20, 0.3);
+            const pm = owner.charMesh;
+            if (pm?._torso) pm._torso.rotation.x = 1.2;
+            if (pm?._rightArm) pm._rightArm.rotation.set(0.8, 0, -0.5);
+            if (pm?._leftArm) pm._leftArm.rotation.set(0.8, 0, 0.5);
+            const startTime = performance.now();
+            const hitSet = new Set();
+            const chargeInt = setInterval(() => {
+                if (!owner.alive) { clearInterval(chargeInt); return; }
+                const elapsed = performance.now() - startTime;
+                const t = elapsed / chargeDur;
+                if (t >= 1) {
+                    clearInterval(chargeInt);
+                    if (pm?._torso) pm._torso.rotation.x = 0.04;
+                    if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+                    if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+                    if (pm?._rightLeg) pm._rightLeg.rotation.x = 0;
+                    if (pm?._leftLeg) pm._leftLeg.rotation.x = 0;
+                    return;
+                }
+                const moveDt = 0.016;
+                owner.x += dirX * (chargeDist / (chargeDur / 1000)) * moveDt;
+                owner.z += dirZ * (chargeDist / (chargeDur / 1000)) * moveDt;
+                owner.mesh.position.set(owner.x, 0, owner.z);
+                const gallop = elapsed * 0.025;
+                if (pm?._rightLeg) pm._rightLeg.rotation.x = Math.sin(gallop) * 0.8;
+                if (pm?._leftLeg) pm._leftLeg.rotation.x = Math.sin(gallop + Math.PI) * 0.8;
+                if (Math.random() < 0.4) {
+                    emitParticles(owner.x, 0.5, owner.z, {
+                        color: ['#ff6600', '#ff8800', '#ffaa00'],
+                        count: 3, speed: 3, spread: 0.4,
+                        gravity: -6, life: 6, size: 0.07, sizeEnd: 0, drag: 0.95
+                    });
+                }
+                for (const f of ctx.fighters) {
+                    if (f === owner || !f.alive || hitSet.has(f)) continue;
+                    if (Math.hypot(f.x - owner.x, f.z - owner.z) < 1.5 * TILE) {
+                        hitSet.add(f);
+                        const dmg = Math.round(owner.character.attackDamage * 4 * buffMul);
+                        f.takeDamage(dmg, owner);
+                        spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff4400');
+                        const dx = f.x - owner.x, dz = f.z - owner.z;
+                        const side = (dx * (-dirZ) + dz * dirX) > 0 ? 1 : -1;
+                        f.x += (-dirZ) * side * 2 * TILE;
+                        f.z += dirX * side * 2 * TILE;
+                        f.mesh.position.set(f.x, 0, f.z);
+                        triggerHitstop(30);
+                    }
+                }
+            }, 16);
+            groundDecal(owner.x + dirX * chargeDist * 0.5, owner.z + dirZ * chargeDist * 0.5, '#cc4400', 2, 2500);
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#ff4400', 6, 300);
+            break;
+        }
+
+        case 'Full Devil': {
+            // Transform — buff for 8s, heal +50
+            screenFlash('rgba(200,60,0,0.7)', 1200);
+            triggerHitstop(100);
+            emitParticles(owner.x, EYE_HEIGHT, owner.z, {
+                color: ['#cc4400', '#ff6600', '#ff8800', '#ffaa00', '#ff2200'],
+                count: 50, speed: 5, spread: 1.5,
+                gravity: -2, life: 25, lifeVar: 15,
+                size: 0.2, sizeEnd: 0, drag: 0.97, upward: 2
+            });
+            groundRing(owner.x, owner.z, '#cc4400', 5, 1000);
+            owner.buffUntil = performance.now() + 8000;
+            owner.buffMul = 3.0;
+            owner.hp = Math.min(owner.hp + 50, owner.maxHp);
+            owner.invulnUntil = performance.now() + 1500;
+            const aura = new THREE.PointLight('#ff4400', 4, 20, 2);
+            aura.position.y = 1.2;
+            owner.mesh.add(aura);
+            const devilParticles = setInterval(() => {
+                if (!owner.alive || performance.now() > owner.buffUntil) {
+                    clearInterval(devilParticles);
+                    owner.mesh.remove(aura);
+                    return;
+                }
+                emitParticles(owner.x, 0.5, owner.z, {
+                    color: ['#cc4400', '#ff6600', '#ff2200'], count: 4, speed: 2, spread: 0.6,
+                    gravity: -1.5, life: 12, size: 0.08, sizeEnd: 0, drag: 0.97, upward: 2.5
+                });
+            }, 120);
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#ff4400', 8, 500);
+            const arm = owner.charMesh && owner.charMesh._rightArm;
+            const larm = owner.charMesh && owner.charMesh._leftArm;
+            if (arm) arm.rotation.set(-0.8, 0, -0.4);
+            if (larm) larm.rotation.set(-0.8, 0, 0.4);
+            break;
+        }
+
+        // ══════════ MEGUMI (placeholder — full port deferred) ══════════
         case 'Divine Dog': {
-            // 2 white wolf-orbs that fly outward and seek
             for (let i = 0; i < 2; i++) {
                 const ang = Math.atan2(-dirX, -dirZ) + Math.PI + (i === 0 ? 0.4 : -0.4);
                 const dx = -Math.sin(ang), dz = -Math.cos(ang);
@@ -922,15 +1451,13 @@ export function castAbility(abilityName, owner, ctx) {
             break;
         }
         case 'Mahoraga': {
-            // Massive shadow eruption
-            const tx = owner.x + dirX * 5, tz = owner.z + dirZ * 5;
-            applyAOE(ctx.scene, owner, ctx.fighters, tx, tz, 8, baseDmg * 6.5 * buffMul, '#222244');
+            const tx = owner.x + dirX * 5 * TILE, tz = owner.z + dirZ * 5 * TILE;
+            applyAOE(ctx.scene, owner, ctx.fighters, tx, tz, 8 * TILE, baseDmg * 6.5 * buffMul, '#222244');
             groundRing(tx, tz, '#aa00ff', 8, 1000);
             triggerHitstop(80);
             break;
         }
         case 'Nue': {
-            // Lightning bird projectile
             spawnProjectile(ctx.scene, owner, ctx, {
                 color: '#6644aa', dirX, dirZ, damage: baseDmg * 2 * buffMul,
                 radius: 0.7, speed: 30, lifetime: 1.4, trailColor: '#aa66ff'
@@ -939,39 +1466,356 @@ export function castAbility(abilityName, owner, ctx) {
         }
         case 'Chimera Shadow Garden': {
             owner.invulnUntil = performance.now() + 700;
-            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 11, baseDmg * 6 * buffMul, '#1a237e');
+            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 11 * TILE, baseDmg * 6 * buffMul, '#1a237e');
             groundRing(owner.x, owner.z, '#1a237e', 11, 1300);
             break;
         }
 
-        // ══════════ YOH ══════════
+        // ══════════ YOH — full DC3D port ══════════
         case 'Celestial Slash': {
-            spawnProjectile(ctx.scene, owner, ctx, {
-                color: '#ffeebb', dirX, dirZ, damage: baseDmg * 1.6 * buffMul,
-                radius: 0.7, speed: 30, lifetime: 1.0, trailColor: '#ffffaa'
+            // Big crescent wave projectile with halo
+            triggerHitstop(120);
+            fovPunch(25, 0.35);
+            screenFlash('rgba(255,152,0,0.5)', 600);
+            const waveGeo = new THREE.TorusGeometry(3.0, 0.2, 6, 24, Math.PI);
+            const waveMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.9,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
             });
-            spawnMeleeSlash('#ffeebb', owner.x, EYE_HEIGHT * 0.7, owner.z, owner.yaw, 0);
+            const wave = new THREE.Mesh(waveGeo, waveMat);
+            const sx = owner.x + dirX * 2, sz = owner.z + dirZ * 2;
+            wave.position.set(sx, EYE_HEIGHT, sz);
+            wave.rotation.set(0, owner.yaw + Math.PI / 2, Math.PI / 2);
+            const innerGeo = new THREE.TorusGeometry(2.0, 0.4, 4, 20, Math.PI);
+            const innerMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+            wave.add(new THREE.Mesh(innerGeo, innerMat));
+            const outerGeo = new THREE.TorusGeometry(3.5, 0.08, 4, 24, Math.PI);
+            const outerMat = new THREE.MeshBasicMaterial({ color: '#9c27b0', transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+            wave.add(new THREE.Mesh(outerGeo, outerMat));
+            wave.add(new THREE.PointLight('#ff9800', 12, 40, 2));
+            ctx.scene.add(wave);
+            _vfx.push({
+                mesh: wave,
+                x: wave.position.x, y: EYE_HEIGHT, z: wave.position.z,
+                dx: dirX * 14, dz: dirZ * 14,
+                life: 2.5, hitSet: new Set(), owner,
+                cleanup() {
+                    ctx.scene.remove(wave);
+                    waveGeo.dispose(); waveMat.dispose();
+                    innerGeo.dispose(); innerMat.dispose();
+                    outerGeo.dispose(); outerMat.dispose();
+                },
+                tick(dt, c) {
+                    if (!owner.alive) return false;
+                    this.life -= dt;
+                    if (this.life <= 0) return false;
+                    this.x += this.dx * dt; this.z += this.dz * dt;
+                    wave.position.set(this.x, this.y, this.z);
+                    emitParticles(this.x, this.y, this.z, {
+                        color: ['#ff9800', '#ffb74d', '#ffffff', '#9c27b0', '#ffcc00'],
+                        count: 6, speed: 3, spread: 2,
+                        gravity: 0, life: 15, size: 0.15, sizeEnd: 0, drag: 0.94
+                    });
+                    for (const f of c.fighters) {
+                        if (f === owner || !f.alive || this.hitSet.has(f)) continue;
+                        if (Math.hypot(f.x - this.x, f.z - this.z) < 3 * TILE) {
+                            this.hitSet.add(f);
+                            const dmg = Math.round(owner.character.attackDamage * 4 * buffMul);
+                            f.takeDamage(dmg, owner);
+                            spawnDmgNumber(f.x, this.y, f.z, dmg, '#ff9800');
+                        }
+                    }
+                    if (Math.hypot(this.x, this.z) > 90) return false;
+                    return true;
+                }
+            });
+            emitParticles(sx, EYE_HEIGHT, sz, {
+                color: ['#ff9800', '#ffffff', '#9c27b0', '#ffcc00'],
+                count: 50, speed: 6, spread: 2.5,
+                gravity: 0, life: 18, size: 0.18, sizeEnd: 0, drag: 0.93, upward: 2
+            });
+            lightFlash(sx, EYE_HEIGHT, sz, '#ff9800', 10, 500);
+            groundRing(owner.x, owner.z, '#ff9800', 5, 700);
+            groundRing(owner.x, owner.z, '#9c27b0', 3, 500);
             break;
         }
+
         case 'Buddha Giri': {
-            doDash(owner, dirX, dirZ, 10);
-            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 4, baseDmg * 2.5 * buffMul, '#ffaa44');
-            spawnMeleeSlash('#ffaa44', owner.x, EYE_HEIGHT * 0.7, owner.z, owner.yaw, 1);
-            break;
-        }
-        case 'Double Medium': {
-            // 12-hit flurry
-            for (let i = 0; i < 12; i++) {
-                setTimeout(() => spawnProjectile(ctx.scene, owner, ctx, {
-                    color: '#ffeeaa', dirX, dirZ,
-                    damage: baseDmg * 0.45 * buffMul, radius: 0.4, speed: 32, lifetime: 0.6
-                }), i * 70);
+            // Teleport-dash + giant 4-layer X slash on landing
+            const dashDist = 8 * TILE;
+            triggerHitstop(150);
+            fovPunch(30, 0.4);
+            screenFlash('rgba(255,255,255,0.6)', 400);
+            owner.invulnUntil = performance.now() + 800;
+            owner.x += dirX * dashDist;
+            owner.z += dirZ * dashDist;
+            // Clamp inside arena
+            const r = Math.hypot(owner.x, owner.z);
+            const maxR = 70 - 1;
+            if (r > maxR) { owner.x = owner.x / r * maxR; owner.z = owner.z / r * maxR; }
+            owner.mesh.position.set(owner.x, 0, owner.z);
+            const lx = owner.x, lz = owner.z;
+            for (let i = 0; i < 4; i++) {
+                const sGeo = new THREE.PlaneGeometry(8, 0.25);
+                const sMat = new THREE.MeshBasicMaterial({
+                    color: ['#ffffff', '#9c27b0', '#ff9800', '#ffcc00'][i],
+                    transparent: true, opacity: 0.85,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                });
+                const sMesh = new THREE.Mesh(sGeo, sMat);
+                sMesh.position.set(lx, EYE_HEIGHT - 0.5 + i * 0.3, lz);
+                sMesh.rotation.set(0, owner.yaw + Math.PI / 2, (i < 2 ? 0.5 : -0.5) + i * 0.1);
+                ctx.scene.add(sMesh);
+                const fadeStart = performance.now();
+                const fadeSlash = () => {
+                    const ft = (performance.now() - fadeStart) / 700;
+                    if (ft >= 1) { ctx.scene.remove(sMesh); sGeo.dispose(); sMat.dispose(); return; }
+                    sMat.opacity = (1 - ft) * 0.85;
+                    sMesh.scale.set(1 + ft * 0.8, 1 + ft * 5, 1);
+                    requestAnimationFrame(fadeSlash);
+                };
+                requestAnimationFrame(fadeSlash);
             }
+            // Damage cone
+            for (const f of ctx.fighters) {
+                if (f === owner || !f.alive) continue;
+                const toX = f.x - owner.x, toZ = f.z - owner.z;
+                const dot = toX * dirX + toZ * dirZ;
+                if (dot > -2 * TILE && dot < (dashDist + 3 * TILE)) {
+                    const perp = Math.abs(toX * dirZ - toZ * dirX);
+                    if (perp < 3.5 * TILE) {
+                        const dmg = Math.round(owner.character.attackDamage * 5 * buffMul);
+                        f.takeDamage(dmg, owner);
+                        spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ffffff');
+                        f.x += dirX * 2.5 * TILE;
+                        f.z += dirZ * 2.5 * TILE;
+                        f.mesh.position.set(f.x, 0, f.z);
+                    }
+                }
+            }
+            emitParticles(lx, EYE_HEIGHT, lz, {
+                color: ['#ffffff', '#ff9800', '#9c27b0', '#ffcc00'],
+                count: 60, speed: 7, spread: 3,
+                gravity: 0, life: 20, size: 0.2, sizeEnd: 0, drag: 0.94, upward: 3
+            });
+            groundRing(lx, lz, '#ffffff', 7, 800);
+            groundRing(lx, lz, '#9c27b0', 5, 600);
+            groundDecal(lx, lz, '#ff9800', 4, 3000);
+            lightFlash(lx, EYE_HEIGHT, lz, '#ffffff', 15, 600);
             break;
         }
+
+        case 'Double Medium': {
+            // 12-hit barrage with escalating damage
+            triggerHitstop(80);
+            fovPunch(15, 0.4);
+            screenFlash('rgba(156,39,176,0.4)', 800);
+            owner.invulnUntil = performance.now() + 3000;
+            emitParticles(owner.x, EYE_HEIGHT, owner.z, {
+                color: ['#ff9800', '#ffffff', '#9c27b0', '#ffcc00'],
+                count: 80, speed: 5, spread: 2.5,
+                gravity: 0, life: 25, size: 0.2, sizeEnd: 0, drag: 0.95, upward: 5
+            });
+            groundRing(owner.x, owner.z, '#ff9800', 6, 1200);
+            groundRing(owner.x, owner.z, '#9c27b0', 4, 800);
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#9c27b0', 10, 800);
+            for (let i = 0; i < 12; i++) {
+                setTimeout(() => {
+                    if (!owner.alive) return;
+                    const dir = i % 2 === 0 ? 1 : -1;
+                    const hitDist = 2 + Math.random() * 1.5;
+                    const perpX = Math.cos(owner.yaw), perpZ = -Math.sin(owner.yaw);
+                    const sx = owner.x + dirX * hitDist + perpX * dir * (0.5 + i * 0.1);
+                    const sy = EYE_HEIGHT - 0.8 + Math.random() * 1.5;
+                    const sz = owner.z + dirZ * hitDist + perpZ * dir * (0.5 + i * 0.1);
+                    const slashSize = 4 + i * 0.3;
+                    const sGeo = new THREE.PlaneGeometry(slashSize, 0.18);
+                    const sMat = new THREE.MeshBasicMaterial({
+                        color: i % 4 === 0 ? '#9c27b0' : i % 4 === 1 ? '#ffffff' : i % 4 === 2 ? '#ff9800' : '#ffcc00',
+                        transparent: true, opacity: 0.9,
+                        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                    });
+                    const sMesh = new THREE.Mesh(sGeo, sMat);
+                    sMesh.position.set(sx, sy, sz);
+                    sMesh.rotation.set(Math.random() * 0.5 - 0.25, owner.yaw + Math.PI / 2, dir * (0.4 + Math.random() * 0.5));
+                    ctx.scene.add(sMesh);
+                    const fadeStart = performance.now();
+                    const fade = () => {
+                        const ft = (performance.now() - fadeStart) / 400;
+                        if (ft >= 1) { ctx.scene.remove(sMesh); sGeo.dispose(); sMat.dispose(); return; }
+                        sMat.opacity = (1 - ft) * 0.9;
+                        sMesh.scale.set(1 + ft * 0.5, 1 + ft * 4, 1);
+                        requestAnimationFrame(fade);
+                    };
+                    requestAnimationFrame(fade);
+                    emitParticles(sx, sy, sz, {
+                        color: ['#ffffff', '#9c27b0', '#ff9800', '#ffcc00'],
+                        count: 8, speed: 4, spread: 0.8,
+                        gravity: 0, life: 10, size: 0.08, sizeEnd: 0, drag: 0.94
+                    });
+                    const dmgMult = 1.0 + i * 0.2;
+                    for (const f of ctx.fighters) {
+                        if (f === owner || !f.alive) continue;
+                        if (Math.hypot(f.x - owner.x, f.z - owner.z) < 5 * TILE) {
+                            const dmg = Math.round(owner.character.attackDamage * dmgMult * buffMul);
+                            f.takeDamage(dmg, owner);
+                            spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ffffff');
+                        }
+                    }
+                    if (i === 11) triggerHitstop(100);
+                    if (i >= 9) lightFlash(sx, sy, sz, '#ffffff', 4, 100);
+                }, i * 150);
+            }
+            setTimeout(() => {
+                if (!owner.alive) return;
+                screenFlash('rgba(255,152,0,0.5)', 500);
+                emitParticles(owner.x + dirX * 3, EYE_HEIGHT, owner.z + dirZ * 3, {
+                    color: ['#ffffff', '#ff9800', '#9c27b0'],
+                    count: 50, speed: 6, spread: 2,
+                    gravity: 0, life: 15, size: 0.18, sizeEnd: 0, drag: 0.95, upward: 2
+                });
+                groundRing(owner.x, owner.z, '#ffffff', 5, 500);
+                lightFlash(owner.x, EYE_HEIGHT, owner.z, '#ffffff', 12, 400);
+            }, 12 * 150 + 100);
+            break;
+        }
+
         case 'Fumon Tonkou': {
-            applyAOE(ctx.scene, owner, ctx.fighters, owner.x, owner.z, 11, baseDmg * 5.5 * buffMul, '#ffaa44');
-            screenFlash('#ffaa44', 250);
+            // Earth-shaking pillar + 8 shockwaves + 10 DOT ticks
+            triggerHitstop(200);
+            fovPunch(35, 0.5);
+            screenFlash('rgba(255,255,255,0.8)', 1000);
+            owner.invulnUntil = performance.now() + 3500;
+            const pillarGeo = new THREE.CylinderGeometry(0.8, 5, 20, 10, 1, true);
+            const pillarMat = new THREE.MeshBasicMaterial({
+                color: '#ff9800', transparent: true, opacity: 0.5,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+            pillar.position.set(owner.x, 0, owner.z);
+            ctx.scene.add(pillar);
+            pillar.add(new THREE.PointLight('#ff9800', 20, 60, 2));
+            const pillar2Geo = new THREE.CylinderGeometry(0.5, 4, 18, 10, 1, true);
+            const pillar2Mat = new THREE.MeshBasicMaterial({ color: '#9c27b0', transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+            const pillar2 = new THREE.Mesh(pillar2Geo, pillar2Mat);
+            pillar2.position.set(owner.x, 0, owner.z);
+            ctx.scene.add(pillar2);
+            const pillar3Geo = new THREE.CylinderGeometry(0.3, 2, 22, 8, 1, true);
+            const pillar3Mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+            const pillar3 = new THREE.Mesh(pillar3Geo, pillar3Mat);
+            pillar3.position.set(owner.x, 0, owner.z);
+            ctx.scene.add(pillar3);
+            for (let r = 0; r < 8; r++) {
+                setTimeout(() => {
+                    groundRing(owner.x, owner.z, r % 3 === 0 ? '#ffffff' : r % 3 === 1 ? '#ff9800' : '#9c27b0', 4 + r * 2, 1000);
+                }, r * 150);
+            }
+            emitParticles(owner.x, 3, owner.z, {
+                color: ['#ff9800', '#ffffff', '#9c27b0', '#ffcc00', '#ff6600'],
+                count: 150, speed: 8, spread: 4,
+                gravity: 0, life: 35, size: 0.25, sizeEnd: 0, drag: 0.96, upward: 8
+            });
+            // Initial damage burst
+            for (const f of ctx.fighters) {
+                if (f === owner || !f.alive) continue;
+                const d = Math.hypot(f.x - owner.x, f.z - owner.z);
+                if (d < 10 * TILE) {
+                    const dmg = Math.round(owner.character.attackDamage * 6 * buffMul);
+                    f.takeDamage(dmg, owner);
+                    spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff9800');
+                    f.cooldowns.m1 = performance.now() + 3000;
+                } else if (d < 20 * TILE) {
+                    const dmg = Math.round(owner.character.attackDamage * 3 * buffMul);
+                    f.takeDamage(dmg, owner);
+                    spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff9800');
+                    f.cooldowns.m1 = performance.now() + 1500;
+                }
+            }
+            let ticks = 0;
+            const dmgInt = setInterval(() => {
+                if (!owner.alive) { clearInterval(dmgInt); return; }
+                ticks++;
+                for (const f of ctx.fighters) {
+                    if (f === owner || !f.alive) continue;
+                    if (Math.hypot(f.x - owner.x, f.z - owner.z) < 12 * TILE) {
+                        const dmg = Math.round(owner.character.attackDamage * 1.5 * buffMul);
+                        f.takeDamage(dmg, owner);
+                        spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, '#ff9800');
+                    }
+                }
+                emitParticles(owner.x, 1, owner.z, {
+                    color: ['#ff9800', '#9c27b0', '#ffffff', '#ffcc00'],
+                    count: 15, speed: 5, spread: 3,
+                    gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.95, upward: 4
+                });
+                if (ticks >= 10) clearInterval(dmgInt);
+            }, 300);
+            // Fade pillars
+            setTimeout(() => {
+                const fadeStart = performance.now();
+                const fadePillars = () => {
+                    const ft = (performance.now() - fadeStart) / 1500;
+                    if (ft >= 1) {
+                        ctx.scene.remove(pillar); pillarGeo.dispose(); pillarMat.dispose();
+                        ctx.scene.remove(pillar2); pillar2Geo.dispose(); pillar2Mat.dispose();
+                        ctx.scene.remove(pillar3); pillar3Geo.dispose(); pillar3Mat.dispose();
+                        return;
+                    }
+                    pillarMat.opacity = (1 - ft) * 0.5;
+                    pillar2Mat.opacity = (1 - ft) * 0.4;
+                    pillar3Mat.opacity = (1 - ft) * 0.3;
+                    pillar.scale.x = 1 + ft; pillar.scale.z = 1 + ft;
+                    requestAnimationFrame(fadePillars);
+                };
+                requestAnimationFrame(fadePillars);
+            }, 3500);
+            groundDecal(owner.x, owner.z, '#ff9800', 6, 8000);
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, '#ffffff', 20, 1200);
+            break;
+        }
+
+        case 'Dash':
+        case 'Flash Step':
+        case 'Chain Dash':
+        case 'Shadow Dash':
+        case 'Ice Dash':
+        case 'Spirit Dash':
+        case 'Thunder Dash': {
+            // Anime-style dash with character-color trail + path damage
+            const c = owner.character.color;
+            const dist = abilityName === 'Flash Step' ? 7 * TILE :
+                         abilityName === 'Chain Dash' ? 5 * TILE :
+                         abilityName === 'Thunder Dash' ? 7 * TILE : 5 * TILE;
+            // Pre-trail
+            for (let i = 0; i < 8; i++) {
+                const t = i / 8;
+                emitParticles(owner.x + dirX * dist * t, EYE_HEIGHT, owner.z + dirZ * dist * t, {
+                    color: [c, '#ffffff'], count: 4, speed: 2, spread: 0.5,
+                    gravity: 0, life: 12, size: 0.12, sizeEnd: 0, drag: 0.92
+                });
+            }
+            // Path damage
+            for (const f of ctx.fighters) {
+                if (f === owner || !f.alive) continue;
+                const toX = f.x - owner.x, toZ = f.z - owner.z;
+                const dot = toX * dirX + toZ * dirZ;
+                if (dot > 0 && dot < dist) {
+                    const perp = Math.abs(toX * dirZ - toZ * dirX);
+                    if (perp < 1.5 * TILE) {
+                        const dmg = Math.round(owner.character.attackDamage * 1.5 * buffMul);
+                        f.takeDamage(dmg, owner);
+                        spawnDmgNumber(f.x, EYE_HEIGHT, f.z, dmg, c);
+                    }
+                }
+            }
+            doDash(owner, dirX, dirZ, dist);
+            // After-blast
+            emitParticles(owner.x, EYE_HEIGHT, owner.z, {
+                color: [c, '#ffffff'], count: 14, speed: 4, spread: 0.4,
+                gravity: 0, life: 12, size: 0.18, sizeEnd: 0, drag: 0.9
+            });
+            lightFlash(owner.x, EYE_HEIGHT, owner.z, c, 4, 200);
+            fovPunch(15, 0.1);
             break;
         }
 
