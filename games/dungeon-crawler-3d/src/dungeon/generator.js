@@ -21,9 +21,10 @@ export function generateDungeon(floor) {
         const x = 2 + Math.floor(Math.random() * (MAP_COLS - w - 4));
         const y = 2 + Math.floor(Math.random() * (MAP_ROWS - h - 4));
 
+        // Tightened buffer (was 2): rooms pack closer together so corridors are short.
         let overlap = false;
         for (const rm of rooms) {
-            if (x < rm.x + rm.w + 2 && x + w + 2 > rm.x && y < rm.y + rm.h + 2 && y + h + 2 > rm.y) {
+            if (x < rm.x + rm.w + 1 && x + w + 1 > rm.x && y < rm.y + rm.h + 1 && y + h + 1 > rm.y) {
                 overlap = true; break;
             }
         }
