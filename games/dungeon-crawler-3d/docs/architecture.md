@@ -19,6 +19,8 @@ Dungeon Crawler 3D is a first-person 3D dungeon crawler built with Three.js (CDN
 | `src/player/fpsCamera.js` | ~210 | FPS controls, mouse look, 1st/3rd person toggle, axis-separated wall collision, shared key state for split-screen |
 | `src/network/network.js` | ~250 | PeerJS room management, lobby, host-authoritative state broadcast, retry logic on join |
 
+Docs: `architecture.md`, `characters.md`, `enemies.md`, `controls.md`, `online.md`, and `devlog.md` (reverse-chronological change log — start here for "what changed recently").
+
 ## Code Organization (`main.js`)
 
 | Lines | Section |

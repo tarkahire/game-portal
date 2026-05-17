@@ -1,0 +1,70 @@
+# Dev Log
+
+Reverse-chronological record of notable changes. Newest first.
+
+---
+
+## 2026-05-17 — Malevolent Shrine: 3D structure + hand-sign cut-in
+
+Sukuna's **Malevolent Shrine** (V / Domain Expansion) was upgraded from a
+plain expanding red dome into a full animated set-piece matching the
+reference GIF (`src/classes/malevolant shrine.gif`).
+
+### Commits
+- `0ca99e1` — Malevolent Shrine rises as a 3D pagoda structure
+- `b4c2137` — Malevolent Shrine hand-sign cut-in before the rise
+
+### Files touched
+| File | Change |
+|------|--------|
+| `src/main.js` | New `buildMalevolentShrine()` + `disposeGroup()` helpers; Sukuna `slot === 'v'` block rewritten with hand-sign cut-in + `beginShrine()` |
+| `docs/characters.md` | New "Sukuna — Malevolent Shrine (V)" section |
+| `docs/devlog.md` | This log (new file) |
+
+### What changed
+
+**1. `buildMalevolentShrine()` (new top-level builder)**
+Returns a `THREE.Group` for the shrine:
+- 3-tier shrinking dark pagoda: solid dark cores, 4 corner pillars,
+  glowing-red torii frames (lintel + sill + 2 posts) on all 4 faces,
+  lit red interior cavity panels.
+- Flared 4-sided eave roofs with red under-glow rings; spire finial
+  (pole + stacked rings + glowing red orb).
+- 8 skeletal spider-rib `TubeGeometry` arches sweeping from a ~9.5-unit
+  ground ring up over the tower, with bone spikes.
+- Dark reflective floor disc + 3 faint cyan reflection rings.
+- 2 red domain `PointLight`s.
+- `userData` exposes `glowMats` (each `{mat, base}`), `lights`
+  (`{light, base}`), `ribGroup`, `towerTopY` so the ability code can
+  ramp/pulse them.
+
+**2. `disposeGroup(g)` (new helper)**
+Traverses a group, disposes every geometry + material (array-safe),
+removes it from the scene. Used for shrine teardown.
+
+**3. Sukuna V rewrite — three phases**
+- **Hand-sign cut-in (~1100ms):** `setCinematic()` front camera on
+  Sukuna; `_cutsceneActive` freezes enemy AI; both arms raise and
+  converge into the domain seal with a press/clench tremor; a
+  cursed-energy orb (red shell + white core + point light) condenses
+  and brightens between the hands while wisps spiral inward. On finish
+  it flares, clears the cinematic, and calls `beginShrine()`.
+- **`beginShrine()`:** traps enemies, builds the shrine 6 tiles in
+  front, then **Rise** (~1300ms ease-out: structure erupts upward while
+  every glow mat/light ramps 0→base, ground-breach ring + debris) →
+  **Active** (heartbeat pulse on all glow/lights + slow rib drift;
+  white/red Dismantle slash planes rain down) → **Collapse** after the
+  12 damage ticks (sinks back + glow fades, then `disposeGroup()`).
+- Player invincible for the whole ~8.8s sequence.
+
+### Balance — unchanged
+Trap radius (15 world units / 3.75 tiles), 12 damage ticks @ 400ms of
+`player.damage * 1.5` within 8 tiles, and domain duration are identical
+to the previous dome version. Only visuals/choreography changed.
+
+### Notes / follow-ups
+- The Sukuna model's hands are simple boxes — the seal reads as
+  clasped-hands-plus-orb, not literally interlaced finger geometry.
+  A future pass could add articulated finger bones to
+  `buildSukunaModel()` for true interlocking fingers.
+- `node --check` clean after each commit.
