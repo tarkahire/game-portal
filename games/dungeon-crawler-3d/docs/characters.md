@@ -38,6 +38,14 @@ Each character has 5 abilities mapped to Z/X/C/V/F. Megumi gets two extras on G 
 - **G** — Toad: fan of 3 winged toad shikigami, each fires a sticky tongue at a nearby enemy and yanks them toward Megumi
 - **H** — Great Serpent: persistent slithering snake shikigami; avenges any divine dog or Mahoraga that takes damage
 
+## Sukuna — Malevolent Shrine (V)
+
+Domain expansion with a built 3D structure (`buildMalevolentShrine()` in `main.js`). On cast: hand-sign pose, black-out → blood-red screen wash, enemies within ~3.75 tiles trapped (`_domainTrapped`), player invincible 5.5s.
+
+- **Structure**: a 3-tier dark pagoda — shrinking tiers with dark cores, four corner pillars, glowing-red torii frames on all 4 faces, flared 4-sided eave roofs with red under-glow, and a spire finial. Eight skeletal spider-rib `TubeGeometry` arches sweep from a 9.5-unit ground ring up over the tower (with bone spikes). Sits on a dark reflective floor disc with faint cyan rings. Two red point lights.
+- **Animation**: spawns 6 tiles in front of Sukuna. **Rise** (~1300ms, ease-out cubic) up from `SUNK_Y` while every glow material's opacity and both lights ramp 0→base, with debris/embers + a ground-breach ring. **Active**: heartbeat pulse on all glow mats/lights + slow rib drift; white/red Dismantle slash planes rain down around the player. **Collapse** (after 12 damage ticks): sinks back down + glow fades, then `disposeGroup()` frees all geometry/materials.
+- **Damage unchanged**: 12 ticks @400ms of `player.damage * 1.5` to enemies within 8 tiles (balance identical to the old dome version).
+
 ## M1 Combo
 
 Left click triggers a 4-hit melee combo (`COMBO_STEPS` in main.js). 4th hit is a finisher with extra knockback + screen shake + hitstop + a bigger slash/punch impact, but no longer instant-kills — the old "4 consecutive M1 hits → sukunaBisect" execute mechanic was removed; weapon characters now do full M1 damage like fist characters.

@@ -5377,6 +5377,212 @@ function p2Dodge() {
     player2.invincible = now + 300;
 }
 
+// ─── MALEVOLENT SHRINE STRUCTURE (Sukuna V domain) ─────────────
+// Builds the iconic JJK Malevolent Shrine: a towering dark pagoda
+// with 3 stacked tiers, glowing-red torii frames on every face,
+// flared eaves, a spire finial, and large skeletal spider-rib
+// arches sweeping over it — sat on a dark reflective water disc.
+// userData carries the glow materials + lights so the ability code
+// can ramp them up as it rises and pulse them while active.
+function buildMalevolentShrine() {
+    const group = new THREE.Group();
+    const glowMats = [];   // bright-red trim — opacity driven by rise/pulse
+    const lights = [];     // red point lights — intensity driven likewise
+
+    const darkWood = new THREE.MeshStandardMaterial({ color: '#0a0608', roughness: 0.88, metalness: 0.12 });
+    const darker   = new THREE.MeshStandardMaterial({ color: '#050203', roughness: 0.92, metalness: 0.1 });
+    const boneMat  = new THREE.MeshStandardMaterial({ color: '#1a1216', roughness: 0.7, metalness: 0.18 });
+    const cavityMat = new THREE.MeshBasicMaterial({ color: '#5a0008', transparent: true, opacity: 0 });
+    glowMats.push({ mat: cavityMat, base: 0.55 });
+
+    // Bright red emissive trim bar — registered for rise/pulse opacity control
+    const redBar = (w, h, d) => {
+        const mat = new THREE.MeshBasicMaterial({
+            color: '#ff1f30', transparent: true, opacity: 0,
+            blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        glowMats.push({ mat, base: 0.95 });
+        return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    };
+
+    // ── Dark reflective floor disc + faint cyan reflection rings ──
+    const floor = new THREE.Mesh(
+        new THREE.CircleGeometry(16, 48),
+        new THREE.MeshBasicMaterial({ color: '#03070b', transparent: true, opacity: 0, depthWrite: false })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0.05;
+    glowMats.push({ mat: floor.material, base: 0.92 });
+    group.add(floor);
+    for (let r = 0; r < 3; r++) {
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: '#1a6a7a', transparent: true, opacity: 0,
+            side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        glowMats.push({ mat: ringMat, base: 0.22 });
+        const ring = new THREE.Mesh(new THREE.RingGeometry(5 + r * 4.5, 5.3 + r * 4.5, 48), ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.07;
+        group.add(ring);
+    }
+
+    // ── Central pagoda tower — 3 shrinking tiers ──
+    const tower = new THREE.Group();
+    const tierCount = 3;
+    const tierH = 2.6, roofH = 1.1, gap = roofH + 0.25;
+    let baseY = 0.6;
+    for (let i = 0; i < tierCount; i++) {
+        const half = 2.6 - i * 0.65;          // half-width of this tier
+        const cy = baseY + tierH / 2;
+
+        // Solid dark core so you don't see straight through it
+        const core = new THREE.Mesh(
+            new THREE.BoxGeometry(half * 1.7, tierH, half * 1.7), darker
+        );
+        core.position.y = cy;
+        tower.add(core);
+
+        // Glowing red recessed cavity (the lit interior) on each of 4 faces
+        for (let f = 0; f < 4; f++) {
+            const cav = new THREE.Mesh(
+                new THREE.PlaneGeometry(half * 1.25, tierH * 0.78), cavityMat
+            );
+            const ang = f * Math.PI / 2;
+            cav.position.set(Math.sin(ang) * half * 0.86, cy, Math.cos(ang) * half * 0.86);
+            cav.rotation.y = ang;
+            tower.add(cav);
+        }
+
+        // Four dark corner pillars
+        for (let sx = -1; sx <= 1; sx += 2) {
+            for (let sz = -1; sz <= 1; sz += 2) {
+                const pillar = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.42, tierH + 0.4, 0.42), darkWood
+                );
+                pillar.position.set(sx * half * 0.92, cy, sz * half * 0.92);
+                tower.add(pillar);
+            }
+        }
+
+        // Glowing-red torii frame (lintel + sill + 2 inner posts) on all 4 faces
+        for (let f = 0; f < 4; f++) {
+            const ang = f * Math.PI / 2;
+            const fwdX = Math.sin(ang), fwdZ = Math.cos(ang);
+            const place = (mesh, lx, ly) => {
+                mesh.position.set(fwdX * half * 0.99 + (-fwdZ) * lx, cy + ly, fwdZ * half * 0.99 + fwdX * lx);
+                mesh.rotation.y = ang;
+                tower.add(mesh);
+            };
+            place(redBar(half * 1.55, 0.22, 0.12), 0,  tierH * 0.42);   // lintel
+            place(redBar(half * 1.55, 0.16, 0.12), 0, -tierH * 0.42);   // sill
+            place(redBar(0.16, tierH * 0.85, 0.12),  half * 0.5, 0);    // right post
+            place(redBar(0.16, tierH * 0.85, 0.12), -half * 0.5, 0);    // left post
+        }
+
+        // Flared pagoda roof above the tier — dark 4-sided cone + red eave glow
+        const roof = new THREE.Mesh(
+            new THREE.ConeGeometry(half * 1.55, roofH, 4), darkWood
+        );
+        roof.rotation.y = Math.PI / 4;
+        roof.position.y = baseY + tierH + roofH / 2;
+        tower.add(roof);
+        const eaveMat = new THREE.MeshBasicMaterial({
+            color: '#ff1f30', transparent: true, opacity: 0,
+            blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+        });
+        glowMats.push({ mat: eaveMat, base: 0.6 });
+        const eave = new THREE.Mesh(
+            new THREE.RingGeometry(half * 1.15, half * 1.5, 4), eaveMat
+        );
+        eave.rotation.x = -Math.PI / 2;
+        eave.rotation.z = Math.PI / 4;
+        eave.position.y = baseY + tierH + 0.06;
+        tower.add(eave);
+
+        baseY += tierH + gap;
+    }
+
+    // Spire finial on top
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 2.2, 6), darkWood);
+    pole.position.y = baseY + 0.9;
+    tower.add(pole);
+    for (let r = 0; r < 3; r++) {
+        const disc = new THREE.Mesh(new THREE.TorusGeometry(0.32 - r * 0.07, 0.05, 6, 16), darkWood);
+        disc.rotation.x = Math.PI / 2;
+        disc.position.y = baseY + 0.4 + r * 0.45;
+        tower.add(disc);
+    }
+    const finialMat = new THREE.MeshBasicMaterial({
+        color: '#ff2a3a', transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    glowMats.push({ mat: finialMat, base: 1 });
+    const finial = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12), finialMat);
+    finial.position.y = baseY + 2.1;
+    tower.add(finial);
+
+    group.add(tower);
+    const towerTopY = baseY + 2.1;
+
+    // ── Skeletal spider-rib arches — the unmistakable silhouette ──
+    const ribGroup = new THREE.Group();
+    for (let k = 0; k < 8; k++) {
+        const ang = (k / 8) * Math.PI * 2 + 0.2;
+        const baseR = 9.5, apexR = 1.6;
+        const pts = [
+            new THREE.Vector3(Math.cos(ang) * baseR, 0.1, Math.sin(ang) * baseR),
+            new THREE.Vector3(Math.cos(ang) * baseR * 0.78, 3.5, Math.sin(ang) * baseR * 0.78),
+            new THREE.Vector3(Math.cos(ang) * baseR * 0.5, towerTopY * 0.75, Math.sin(ang) * baseR * 0.5),
+            new THREE.Vector3(Math.cos(ang) * apexR, towerTopY + 1.4, Math.sin(ang) * apexR),
+        ];
+        const curve = new THREE.CatmullRomCurve3(pts);
+        const rib = new THREE.Mesh(
+            new THREE.TubeGeometry(curve, 20, 0.22, 6, false), boneMat
+        );
+        ribGroup.add(rib);
+        // Bone spikes jutting off the rib
+        for (let s = 1; s <= 4; s++) {
+            const p = curve.getPoint(s / 5);
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.7, 5), boneMat);
+            spike.position.copy(p);
+            spike.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+            ribGroup.add(spike);
+        }
+    }
+    group.add(ribGroup);
+    group.userData.ribGroup = ribGroup;
+
+    // ── Red domain lighting ──
+    const hiLight = new THREE.PointLight('#ff1f30', 0, TILE * 14, 1.6);
+    hiLight.position.set(0, towerTopY * 0.7, 0);
+    group.add(hiLight);
+    lights.push({ light: hiLight, base: 9 });
+    const loLight = new THREE.PointLight('#ff3a2a', 0, TILE * 10, 1.8);
+    loLight.position.set(0, 1.2, 0);
+    group.add(loLight);
+    lights.push({ light: loLight, base: 6 });
+
+    group.userData.glowMats = glowMats;
+    group.userData.lights = lights;
+    group.userData.towerTopY = towerTopY;
+    return group;
+}
+
+// Dispose every geometry + material under a group, then remove it.
+function disposeGroup(g) {
+    if (!g) return;
+    g.traverse(c => {
+        if (c.isMesh) {
+            if (c.geometry) c.geometry.dispose();
+            if (c.material) {
+                if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+                else c.material.dispose();
+            }
+        }
+    });
+    scene.remove(g);
+}
+
 // ─── ABILITY DISPATCHER (Z/X/C/V/F) — clean slate ──────────────
 function fruitAbility(slot) {
     if (!player || !player.alive) return;
@@ -6334,14 +6540,20 @@ function fruitAbility(slot) {
         }
 
         else if (slot === 'v') {
-            // ── MALEVOLENT SHRINE — domain expansion, damages all enemies repeatedly ──
+            // ── MALEVOLENT SHRINE — domain expansion: a towering pagoda
+            //    shrine rises from the ground in front of Sukuna, looms while
+            //    Dismantle slashes rain across the domain, then collapses.
             const pm = fpsCamera.playerModel;
-            if (pm?._rightArm) pm._rightArm.rotation.set(-0.8, 0, 0);
-            if (pm?._leftArm) pm._leftArm.rotation.set(-0.8, 0, 0);
+            // Domain-expansion hand sign — hands brought together front-centre
+            if (pm?._rightArm) pm._rightArm.rotation.set(-1.4, 0, 0.55);
+            if (pm?._leftArm)  pm._leftArm.rotation.set(-1.4, 0, -0.55);
 
-            // Dark red screen flash + text
-            screenFlash('rgba(100,0,0,0.8)', 1500);
-            screenShake(0.6, 1200);
+            // Black-out → blood-red wash (mirrors the show's domain cut-in)
+            screenFlash('rgba(15,0,3,0.78)', 300);
+            setTimeout(() => screenFlash('rgba(120,0,12,0.5)', 1700), 280);
+            screenShake(0.6, 1400);
+            triggerHitstop(120);
+            fovPunch(16, 0.12);
 
             // Trap every enemy within 15 world units (≈ 3.75 tiles) for the full
             // 5-second domain — they cannot move or attack while inside.
@@ -6354,43 +6566,89 @@ function fruitAbility(slot) {
                 }
             }
 
-            // Shrine dome — dark red expanding sphere
-            const domeGeo = new THREE.SphereGeometry(1, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
-            const domeMat = new THREE.MeshBasicMaterial({
-                color: '#3a0000', transparent: true, opacity: 0.4,
-                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
-            });
-            const dome = new THREE.Mesh(domeGeo, domeMat);
-            dome.position.set(worldPx, 0.1, worldPz);
-            scene.add(dome);
+            // Build the shrine ahead of Sukuna so he watches it loom up
+            const shrine = buildMalevolentShrine();
+            const shX = (px + fwdX * 6) * TILE;
+            const shZ = (pz + fwdZ * 6) * TILE;
+            const SUNK_Y = -(shrine.userData.towerTopY + 4);
+            shrine.position.set(shX, SUNK_Y, shZ);
+            shrine.rotation.y = Math.atan2(fwdX, fwdZ);
+            scene.add(shrine);
+            const sGlow = shrine.userData.glowMats;
+            const sLights = shrine.userData.lights;
 
-            // Expand dome
-            const domeStart = performance.now();
-            const expandDome = () => {
-                const t = (performance.now() - domeStart) / 800;
-                if (t >= 1) return;
-                dome.scale.setScalar(1 + t * 8);
-                requestAnimationFrame(expandDome);
+            // ── Phase 1: RISE (≈1300ms) — erupts from the floor ──
+            const riseStart = performance.now();
+            const RISE_DUR = 1300;
+            let breached = false;
+            let shrineActive = true;
+            const riseAnim = () => {
+                if (!shrineActive) return;
+                const rt = Math.min((performance.now() - riseStart) / RISE_DUR, 1);
+                const ease = 1 - Math.pow(1 - rt, 3);
+                shrine.position.y = SUNK_Y * (1 - ease);
+                for (const g of sGlow) g.mat.opacity = g.base * ease;
+                for (const L of sLights) L.light.intensity = L.base * ease;
+                // Debris + embers at the base as it tears through the ground
+                if (Math.random() < 0.7) {
+                    emitParticles(shX + (Math.random() - 0.5) * 8, 0.3, shZ + (Math.random() - 0.5) * 8, {
+                        color: ['#1a0608', '#5a0010', '#ff2a1a', '#3a3028'],
+                        count: 4, speed: 5, spread: 1.0,
+                        gravity: -6, life: 16, size: 0.18, sizeEnd: 0, drag: 0.93, upward: 2,
+                    });
+                }
+                if (!breached && rt > 0.12) {
+                    breached = true;
+                    groundRing(shX, shZ, '#ff1f30', 12, 700);
+                    groundRing(shX, shZ, '#3a0008', 9, 600);
+                    lightFlash(shX, 3, shZ, '#ff1f30', 14, 500);
+                    screenShake(0.5, 300);
+                }
+                if (rt < 1) requestAnimationFrame(riseAnim);
             };
-            requestAnimationFrame(expandDome);
+            requestAnimationFrame(riseAnim);
 
-            // Red slash lines appear all over the domain
+            // ── Phase 2: ACTIVE pulse — heartbeat glow + slow rib drift ──
+            const pulseAnim = () => {
+                if (!shrineActive) return;
+                const t = performance.now() * 0.001;
+                const settled = shrine.position.y > -0.5;
+                if (settled) {
+                    const pulse = 0.78 + Math.sin(t * 4) * 0.22 + Math.sin(t * 13) * 0.1;
+                    for (const g of sGlow) g.mat.opacity = g.base * pulse;
+                    for (const L of sLights) L.light.intensity = L.base * pulse;
+                    if (shrine.userData.ribGroup) shrine.userData.ribGroup.rotation.y += 0.0012;
+                }
+                requestAnimationFrame(pulseAnim);
+            };
+            requestAnimationFrame(pulseAnim);
+
+            // Dismantle slashes raining across the domain (around the player)
             const slashInterval = setInterval(() => {
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 4; i++) {
                     const angle = Math.random() * Math.PI * 2;
-                    const dist = 1 + Math.random() * 6;
+                    const dist = 1 + Math.random() * 7;
                     const sx = worldPx + Math.cos(angle) * dist;
                     const sz = worldPz + Math.sin(angle) * dist;
-                    const slashGeo = new THREE.PlaneGeometry(1.5 + Math.random(), 0.03);
                     const slashMat = new THREE.MeshBasicMaterial({
-                        color: '#ff2244', transparent: true, opacity: 0.8,
+                        color: Math.random() < 0.4 ? '#ffffff' : '#ff2235', transparent: true, opacity: 0.9,
                         side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
                     });
-                    const slash = new THREE.Mesh(slashGeo, slashMat);
-                    slash.position.set(sx, 0.5 + Math.random() * 2, sz);
-                    slash.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                    const slash = new THREE.Mesh(
+                        new THREE.PlaneGeometry(0.08, 2.4 + Math.random() * 2.2), slashMat
+                    );
+                    slash.position.set(sx, 2.5 + Math.random() * 2, sz);
+                    slash.rotation.set((Math.random() - 0.5) * 0.6, Math.random() * Math.PI, (Math.random() - 0.5) * 0.5);
                     scene.add(slash);
-                    setTimeout(() => { scene.remove(slash); slash.geometry.dispose(); slash.material.dispose(); }, 300);
+                    const s0 = performance.now();
+                    const fadeSlash = () => {
+                        const ft = (performance.now() - s0) / 260;
+                        if (ft >= 1) { scene.remove(slash); slash.geometry.dispose(); slashMat.dispose(); return; }
+                        slash.position.y -= 0.22;
+                        slashMat.opacity = (1 - ft) * 0.9;
+                        requestAnimationFrame(fadeSlash);
+                    };
+                    requestAnimationFrame(fadeSlash);
                 }
             }, 100);
 
@@ -6417,10 +6675,24 @@ function fruitAbility(slot) {
                 if (ticks >= 12) {
                     clearInterval(dmgInterval);
                     clearInterval(slashInterval);
-                    // Domain collapse
-                    scene.remove(dome); domeGeo.dispose(); domeMat.dispose();
+                    shrineActive = false; // stop rise/pulse loops
+
+                    // ── Phase 3: COLLAPSE — shrine sinks + glow dies out ──
+                    const colStart = performance.now();
+                    const COL_DUR = 900;
+                    const colAnim = () => {
+                        const ct = Math.min((performance.now() - colStart) / COL_DUR, 1);
+                        const e2 = ct * ct;
+                        shrine.position.y = SUNK_Y * e2;
+                        for (const g of sGlow) g.mat.opacity = g.base * (1 - ct);
+                        for (const L of sLights) L.light.intensity = L.base * (1 - ct);
+                        if (ct >= 1) { disposeGroup(shrine); return; }
+                        requestAnimationFrame(colAnim);
+                    };
+                    requestAnimationFrame(colAnim);
+
                     // Final explosion
-                    emitParticles(worldPx, 2, worldPz, {
+                    emitParticles(shX, 2, shZ, {
                         color: ['#ff2244', '#ff0000', '#880000', '#ffffff'],
                         count: 60, speed: 6, spread: 2,
                         gravity: -3, life: 25, lifeVar: 15,
@@ -6428,7 +6700,7 @@ function fruitAbility(slot) {
                     });
                     groundRing(worldPx, worldPz, '#ff2244', 8, 800);
                     screenShake(0.5, 300);
-                    lightFlash(worldPx, 2, worldPz, '#ff2244', 8, 500);
+                    lightFlash(shX, 2, shZ, '#ff2244', 8, 500);
                     if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
                     if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
                 }
