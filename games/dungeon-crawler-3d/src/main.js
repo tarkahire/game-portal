@@ -6544,17 +6544,89 @@ function fruitAbility(slot) {
             //    shrine rises from the ground in front of Sukuna, looms while
             //    Dismantle slashes rain across the domain, then collapses.
             const pm = fpsCamera.playerModel;
-            // Domain-expansion hand sign — hands brought together front-centre
-            if (pm?._rightArm) pm._rightArm.rotation.set(-1.4, 0, 0.55);
-            if (pm?._leftArm)  pm._leftArm.rotation.set(-1.4, 0, -0.55);
-
             // Black-out → blood-red wash (mirrors the show's domain cut-in)
             screenFlash('rgba(15,0,3,0.78)', 300);
             setTimeout(() => screenFlash('rgba(120,0,12,0.5)', 1700), 280);
             screenShake(0.6, 1400);
             triggerHitstop(120);
             fovPunch(16, 0.12);
+            // Invincible for the whole sequence (hand sign + domain)
+            player.invincible = performance.now() + 8800;
+            // Freeze enemy AI while the cut-in plays
+            player._cutsceneActive = true;
 
+            // ── HAND SIGN CUT-IN — front camera on Sukuna forming the seal ──
+            const HAND_DUR = 1100;
+            const camDist = 2.6;
+            fpsCamera.setCinematic(
+                worldPx + fwdX * camDist, 1.78, worldPz + fwdZ * camDist,
+                worldPx, 1.12, worldPz, HAND_DUR
+            );
+            const handWX = worldPx + fwdX * 0.22, handWY = 1.30, handWZ = worldPz + fwdZ * 0.22;
+
+            // Glowing cursed-energy orb that condenses between his hands
+            const ceOrb = new THREE.Group();
+            const ceMat = new THREE.MeshBasicMaterial({
+                color: '#ff1f30', transparent: true, opacity: 0,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            const ceCoreMat = new THREE.MeshBasicMaterial({
+                color: '#ffd0c0', transparent: true, opacity: 0,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            ceOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12), ceMat));
+            ceOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 10), ceCoreMat));
+            const ceLight = new THREE.PointLight('#ff1f30', 0, TILE * 4, 1.8);
+            ceOrb.add(ceLight);
+            ceOrb.position.set(handWX, handWY, handWZ);
+            scene.add(ceOrb);
+
+            const signStart = performance.now();
+            const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+            const animateSign = () => {
+                const st = Math.min((performance.now() - signStart) / HAND_DUR, 1);
+                // Raise both arms and converge the hands to centre-front
+                const raise = easeOut(Math.min(st / 0.55, 1));
+                // Press/clench tremble once the hands meet
+                const pressT = Math.max(0, (st - 0.55) / 0.45);
+                const tremor = Math.sin(st * 55) * 0.045 * pressT;
+                if (pm?._rightArm) pm._rightArm.rotation.set(-2.05 * raise, 0,  (0.82 + 0.12 * pressT) * raise + tremor);
+                if (pm?._leftArm)  pm._leftArm.rotation.set(-2.05 * raise, 0, -(0.82 + 0.12 * pressT) * raise - tremor);
+                // Orb condenses + brightens; cursed-energy wisps spiral inward
+                const orbK = easeOut(Math.min(st / 0.85, 1));
+                ceOrb.scale.setScalar(0.25 + orbK * 1.0 + Math.sin(st * 40) * 0.04 * pressT);
+                ceMat.opacity = orbK * 0.85;
+                ceCoreMat.opacity = orbK;
+                ceLight.intensity = orbK * 7;
+                if (Math.random() < 0.6) {
+                    const a = Math.random() * Math.PI * 2, rr = 1.0 + Math.random() * 0.6;
+                    emitParticles(handWX + Math.cos(a) * rr, handWY + (Math.random() - 0.5) * 1.2, handWZ + Math.sin(a) * rr, {
+                        color: ['#ff1f30', '#ff5a3a', '#ffffff'],
+                        count: 2, speed: 3.2, spread: 0.2,
+                        direction: { x: -Math.cos(a), y: 0, z: -Math.sin(a) },
+                        gravity: 0, life: 9, size: 0.09, sizeEnd: 0, drag: 0.9,
+                    });
+                }
+                if (st < 1) { requestAnimationFrame(animateSign); return; }
+                // Seal complete — flare, drop the orb, release the cut-in
+                emitParticles(handWX, handWY, handWZ, {
+                    color: ['#ff1f30', '#ffffff', '#ff5a3a'],
+                    count: 26, speed: 6, spread: 0.4,
+                    gravity: 0, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92,
+                });
+                lightFlash(handWX, handWY, handWZ, '#ff1f30', 10, 260);
+                scene.remove(ceOrb);
+                ceMat.dispose(); ceCoreMat.dispose();
+                ceOrb.children.forEach(c => c.geometry && c.geometry.dispose());
+                fpsCamera.clearCinematic();
+                player._cutsceneActive = false;
+                if (!player || !player.alive || player.classId !== 'sukuna') return;
+                beginShrine();
+            };
+            requestAnimationFrame(animateSign);
+
+            // ── Everything below fires AFTER the hand sign completes ──
+            function beginShrine() {
             // Trap every enemy within 15 world units (≈ 3.75 tiles) for the full
             // 5-second domain — they cannot move or attack while inside.
             const trapRadiusShrine = 15 / TILE;
@@ -6706,10 +6778,9 @@ function fruitAbility(slot) {
                 }
             }, 400);
 
-            // Invincible during domain
-            player.invincible = performance.now() + 5500;
             groundRing(worldPx, worldPz, '#ff0000', 6, 1000);
             groundDecal(worldPx, worldPz, '#3a0000', 5, 6000);
+            } // ── end beginShrine() ──
         }
 
         else if (slot === 'f') {
