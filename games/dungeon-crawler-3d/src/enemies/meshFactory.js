@@ -432,10 +432,8 @@ export function createEnemyMesh(enemyType, isBoss) {
             legR.rotation.z = -0.1;
             group.add(legR);
 
-            // Inner red point light — sickly chest glow
-            const pl = new THREE.PointLight(FLESH.innerGlow, 0.6, 2.0, 1.5);
-            pl.position.set(0, 1.0 * S, 0.1 * S);
-            group.add(pl);
+            // PERF: dropped per-enemy PointLight — ambient/torch/player light is enough,
+            // and Three.js cost scales with active light count.
             break;
         }
         case 'archerSkeleton': {
@@ -534,11 +532,7 @@ export function createEnemyMesh(enemyType, isBoss) {
             addBoneSpikes(group, 0.3 * S, 0.4 * S, 0.0, 2, 0.12 * S, 0.4 * S);
             addBoneSpikes(group, -0.3 * S, 0.4 * S, 0.0, 2, 0.12 * S, 0.4 * S);
 
-            // Inner glow
-            const pl = new THREE.PointLight(FLESH.innerGlow, 0.8, 2.5, 1.5);
-            pl.position.set(0, 0.6 * S, 0.1);
-            group.add(pl);
-
+            // PERF: dropped per-enemy PointLight (see other enemy types).
             group.userData.body = body;
             break;
         }
@@ -700,11 +694,7 @@ export function createEnemyMesh(enemyType, isBoss) {
             group.add(leg);
             const legR = leg.clone(); legR.position.x = 0.22 * S; group.add(legR);
 
-            // Inner red glow at chest — pulsing horror
-            const pl = new THREE.PointLight(FLESH.innerGlow, 1.2, 3.5, 1.3);
-            pl.position.set(0, 0.9 * S, 0.4 * S);
-            group.add(pl);
-            group.userData.glowLight = pl;
+            // PERF: dropped per-enemy PointLight (see other enemy types).
             break;
         }
         case 'necromancer': {
@@ -785,10 +775,7 @@ export function createEnemyMesh(enemyType, isBoss) {
                 group.userData.runes.push(rune);
             }
 
-            // Sickly purple glow
-            const pl = new THREE.PointLight(FLESH.glowEyePurple, 1.0, 3.0, 1.5);
-            pl.position.set(0.45 * S, 1.85 * S, 0);
-            group.add(pl);
+            // PERF: dropped per-enemy PointLight (see other enemy types).
             break;
         }
         default: {

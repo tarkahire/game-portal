@@ -89,9 +89,11 @@ function init() {
     camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
     scene.add(camera2);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('game-canvas') });
+    // PERF: antialias off + pixelRatio capped at 1 to cut fragment-shader cost on hi-DPI screens.
+    // On a 2x display this is a ~4x fillrate saving — the single biggest FPS lever.
+    renderer = new THREE.WebGLRenderer({ antialias: false, canvas: document.getElementById('game-canvas'), powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(1);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.9;
     renderer.setScissorTest(false); // enabled during split-screen render
@@ -104,6 +106,7 @@ function init() {
     playerLight = new THREE.PointLight('#ffeecc', 6.5, TILE * 16, 0.9);
     scene.add(playerLight);
     playerLight2 = new THREE.PointLight('#ffeecc', 6.5, TILE * 16, 0.9);
+    playerLight2.visible = false; // PERF: only switch on for local co-op (otherwise unused light)
     scene.add(playerLight2);
 
     // P1 camera — WASD controls
@@ -13697,7 +13700,7 @@ function yutaSummonRika() {
 
     spawnMinion('rika', px + fwdX * 1.8, pz + fwdZ * 1.8, {
         color: '#aabaff', radius: 0.8, speed: 4.0,
-        damage: Math.round(player.damage * 1.5),
+        damage: Math.round(player.damage * 0.8),
         attackRange: 2.6, attackSpeed: 1500,
         hp: 250, maxHp: 250,
         life: Infinity, // permanent — only despawns on HP <= 0 or floor change
@@ -14046,7 +14049,7 @@ function yutaTrueLoveBeam() {
             while (ad < -Math.PI) ad += Math.PI * 2;
             // Tight beam — only enemies almost dead-ahead
             if (Math.abs(ad) < Math.PI * 0.10) {
-                dealDamageToEnemy(e, Math.round(player.damage * 6));
+                dealDamageToEnemy(e, Math.round(player.damage * 2.5));
                 // Knockback away along the beam direction
                 const nx = e.data.x + (dx / d) * 1.5;
                 const nz = e.data.z + (dz / d) * 1.5;
@@ -14658,6 +14661,7 @@ function update() {
     // P2 update
     if (coopMode && player2) {
         fpsCamera2.update(dt, dungeon.map);
+        playerLight2.visible = true;
         playerLight2.position.copy(camera2.position);
         if (fpsSword2) fpsSword2.visible = !fpsCamera2.thirdPerson;
 
@@ -14724,7 +14728,7 @@ function update() {
         return;
     }
 
-    updateTorchLights(torchLights, time);
+    updateTorchLights(torchLights, time, camera.position);
     updateMeleeSlashes();
     updateDmgNumbers();
     updateParticles(dt);
@@ -14814,8 +14818,9 @@ function update() {
         if (e.data._slamPinned || e.data._uppercutPinned) continue;
 
         const distToPlayer = Math.hypot(px - e.data.x, pz - e.data.z);
-        const eRoom = getRoomAt(dungeon.rooms, e.data.x, e.data.z);
-        e.mesh.visible = distToPlayer < 15 || (eRoom ? eRoom.explored : false);
+        // PERF: hard distance cap — enemies past ~18 tiles aren't worth drawing or animating.
+        // (The old check rendered every enemy in any explored room — that scaled badly late-floor.)
+        e.mesh.visible = distToPlayer < 18;
         if (e.label) e.label.visible = e.mesh.visible;
 
         if (!e.mesh.visible) continue;

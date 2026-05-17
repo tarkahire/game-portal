@@ -46,25 +46,46 @@ export function createTorchLights(dungeon, scene) {
     return lights;
 }
 
-export function updateTorchLights(lights, time) {
+// PERF budget: at most this many torch PointLights stay enabled at once.
+// Three.js cost scales with active-light count; far torches contribute nothing visible anyway.
+const TORCH_LIGHT_BUDGET = 6;
+const _torchSort = [];
+
+export function updateTorchLights(lights, time, cameraPos) {
+    // Flicker every torch (cheap math, no light cost)
     for (const light of lights) {
         const pulse = Math.sin(time * 0.008 + light._torchIndex * 2) * 0.3;
         light.intensity = light._baseIntensity + pulse * 0.5;
     }
+
+    if (!cameraPos) return;
+
+    // Pick the nearest N "candidates" (room explored + in scene) and disable the rest.
+    _torchSort.length = 0;
+    for (const light of lights) {
+        if (!light._roomExplored) { light.visible = false; continue; }
+        const dx = light.position.x - cameraPos.x;
+        const dz = light.position.z - cameraPos.z;
+        _torchSort.push({ light, d2: dx * dx + dz * dz });
+    }
+    _torchSort.sort((a, b) => a.d2 - b.d2);
+    for (let i = 0; i < _torchSort.length; i++) {
+        _torchSort[i].light.visible = i < TORCH_LIGHT_BUDGET;
+    }
 }
 
-// Enable/disable lights based on room exploration
+// Mark which torches are in explored rooms; the per-frame budget step then picks the nearest few.
 export function syncTorchVisibility(lights, dungeon) {
     for (const light of lights) {
         const torch = dungeon.torches[light._torchIndex];
-        // Find which room this torch belongs to
-        let visible = false;
+        let explored = false;
         for (const rm of dungeon.rooms) {
             if (rm.explored && torch.x >= rm.x - 1 && torch.x <= rm.x + rm.w &&
                 torch.y >= rm.y - 1 && torch.y <= rm.y + rm.h) {
-                visible = true; break;
+                explored = true; break;
             }
         }
-        light.visible = visible;
+        light._roomExplored = explored;
+        if (!explored) light.visible = false; // never enable un-explored torch lights
     }
 }
