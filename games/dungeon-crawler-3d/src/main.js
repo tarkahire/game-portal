@@ -5887,123 +5887,212 @@ function fruitAbility(slot) {
             }, mergeStart + mergeDur);
         }
 
-        else if (slot === 'v') { // Domain Expansion: Unlimited Void
+        else if (slot === 'v') { // Domain Expansion: INFINITE VOID
             // Both hands form a specific pose
             if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = -0.8;
             if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = -0.8;
 
-            // Screen goes dark briefly
-            screenFlash('rgba(0,0,0,0.8)', 1500);
-            screenShake(0.5, 1000);
+            // Hard cinematic flash → pitch black, then fades to reveal the void
+            screenFlash('rgba(255,255,255,0.9)', 120);
+            setTimeout(() => screenFlash('rgba(0,0,0,0.85)', 1600), 100);
+            screenShake(0.7, 1300);
+            triggerHitstop(120);
 
-            // Expanding dome of void energy
-            const domeGeo = new THREE.SphereGeometry(1, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            // Trap every enemy within 15 world units for the 5s duration
+            const trapRadius = 15 / TILE;
+            const domainEnd = performance.now() + 5400;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                if (Math.hypot(e.data.x - px, e.data.z - pz) < trapRadius) {
+                    e.data._domainTrapped = domainEnd;
+                    e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) {
+                        c.material.emissive.set('#7c4dff');
+                        c.material._domainEmissive = true;
+                    }});
+                }
+            }
+
+            // Player invincible for the full domain
+            player.invincible = performance.now() + 5500;
+
+            // ── Build the domain ─────────────────────────────────────
+            const domain = new THREE.Group();
+            domain.position.set(worldPx, 0.05, worldPz);
+            scene.add(domain);
+
+            // Outer void dome — half-sphere, very dark with additive purple
+            const domeGeo = new THREE.SphereGeometry(1, 24, 18, 0, Math.PI * 2, 0, Math.PI * 0.5);
             const domeMat = new THREE.MeshBasicMaterial({
-                color: '#1a1a3e', transparent: true, opacity: 0.4,
+                color: '#1a0a3e', transparent: true, opacity: 0.55,
                 side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
             });
             const dome = new THREE.Mesh(domeGeo, domeMat);
-            dome.position.set(worldPx, 0.1, worldPz);
-            scene.add(dome);
+            domain.add(dome);
 
-            // Inner void pattern — grid of faint lines
-            const innerGeo = new THREE.SphereGeometry(0.8, 8, 8);
-            const innerMat = new THREE.MeshBasicMaterial({
-                color: '#311b92', wireframe: true, transparent: true, opacity: 0.3,
+            // Three nested counter-rotating wireframe solids — the "infinite information"
+            const icosaGeo = new THREE.IcosahedronGeometry(6, 1);
+            const icosa = new THREE.Mesh(icosaGeo, new THREE.MeshBasicMaterial({
+                color: '#b388ff', wireframe: true, transparent: true, opacity: 0.55,
                 blending: THREE.AdditiveBlending, depthWrite: false
-            });
-            const inner = new THREE.Mesh(innerGeo, innerMat);
-            dome.add(inner);
+            }));
+            icosa.position.y = 3.5;
+            domain.add(icosa);
 
-            // Void light
-            const voidLight = new THREE.PointLight('#7c4dff', 4, TILE * 10, 2);
-            dome.add(voidLight);
+            const dodecaGeo = new THREE.DodecahedronGeometry(4, 0);
+            const dodeca = new THREE.Mesh(dodecaGeo, new THREE.MeshBasicMaterial({
+                color: '#e1bee7', wireframe: true, transparent: true, opacity: 0.7,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            dodeca.position.y = 3.5;
+            domain.add(dodeca);
 
-            // Expand the dome over 500ms
+            const octaGeo = new THREE.OctahedronGeometry(2.4, 0);
+            const octa = new THREE.Mesh(octaGeo, new THREE.MeshBasicMaterial({
+                color: '#ffffff', wireframe: true, transparent: true, opacity: 0.85,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            octa.position.y = 3.5;
+            domain.add(octa);
+
+            // Star field — 80 tiny bright points scattered through a sphere,
+            // drifting toward center to evoke "infinite information flowing in"
+            const stars = [];
+            const starGeo = new THREE.SphereGeometry(0.06, 4, 4);
+            const starMat = new THREE.MeshBasicMaterial({ color: '#e1d8ff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+            const respawnStar = (s) => {
+                const phi = Math.random() * Math.PI * 2;
+                const theta = Math.acos(2 * Math.random() - 1);
+                const r = 8 + Math.random() * 6;
+                s.position.set(Math.sin(theta) * Math.cos(phi) * r, 1 + Math.cos(theta) * r * 0.5, Math.sin(theta) * Math.sin(phi) * r);
+                s._speed = 0.04 + Math.random() * 0.06;
+            };
+            for (let i = 0; i < 80; i++) {
+                const s = new THREE.Mesh(starGeo, starMat);
+                respawnStar(s);
+                domain.add(s);
+                stars.push(s);
+            }
+
+            // Glyph rings — 4 flat torus rings orbiting at different heights
+            const glyphs = [];
+            for (let i = 0; i < 4; i++) {
+                const radius = 5 + i * 1.2;
+                const torus = new THREE.Mesh(
+                    new THREE.TorusGeometry(radius, 0.04, 5, 64),
+                    new THREE.MeshBasicMaterial({ color: '#7c4dff', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+                );
+                torus.rotation.x = Math.PI / 2 + (i - 1.5) * 0.25;
+                torus.position.y = 1.5 + i * 0.8;
+                torus._spin = (i % 2 === 0 ? 1 : -1) * (0.008 + i * 0.003);
+                domain.add(torus);
+                glyphs.push(torus);
+            }
+
+            // Ground ring — slow rotating boundary disc at floor level
+            const groundDisc = new THREE.Mesh(
+                new THREE.RingGeometry(13, 15, 64),
+                new THREE.MeshBasicMaterial({ color: '#7c4dff', transparent: true, opacity: 0.7, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            groundDisc.rotation.x = -Math.PI / 2;
+            groundDisc.position.y = 0.05;
+            domain.add(groundDisc);
+
+            // ── Animations ──────────────────────────────────────────
+            const startMs = performance.now();
             let expandFrame = 0;
             const expandAnim = setInterval(() => {
                 expandFrame++;
-                const s = expandFrame * 0.8;
-                dome.scale.setScalar(Math.min(s, 10));
-                inner.rotation.x += 0.02;
-                inner.rotation.y += 0.03;
-                // Void particles swirling inside
-                const angle = expandFrame * 0.3;
-                emitParticles(
-                    worldPx + Math.cos(angle) * s * 0.3, 1.5, worldPz + Math.sin(angle) * s * 0.3,
-                    { color: ['#311b92', '#7c4dff', '#b388ff'], count: 3, speed: 1, spread: 1,
-                      gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.95 }
-                );
-                if (expandFrame > 15) clearInterval(expandAnim);
+                const t = Math.min(expandFrame / 20, 1); // ~660ms expand
+                const eased = 1 - Math.pow(1 - t, 3);
+                dome.scale.setScalar(0.5 + eased * 15);
+                if (expandFrame >= 20) clearInterval(expandAnim);
             }, 33);
 
-            // At 800ms — domain activates: freeze + damage all enemies on the floor
-            setTimeout(() => {
-                // Freeze ALL enemies
+            // Per-frame rotations + star inflow, runs until domain collapses
+            let voidActive = true;
+            const animateVoid = () => {
+                if (!voidActive) return;
+                icosa.rotation.x += 0.006;  icosa.rotation.y += 0.009;
+                dodeca.rotation.x -= 0.012; dodeca.rotation.y += 0.008;
+                octa.rotation.x += 0.025;   octa.rotation.z -= 0.018;
+                for (const g of glyphs) g.rotation.z += g._spin;
+                groundDisc.rotation.z += 0.004;
+                // Stars drift toward the player center
+                for (const s of stars) {
+                    s.position.x *= (1 - s._speed * 0.05);
+                    s.position.z *= (1 - s._speed * 0.05);
+                    s.position.y = 1 + (s.position.y - 1) * (1 - s._speed * 0.05);
+                    if (s.position.x * s.position.x + s.position.z * s.position.z < 0.4) respawnStar(s);
+                }
+                requestAnimationFrame(animateVoid);
+            };
+            requestAnimationFrame(animateVoid);
+
+            // Inflow particle bursts from the dome edge — directed back toward the player
+            const inflowInt = setInterval(() => {
+                for (let i = 0; i < 3; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const r = 14;
+                    emitParticles(worldPx + Math.cos(a) * r, 1.5 + Math.random() * 3, worldPz + Math.sin(a) * r, {
+                        color: ['#311b92', '#7c4dff', '#b388ff', '#ffffff'],
+                        count: 4, speed: 4, spread: 0.4,
+                        gravity: 0, life: 18, size: 0.09, sizeEnd: 0, drag: 0.93,
+                        direction: { x: -Math.cos(a), y: 0, z: -Math.sin(a) }
+                    });
+                }
+            }, 90);
+
+            // Damage ticks every 500ms for 5 seconds (10 ticks)
+            let ticks = 0;
+            const dmgTick = setInterval(() => {
+                ticks++;
                 for (const e of enemies3D) {
                     if (!e.data.alive) continue;
-                    // Stun for 5 seconds (Unlimited Void disables brain)
-                    e.data.lastAttack = performance.now() + 5000;
-                    // Damage tick
-                    dealDamageToEnemy(e, Math.round(player.damage * 2));
-                    // Visual — turn enemies slightly purple
-                    e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#311b92'); });
+                    if (e.data._domainTrapped === domainEnd) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+                    }
                 }
-
-                // Continuous damage ticks every 500ms for 5 seconds
-                let ticks = 0;
-                const dmgTick = setInterval(() => {
-                    ticks++;
+                if (ticks >= 10) {
+                    clearInterval(dmgTick);
+                    clearInterval(inflowInt);
+                    voidActive = false;
+                    // Restore enemy emissive
                     for (const e of enemies3D) {
                         if (!e.data.alive) continue;
-                        dealDamageToEnemy(e, Math.round(player.damage * 1));
-                    }
-                    // Swirling void particles
-                    const a = ticks * 0.5;
-                    for (let i = 0; i < 6; i++) {
-                        const pa = a + (i / 6) * Math.PI * 2;
-                        emitParticles(
-                            worldPx + Math.cos(pa) * 4, 1, worldPz + Math.sin(pa) * 4,
-                            { color: ['#311b92', '#7c4dff'], count: 2, speed: 0.8, spread: 0.5,
-                              gravity: 0.5, life: 10, size: 0.08, sizeEnd: 0, drag: 0.97 }
-                        );
-                    }
-                    if (ticks >= 10) {
-                        clearInterval(dmgTick);
-                        // Domain collapses
-                        // Remove dome
-                        scene.remove(dome);
-                        domeGeo.dispose(); domeMat.dispose();
-                        // Un-purple enemies
-                        for (const e of enemies3D) {
-                            if (e.data.alive) e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) c.material.emissive.set('#000000'); });
-                        }
-                        // Collapse VFX
-                        emitParticles(worldPx, 2, worldPz, {
-                            color: ['#311b92', '#7c4dff', '#ffffff'],
-                            count: 50, speed: 5, spread: 2,
-                            gravity: -2, life: 20, lifeVar: 10,
-                            size: 0.15, sizeEnd: 0, drag: 0.96, upward: 1
+                        e.mesh.traverse(c => {
+                            if (c.isMesh && c.material && c.material._domainEmissive) {
+                                c.material.emissive.set('#000000');
+                                c.material._domainEmissive = false;
+                            }
                         });
-                        groundRing(worldPx, worldPz, '#7c4dff', 8, 800);
-                        screenShake(0.4, 200);
-                        lightFlash(worldPx, 2, worldPz, '#7c4dff', 6, 400);
-                        // Arms return
-                        if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = 0.05;
-                        if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = 0.05;
                     }
-                }, 500);
+                    // Collapse VFX
+                    emitParticles(worldPx, 2, worldPz, {
+                        color: ['#311b92', '#7c4dff', '#b388ff', '#ffffff'],
+                        count: 80, speed: 7, spread: 3,
+                        gravity: -2, life: 22, lifeVar: 10,
+                        size: 0.18, sizeEnd: 0, drag: 0.95, upward: 1.5
+                    });
+                    groundRing(worldPx, worldPz, '#7c4dff', 14, 900);
+                    screenShake(0.5, 280);
+                    lightFlash(worldPx, 2.5, worldPz, '#7c4dff', 10, 500);
+                    // Dispose domain
+                    scene.remove(domain);
+                    icosaGeo.dispose(); dodecaGeo.dispose(); octaGeo.dispose();
+                    domeGeo.dispose(); domeMat.dispose(); starGeo.dispose(); starMat.dispose();
+                    for (const g of glyphs) { g.geometry.dispose(); g.material.dispose(); }
+                    groundDisc.geometry.dispose(); groundDisc.material.dispose();
+                    icosa.material.dispose(); dodeca.material.dispose(); octa.material.dispose();
+                    // Arms return
+                    if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.x = 0.05;
+                    if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.x = 0.05;
+                }
+            }, 500);
 
-                // Player is invincible during domain
-                player.invincible = performance.now() + 5500;
-
-                lightFlash(worldPx, 2, worldPz, '#311b92', 8, 800);
-                triggerHitstop(80);
-            }, 800);
-
-            // Ground pattern
-            groundRing(worldPx, worldPz, '#311b92', 6, 1000);
-            groundDecal(worldPx, worldPz, '#1a1a3e', 5, 6000);
+            // Ground pattern + initial light flash
+            groundRing(worldPx, worldPz, '#311b92', 14, 1000);
+            groundDecal(worldPx, worldPz, '#1a0a3e', 12, 6000);
+            lightFlash(worldPx, 2.5, worldPz, '#7c4dff', 10, 800);
         }
     }
 
@@ -6253,6 +6342,17 @@ function fruitAbility(slot) {
             // Dark red screen flash + text
             screenFlash('rgba(100,0,0,0.8)', 1500);
             screenShake(0.6, 1200);
+
+            // Trap every enemy within 15 world units (≈ 3.75 tiles) for the full
+            // 5-second domain — they cannot move or attack while inside.
+            const trapRadiusShrine = 15 / TILE;
+            const trapEndShrine = performance.now() + 5200;
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                if (Math.hypot(e.data.x - px, e.data.z - pz) < trapRadiusShrine) {
+                    e.data._domainTrapped = trapEndShrine;
+                }
+            }
 
             // Shrine dome — dark red expanding sphere
             const domeGeo = new THREE.SphereGeometry(1, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
@@ -14857,6 +14957,9 @@ function update() {
         if (!e.data.alive) continue;
         // Pinned by TODO's Face Slam or Boogie Woogie uppercut — skip AI
         if (e.data._slamPinned || e.data._uppercutPinned) continue;
+        // Trapped inside an active Domain Expansion (Malevolent Shrine / Infinite Void)
+        // — freeze movement and attacks for the domain's duration
+        if (e.data._domainTrapped && now < e.data._domainTrapped) continue;
 
         const distToPlayer = Math.hypot(px - e.data.x, pz - e.data.z);
         // PERF: hard distance cap — enemies past ~18 tiles aren't worth drawing or animating.
