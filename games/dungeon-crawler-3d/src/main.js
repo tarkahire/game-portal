@@ -56,12 +56,18 @@ let runStats = { enemiesKilled: 0, goldCollected: 0, floorsCleared: 0, bossesKil
 // Enemy definitions — HP doubled again on top of the previous 2x bump for a much
 // harder, more deliberate run. Damage left alone so combat still feels weighty.
 const ENEMY_TYPES = {
+    // ── Tier 1 — available from floor 1 ──
     skeleton: { name: 'Skeleton', hp: 100, speed: 1.2, damage: 6, attackSpeed: 800, range: 1.5, type: 'melee', xp: 10, radius: 0.4 },
     archerSkeleton: { name: 'Archer', hp: 75, speed: 0.9, damage: 8, attackSpeed: 1200, range: 8, type: 'ranged', xp: 15, radius: 0.4 },
     slime: { name: 'Slime', hp: 150, speed: 0.7, damage: 5, attackSpeed: 1000, range: 1, type: 'melee', xp: 12, radius: 0.5 },
     bat: { name: 'Bat', hp: 50, speed: 2.8, damage: 4, attackSpeed: 600, range: 0.8, type: 'melee', xp: 8, radius: 0.3 },
+    // ── Tier 2 — floor 2+ ──
+    maggot: { name: 'Maggot', hp: 70, speed: 2.2, damage: 5, attackSpeed: 700, range: 1.1, type: 'melee', xp: 9, radius: 0.3 },
+    hunter: { name: 'Pale Hunter', hp: 160, speed: 2.5, damage: 14, attackSpeed: 600, range: 1.4, type: 'melee', xp: 22, radius: 0.35 },
+    spitter: { name: 'Bile Spitter', hp: 180, speed: 0.8, damage: 9, attackSpeed: 1500, range: 9, type: 'ranged', xp: 20, radius: 0.45 },
     darkKnight: { name: 'Dark Knight', hp: 250, speed: 1.0, damage: 12, attackSpeed: 1000, range: 1.2, type: 'melee', xp: 25, radius: 0.5 },
     necromancer: { name: 'Necromancer', hp: 130, speed: 0.8, damage: 10, attackSpeed: 2000, range: 7, type: 'summoner', xp: 30, radius: 0.4 },
+    goliath: { name: 'Flesh Goliath', hp: 500, speed: 0.6, damage: 18, attackSpeed: 1400, range: 1.6, type: 'melee', xp: 45, radius: 0.7 },
 };
 const BOSSES = [
     { name: 'Bone King', hp: 700, speed: 1.0, damage: 15, attackSpeed: 1200, range: 2, type: 'melee', xp: 100, radius: 0.8, meshType: 'skeleton' },
@@ -2660,7 +2666,8 @@ function loadFloor(floor) {
 
 function spawnEnemies(floor) {
     const types = Object.keys(ENEMY_TYPES);
-    const available = floor < 3 ? types.slice(0, 4) : types;
+    // Floor 1 stays beginner-friendly (first 4 types); floor 2+ unlocks the rest.
+    const available = floor < 2 ? types.slice(0, 4) : types;
 
     for (const room of dungeon.rooms) {
         if (room.type === 'start' || room.type === 'shop') continue;

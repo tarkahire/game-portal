@@ -778,6 +778,180 @@ export function createEnemyMesh(enemyType, isBoss) {
             // PERF: dropped per-enemy PointLight (see other enemy types).
             break;
         }
+        case 'maggot': {
+            // WRITHING MAGGOT — pale low-slung worm with a fanged grin at the head end
+            const segCount = 5;
+            const segMat = fleshMat(FLESH.palePink);
+            const bodyParts = [];
+            for (let i = 0; i < segCount; i++) {
+                const t = i / (segCount - 1);
+                const radius = (0.32 - Math.abs(t - 0.3) * 0.18) * S;
+                const seg = new THREE.Mesh(organicGeo(radius, 0.18, 12), segMat);
+                seg.position.set(0, 0.32 * S, (t - 0.5) * 1.4 * S);
+                group.add(seg);
+                bodyParts.push(seg);
+            }
+            // Head end (front)
+            const headPivot = new THREE.Group();
+            headPivot.position.set(0, 0.35 * S, -0.7 * S);
+            addFangedMaw(headPivot, 0, 0, 0.15 * S, 0.32 * S, 0.2 * S, 7);
+            const drool = addDrool(headPivot, 0, -0.05 * S, 0.2 * S, 0.25 * S, 3);
+            addGlowEyes(headPivot, 0, 0.15 * S, 0.18 * S, 0.07 * S, 0.04 * S, FLESH.glowEyeRed);
+            group.add(headPivot);
+            group.userData.drool.push(...drool);
+            group.userData.headJitter = headPivot;
+            // Veiny back tendrils
+            const tendrils = addTendrils(group, 0, 0.55 * S, 0, 4, 0.5 * S, FLESH.bruised);
+            group.userData.tendrils.push(...tendrils);
+            // Glow crack along spine
+            const crack = addGlowCrack(group, 0, 0.55 * S, 0, 1.0 * S, false);
+            group.userData.glowParts.push(crack);
+            addBloodStains(bodyParts[Math.floor(segCount/2)], 3);
+            break;
+        }
+        case 'hunter': {
+            // PALE HUNTER — tall lean stalker with long-fingered claws and burning red eyes
+            // Long torso
+            const torso = new THREE.Mesh(capsuleGeo(0.22 * S, 1.1 * S), fleshMat(FLESH.grey));
+            torso.position.y = 1.1 * S;
+            torso.scale.set(0.85, 1.0, 0.7);
+            group.add(torso);
+            addVeins(torso, 6, FLESH.darkVein);
+            // Head — narrow, leering
+            const headPivot = new THREE.Group();
+            headPivot.position.y = 2.1 * S;
+            const head = new THREE.Mesh(organicGeo(0.28 * S, 0.1, 14), fleshMat(FLESH.palePink));
+            head.scale.set(0.9, 1.25, 1.05);
+            headPivot.add(head);
+            addGrinMouth(headPivot, 0, -0.12 * S, 0.22 * S, 0.32 * S, 0.16 * S, 8);
+            addGlowEyes(headPivot, 0, 0.1 * S, 0.24 * S, 0.09 * S, 0.04 * S, FLESH.glowEyeRed);
+            addExtraEye(headPivot, 0.15 * S, 0.22 * S, 0.18 * S, 0.03 * S, FLESH.glowEyeRed);
+            addDrool(headPivot, 0, -0.22 * S, 0.22 * S, 0.22 * S, 2);
+            group.add(headPivot);
+            group.userData.headJitter = headPivot;
+            // Long arms ending in claws
+            for (const sign of [-1, 1]) {
+                const arm = new THREE.Mesh(capsuleGeo(0.08 * S, 1.1 * S), fleshMat(FLESH.sicklyPink));
+                arm.position.set(sign * 0.32 * S, 1.0 * S, 0.05 * S);
+                arm.rotation.z = sign * 0.2;
+                group.add(arm);
+                const handGroup = new THREE.Group();
+                handGroup.position.set(sign * 0.42 * S, 0.42 * S, 0.1 * S);
+                addClaws(handGroup, 0, 0, 0, 4, 0.18 * S, -1);
+                group.add(handGroup);
+            }
+            // Spindly legs
+            const legL = new THREE.Mesh(capsuleGeo(0.09 * S, 0.7 * S), fleshMat(FLESH.sicklyPink));
+            legL.position.set(-0.13 * S, 0.4 * S, 0);
+            legL.rotation.z = 0.05;
+            group.add(legL);
+            const legR = legL.clone(); legR.position.x = 0.13 * S; legR.rotation.z = -0.05;
+            group.add(legR);
+            // Bone spikes on back
+            addBoneSpikes(group, 0, 1.3 * S, -0.18 * S, 5, 0.13 * S, 0.7 * S);
+            // Shoulder tendrils
+            const tendrils = addTendrils(group, 0, 1.7 * S, -0.05 * S, 4, 0.55 * S, FLESH.bruised);
+            group.userData.tendrils.push(...tendrils);
+            // Glow crack on chest
+            const crack = addGlowCrack(group, 0, 1.2 * S, 0.22 * S, 0.45 * S, true);
+            group.userData.glowParts.push(crack);
+            break;
+        }
+        case 'spitter': {
+            // BILE SPITTER — squat fat body with a huge dripping maw on top
+            const body = new THREE.Mesh(organicGeo(0.65 * S, 0.16, 16), fleshMat(FLESH.bruised));
+            body.position.y = 0.7 * S;
+            body.scale.set(1.15, 0.85, 1.0);
+            group.add(body);
+            addVeins(body, 8, FLESH.darkVein);
+            addBloodStains(body, 4);
+            group.userData.body = body;
+            // Huge maw on the top-front of body
+            const mawPivot = new THREE.Group();
+            mawPivot.position.set(0, 1.05 * S, 0.45 * S);
+            addFangedMaw(mawPivot, 0, 0, 0, 0.6 * S, 0.4 * S, 9);
+            const drool = addDrool(mawPivot, 0, -0.15 * S, 0.0, 0.5 * S, 5);
+            group.add(mawPivot);
+            group.userData.headJitter = mawPivot;
+            group.userData.drool.push(...drool);
+            // Green/yellow glowing eyes above maw
+            addGlowEyes(group, 0, 1.35 * S, 0.45 * S, 0.18 * S, 0.06 * S, FLESH.glowEyeGreen);
+            addExtraEye(group, -0.35 * S, 1.25 * S, 0.4 * S, 0.04 * S, FLESH.glowEyeGreen);
+            // Exposed ribs on front of belly
+            addExposedRibs(group, 0, 0.5 * S, 0.55 * S, 0.45 * S, 4);
+            // Tendrils on back
+            const tendrils = addTendrils(group, 0, 1.0 * S, -0.4 * S, 5, 0.6 * S, FLESH.deepPink);
+            group.userData.tendrils.push(...tendrils);
+            // Stubby legs
+            for (const sign of [-1, 1]) {
+                const leg = new THREE.Mesh(capsuleGeo(0.16 * S, 0.45 * S), fleshMat(FLESH.bruised));
+                leg.position.set(sign * 0.32 * S, 0.25 * S, 0);
+                group.add(leg);
+            }
+            // Glow crack — sickly pulsing along the side
+            const crack = addGlowCrack(group, 0.55 * S, 0.7 * S, 0, 0.6 * S, true);
+            group.userData.glowParts.push(crack);
+            break;
+        }
+        case 'goliath': {
+            // FLESH GOLIATH — massive bulky brute with exposed ribcage and crushing arms
+            // Huge torso
+            const torso = new THREE.Mesh(organicGeo(0.95 * S, 0.14, 18), fleshMat(FLESH.deepPink));
+            torso.position.y = 1.3 * S;
+            torso.scale.set(1.2, 1.1, 1.0);
+            group.add(torso);
+            addVeins(torso, 12, FLESH.darkVein);
+            addBloodStains(torso, 6);
+            // Small malformed head buried in the shoulders
+            const headPivot = new THREE.Group();
+            headPivot.position.y = 2.35 * S;
+            const head = new THREE.Mesh(organicGeo(0.32 * S, 0.18, 14), fleshMat(FLESH.bruised));
+            head.scale.set(1.1, 0.9, 1.0);
+            headPivot.add(head);
+            addFangedMaw(headPivot, 0, -0.12 * S, 0.28 * S, 0.4 * S, 0.25 * S, 8);
+            addBeadyEyes(headPivot, 0, 0.12 * S, 0.25 * S, 0.13 * S, 0.05 * S);
+            addExtraEye(headPivot, -0.22 * S, 0.05 * S, 0.18 * S, 0.04 * S, FLESH.glowEyeRed);
+            const drool = addDrool(headPivot, 0, -0.28 * S, 0.3 * S, 0.35 * S, 5);
+            group.add(headPivot);
+            group.userData.headJitter = headPivot;
+            group.userData.drool.push(...drool);
+            // Massive exposed ribcage across chest
+            addExposedRibs(group, 0, 1.35 * S, 0.8 * S, 0.85 * S, 7);
+            // Huge arms with crushing claws
+            for (const sign of [-1, 1]) {
+                const upperArm = new THREE.Mesh(capsuleGeo(0.25 * S, 0.85 * S), fleshMat(FLESH.bruised));
+                upperArm.position.set(sign * 0.7 * S, 1.45 * S, 0);
+                upperArm.rotation.z = sign * 0.35;
+                group.add(upperArm);
+                const forearm = new THREE.Mesh(capsuleGeo(0.28 * S, 0.75 * S), fleshMat(FLESH.deepPink));
+                forearm.position.set(sign * 0.95 * S, 0.85 * S, 0.1 * S);
+                forearm.rotation.x = -0.3;
+                group.add(forearm);
+                const handGroup = new THREE.Group();
+                handGroup.position.set(sign * 1.05 * S, 0.35 * S, 0.2 * S);
+                addClaws(handGroup, 0, 0, 0, 5, 0.22 * S, -1);
+                group.add(handGroup);
+            }
+            // Stubby thick legs
+            for (const sign of [-1, 1]) {
+                const leg = new THREE.Mesh(capsuleGeo(0.28 * S, 0.7 * S), fleshMat(FLESH.bruised));
+                leg.position.set(sign * 0.3 * S, 0.4 * S, 0);
+                group.add(leg);
+            }
+            // Bone spikes erupting from shoulders + spine
+            addBoneSpikes(group, -0.5 * S, 1.95 * S, -0.2 * S, 3, 0.18 * S, 0.4 * S);
+            addBoneSpikes(group, 0.5 * S, 1.95 * S, -0.2 * S, 3, 0.18 * S, 0.4 * S);
+            addBoneSpikes(group, 0, 1.6 * S, -0.35 * S, 4, 0.16 * S, 0.8 * S);
+            // Heavy back tendrils
+            const tendrils = addTendrils(group, 0, 1.6 * S, -0.4 * S, 6, 0.9 * S, FLESH.bloodRed);
+            group.userData.tendrils.push(...tendrils);
+            // Multiple pulsing glow cracks (heartbeat through torn flesh)
+            const c1 = addGlowCrack(group, -0.3 * S, 1.25 * S, 0.85 * S, 0.55 * S, true);
+            const c2 = addGlowCrack(group, 0.3 * S, 1.05 * S, 0.85 * S, 0.45 * S, true);
+            const c3 = addGlowCrack(group, 0, 1.55 * S, 0.85 * S, 0.4 * S, false);
+            group.userData.glowParts.push(c1, c2, c3);
+            break;
+        }
         default: {
             const blob = new THREE.Mesh(organicGeo(0.45 * S, 0.18, 14), fleshMat(FLESH.bruised));
             blob.position.y = 0.9 * S;
