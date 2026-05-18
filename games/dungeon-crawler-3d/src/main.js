@@ -3865,6 +3865,46 @@ function mahitoBodyRepel() {
         e.data.x += (dx / d) * 2.6; e.data.z += (dz / d) * 2.6;
         e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
     }
+    // Canon Body Repel: incompatible fused souls erupt as grotesque
+    // multi-headed transfigured-flesh snakes lashing out from the body.
+    const heads = 6;
+    for (let h = 0; h < heads; h++) {
+        const ang = (h / heads) * Math.PI * 2 + Math.random() * 0.5;
+        const snake = new THREE.Group();
+        const fleshA = new THREE.MeshStandardMaterial({ color: '#7a1020', roughness: 0.5, emissive: '#2a0006', emissiveIntensity: 0.4 });
+        const fleshB = new THREE.MeshStandardMaterial({ color: '#9a4a4a', roughness: 0.55 });
+        const segN = 5;
+        const segs = [];
+        for (let i = 0; i < segN; i++) {
+            const s = new THREE.Mesh(new THREE.SphereGeometry(0.16 - i * 0.018, 7, 6), i % 2 ? fleshA : fleshB);
+            snake.add(s); segs.push(s);
+        }
+        const headM = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.34, 6), fleshA);
+        snake.add(headM); segs.push(headM);
+        for (let m = -1; m <= 1; m += 2) {
+            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.03, 5, 5),
+                new THREE.MeshBasicMaterial({ color: '#ffe24a' }));
+            eye.position.set(m * 0.06, 0.05, 0.1); headM.add(eye);
+        }
+        scene.add(snake);
+        const baseY = EYE_HEIGHT * 0.7 + fly;
+        const t0 = performance.now(), dur = 620;
+        const animSnake = () => {
+            const t = (performance.now() - t0) / dur;
+            if (t >= 1) { scene.remove(snake); snake.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } }); return; }
+            const reach = Math.sin(Math.min(t * 1.4, 1) * Math.PI) * radius * TILE * 0.95;
+            for (let i = 0; i < segs.length; i++) {
+                const f = (i + 1) / segs.length;
+                const wob = Math.sin(t * 22 + i * 0.9) * 0.28 * f;
+                segs[i].position.set(
+                    wx + Math.cos(ang + wob) * reach * f,
+                    baseY + Math.sin(t * 9 + i) * 0.18 * f + f * 0.25,
+                    wz + Math.sin(ang + wob) * reach * f);
+            }
+            requestAnimationFrame(animSnake);
+        };
+        requestAnimationFrame(animSnake);
+    }
     // Recoil backward out of danger with brief i-frames
     fpsCamera.safeMove(px - fwdX * 3, pz - fwdZ * 3, dungeon.map);
     player.invincible = performance.now() + 450;
@@ -4057,6 +4097,46 @@ function mahitoDomain() {
         const gl = new THREE.PointLight('#7a0c1c', 0, TILE * 14, 1.6);
         gl.position.set(0, 1.6, 0); grp.add(gl);
         groundDecal(worldPx, worldPz, '#1a0008', wRad, duration + 600);
+
+        // Canon Self-Embodiment of Perfection: giant grasping arms rise
+        // from the perimeter and clasp toward the centre, weaving the
+        // flower-like hand net over the trapped souls.
+        const handMat = new THREE.MeshStandardMaterial({ color: '#8b96a0', roughness: 0.6, emissive: '#1a0006', emissiveIntensity: 0.3 });
+        const handCount = 8;
+        const handPivots = [];
+        for (let i = 0; i < handCount; i++) {
+            const ang = (i / handCount) * Math.PI * 2;
+            const piv = new THREE.Group();
+            piv.position.set(Math.cos(ang) * wRad * 0.94, 0, Math.sin(ang) * wRad * 0.94);
+            piv.rotation.y = -ang + Math.PI; // face inward
+            const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 7.0, 8), handMat);
+            arm.position.set(0, 3.4, 0); arm.rotation.x = -0.5;
+            piv.add(arm);
+            const palm = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.2), handMat);
+            palm.position.set(0, 6.6, 1.7); palm.rotation.x = -0.5;
+            piv.add(palm);
+            for (let f = 0; f < 5; f++) {
+                const fg = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 1.5, 6), handMat);
+                fg.position.set(-0.55 + f * 0.28, 7.1, 2.55);
+                fg.rotation.x = -1.15 - (f === 0 ? 0.3 : 0);
+                piv.add(fg);
+            }
+            piv.scale.setScalar(0.01);
+            grp.add(piv);
+            handPivots.push(piv);
+        }
+        const handStart = performance.now();
+        const animHands = () => {
+            const ht = (performance.now() - handStart) / 900;
+            const e3 = 1 - Math.pow(1 - Math.min(ht, 1), 3);
+            for (let i = 0; i < handPivots.length; i++) {
+                const p = handPivots[i];
+                p.scale.setScalar(0.01 + e3 * 0.99);
+                p.rotation.x = -e3 * 0.55 + Math.sin(performance.now() * 0.002 + i) * 0.04;
+            }
+            if (ht < 1 && grp.parent) requestAnimationFrame(animHands);
+        };
+        requestAnimationFrame(animHands);
 
         const sStart = performance.now();
         const spread = () => {
@@ -11591,18 +11671,24 @@ function buildTodoModel() {
 // ─── MAHITO 3D MODEL — patchwork stitched skin, shoulder-length hair ──
 function buildMahitoModel() {
     const pm = new THREE.Group();
-    const skinMat = new THREE.MeshStandardMaterial({ color: '#aeb6c0', roughness: 0.6 }); // pale blue-grey
-    const skinShade = new THREE.MeshStandardMaterial({ color: '#8d96a3', roughness: 0.65 });
-    const robeMat = new THREE.MeshStandardMaterial({ color: '#2c2f38', roughness: 0.7 });   // dark grey coat
-    const robeInner = new THREE.MeshStandardMaterial({ color: '#3a3e48', roughness: 0.7 });
-    const pantsMat = new THREE.MeshStandardMaterial({ color: '#1f2228', roughness: 0.75 });
-    const shoeMat = new THREE.MeshStandardMaterial({ color: '#121419', roughness: 0.85 });
-    const hairMat = new THREE.MeshStandardMaterial({ color: '#c6cad3', roughness: 0.6 });    // ash hair
-    const hairDark = new THREE.MeshStandardMaterial({ color: '#9aa0ab', roughness: 0.6 });
-    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#e8e8ee' });
-    const irisMat = new THREE.MeshBasicMaterial({ color: '#6f8a9a' });
+    // Canon Mahito: patchwork "Stitchface" — ashen grey-blue skin sewn
+    // together from mismatched pieces, near-black teal robe with a
+    // segmented left shawl-sleeve, grey-blue bound hair, heterochromia.
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#a7b0b8', roughness: 0.62 }); // ashen grey-blue
+    const skinShade = new THREE.MeshStandardMaterial({ color: '#8b96a0', roughness: 0.66 }); // mismatched patch
+    const robeMat = new THREE.MeshStandardMaterial({ color: '#1b2127', roughness: 0.72 });  // near-black teal robe
+    const robeShawl = new THREE.MeshStandardMaterial({ color: '#262d34', roughness: 0.72 }); // layered shawl panels
+    const robeInner = new THREE.MeshStandardMaterial({ color: '#30373f', roughness: 0.7 });
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#14171b', roughness: 0.78 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#0e1014', roughness: 0.85 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#aeb9c4', roughness: 0.58 });   // grey-blue hair
+    const hairDark = new THREE.MeshStandardMaterial({ color: '#8a95a1', roughness: 0.6 });
+    const hairTie = new THREE.MeshStandardMaterial({ color: '#1d2128', roughness: 0.7 });    // strand bindings
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#eef0f3' });
+    const irisBlueMat = new THREE.MeshBasicMaterial({ color: '#1f3d8f' });  // heterochromia — dark blue eye
+    const irisGreyMat = new THREE.MeshBasicMaterial({ color: '#8b94a0' });  // heterochromia — grey eye
     const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
-    const seamMat = new THREE.MeshBasicMaterial({ color: '#2a2e36' }); // stitch thread
+    const seamMat = new THREE.MeshBasicMaterial({ color: '#262a32' }); // stitch thread
 
     // Stitched seam: a thin dark line + perpendicular stitch ticks.
     // axis 'y' = vertical seam, 'x' = horizontal seam.
@@ -11633,18 +11719,31 @@ function buildMahitoModel() {
     const torsoPivot = new THREE.Group();
     torsoPivot.position.y = 0.65;
 
-    // Dark high-collar coat
+    // Near-black teal robe with a wide upturned collar
     const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.23, 0.9, 8), robeMat);
     upperBody.position.y = 0.5; torsoPivot.add(upperBody);
     const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.24, 0.34), robeMat);
     shoulders.position.y = 0.85; torsoPivot.add(shoulders);
-    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.2, 6), robeMat);
-    collar.position.y = 1.04; torsoPivot.add(collar);
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.19, 0.24, 8, 1, true), robeMat);
+    collar.position.y = 1.06; torsoPivot.add(collar);
     const innerShirt = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.06, 6), robeInner);
     innerShirt.position.set(0, 0.98, 0.07); torsoPivot.add(innerShirt);
-    // Patchwork seam down the coat front + a stitched chest patch
-    stitchSeam(torsoPivot, 0, 0.55, 0.265, 0.62, 'y', 7);
+    // Signature LEFT shawl-sleeve — three stacked, separated panels
+    // draped over the left shoulder/upper arm (canon detail).
+    for (let i = 0; i < 3; i++) {
+        const panel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.2 - i * 0.012, 0.22 - i * 0.012, 0.17, 8, 1, true),
+            robeShawl);
+        panel.position.set(-0.30, 0.92 - i * 0.18, 0);
+        panel.rotation.z = 0.22;
+        panel.scale.set(1.05, 1, 1.18);
+        torsoPivot.add(panel);
+    }
+    // Patchwork seams — mismatched skin/cloth sewn together
+    stitchSeam(torsoPivot, 0, 0.55, 0.265, 0.62, 'y', 8);
     stitchSeam(torsoPivot, -0.13, 0.66, 0.255, 0.22, 'x', 4, 0.35);
+    stitchSeam(torsoPivot, 0.14, 0.5, 0.255, 0.34, 'y', 5, -0.28);
+    stitchSeam(torsoPivot, 0.05, 0.34, 0.255, 0.26, 'x', 4, 0.15);
 
     // ── Neck ──
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.14, 6), skinMat);
@@ -11657,77 +11756,105 @@ function buildMahitoModel() {
     const chin = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat);
     chin.position.set(0, 1.24, 0.12); chin.scale.set(1.2, 0.65, 1); torsoPivot.add(chin);
 
-    // Signature stitched seams across the face
-    stitchSeam(torsoPivot, 0.075, 1.37, 0.205, 0.30, 'y', 7, 0.10);  // big seam through the right eye
-    stitchSeam(torsoPivot, 0, 1.505, 0.185, 0.24, 'x', 5);            // forehead
-    stitchSeam(torsoPivot, -0.10, 1.33, 0.20, 0.16, 'x', 4, 0.55);    // left cheek diagonal
-    stitchSeam(torsoPivot, 0.01, 1.255, 0.17, 0.18, 'x', 4);          // jaw/chin
+    // Dense patchwork stitching — the "Stitchface" look. A long master
+    // seam crosses the whole face plus short cross-hatched panel seams.
+    stitchSeam(torsoPivot, 0.07, 1.40, 0.205, 0.40, 'y', 9, 0.16);   // master seam down through the right eye
+    stitchSeam(torsoPivot, 0, 1.505, 0.185, 0.26, 'x', 6);           // forehead band
+    stitchSeam(torsoPivot, -0.10, 1.35, 0.20, 0.18, 'x', 5, 0.55);   // left cheek diagonal
+    stitchSeam(torsoPivot, -0.12, 1.30, 0.185, 0.16, 'y', 4, -0.35); // left jaw panel
+    stitchSeam(torsoPivot, 0.13, 1.30, 0.185, 0.15, 'y', 4, 0.30);   // right jaw panel
+    stitchSeam(torsoPivot, 0.01, 1.255, 0.17, 0.20, 'x', 5);         // chin
+    stitchSeam(torsoPivot, -0.04, 1.44, 0.205, 0.13, 'x', 3, -0.4);  // bridge of nose
 
-    // ── Eyes ──
+    // ── Eyes — heterochromia (left dark-blue, right grey) ──
     for (let s = -1; s <= 1; s += 2) {
         const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.045, 7, 7), eyeWhiteMat);
         eyeWhite.position.set(s * 0.085, 1.40, 0.19);
-        eyeWhite.scale.set(1, 0.65, 0.7);
+        eyeWhite.scale.set(1, 0.7, 0.7);
         torsoPivot.add(eyeWhite);
-        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 6), irisMat);
+        // s === -1 is the model's left side
+        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.03, 7, 7),
+            s === -1 ? irisBlueMat : irisGreyMat);
         iris.position.set(s * 0.085, 1.40, 0.215);
         torsoPivot.add(iris);
-        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.013, 4, 4), pupilMat);
-        pupil.position.set(s * 0.085, 1.40, 0.235);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.014, 5, 5), pupilMat);
+        pupil.position.set(s * 0.085, 1.40, 0.238);
         torsoPivot.add(pupil);
     }
-    // Nose + thin mouth
+    // Nose + faint unsettling upturned smile (two angled segments)
     const nose = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.06, 4), skinMat);
     nose.position.set(0, 1.35, 0.21); nose.rotation.x = Math.PI * 0.6;
     torsoPivot.add(nose);
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.009, 0.01),
-        new THREE.MeshBasicMaterial({ color: '#5a6470' }));
-    mouth.position.set(0, 1.29, 0.2); torsoPivot.add(mouth);
+    const mouthMat = new THREE.MeshBasicMaterial({ color: '#566069' });
+    for (let s = -1; s <= 1; s += 2) {
+        const lip = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.009, 0.01), mouthMat);
+        lip.position.set(s * 0.018, 1.288 + 0.006, 0.2);
+        lip.rotation.z = s * -0.32;
+        torsoPivot.add(lip);
+    }
     for (let s = -1; s <= 1; s += 2) {
         const ear = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), skinMat);
         ear.position.set(s * 0.205, 1.4, -0.01); ear.scale.set(0.6, 1, 0.6);
         torsoPivot.add(ear);
     }
 
-    // ── Shoulder-length wavy ash hair ──
-    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.255, 10, 10), hairMat);
-    hairBase.position.set(0, 1.46, -0.02); hairBase.scale.set(1.12, 1.0, 1.12);
-    torsoPivot.add(hairBase);
-    const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), hairMat);
-    hairTop.position.set(0, 1.56, -0.01); hairTop.scale.set(1.05, 0.85, 1.0);
-    torsoPivot.add(hairTop);
-    // Side curtains framing the face down to the shoulders
+    // ── Hair: grey-blue, side-parted, gathered into THREE thick
+    //    bound rope-strands down the back (Mahito's signature) ──
+    const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.245, 12, 10), hairMat);
+    hairCap.position.set(0, 1.45, -0.02);
+    hairCap.scale.set(1.14, 1.05, 1.16);
+    torsoPivot.add(hairCap);
+    // Off-centre swept fringe across the forehead (parted to his left)
+    const fringe = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.16, 0.12), hairMat);
+    fringe.position.set(0.03, 1.52, 0.16); fringe.rotation.z = -0.16;
+    torsoPivot.add(fringe);
+    for (let i = 0; i < 5; i++) {
+        const bang = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.2 + (i % 2) * 0.05, 5), hairMat);
+        bang.position.set(-0.18 + i * 0.09, 1.5, 0.2);
+        bang.rotation.set(0.5, 0, -0.5 + i * 0.18);
+        torsoPivot.add(bang);
+    }
+    // Short side locks framing the cheeks
     for (let s = -1; s <= 1; s += 2) {
-        const sideHair = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.2), hairMat);
-        sideHair.position.set(s * 0.21, 1.18, 0.0);
-        sideHair.rotation.z = s * 0.10;
-        torsoPivot.add(sideHair);
-        const sideTip = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 5), hairDark);
-        sideTip.position.set(s * 0.23, 0.92, 0.0);
-        sideTip.rotation.x = Math.PI; sideTip.rotation.z = s * 0.15;
-        torsoPivot.add(sideTip);
+        const sideLock = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.34, 0.16), hairMat);
+        sideLock.position.set(s * 0.215, 1.34, 0.04);
+        sideLock.rotation.z = s * 0.12;
+        torsoPivot.add(sideLock);
     }
-    // Back mass reaching the shoulders
-    const backHair = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.16), hairMat);
-    backHair.position.set(0, 1.18, -0.16);
-    torsoPivot.add(backHair);
-    // Wavy strands / tufts for the messy curly look
-    const tufts = [
-        { x: 0, y: 1.66, z: 0.04, rx: -0.25, rz: 0, h: 0.2 },
-        { x: 0.12, y: 1.62, z: 0.02, rx: -0.15, rz: 0.5, h: 0.18 },
-        { x: -0.12, y: 1.62, z: 0.02, rx: -0.15, rz: -0.5, h: 0.18 },
-        { x: 0.06, y: 1.58, z: 0.16, rx: -0.7, rz: 0.2, h: 0.16 },
-        { x: -0.07, y: 1.58, z: 0.15, rx: -0.65, rz: -0.2, h: 0.15 },
-        { x: 0.18, y: 1.5, z: -0.04, rx: 0.1, rz: 0.7, h: 0.22 },
-        { x: -0.18, y: 1.5, z: -0.04, rx: 0.1, rz: -0.7, h: 0.22 },
-        { x: 0, y: 1.5, z: -0.2, rx: 0.6, rz: 0, h: 0.24 },
-    ];
-    for (const tf of tufts) {
-        const strand = new THREE.Mesh(new THREE.ConeGeometry(0.05, tf.h, 5), tf === tufts[0] ? hairMat : hairDark);
-        strand.position.set(tf.x, tf.y, tf.z);
-        strand.rotation.set(tf.rx, 0, tf.rz);
-        torsoPivot.add(strand);
+
+    // Three thick segmented rope-strands, each cinched with dark ties,
+    // hanging down the back and tapering to a tuft tip.
+    function hairRope(group, baseX, baseY, baseZ, lean, sway) {
+        const segs = 4;
+        let cx = baseX, cy = baseY, cz = baseZ;
+        for (let i = 0; i < segs; i++) {
+            const r = 0.085 - i * 0.013;
+            const len = 0.22 - i * 0.022;
+            const seg = new THREE.Mesh(
+                new THREE.CylinderGeometry(r, r - 0.012, len, 7),
+                i % 2 ? hairDark : hairMat);
+            cy -= len * 0.52;
+            cx += Math.sin(sway + i) * 0.02 + lean * 0.03;
+            cz -= 0.045 + i * 0.012;
+            seg.position.set(cx, cy, cz);
+            seg.rotation.x = 0.32 + i * 0.07;
+            seg.rotation.z = lean * 0.08;
+            group.add(seg);
+            cy -= len * 0.52;
+            // binding tie between segments
+            const tie = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.012, r + 0.012, 0.035, 8), hairTie);
+            tie.position.set(cx, cy, cz - 0.01);
+            tie.rotation.x = 0.32 + i * 0.07;
+            group.add(tie);
+        }
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 6), hairDark);
+        tip.position.set(cx, cy - 0.09, cz - 0.02);
+        tip.rotation.x = Math.PI - 0.4;
+        group.add(tip);
     }
+    hairRope(torsoPivot, -0.16, 1.42, -0.14, -1, 0.0);  // left rope
+    hairRope(torsoPivot,  0.00, 1.46, -0.20,  0, 1.2);  // centre rope (longest reach)
+    hairRope(torsoPivot,  0.16, 1.42, -0.14,  1, 2.4);  // right rope
 
     // ── Right arm — coat sleeve → patchwork skin forearm with stitch band ──
     const rightArmPivot = new THREE.Group();
@@ -11744,16 +11871,23 @@ function buildMahitoModel() {
     torsoPivot.add(rightArmPivot);
     pm._rightArm = rightArmPivot;
 
-    // ── Left arm (mirrored) ──
+    // ── Left arm — the three-piece segmented shawl-sleeve ──
     const leftArmPivot = new THREE.Group();
     leftArmPivot.position.set(-0.38, 0.82, 0);
-    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), robeMat));
-    const lSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.42, 5), robeMat);
-    lSleeve.position.y = -0.26; leftArmPivot.add(lSleeve);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 6), robeShawl));
+    for (let i = 0; i < 3; i++) {
+        const cuff = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.085 - i * 0.006, 0.092 - i * 0.006, 0.155, 8, 1, true),
+            robeShawl);
+        cuff.position.y = -0.1 - i * 0.155;
+        cuff.scale.set(1.12, 1, 1.12);
+        leftArmPivot.add(cuff);
+    }
     leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
     const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.052, 0.4, 5), skinMat);
     lForearm.position.y = -0.72; leftArmPivot.add(lForearm);
     stitchSeam(leftArmPivot, 0, -0.78, 0.052, 0.12, 'x', 3);
+    stitchSeam(leftArmPivot, 0, -0.66, 0.052, 0.14, 'y', 4, 0.2);
     const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.055, 0.055), skinMat);
     lHand.position.set(0, -0.95, 0.02); leftArmPivot.add(lHand);
     torsoPivot.add(leftArmPivot);
@@ -11780,8 +11914,8 @@ function buildMahitoModel() {
         new THREE.MeshStandardMaterial({ color: '#15171c', roughness: 0.6 }));
     belt.position.y = 0.62; pm.add(belt);
 
-    // ── Faint soul-blue aura ──
-    const aura = new THREE.PointLight('#7fa6bf', 0.5, TILE * 3, 2);
+    // ── Faint cursed soul aura ──
+    const aura = new THREE.PointLight('#6f9fc0', 0.55, TILE * 3, 2);
     aura.position.y = 1.2; pm.add(aura);
     pm._auraLight = aura;
 

@@ -4,6 +4,35 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-18 — Mahito reworked for anime accuracy
+
+User feedback: the original Mahito "looks nothing like" the anime.
+Reworked from canon references (jujutsu-kaisen.fandom.com).
+
+**Model (`buildMahitoModel()`):**
+- Ashen grey-blue patchwork "Stitchface" skin; **dense cross-hatched
+  stitching** across face/torso/arms (long master seam through the
+  right eye + forehead/cheek/jaw/nose-bridge/chin/torso/forearm panels).
+- **Heterochromia** — dark-blue left iris, grey right iris.
+- **Three thick segmented rope-strands** of grey-blue hair down the
+  back (new `hairRope()` helper: tapered segments + dark binding ties +
+  tuft tip), off-centre swept fringe, short side locks.
+- Near-black teal robe, wide upturned collar, signature **left
+  shawl-sleeve split into three stacked panels** + matching
+  three-panel left-shoulder drape. Faint unsettling upturned mouth.
+
+**Moves — canon-accurate signature visuals:**
+- **X Body Repel** now erupts 6 grotesque multi-segment
+  transfigured-flesh **snake-heads** (yellow-eyed, writhing) lashing
+  outward, on top of the shockwave/knockback/back-hop.
+- **V Self-Embodiment of Perfection**: 8 **giant grasping arms** rise
+  from the domain perimeter and clasp inward, weaving the canon
+  flower-like hand net over the trapped souls.
+
+`node --check` clean. characters.md updated.
+
+---
+
 ## 2026-05-18 — Mahito ability kit (Z/X/C/V/F)
 
 `fruitAbility` now has an `id === 'mahito'` dispatch block:
