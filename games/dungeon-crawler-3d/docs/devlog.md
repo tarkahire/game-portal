@@ -4,6 +4,27 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-18 — Mahito added (base model only)
+
+New playable character **Mahito** (`mahito` in `definitions.js`,
+`type: curse`, 145 HP, fist). Base model only — no abilities yet.
+
+- `buildMahitoModel()`: pale blue-grey patchwork skin, dark
+  high-collar coat, **shoulder-length wavy ash hair** (side curtains
+  to the shoulders + back mass + messy tufts), faint soul-blue aura.
+- Local `stitchSeam(group,x,y,z,len,axis,ticks,tilt)` helper draws a
+  thin dark thread line + perpendicular stitch ticks. Used for the
+  signature **vertical seam through the right eye** plus forehead,
+  cheek, jaw, neck, coat-front and forearm seams.
+- Wired into `buildPlayerModelForClass` + the P1/P2 `startGame`
+  chains. Class-select card is auto-generated from `CLASSES`.
+- Reuses Sukuna's walk/idle anim (`_isSukuna`). No `fruitAbility`
+  branch yet → Z/X/C/V/F no-op; M1 fist combo works.
+
+`node --check` clean. Docs (characters.md) updated.
+
+---
+
 ## 2026-05-18 — Boss killcam (slow-mo death)
 
 Killing a boss now plays a cinematic slow-mo killcam instead of the

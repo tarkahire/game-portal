@@ -2412,6 +2412,7 @@ function buildPlayerModelForClass(classId, labelPrefix) {
     else if (classId === 'megumi') { pm = buildMegumiModel(); addPlayerLabel(pm, labelPrefix + 'MEGUMI', '#1a237e'); }
     else if (classId === 'todo') { pm = buildTodoModel(); addPlayerLabel(pm, labelPrefix + 'TODO', '#d4a070'); }
     else if (classId === 'yuta') { pm = buildYutaModel(); addPlayerLabel(pm, labelPrefix + 'YUTA', '#5a8aff'); }
+    else if (classId === 'mahito') { pm = buildMahitoModel(); addPlayerLabel(pm, labelPrefix + 'MAHITO', '#8a93a0'); }
     else { pm = buildGenericPlayerModel(CLASSES[classId] || CLASSES['gojo']); }
     return pm;
 }
@@ -2497,6 +2498,9 @@ function startGame() {
     } else if (player.classId === 'yuta') {
         pm = buildYutaModel();
         addPlayerLabel(pm, 'YUTA', '#5a8aff');
+    } else if (player.classId === 'mahito') {
+        pm = buildMahitoModel();
+        addPlayerLabel(pm, 'MAHITO', '#8a93a0');
     } else {
         pm = buildGenericPlayerModel(player.cls);
     }
@@ -2568,6 +2572,7 @@ function startGame() {
         else if (player2.classId === 'megumi') { pm2 = buildMegumiModel(); addPlayerLabel(pm2, 'P2 MEGUMI', '#1a237e'); }
         else if (player2.classId === 'todo') { pm2 = buildTodoModel(); addPlayerLabel(pm2, 'P2 TODO', '#d4a070'); }
         else if (player2.classId === 'yuta') { pm2 = buildYutaModel(); addPlayerLabel(pm2, 'P2 YUTA', '#5a8aff'); }
+        else if (player2.classId === 'mahito') { pm2 = buildMahitoModel(); addPlayerLabel(pm2, 'P2 MAHITO', '#8a93a0'); }
         else { pm2 = buildGenericPlayerModel(cls2); }
         pm2.visible = false;
         scene.add(pm2);
@@ -11078,6 +11083,209 @@ function buildTodoModel() {
     // Reuse Sukuna's walk animation (it suits the muscular swagger)
     pm._isSukuna = true;
     pm._isTodo = true;
+
+    return pm;
+}
+
+// ─── MAHITO 3D MODEL — patchwork stitched skin, shoulder-length hair ──
+function buildMahitoModel() {
+    const pm = new THREE.Group();
+    const skinMat = new THREE.MeshStandardMaterial({ color: '#aeb6c0', roughness: 0.6 }); // pale blue-grey
+    const skinShade = new THREE.MeshStandardMaterial({ color: '#8d96a3', roughness: 0.65 });
+    const robeMat = new THREE.MeshStandardMaterial({ color: '#2c2f38', roughness: 0.7 });   // dark grey coat
+    const robeInner = new THREE.MeshStandardMaterial({ color: '#3a3e48', roughness: 0.7 });
+    const pantsMat = new THREE.MeshStandardMaterial({ color: '#1f2228', roughness: 0.75 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: '#121419', roughness: 0.85 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: '#c6cad3', roughness: 0.6 });    // ash hair
+    const hairDark = new THREE.MeshStandardMaterial({ color: '#9aa0ab', roughness: 0.6 });
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#e8e8ee' });
+    const irisMat = new THREE.MeshBasicMaterial({ color: '#6f8a9a' });
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#000000' });
+    const seamMat = new THREE.MeshBasicMaterial({ color: '#2a2e36' }); // stitch thread
+
+    // Stitched seam: a thin dark line + perpendicular stitch ticks.
+    // axis 'y' = vertical seam, 'x' = horizontal seam.
+    function stitchSeam(group, x, y, z, len, axis, ticks, tilt) {
+        tilt = tilt || 0;
+        const lineGeo = axis === 'y'
+            ? new THREE.BoxGeometry(0.012, len, 0.012)
+            : new THREE.BoxGeometry(len, 0.012, 0.012);
+        const line = new THREE.Mesh(lineGeo, seamMat);
+        line.position.set(x, y, z);
+        line.rotation.z = tilt;
+        group.add(line);
+        for (let i = 0; i < ticks; i++) {
+            const t = (i + 0.5) / ticks - 0.5;
+            const tk = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.011, 0.013), seamMat);
+            if (axis === 'y') {
+                tk.position.set(x - Math.sin(tilt) * t * len, y + Math.cos(tilt) * t * len, z + 0.002);
+                tk.rotation.z = tilt;
+            } else {
+                tk.position.set(x + Math.cos(tilt) * t * len, y + Math.sin(tilt) * t * len, z + 0.002);
+                tk.rotation.z = Math.PI / 2 + tilt;
+            }
+            group.add(tk);
+        }
+    }
+
+    // ── Torso pivot ──
+    const torsoPivot = new THREE.Group();
+    torsoPivot.position.y = 0.65;
+
+    // Dark high-collar coat
+    const upperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.23, 0.9, 8), robeMat);
+    upperBody.position.y = 0.5; torsoPivot.add(upperBody);
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.24, 0.34), robeMat);
+    shoulders.position.y = 0.85; torsoPivot.add(shoulders);
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.2, 6), robeMat);
+    collar.position.y = 1.04; torsoPivot.add(collar);
+    const innerShirt = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.06, 6), robeInner);
+    innerShirt.position.set(0, 0.98, 0.07); torsoPivot.add(innerShirt);
+    // Patchwork seam down the coat front + a stitched chest patch
+    stitchSeam(torsoPivot, 0, 0.55, 0.265, 0.62, 'y', 7);
+    stitchSeam(torsoPivot, -0.13, 0.66, 0.255, 0.22, 'x', 4, 0.35);
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.14, 6), skinMat);
+    neck.position.y = 1.13; torsoPivot.add(neck);
+    stitchSeam(torsoPivot, 0.04, 1.13, 0.085, 0.12, 'x', 3, 0.6);
+
+    // ── Head ──
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), skinMat);
+    head.position.y = 1.38; head.scale.set(1, 1.05, 0.96); torsoPivot.add(head);
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), skinMat);
+    chin.position.set(0, 1.24, 0.12); chin.scale.set(1.2, 0.65, 1); torsoPivot.add(chin);
+
+    // Signature stitched seams across the face
+    stitchSeam(torsoPivot, 0.075, 1.37, 0.205, 0.30, 'y', 7, 0.10);  // big seam through the right eye
+    stitchSeam(torsoPivot, 0, 1.505, 0.185, 0.24, 'x', 5);            // forehead
+    stitchSeam(torsoPivot, -0.10, 1.33, 0.20, 0.16, 'x', 4, 0.55);    // left cheek diagonal
+    stitchSeam(torsoPivot, 0.01, 1.255, 0.17, 0.18, 'x', 4);          // jaw/chin
+
+    // ── Eyes ──
+    for (let s = -1; s <= 1; s += 2) {
+        const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.045, 7, 7), eyeWhiteMat);
+        eyeWhite.position.set(s * 0.085, 1.40, 0.19);
+        eyeWhite.scale.set(1, 0.65, 0.7);
+        torsoPivot.add(eyeWhite);
+        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 6), irisMat);
+        iris.position.set(s * 0.085, 1.40, 0.215);
+        torsoPivot.add(iris);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.013, 4, 4), pupilMat);
+        pupil.position.set(s * 0.085, 1.40, 0.235);
+        torsoPivot.add(pupil);
+    }
+    // Nose + thin mouth
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.06, 4), skinMat);
+    nose.position.set(0, 1.35, 0.21); nose.rotation.x = Math.PI * 0.6;
+    torsoPivot.add(nose);
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.009, 0.01),
+        new THREE.MeshBasicMaterial({ color: '#5a6470' }));
+    mouth.position.set(0, 1.29, 0.2); torsoPivot.add(mouth);
+    for (let s = -1; s <= 1; s += 2) {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), skinMat);
+        ear.position.set(s * 0.205, 1.4, -0.01); ear.scale.set(0.6, 1, 0.6);
+        torsoPivot.add(ear);
+    }
+
+    // ── Shoulder-length wavy ash hair ──
+    const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.255, 10, 10), hairMat);
+    hairBase.position.set(0, 1.46, -0.02); hairBase.scale.set(1.12, 1.0, 1.12);
+    torsoPivot.add(hairBase);
+    const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), hairMat);
+    hairTop.position.set(0, 1.56, -0.01); hairTop.scale.set(1.05, 0.85, 1.0);
+    torsoPivot.add(hairTop);
+    // Side curtains framing the face down to the shoulders
+    for (let s = -1; s <= 1; s += 2) {
+        const sideHair = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.2), hairMat);
+        sideHair.position.set(s * 0.21, 1.18, 0.0);
+        sideHair.rotation.z = s * 0.10;
+        torsoPivot.add(sideHair);
+        const sideTip = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 5), hairDark);
+        sideTip.position.set(s * 0.23, 0.92, 0.0);
+        sideTip.rotation.x = Math.PI; sideTip.rotation.z = s * 0.15;
+        torsoPivot.add(sideTip);
+    }
+    // Back mass reaching the shoulders
+    const backHair = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.16), hairMat);
+    backHair.position.set(0, 1.18, -0.16);
+    torsoPivot.add(backHair);
+    // Wavy strands / tufts for the messy curly look
+    const tufts = [
+        { x: 0, y: 1.66, z: 0.04, rx: -0.25, rz: 0, h: 0.2 },
+        { x: 0.12, y: 1.62, z: 0.02, rx: -0.15, rz: 0.5, h: 0.18 },
+        { x: -0.12, y: 1.62, z: 0.02, rx: -0.15, rz: -0.5, h: 0.18 },
+        { x: 0.06, y: 1.58, z: 0.16, rx: -0.7, rz: 0.2, h: 0.16 },
+        { x: -0.07, y: 1.58, z: 0.15, rx: -0.65, rz: -0.2, h: 0.15 },
+        { x: 0.18, y: 1.5, z: -0.04, rx: 0.1, rz: 0.7, h: 0.22 },
+        { x: -0.18, y: 1.5, z: -0.04, rx: 0.1, rz: -0.7, h: 0.22 },
+        { x: 0, y: 1.5, z: -0.2, rx: 0.6, rz: 0, h: 0.24 },
+    ];
+    for (const tf of tufts) {
+        const strand = new THREE.Mesh(new THREE.ConeGeometry(0.05, tf.h, 5), tf === tufts[0] ? hairMat : hairDark);
+        strand.position.set(tf.x, tf.y, tf.z);
+        strand.rotation.set(tf.rx, 0, tf.rz);
+        torsoPivot.add(strand);
+    }
+
+    // ── Right arm — coat sleeve → patchwork skin forearm with stitch band ──
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.38, 0.82, 0);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), robeMat));
+    const rSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.42, 5), robeMat);
+    rSleeve.position.y = -0.26; rightArmPivot.add(rSleeve);
+    rightArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
+    const rForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.052, 0.4, 5), skinMat);
+    rForearm.position.y = -0.72; rightArmPivot.add(rForearm);
+    stitchSeam(rightArmPivot, 0, -0.66, 0.052, 0.14, 'x', 4);
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.055, 0.055), skinMat);
+    rHand.position.set(0, -0.95, 0.02); rightArmPivot.add(rHand);
+    torsoPivot.add(rightArmPivot);
+    pm._rightArm = rightArmPivot;
+
+    // ── Left arm (mirrored) ──
+    const leftArmPivot = new THREE.Group();
+    leftArmPivot.position.set(-0.38, 0.82, 0);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), robeMat));
+    const lSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.42, 5), robeMat);
+    lSleeve.position.y = -0.26; leftArmPivot.add(lSleeve);
+    leftArmPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), skinMat).translateY(-0.5));
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.052, 0.4, 5), skinMat);
+    lForearm.position.y = -0.72; leftArmPivot.add(lForearm);
+    stitchSeam(leftArmPivot, 0, -0.78, 0.052, 0.12, 'x', 3);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.055, 0.055), skinMat);
+    lHand.position.set(0, -0.95, 0.02); leftArmPivot.add(lHand);
+    torsoPivot.add(leftArmPivot);
+    pm._leftArm = leftArmPivot;
+
+    pm.add(torsoPivot);
+    pm._torso = torsoPivot;
+
+    // ── Legs ──
+    for (let s = -1; s <= 1; s += 2) {
+        const legPivot = new THREE.Group();
+        legPivot.position.set(s * 0.1, 0.65, 0);
+        legPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 5), pantsMat));
+        legPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.45, 5), pantsMat).translateY(-0.28));
+        legPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 5), pantsMat).translateY(-0.52));
+        legPivot.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.42, 5), pantsMat).translateY(-0.75));
+        legPivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.055, 0.15), shoeMat).translateY(-0.98).translateZ(0.03));
+        pm.add(legPivot);
+        if (s === 1) pm._rightLeg = legPivot; else pm._leftLeg = legPivot;
+    }
+
+    // ── Coat hem + belt ──
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.23, 0.07, 8),
+        new THREE.MeshStandardMaterial({ color: '#15171c', roughness: 0.6 }));
+    belt.position.y = 0.62; pm.add(belt);
+
+    // ── Faint soul-blue aura ──
+    const aura = new THREE.PointLight('#7fa6bf', 0.5, TILE * 3, 2);
+    aura.position.y = 1.2; pm.add(aura);
+    pm._auraLight = aura;
+
+    pm._isSukuna = true;  // reuse Sukuna's walk/idle animation
+    pm._isMahito = true;
 
     return pm;
 }

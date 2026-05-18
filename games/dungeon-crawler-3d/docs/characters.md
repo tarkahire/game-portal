@@ -1,6 +1,6 @@
 # Characters
 
-11 playable characters. All defined in `src/classes/definitions.js`. Models built in `src/main.js` via `build<Name>Model()` functions and dispatched in `buildPlayerModelForClass(classId, labelPrefix)`.
+12 playable characters. All defined in `src/classes/definitions.js`. Models built in `src/main.js` via `build<Name>Model()` functions and dispatched in `buildPlayerModelForClass(classId, labelPrefix)`.
 
 ## Stats Summary
 
@@ -17,6 +17,9 @@
 | Megumi Fushiguro | sorcerer | 130 | 3.5 | 16 | 240 | 35 | fist |
 | TODO | fighter | **220** | 3.0 | 5 | 320 | 35 | fist (Z: Black Flash) |
 | Yuta Okkotsu | sorcerer | 135 | 3.6 | 17 | 220 | 38 | sword (no abilities yet) |
+| Mahito | curse | 145 | 3.6 | 8 | 230 | 36 | fist (**base model only — no abilities yet**) |
+
+**Mahito** — base playable character only. `buildMahitoModel()`: pale blue-grey patchwork skin with stitched seams (signature vertical seam through the right eye, plus forehead / cheek / jaw / neck / coat-front / forearm seams via the local `stitchSeam()` helper), shoulder-length wavy ash hair (side curtains to the shoulders + back mass + messy tufts), dark high-collar coat, faint soul-blue aura. Reuses Sukuna's walk/idle animation. `fruitAbility` has no Mahito branch yet, so Z/X/C/V/F are placeholder slots that no-op (M1 fist combo works normally).
 
 ## Abilities
 

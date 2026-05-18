@@ -75,7 +75,7 @@ export const CLASSES = {
     },
     yuta: {
         name: 'Yuta Okkotsu', type: 'sorcerer', maxHp: 135, speed: 3.6, attackRange: 38,
-        attackDamage: 12, attackSpeed: 220, attackType: 'melee', color: '#5a8aff',
+        attackDamage: 6, attackSpeed: 220, attackType: 'melee', color: '#5a8aff',
         specialCooldown: 5000, specialName: 'Cursed Queen Rika', weaponType: 'sword',
         abilities: {
             z: 'Rika',
@@ -85,5 +85,12 @@ export const CLASSES = {
             f: 'True Love Beam'
         },
         abilityCooldowns: { z: 12000, x: 10000, c: 5000, v: 18000, f: 14000 }
+    },
+    mahito: {
+        name: 'Mahito', type: 'curse', maxHp: 145, speed: 3.6, attackRange: 36,
+        attackDamage: 8, attackSpeed: 230, attackType: 'melee', color: '#8a93a0',
+        specialCooldown: 5000, specialName: 'Idle Transfiguration', weaponType: 'fist',
+        abilities: { z: 'Idle Transfiguration', x: 'Body Repel', c: 'Soul Multiplicity', v: 'Self-Embodiment of Perfection', f: 'Shadow Step' },
+        abilityCooldowns: { z: 6000, x: 5000, c: 9000, v: 20000, f: 2500 }
     },
 };
