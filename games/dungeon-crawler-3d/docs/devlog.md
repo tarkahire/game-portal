@@ -4,6 +4,33 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-18 — Boss killcam (slow-mo death)
+
+Killing a boss now plays a cinematic slow-mo killcam instead of the
+flat 1.5s delay before the floor advances.
+
+- New global `killcam`; `_killcamScale(now)` time-dilation curve
+  (ease to 0.12× → hold → ease back to 1×) multiplied into `dt` at the
+  top of `update()`, so the whole sim slows.
+- `triggerBossKillcam(e)` fires from the boss branch of
+  `dealDamageToEnemy`: hitstop + FOV punch + red light/particles +
+  ground ring, a desaturated blood-red vignette overlay
+  (`#killcam-overlay`, `backdrop-filter`), and a "<BOSS> SLAIN"
+  caption via `showCinematicSubtitle`.
+- `updateKillcam(now)` (called after `playerLight` copy in `update()`)
+  overrides the camera into a slow inward+downward orbit around the
+  boss while it shrinks and sinks through the floor with gore bursts.
+  **No material-opacity fade** — enemy materials are shared
+  module-level, so fading would hit every enemy's teeth/eyes.
+- `_endKillcam(advance)` hides the corpse, clears `_cutsceneActive`,
+  fades the overlay, and schedules `nextFloor()`. `loadFloor()` tears
+  down a stale killcam defensively. Player invincible + world frozen
+  (`_cutsceneActive`) for the duration.
+
+`node --check` clean.
+
+---
+
 ## 2026-05-18 — Infinite Void freeze + Chimera Shadow Garden rework
 
 ### Gojo — Infinite Void (V)

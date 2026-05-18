@@ -46,6 +46,7 @@ let _pendingDungeon = null;
 const NET_SEND_INTERVAL_MS = 33; // ~30Hz position broadcasts
 let _debugEl = null;
 let _fpsAvg = 60, _lastFrameTime = 0, _lastStateRecvAt = 0;
+let killcam = null; // boss-death slow-mo state
 
 // Player state
 let player = null;
@@ -2614,6 +2615,13 @@ function startGame() {
 }
 
 function loadFloor(floor) {
+    // Safety — tear down any in-progress boss killcam before rebuilding
+    if (killcam) {
+        const _ov = document.getElementById('killcam-overlay');
+        if (_ov) _ov.remove();
+        killcam = null;
+        if (player) player._cutsceneActive = false;
+    }
     if (dungeonMesh) { scene.remove(dungeonMesh); }
     if (torchLights) { for (const l of torchLights) scene.remove(l); }
     for (const e of enemies3D) { scene.remove(e.mesh); if (e.label) scene.remove(e.label); }
@@ -3516,6 +3524,98 @@ function showCinematicSubtitle(text, holdMs, opts) {
     setTimeout(() => { div.style.opacity = '0'; }, holdMs);
     setTimeout(() => div.remove(), holdMs + 240);
     return div;
+}
+
+// ─── BOSS KILLCAM — slow-mo orbit on boss death ────────────────────
+// Dilates the sim clock, swings the camera in a slow arc around the
+// dying boss while it shrinks + sinks into the floor, with a desat
+// vignette and gore bursts, then advances to the next floor.
+function _killcamScale(now) {
+    if (!killcam) return 1;
+    const p = Math.min((now - killcam.start) / killcam.dur, 1);
+    // ease into slow-mo → hold → ease back to full speed at the end
+    if (p < 0.10) return 1 - (p / 0.10) * 0.88;        // 1.0 → 0.12
+    if (p < 0.82) return 0.12;                          // hold slow
+    return 0.12 + ((p - 0.82) / 0.18) * 0.88;           // 0.12 → 1.0
+}
+
+function triggerBossKillcam(e) {
+    const bx = e.data.x * TILE, by = 1.4, bz = e.data.z * TILE;
+    e.mesh.visible = true;                 // keep the corpse on screen for the cam
+    if (e.label) e.label.visible = false;
+    if (player) { player.invincible = performance.now() + 3500; player._cutsceneActive = true; }
+    killcam = {
+        start: performance.now(), dur: 2100,
+        bx, by, bz, boss: e,
+        baseScale: e.mesh.scale.x || 1,
+        ang0: Math.atan2(camera.position.x - bx, camera.position.z - bz),
+        overlay: null,
+    };
+    // Kill-impact dressing
+    triggerHitstop(120);
+    fovPunch(12, 0.10);
+    lightFlash(bx, by, bz, '#ff2266', 14, 600);
+    emitParticles(bx, by, bz, {
+        color: ['#ff2266', '#ffffff', '#ff88aa', '#aa0030'],
+        count: 60, speed: 7, spread: 1.6, gravity: -3,
+        life: 30, size: 0.22, sizeEnd: 0, drag: 0.93, upward: 2
+    });
+    groundRing(bx, bz, '#ff2266', 5, 900);
+    // Desaturated blood-red vignette overlay
+    const ov = document.createElement('div');
+    ov.id = 'killcam-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:55;pointer-events:none;opacity:0;' +
+        'transition:opacity 200ms ease-out;' +
+        'background:radial-gradient(ellipse at center,rgba(0,0,0,0) 32%,rgba(22,0,8,0.55) 78%,rgba(0,0,0,0.88) 100%);' +
+        'backdrop-filter:saturate(0.4) contrast(1.1);-webkit-backdrop-filter:saturate(0.4) contrast(1.1);';
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => { ov.style.opacity = '1'; });
+    killcam.overlay = ov;
+    showCinematicSubtitle(`${e.data.name || 'BOSS'} SLAIN`, 1700,
+        { size: '2.4rem', color: '#ff5577', bottom: '58%' });
+}
+
+function _endKillcam(advance) {
+    const k = killcam;
+    killcam = null;
+    if (!k) return;
+    if (k.boss && k.boss.mesh) k.boss.mesh.visible = false;
+    if (k.boss && k.boss.label) k.boss.label.visible = false;
+    if (player) player._cutsceneActive = false;
+    const ov = k.overlay || document.getElementById('killcam-overlay');
+    if (ov) { ov.style.opacity = '0'; setTimeout(() => ov.remove(), 240); }
+    if (advance && gameState === 'playing') {
+        setTimeout(() => { if (gameState === 'playing') nextFloor(); }, 250);
+    }
+}
+
+function updateKillcam(now) {
+    const k = killcam;
+    if (!k) return;
+    if (gameState !== 'playing' || !k.boss || !k.boss.mesh) { _endKillcam(false); return; }
+    const p = Math.min((now - k.start) / k.dur, 1);
+    const eo = 1 - Math.pow(1 - p, 3);
+    // Slow arc around the boss, easing inward + downward
+    const ang = k.ang0 + eo * Math.PI * 0.95;
+    const radius = 7.5 - eo * 3.8;
+    const height = 3.0 - eo * 1.1;
+    camera.position.set(k.bx + Math.sin(ang) * radius, k.by + height, k.bz + Math.cos(ang) * radius);
+    camera.lookAt(k.bx, k.by - 0.2 + Math.sin(p * Math.PI) * 0.25, k.bz);
+    // Boss collapses — shrink + sink into the floor (no opacity: enemy
+    // materials are shared module-level, fading them would hit every enemy)
+    const m = k.boss.mesh;
+    m.visible = true;
+    m.scale.setScalar(Math.max(0.02, k.baseScale * (1 - 0.95 * eo)));
+    m.position.set(k.bx, -2.0 * eo, k.bz);
+    m.rotation.y += 0.012;
+    if (Math.random() < 0.2) {
+        emitParticles(k.bx + (Math.random() - 0.5) * 1.6, k.by + Math.random() * 1.2, k.bz + (Math.random() - 0.5) * 1.6, {
+            color: ['#ff2266', '#aa0030', '#ffffff', '#ff88aa'],
+            count: 5, speed: 4, spread: 0.8, gravity: -4,
+            life: 22, size: 0.14, sizeEnd: 0, drag: 0.93
+        });
+    }
+    if (p >= 1) _endKillcam(true);
 }
 
 // ── Walking Animation (3rd person leg/arm bob) ──
@@ -15090,10 +15190,9 @@ function dealDamageToEnemy(e, dmg) {
         const gold = Math.floor((5 + Math.random() * 10) * (e.data.isBoss ? 5 : 1));
         runStats.goldCollected += gold;
 
-        // Boss kill — generate stairs
+        // Boss kill — slow-mo killcam, then auto-advance (handled at cam end)
         if (e.data.isBoss) {
-            // Auto-advance to next floor after a beat
-            setTimeout(() => { if (gameState === 'playing') nextFloor(); }, 1500);
+            triggerBossKillcam(e);
         }
     }
 }
@@ -15251,15 +15350,19 @@ function dealDamageToPlayer(dmg) {
 // ─── UPDATE ─────────────────────────────────────────────────
 function update() {
     if (gameState !== 'playing') return;
-    const dt = Math.min(clock.getDelta(), 0.05);
+    let dt = Math.min(clock.getDelta(), 0.05);
     const time = clock.getElapsedTime() * 1000;
     const now = performance.now();
+
+    if (killcam) dt *= _killcamScale(now); // boss-death slow-mo
 
     fpsCamera.update(dt, dungeon.map);
 
     updateScreenShake(dt);
     updateFovPunch();
     playerLight.position.copy(camera.position);
+
+    if (killcam) updateKillcam(now); // override camera with the slow-mo orbit
 
     // Online position sync — send mine, apply theirs (per-frame interpolation)
     if (onlineMode) netUpdatePlayers(now, dt);
