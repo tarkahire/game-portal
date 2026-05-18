@@ -4,6 +4,28 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-18 — Mahito ability kit (Z/X/C/V/F)
+
+`fruitAbility` now has an `id === 'mahito'` dispatch block:
+
+- **Z Idle Transfiguration** — forward touch cone, ×2.2 dmg,
+  auto-`markMahito` + warp-stun (feeds the E detonate).
+- **X Body Repel** — 4.2-tile shockwave, ×1.8 + radial knockback,
+  3-tile backward hop + i-frames.
+- **C Soul Multiplicity** — 5 temp `imp` minions (~9 s) swarm.
+- **V Self-Embodiment of Perfection** — Shrine-style cut-in
+  (cam + hand-sign + flesh orb + subtitles), then a fleshy crimson
+  domain field that traps enemies (`_domainTrapped`) and
+  auto-runs `explodeMahito` on them one-by-one for 6.5 s; chips
+  any remainder; invincible throughout.
+- **F Shadow Step** — 6-tile fleshy dash, line dmg ×1.5, i-frames.
+
+Reuses existing helpers (`explodeMahito`, `showCinematicSubtitle`,
+`setCinematic`, `_domainTrapped`, `disposeGroup`, `spawnMinion`).
+`node --check` clean. characters.md updated.
+
+---
+
 ## 2026-05-18 — Mahito detonation: grotesque bulge phase
 
 `explodeMahito(e)` reworked from an instant pop into a two-stage

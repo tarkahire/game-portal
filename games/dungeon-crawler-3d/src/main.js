@@ -3802,6 +3802,314 @@ function _mahitoPop(e, wx, wy, wz) {
     if (e.data.alive) dealDamageToEnemy(e, e.data.hp + 9999);
 }
 
+// ─── MAHITO — Z: Idle Transfiguration (touch warp) ─────────────────
+// Short forward palm-touch. Heavy soul damage + auto-marks survivors
+// for the E detonation system + a brief warp-stun.
+function mahitoIdleTransfig() {
+    if (!player || !player.alive) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ, yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const wx = px * TILE, wz = pz * TILE, fly = fpsCamera.flyHeight || 0;
+    const pm = fpsCamera.playerModel;
+    if (pm?._rightArm) {
+        pm._rightArm.rotation.set(-1.6, 0, 0);
+        setTimeout(() => { if (pm._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 360);
+    }
+    const hx = wx + fwdX * 1.6, hy = EYE_HEIGHT * 0.9 + fly, hz = wz + fwdZ * 1.6;
+    emitParticles(hx, hy, hz, {
+        color: ['#7fbfe0', '#6a0816', '#aa0020', '#ffffff'],
+        count: 22, speed: 5, spread: 0.9, gravity: -2, life: 14, size: 0.13, sizeEnd: 0, drag: 0.92
+    });
+    groundRing(hx, hz, '#7fbfe0', 1.6, 320);
+    lightFlash(hx, hy, hz, '#7fbfe0', 5, 220);
+    screenShake(0.18, 90); triggerHitstop(45); fovPunch(7, 0.14);
+    const range = 3.2;
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const dx = e.data.x - px, dz = e.data.z - pz, d = Math.hypot(dx, dz);
+        if (d > range || d < 0.1) continue;
+        let ad = Math.atan2(-dx, -dz) - yaw;
+        while (ad > Math.PI) ad -= Math.PI * 2;
+        while (ad < -Math.PI) ad += Math.PI * 2;
+        if (Math.abs(ad) > Math.PI * 0.45) continue;
+        dealDamageToEnemy(e, Math.round(player.damage * 2.2));
+        if (e.data.alive) { markMahito(e); e.data.lastAttack = performance.now() + 900; }
+        emitParticles(e.data.x * TILE, 1.3, e.data.z * TILE, {
+            color: ['#6a0816', '#3a0008', '#7fbfe0'],
+            count: 10, speed: 4, spread: 0.7, gravity: -3, life: 12, size: 0.1, sizeEnd: 0, drag: 0.92
+        });
+    }
+}
+
+// ─── MAHITO — X: Body Repel (flesh burst + escape hop) ─────────────
+function mahitoBodyRepel() {
+    if (!player || !player.alive) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ, yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const wx = px * TILE, wz = pz * TILE, fly = fpsCamera.flyHeight || 0;
+    screenShake(0.45, 260); triggerHitstop(70); fovPunch(14, 0.16);
+    screenFlash('rgba(120,0,20,0.22)', 160);
+    emitParticles(wx, EYE_HEIGHT * 0.8 + fly, wz, {
+        color: ['#6a0816', '#aa0020', '#3a0008', '#7a0820', '#ffffff'],
+        count: 50, speed: 8, spread: 1.6, gravity: -4, life: 22, size: 0.18, sizeEnd: 0, drag: 0.9, upward: 1.4
+    });
+    groundRing(wx, wz, '#aa0020', 5, 600);
+    groundRing(wx, wz, '#6a0816', 3, 500);
+    lightFlash(wx, 1, wz, '#aa0020', 8, 300);
+    const radius = 4.2;
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const dx = e.data.x - px, dz = e.data.z - pz, d = Math.hypot(dx, dz);
+        if (d > radius || d < 0.01) continue;
+        dealDamageToEnemy(e, Math.round(player.damage * 1.8));
+        e.data.x += (dx / d) * 2.6; e.data.z += (dz / d) * 2.6;
+        e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
+    }
+    // Recoil backward out of danger with brief i-frames
+    fpsCamera.safeMove(px - fwdX * 3, pz - fwdZ * 3, dungeon.map);
+    player.invincible = performance.now() + 450;
+}
+
+// ─── MAHITO — C: Soul Multiplicity (transfigured-human swarm) ──────
+function mahitoSoulMultiplicity() {
+    if (!player || !player.alive) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ, yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+    const wx = px * TILE, wz = pz * TILE;
+    screenShake(0.3, 300); fovPunch(10, 0.15);
+    emitParticles(wx, 0.5, wz, {
+        color: ['#6a0816', '#9a4a4a', '#3a0008', '#7fbfe0'],
+        count: 40, speed: 5, spread: 2, gravity: 0, life: 18, size: 0.16, sizeEnd: 0, drag: 0.94, upward: 2
+    });
+    groundRing(wx, wz, '#6a0816', 4, 600);
+    lightFlash(wx, EYE_HEIGHT, wz, '#aa0020', 6, 400);
+    const life = performance.now() + 9000;
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+        const off = (i - (count - 1) / 2) * 0.9;
+        const sx = px + fwdX * 1.4 + perpX * off;
+        const sz = pz + fwdZ * 1.4 + perpZ * off;
+        if (!isWalkable(dungeon.map, sx, sz)) continue;
+        spawnMinion('imp', sx, sz, {
+            color: '#9a4a4a', radius: 0.45, speed: 4.2,
+            damage: Math.max(2, Math.round(player.damage * 0.5)),
+            attackRange: 1.6, attackSpeed: 700,
+            hp: 45, maxHp: 45, life, _owner: player,
+        });
+        emitParticles(sx * TILE, 0.6, sz * TILE, {
+            color: ['#6a0816', '#9a4a4a', '#ffffff'],
+            count: 10, speed: 3, spread: 0.6, gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.93, upward: 2
+        });
+    }
+}
+
+// ─── MAHITO — F: Shadow Step (fleshy dash) ─────────────────────────
+function mahitoShadowStep() {
+    if (!player || !player.alive) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ, yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const wx = px * TILE, wz = pz * TILE, fly = fpsCamera.flyHeight || 0;
+    const dashDist = 6;
+    for (let i = 0; i < 8; i++) {
+        const t = i / 8;
+        emitParticles(wx + fwdX * TILE * t * dashDist, EYE_HEIGHT * 0.8 + fly, wz + fwdZ * TILE * t * dashDist, {
+            color: ['#6a0816', '#3a0008', '#7fbfe0'],
+            count: 4, speed: 2, spread: 0.5, gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.92
+        });
+    }
+    for (const e of enemies3D) {
+        if (!e.data.alive) continue;
+        const tx = e.data.x - px, tz = e.data.z - pz;
+        const dot = tx * fwdX + tz * fwdZ;
+        if (dot > 0 && dot < dashDist && Math.abs(tx * fwdZ - tz * fwdX) < 1.4) {
+            dealDamageToEnemy(e, Math.round(player.damage * 1.5));
+        }
+    }
+    fpsCamera.safeMove(px + fwdX * dashDist, pz + fwdZ * dashDist, dungeon.map);
+    player.invincible = performance.now() + 350;
+    showSpeedLines(350); fovPunch(16, 0.12);
+    lightFlash(wx, EYE_HEIGHT, wz, '#7fbfe0', 4, 220);
+    groundRing(wx, wz, '#6a0816', 2.5, 300);
+}
+
+// ─── MAHITO — V: Self-Embodiment of Perfection (domain) ────────────
+// Malevolent-Shrine-style cut-in, then a fleshy domain field that
+// traps every enemy inside and auto-transfigures them (the grotesque
+// bulge→burst from explodeMahito) one at a time for its duration.
+function mahitoDomain() {
+    if (!player || !player.alive) return;
+    const px = fpsCamera.posX, pz = fpsCamera.posZ, yaw = fpsCamera.yaw;
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const worldPx = px * TILE, worldPz = pz * TILE;
+    const radius = 8, wRad = radius * TILE, duration = 6500;
+
+    screenFlash('rgba(20,0,8,0.82)', 320);
+    setTimeout(() => screenFlash('rgba(90,0,18,0.5)', 1600), 300);
+    screenShake(0.55, 1300); triggerHitstop(120); fovPunch(14, 0.12);
+    player._cutsceneActive = true;
+    const HAND_DUR = 1650;
+    player.invincible = performance.now() + HAND_DUR + duration + 900;
+
+    const camDist = 2.6;
+    fpsCamera.setCinematic(
+        worldPx + fwdX * camDist, 1.78, worldPz + fwdZ * camDist,
+        worldPx, 1.12, worldPz, HAND_DUR
+    );
+    const pmM = fpsCamera.playerModel;
+
+    showCinematicSubtitle("Domain Expansion:", 1500,
+        { size: '1.5rem', color: '#ff9aa6', bottom: '25%', weight: 600 });
+    setTimeout(() => showCinematicSubtitle("Self-Embodiment of Perfection", 2400,
+        { size: '2.5rem', color: '#e0a0aa' }), 360);
+
+    const handWX = worldPx + fwdX * 0.22, handWY = 1.30, handWZ = worldPz + fwdZ * 0.22;
+    const orb = new THREE.Group();
+    const oMat = new THREE.MeshBasicMaterial({ color: '#7a0c1c', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    const oCore = new THREE.MeshBasicMaterial({ color: '#ff9aa6', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    orb.add(new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12), oMat));
+    orb.add(new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 10), oCore));
+    const oLight = new THREE.PointLight('#aa0020', 0, TILE * 4, 1.8);
+    orb.add(oLight);
+    orb.position.set(handWX, handWY, handWZ);
+    scene.add(orb);
+
+    const t0 = performance.now();
+    const easeO = (x) => 1 - Math.pow(1 - x, 3);
+    const animSign = () => {
+        const st = Math.min((performance.now() - t0) / HAND_DUR, 1);
+        const raise = easeO(Math.min(st / 0.55, 1)), pressT = Math.max(0, (st - 0.55) / 0.45);
+        const tr = Math.sin(st * 55) * 0.045 * pressT;
+        if (pmM?._rightArm) pmM._rightArm.rotation.set(-2.05 * raise, 0, (0.82 + 0.12 * pressT) * raise + tr);
+        if (pmM?._leftArm) pmM._leftArm.rotation.set(-2.05 * raise, 0, -(0.82 + 0.12 * pressT) * raise - tr);
+        const k = easeO(Math.min(st / 0.85, 1));
+        orb.scale.setScalar(0.25 + k + Math.sin(st * 40) * 0.04 * pressT);
+        oMat.opacity = k * 0.85; oCore.opacity = k; oLight.intensity = k * 7;
+        if (Math.random() < 0.6) {
+            const a = Math.random() * Math.PI * 2, rr = 1 + Math.random() * 0.6;
+            emitParticles(handWX + Math.cos(a) * rr, handWY + (Math.random() - 0.5) * 1.2, handWZ + Math.sin(a) * rr, {
+                color: ['#6a0816', '#aa0020', '#ff9aa6'],
+                count: 2, speed: 3.2, spread: 0.2,
+                direction: { x: -Math.cos(a), y: 0, z: -Math.sin(a) },
+                gravity: 0, life: 9, size: 0.09, sizeEnd: 0, drag: 0.9,
+            });
+        }
+        if (st < 1) { requestAnimationFrame(animSign); return; }
+        emitParticles(handWX, handWY, handWZ, {
+            color: ['#6a0816', '#aa0020', '#ff9aa6', '#ffffff'],
+            count: 26, speed: 6, spread: 0.4, gravity: 0, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92,
+        });
+        lightFlash(handWX, handWY, handWZ, '#aa0020', 10, 260);
+        scene.remove(orb); oMat.dispose(); oCore.dispose();
+        orb.children.forEach(c => c.geometry && c.geometry.dispose());
+        fpsCamera.clearCinematic();
+        player._cutsceneActive = false;
+        if (!player || !player.alive || player.classId !== 'mahito') return;
+        beginEmbodiment();
+    };
+    requestAnimationFrame(animSign);
+
+    function beginEmbodiment() {
+        const domainEnd = performance.now() + duration;
+        const trapInside = () => {
+            for (const e of enemies3D) {
+                if (!e.data.alive) continue;
+                if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) {
+                    e.data._domainTrapped = domainEnd;
+                    e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) {
+                        c.material.emissive.set('#3a0008'); c.material._domainEmissive = true;
+                    }});
+                }
+            }
+        };
+        const releaseTint = () => {
+            for (const e of enemies3D) {
+                e.mesh.traverse(c => {
+                    if (c.isMesh && c.material && c.material._domainEmissive) {
+                        c.material.emissive.set('#000000'); c.material._domainEmissive = false;
+                    }
+                });
+            }
+        };
+        trapInside();
+
+        const grp = new THREE.Group();
+        grp.position.set(worldPx, 0, worldPz);
+        grp.scale.setScalar(0.02);
+        scene.add(grp);
+        const poolGeo = new THREE.CircleGeometry(wRad, 64);
+        const pp = poolGeo.attributes.position;
+        for (let i = 0; i < pp.count; i++) {
+            const x = pp.getX(i), y = pp.getY(i);
+            if (Math.hypot(x, y) > 0.01) {
+                const an = Math.atan2(y, x);
+                const kk = 1 + (Math.sin(an * 5) * 0.5 + Math.sin(an * 8 + 1.3) * 0.5) * 0.07;
+                pp.setXYZ(i, x * kk, y * kk, 0);
+            }
+        }
+        poolGeo.computeVertexNormals();
+        const poolMat = new THREE.MeshBasicMaterial({ color: '#2a0410', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+        const pool = new THREE.Mesh(poolGeo, poolMat);
+        pool.rotation.x = -Math.PI / 2; pool.position.y = 0.06; grp.add(pool);
+        const rimMat = new THREE.MeshBasicMaterial({ color: '#aa0020', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+        const rim = new THREE.Mesh(new THREE.RingGeometry(wRad * 0.9, wRad * 1.04, 64), rimMat);
+        rim.rotation.x = -Math.PI / 2; rim.position.y = 0.075; grp.add(rim);
+        const gl = new THREE.PointLight('#7a0c1c', 0, TILE * 14, 1.6);
+        gl.position.set(0, 1.6, 0); grp.add(gl);
+        groundDecal(worldPx, worldPz, '#1a0008', wRad, duration + 600);
+
+        const sStart = performance.now();
+        const spread = () => {
+            const t = Math.min((performance.now() - sStart) / 700, 1);
+            const e2 = 1 - Math.pow(1 - t, 3);
+            grp.scale.setScalar(0.02 + e2 * 0.98);
+            poolMat.opacity = e2 * 0.9; rimMat.opacity = e2 * 0.5; gl.intensity = e2 * 2.5;
+            if (t < 1) requestAnimationFrame(spread);
+        };
+        requestAnimationFrame(spread);
+        lightFlash(worldPx, 2.5, worldPz, '#aa0020', 12, 700);
+        emitParticles(worldPx, 0.6, worldPz, {
+            color: ['#2a0410', '#6a0816', '#aa0020', '#ff9aa6'],
+            count: 70, speed: 6, spread: 2, gravity: 0, life: 22, size: 0.18, sizeEnd: 0, drag: 0.95, upward: 3
+        });
+
+        // Guaranteed transfiguration — auto-burst trapped enemies one by one
+        const startTime = performance.now();
+        const burstInt = setInterval(() => {
+            const elapsed = performance.now() - startTime;
+            if (elapsed >= duration) {
+                clearInterval(burstInt);
+                const fS = performance.now();
+                const fo = () => {
+                    const ft = (performance.now() - fS) / 700;
+                    if (ft >= 1) { disposeGroup(grp); releaseTint(); return; }
+                    grp.scale.setScalar(Math.max(0.02, 1 - ft));
+                    poolMat.opacity = (1 - ft) * 0.9; rimMat.opacity = (1 - ft) * 0.5; gl.intensity = (1 - ft) * 2.5;
+                    requestAnimationFrame(fo);
+                };
+                requestAnimationFrame(fo);
+                return;
+            }
+            trapInside();
+            rimMat.opacity = 0.4 + Math.sin(elapsed * 0.006) * 0.18;
+            let pick = null;
+            for (const e of enemies3D) {
+                if (!e.data.alive || e.data._mahitoBursting) continue;
+                if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) { pick = e; break; }
+            }
+            if (pick) explodeMahito(pick);
+            else {
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) {
+                        dealDamageToEnemy(e, Math.round(player.damage * 0.6));
+                    }
+                }
+            }
+        }, 650);
+    }
+}
+
 // ── Walking Animation (3rd person leg/arm bob) ──
 let walkCycle = 0;
 
@@ -5937,6 +6245,19 @@ function fruitAbility(slot) {
         else if (slot === 'c') yutaBlackFlash();
         else if (slot === 'v') yutaRCT();
         else if (slot === 'f') yutaTrueLoveBeam();
+        return;
+    }
+
+    // ══════ MAHITO ══════
+    // Z = Idle Transfiguration touch (marks for E-detonate), X = Body
+    // Repel (knockback + escape), C = Soul Multiplicity (swarm),
+    // V = Self-Embodiment of Perfection domain, F = Shadow Step dash.
+    if (id === 'mahito') {
+        if (slot === 'z') mahitoIdleTransfig();
+        else if (slot === 'x') mahitoBodyRepel();
+        else if (slot === 'c') mahitoSoulMultiplicity();
+        else if (slot === 'v') mahitoDomain();
+        else if (slot === 'f') mahitoShadowStep();
         return;
     }
 
