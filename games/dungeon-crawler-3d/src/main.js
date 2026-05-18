@@ -6104,19 +6104,25 @@ function fruitAbility(slot) {
             screenShake(0.7, 1300);
             triggerHitstop(120);
 
-            // Trap every enemy within 15 world units for the 5s duration
-            const trapRadius = 15 / TILE;
+            // Infinite Void freezes every enemy inside the dome in place — no
+            // movement, no attacks, locked mid-pose — for the whole domain.
+            // Radius covers the visible void boundary. trapInside() is also
+            // re-run every damage tick so anything that wanders in still locks.
+            const trapRadius = 18 / TILE;
             const domainEnd = performance.now() + 5400;
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                if (Math.hypot(e.data.x - px, e.data.z - pz) < trapRadius) {
-                    e.data._domainTrapped = domainEnd;
-                    e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) {
-                        c.material.emissive.set('#7c4dff');
-                        c.material._domainEmissive = true;
-                    }});
+            const trapInside = () => {
+                for (const e of enemies3D) {
+                    if (!e.data.alive) continue;
+                    if (Math.hypot(e.data.x - px, e.data.z - pz) < trapRadius) {
+                        e.data._domainTrapped = domainEnd;
+                        e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) {
+                            c.material.emissive.set('#7c4dff');
+                            c.material._domainEmissive = true;
+                        }});
+                    }
                 }
-            }
+            };
+            trapInside();
 
             // Player invincible for the full domain
             player.invincible = performance.now() + 5500;
@@ -6252,6 +6258,8 @@ function fruitAbility(slot) {
             let ticks = 0;
             const dmgTick = setInterval(() => {
                 ticks++;
+                // Keep the whole domain locked — re-freeze anyone still/now inside
+                trapInside();
                 for (const e of enemies3D) {
                     if (!e.data.alive) continue;
                     if (e.data._domainTrapped === domainEnd) {
