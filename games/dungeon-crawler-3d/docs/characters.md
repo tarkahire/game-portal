@@ -19,7 +19,9 @@
 | Yuta Okkotsu | sorcerer | 135 | 3.6 | 17 | 220 | 38 | sword (no abilities yet) |
 | Mahito | curse | 145 | 3.6 | 8 | 230 | 36 | fist (**base model only — no abilities yet**) |
 
-**Mahito** — base playable character only. `buildMahitoModel()`: pale blue-grey patchwork skin with stitched seams (signature vertical seam through the right eye, plus forehead / cheek / jaw / neck / coat-front / forearm seams via the local `stitchSeam()` helper), shoulder-length wavy ash hair (side curtains to the shoulders + back mass + messy tufts), dark high-collar coat, faint soul-blue aura. Reuses Sukuna's walk/idle animation. `fruitAbility` has no Mahito branch yet, so Z/X/C/V/F are placeholder slots that no-op (M1 fist combo works normally).
+**Mahito** — `buildMahitoModel()`: pale blue-grey patchwork skin with stitched seams (signature vertical seam through the right eye, plus forehead / cheek / jaw / neck / coat-front / forearm seams via the local `stitchSeam()` helper), shoulder-length wavy ash hair (side curtains to the shoulders + back mass + messy tufts), dark high-collar coat, faint soul-blue aura. Reuses Sukuna's walk/idle animation.
+
+**Idle Transfiguration — mark & detonate (E):** every M1 that connects calls `markMahito(e)` — the enemy gets `_mahitoMarked` and a floating soul-orb + stitch-cross tag, and is pushed to the `mahitoMarks` queue. Pressing **E** (`mahitoDetonate()`, Mahito-only — replaces the generic E alt-attack) bursts every marked enemy via `explodeMahito(e)`: a grotesque warp-bulge then a deformed dark-red flesh sphere + heavy blood/flesh-chunk gore spray + ballistic chunk meshes + ring/decal/flash, then an instant kill. Detonations are **staggered 130 ms apart** so a big mark count spreads the work over frames instead of one spike. `mahitoMarks` resets on floor change. Z/X/C/V/F still no-op (no `fruitAbility` branch yet).
 
 ## Abilities
 

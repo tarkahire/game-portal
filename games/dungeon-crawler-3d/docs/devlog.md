@@ -4,6 +4,30 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-18 — Mahito: Idle Transfiguration mark & detonate (E)
+
+Mahito's signature mechanic. Every M1 that connects marks the enemy;
+press **E** to burst all marked enemies one-by-one.
+
+- `markMahito(e)` (called from the playerAttack hit loop when
+  `classId === 'mahito'` and the enemy survives the hit): sets
+  `_mahitoMarked`, queues `e` in `mahitoMarks`, attaches a floating
+  soul-orb + stitch-cross tag as a child of the enemy mesh.
+- E key routes to `mahitoDetonate()` for Mahito (replaces the generic
+  E alt-attack). Filters the queue to live enemies, clears it, and
+  schedules `explodeMahito(e)` per target at **i × 130 ms** so a large
+  mark count doesn't spike one giant VFX/work burst.
+- `explodeMahito(e)`: warp-bulge scale, deformed dark-red flesh
+  blob (expand+fade), heavy blood/flesh gore particle spray, 8
+  ballistic flesh-chunk meshes, ground ring + decal + red light
+  flash + shake + hitstop, then `dealDamageToEnemy(hp+9999)` (XP /
+  gold / boss-killcam all flow through normally).
+- `mahitoMarks` reset in `loadFloor()` (stale enemy refs).
+
+`node --check` clean. Docs (characters.md) updated.
+
+---
+
 ## 2026-05-18 — Mahito added (base model only)
 
 New playable character **Mahito** (`mahito` in `definitions.js`,

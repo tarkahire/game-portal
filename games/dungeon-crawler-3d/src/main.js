@@ -47,6 +47,7 @@ const NET_SEND_INTERVAL_MS = 33; // ~30Hz position broadcasts
 let _debugEl = null;
 let _fpsAvg = 60, _lastFrameTime = 0, _lastStateRecvAt = 0;
 let killcam = null; // boss-death slow-mo state
+let mahitoMarks = []; // enemies Mahito has M1'd, queued for E-detonation
 
 // Player state
 let player = null;
@@ -247,6 +248,7 @@ function init() {
             // ── P1 controls ──
             if (e.code === 'KeyE') {
                 if (player?.classId === 'todo') todoBoogieWoogie();
+                else if (player?.classId === 'mahito') mahitoDetonate();
                 else playerAttack();
             }
             if (e.code === 'KeyZ') fruitAbility('z');     // P1 ability 1
@@ -2627,6 +2629,7 @@ function loadFloor(floor) {
         killcam = null;
         if (player) player._cutsceneActive = false;
     }
+    mahitoMarks = []; // stale marks point at enemies that no longer exist
     if (dungeonMesh) { scene.remove(dungeonMesh); }
     if (torchLights) { for (const l of torchLights) scene.remove(l); }
     for (const e of enemies3D) { scene.remove(e.mesh); if (e.label) scene.remove(e.label); }
@@ -3621,6 +3624,113 @@ function updateKillcam(now) {
         });
     }
     if (p >= 1) _endKillcam(true);
+}
+
+// ─── MAHITO — Idle Transfiguration delayed detonation ──────────────
+// Every M1 that connects "marks" the enemy (soul-stitch tag floats
+// above it). Pressing E bursts every marked enemy — one at a time,
+// staggered, so a big mark count doesn't spike into one giant VFX.
+function markMahito(e) {
+    if (!e || !e.data || !e.data.alive || e.data._mahitoMarked) return;
+    e.data._mahitoMarked = true;
+    mahitoMarks.push(e);
+    // Floating soul-orb + stitch-cross tag (child of the enemy mesh)
+    const mk = new THREE.Group();
+    mk.add(new THREE.Mesh(
+        new THREE.SphereGeometry(0.16, 8, 8),
+        new THREE.MeshBasicMaterial({ color: '#7fbfe0', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
+    ));
+    const crossMat = new THREE.MeshBasicMaterial({ color: '#2a2e36' });
+    mk.add(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.045, 0.045), crossMat));
+    mk.add(new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.32, 0.045), crossMat));
+    mk.position.set(0, e.data.isBoss ? 5.5 : 3.4, 0);
+    e.mesh.add(mk);
+    e.data._mahitoMark = mk;
+}
+
+function mahitoDetonate() {
+    if (!player || !player.alive || player.classId !== 'mahito') return;
+    const targets = mahitoMarks.filter(e => e && e.data && e.data.alive);
+    mahitoMarks = [];
+    if (targets.length === 0) return;
+    // One-at-a-time pop — staggered so the VFX/work spreads over frames
+    targets.forEach((e, i) => {
+        setTimeout(() => { if (e.data.alive) explodeMahito(e); }, i * 130);
+    });
+    screenFlash('rgba(120,0,20,0.18)', 120);
+}
+
+function explodeMahito(e) {
+    const wx = e.data.x * TILE, wz = e.data.z * TILE, wy = 1.3;
+    e.data._mahitoMarked = false;
+    if (e.data._mahitoMark) {
+        e.mesh.remove(e.data._mahitoMark);
+        e.data._mahitoMark.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } });
+        e.data._mahitoMark = null;
+    }
+
+    // Grotesque warp bulge an instant before the pop
+    if (e.mesh) e.mesh.scale.set(1.45, 0.7, 1.45);
+
+    // Bursting flesh mass — deformed dark-red sphere expands + fades
+    const blobGeo = new THREE.SphereGeometry(0.5, 12, 10);
+    const bp = blobGeo.attributes.position;
+    for (let i = 0; i < bp.count; i++) {
+        const x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i);
+        const n = Math.sin(x * 8 + 1) * Math.cos(y * 7) * Math.sin(z * 9 + 2) * 0.22;
+        const L = Math.hypot(x, y, z) || 1, k = 1 + n / L;
+        bp.setXYZ(i, x * k, y * k, z * k);
+    }
+    blobGeo.computeVertexNormals();
+    const blobMat = new THREE.MeshBasicMaterial({ color: '#6a0816', transparent: true, opacity: 0.9, depthWrite: false });
+    const blob = new THREE.Mesh(blobGeo, blobMat);
+    blob.position.set(wx, wy, wz);
+    scene.add(blob);
+    const bStart = performance.now();
+    const animBlob = () => {
+        const t = (performance.now() - bStart) / 260;
+        if (t >= 1) { scene.remove(blob); blobGeo.dispose(); blobMat.dispose(); return; }
+        blob.scale.setScalar(0.4 + t * 2.4);
+        blob.rotation.x += 0.2; blob.rotation.y += 0.16;
+        blobMat.opacity = (1 - t) * 0.9;
+        requestAnimationFrame(animBlob);
+    };
+    requestAnimationFrame(animBlob);
+
+    // Gore spray — blood + flesh + a touch of soul-blue
+    emitParticles(wx, wy, wz, {
+        color: ['#7a0010', '#aa0020', '#5a0010', '#3a0008', '#c01030', '#7fbfe0', '#ffffff'],
+        count: 70, speed: 9, spread: 1.6, gravity: -7, life: 26, size: 0.2, sizeEnd: 0, drag: 0.9, upward: 1.2
+    });
+    emitParticles(wx, wy - 0.2, wz, {
+        color: ['#5a0010', '#3a0008', '#7a0820'],
+        count: 26, speed: 4, spread: 1.2, gravity: -10, life: 32, size: 0.14, sizeEnd: 0, drag: 0.88
+    });
+    // Chunky flying flesh bits with simple ballistic physics
+    for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2 + Math.random() * 0.6, sp = 4 + Math.random() * 4;
+        const cg = new THREE.SphereGeometry(0.1 + Math.random() * 0.06, 5, 4);
+        const cm = new THREE.MeshBasicMaterial({ color: Math.random() < 0.5 ? '#6a0816' : '#3a0008' });
+        const ch = new THREE.Mesh(cg, cm);
+        ch.position.set(wx, wy, wz); scene.add(ch);
+        const vx = Math.cos(ang) * sp, vy = 4 + Math.random() * 3, vz = Math.sin(ang) * sp, t0 = performance.now();
+        const af = () => {
+            const t = (performance.now() - t0) / 900;
+            if (t > 1) { scene.remove(ch); cg.dispose(); cm.dispose(); return; }
+            ch.position.set(wx + vx * t, wy + vy * t - 9 * t * t, wz + vz * t);
+            ch.rotation.x += 0.3; ch.rotation.z += 0.2;
+            requestAnimationFrame(af);
+        };
+        requestAnimationFrame(af);
+    }
+    groundRing(wx, wz, '#aa0020', 2.4, 500);
+    groundDecal(wx, wz, '#3a0008', 1.4, 4000);
+    lightFlash(wx, wy, wz, '#aa0020', 8, 260);
+    screenShake(0.3, 140);
+    triggerHitstop(50);
+
+    // Kill it — XP/gold/boss-killcam all handled by dealDamageToEnemy
+    if (e.data.alive) dealDamageToEnemy(e, e.data.hp + 9999);
 }
 
 // ── Walking Animation (3rd person leg/arm bob) ──
@@ -5048,6 +5158,7 @@ function playerAttack() {
         while (ad < -Math.PI) ad += Math.PI * 2;
         if (Math.abs(ad) < Math.PI * 0.5) {
             dealDamageToEnemy(e, dmg);
+            if (player.classId === 'mahito' && e.data.alive) markMahito(e);
             // Black Flash launches the enemy at high speed in the player's
             // facing direction. They fly until they hit a wall and splat
             // (or run out of flight time). Skip the regular knockback in
