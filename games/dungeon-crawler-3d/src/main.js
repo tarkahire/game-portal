@@ -3498,6 +3498,26 @@ function screenFlash(color, duration) {
     setTimeout(() => flash.remove(), (duration || 300) + 50);
 }
 
+// Cinematic subtitle — anime-style caption that fades in, holds, fades out.
+// Used by domain-expansion cut-ins (e.g. Megumi's Chimera Shadow Garden).
+function showCinematicSubtitle(text, holdMs, opts) {
+    opts = opts || {};
+    const div = document.createElement('div');
+    div.textContent = text;
+    div.style.cssText = `position:fixed;left:50%;bottom:${opts.bottom || '18%'};` +
+        `transform:translateX(-50%);z-index:60;pointer-events:none;` +
+        `color:${opts.color || '#ffffff'};font-family:'Segoe UI',sans-serif;` +
+        `font-weight:${opts.weight || 700};font-size:${opts.size || '2rem'};` +
+        `letter-spacing:0.04em;white-space:nowrap;` +
+        `text-shadow:0 0 12px rgba(124,77,255,0.75),0 2px 6px rgba(0,0,0,0.95);` +
+        `opacity:0;transition:opacity 150ms ease-out;`;
+    document.body.appendChild(div);
+    requestAnimationFrame(() => { div.style.opacity = '1'; });
+    setTimeout(() => { div.style.opacity = '0'; }, holdMs);
+    setTimeout(() => div.remove(), holdMs + 240);
+    return div;
+}
+
 // ── Walking Animation (3rd person leg/arm bob) ──
 let walkCycle = 0;
 
@@ -9476,207 +9496,306 @@ function fruitAbility(slot) {
             lightFlash(worldPx, EYE_HEIGHT, worldPz, '#1a237e', 3, 200);
         }
 
-        else if (slot === 'v') { // Chimera Shadow Garden — incomplete domain expansion
-            const radius = 8; // tile radius of the domain
-            const duration = 7000; // ms
+        else if (slot === 'v') { // Chimera Shadow Garden — domain (black puddle of darkness)
+            const radius = 8;        // tile radius of the domain (gameplay)
+            const wRad = radius * TILE; // world-unit radius (visual puddle)
+            const duration = 7000;   // ms the darkness lingers after the cut-in
 
-            // ── Domain VFX — patterned floor + faint dome ──
-            screenFlash('rgba(26,35,126,0.6)', 1200);
-            screenShake(0.7, 1000);
+            // ── Cinematic intro — black-out wash, world freezes ──
+            screenFlash('rgba(8,0,16,0.82)', 320);
+            setTimeout(() => screenFlash('rgba(40,10,74,0.5)', 1700), 300);
+            screenShake(0.55, 1300);
             triggerHitstop(120);
-            fovPunch(28, 0.4);
-            player.invincible = performance.now() + 1500;
+            fovPunch(14, 0.12);
+            player._cutsceneActive = true;
+            const HAND_DUR = 1750;
+            player.invincible = performance.now() + HAND_DUR + duration + 900;
 
-            // Activation hand sign
-            if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(-1.4, 0, -0.4);
-            if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.set(-1.4, 0, 0.4);
-            setTimeout(() => {
-                if (fpsCamera.playerModel?._rightArm) fpsCamera.playerModel._rightArm.rotation.set(0.04, 0, 0);
-                if (fpsCamera.playerModel?._leftArm) fpsCamera.playerModel._leftArm.rotation.set(0.04, 0, 0);
-            }, 1000);
-
-            // Patterned floor decal — multiple concentric rings (incomplete domain look)
-            const floorGroup = new THREE.Group();
-            for (let r = 0; r < 4; r++) {
-                const ringR = radius - r * 1.6;
-                const ringGeo = new THREE.RingGeometry(ringR - 0.15, ringR, 48);
-                const ringMat = new THREE.MeshBasicMaterial({
-                    color: r % 2 === 0 ? '#1a237e' : '#7c4dff',
-                    transparent: true, opacity: 0.55,
-                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
-                });
-                const ring = new THREE.Mesh(ringGeo, ringMat);
-                ring.position.set(worldPx, 0.06 + r * 0.005, worldPz);
-                ring.rotation.x = -Math.PI / 2;
-                floorGroup.add(ring);
-            }
-            // Spoke lines (8 spokes)
-            for (let i = 0; i < 8; i++) {
-                const a = (i / 8) * Math.PI * 2;
-                const spokeGeo = new THREE.PlaneGeometry(radius * 1.8, 0.12);
-                const spokeMat = new THREE.MeshBasicMaterial({
-                    color: '#7c4dff', transparent: true, opacity: 0.4,
-                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
-                });
-                const spoke = new THREE.Mesh(spokeGeo, spokeMat);
-                spoke.position.set(worldPx, 0.07, worldPz);
-                spoke.rotation.set(-Math.PI / 2, 0, a);
-                floorGroup.add(spoke);
-            }
-            scene.add(floorGroup);
-
-            // Faint dome overhead
-            const domeGeo = new THREE.SphereGeometry(radius, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.5);
-            const domeMat = new THREE.MeshBasicMaterial({
-                color: '#1a237e', transparent: true, opacity: 0.18,
-                side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
-            });
-            const dome = new THREE.Mesh(domeGeo, domeMat);
-            dome.position.set(worldPx, 0.1, worldPz);
-            scene.add(dome);
-            // Wireframe inner dome
-            const wireDome = new THREE.Mesh(
-                new THREE.SphereGeometry(radius - 0.3, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.5),
-                new THREE.MeshBasicMaterial({ color: '#7c4dff', wireframe: true, transparent: true, opacity: 0.35, depthWrite: false })
+            // Swing the camera to a front view of Megumi forming the sign
+            const camDist = 2.6;
+            fpsCamera.setCinematic(
+                worldPx + fwdX * camDist, 1.78, worldPz + fwdZ * camDist,
+                worldPx, 1.12, worldPz, HAND_DUR
             );
-            wireDome.position.set(worldPx, 0.1, worldPz);
-            scene.add(wireDome);
-            const domeLight = new THREE.PointLight('#7c4dff', 5, TILE * 12, 1.8);
-            domeLight.position.set(worldPx, 4, worldPz);
-            scene.add(domeLight);
+            const pmM = fpsCamera.playerModel;
 
-            groundDecal(worldPx, worldPz, '#1a237e', radius, duration + 500);
+            // Subtitle lines lifted straight from the reference clip
+            showCinematicSubtitle("Screw it!", 470, { size: '2rem' });
+            setTimeout(() => showCinematicSubtitle("I'll do it!", 480, { size: '2.1rem' }), 520);
+            setTimeout(() => showCinematicSubtitle("Domain Expansion:", 1500,
+                { size: '1.45rem', color: '#cdbbff', bottom: '25%', weight: 600 }), 1060);
+            setTimeout(() => showCinematicSubtitle("Chimera Shadow Garden", 2300,
+                { size: '2.7rem', color: '#b39ddb' }), 1380);
 
-            // ── Spawn the simultaneous shikigami inside the domain ──
-            // 2 temporary divine dogs (death timestamp = now + duration)
-            const lifeEnd = performance.now() + duration;
-            const tempDogStats = {
-                color: '#1a1a22', radius: 0.5, speed: 5,
-                damage: Math.round(player.damage * 0.5),
-                attackRange: 1.8, attackSpeed: 600,
-                hp: 999, maxHp: 999, life: lifeEnd, _owner: player,
+            // Shadow-energy orb condensing between his clasped hands
+            const handWX = worldPx + fwdX * 0.22, handWY = 1.30, handWZ = worldPz + fwdZ * 0.22;
+            const ceOrb = new THREE.Group();
+            const ceMat = new THREE.MeshBasicMaterial({
+                color: '#3a1a8a', transparent: true, opacity: 0,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            const ceCoreMat = new THREE.MeshBasicMaterial({
+                color: '#b39ddb', transparent: true, opacity: 0,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            ceOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12), ceMat));
+            ceOrb.add(new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 10), ceCoreMat));
+            const ceLight = new THREE.PointLight('#7c4dff', 0, TILE * 4, 1.8);
+            ceOrb.add(ceLight);
+            ceOrb.position.set(handWX, handWY, handWZ);
+            scene.add(ceOrb);
+
+            const signStart = performance.now();
+            const easeOutC = (x) => 1 - Math.pow(1 - x, 3);
+            const animateSign = () => {
+                const st = Math.min((performance.now() - signStart) / HAND_DUR, 1);
+                const raise = easeOutC(Math.min(st / 0.55, 1));
+                const pressT = Math.max(0, (st - 0.55) / 0.45);
+                const tremor = Math.sin(st * 55) * 0.045 * pressT;
+                if (pmM?._rightArm) pmM._rightArm.rotation.set(-2.05 * raise, 0,  (0.82 + 0.12 * pressT) * raise + tremor);
+                if (pmM?._leftArm)  pmM._leftArm.rotation.set(-2.05 * raise, 0, -(0.82 + 0.12 * pressT) * raise - tremor);
+                const orbK = easeOutC(Math.min(st / 0.85, 1));
+                ceOrb.scale.setScalar(0.25 + orbK * 1.0 + Math.sin(st * 40) * 0.04 * pressT);
+                ceMat.opacity = orbK * 0.85;
+                ceCoreMat.opacity = orbK;
+                ceLight.intensity = orbK * 7;
+                if (Math.random() < 0.6) {
+                    const a = Math.random() * Math.PI * 2, rr = 1.0 + Math.random() * 0.6;
+                    emitParticles(handWX + Math.cos(a) * rr, handWY + (Math.random() - 0.5) * 1.2, handWZ + Math.sin(a) * rr, {
+                        color: ['#1a0a3a', '#7c4dff', '#b39ddb'],
+                        count: 2, speed: 3.2, spread: 0.2,
+                        direction: { x: -Math.cos(a), y: 0, z: -Math.sin(a) },
+                        gravity: 0, life: 9, size: 0.09, sizeEnd: 0, drag: 0.9,
+                    });
+                }
+                if (st < 1) { requestAnimationFrame(animateSign); return; }
+                emitParticles(handWX, handWY, handWZ, {
+                    color: ['#1a0a3a', '#7c4dff', '#b39ddb', '#ffffff'],
+                    count: 26, speed: 6, spread: 0.4,
+                    gravity: 0, life: 14, size: 0.14, sizeEnd: 0, drag: 0.92,
+                });
+                lightFlash(handWX, handWY, handWZ, '#7c4dff', 10, 260);
+                scene.remove(ceOrb);
+                ceMat.dispose(); ceCoreMat.dispose();
+                ceOrb.children.forEach(c => c.geometry && c.geometry.dispose());
+                fpsCamera.clearCinematic();
+                player._cutsceneActive = false;
+                if (!player || !player.alive || player.classId !== 'megumi') return;
+                beginGarden();
             };
-            const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
-            spawnMinion('divineDog', px + perpX * 1.5, pz + perpZ * 1.5,
-                { ...tempDogStats, color: '#e8e0d8', _isWhite: true, _dogSide: 1 });
-            spawnMinion('divineDog', px - perpX * 1.5, pz - perpZ * 1.5,
-                { ...tempDogStats, _isWhite: false, _dogSide: -1 });
+            requestAnimationFrame(animateSign);
 
-            // Big damage burst on activation — every enemy inside the domain
-            for (const e of enemies3D) {
-                if (!e.data.alive) continue;
-                if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) {
-                    dealDamageToEnemy(e, Math.round(player.damage * 3));
-                    e.data.lastAttack = now + 800;
-                }
-            }
+            // ── The black puddle of darkness + its gameplay ──
+            function beginGarden() {
+                const domainEnd = performance.now() + duration;
 
-            // ── Per-tick effects: rotate floor, lightning strikes from above, damage ──
-            const startTime = performance.now();
-            let lastTickTime = startTime;
-            let tickCount = 0;
-            const tickInterval = setInterval(() => {
-                const elapsed = performance.now() - startTime;
-                if (elapsed >= duration) {
-                    clearInterval(tickInterval);
-                    // Collapse VFX
-                    const fadeStart = performance.now();
-                    const fadeDome = () => {
-                        const ft = (performance.now() - fadeStart) / 600;
-                        if (ft >= 1) {
-                            scene.remove(dome); domeGeo.dispose(); domeMat.dispose();
-                            scene.remove(wireDome); wireDome.geometry.dispose(); wireDome.material.dispose();
-                            scene.remove(floorGroup);
-                            floorGroup.traverse(c => {
-                                if (c.isMesh) {
-                                    if (c.geometry) c.geometry.dispose();
-                                    if (c.material) c.material.dispose();
-                                }
-                            });
-                            scene.remove(domeLight);
-                            return;
+                // Freeze every enemy caught in the darkness in place for the
+                // whole domain (re-applied each tick so stragglers lock too).
+                const trapInside = () => {
+                    for (const e of enemies3D) {
+                        if (!e.data.alive) continue;
+                        if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) {
+                            e.data._domainTrapped = domainEnd;
+                            e.mesh.traverse(c => { if (c.isMesh && c.material && c.material.emissive) {
+                                c.material.emissive.set('#1a0633');
+                                c.material._domainEmissive = true;
+                            }});
                         }
-                        domeMat.opacity = (1 - ft) * 0.18;
-                        wireDome.material.opacity = (1 - ft) * 0.35;
-                        domeLight.intensity = (1 - ft) * 5;
-                        floorGroup.traverse(c => {
-                            if (c.isMesh && c.material) c.material.opacity *= 0.94;
+                    }
+                };
+                const releaseTint = () => {
+                    for (const e of enemies3D) {
+                        e.mesh.traverse(c => {
+                            if (c.isMesh && c.material && c.material._domainEmissive) {
+                                c.material.emissive.set('#000000');
+                                c.material._domainEmissive = false;
+                            }
                         });
-                        requestAnimationFrame(fadeDome);
-                    };
-                    requestAnimationFrame(fadeDome);
-                    return;
-                }
-                tickCount++;
-                // Spin the floor pattern
-                floorGroup.rotation.y += 0.04;
+                    }
+                };
+                trapInside();
 
-                // Damage tick to enemies inside the domain
+                // Activation burst — heavy hit on everything caught inside
                 for (const e of enemies3D) {
                     if (!e.data.alive) continue;
                     if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) {
-                        dealDamageToEnemy(e, Math.round(player.damage * 0.8));
+                        dealDamageToEnemy(e, Math.round(player.damage * 3));
                     }
                 }
 
-                // Periodic lightning strike on the strongest nearby enemy
-                if (tickCount % 4 === 0) {
-                    let bestE = null, bestHp = 0;
+                const puddle = new THREE.Group();
+                puddle.position.set(worldPx, 0, worldPz);
+                puddle.scale.setScalar(0.02);
+                scene.add(puddle);
+
+                // Irregular pitch-black pool spanning the whole domain
+                const poolGeo = new THREE.CircleGeometry(wRad, 64);
+                const pp = poolGeo.attributes.position;
+                for (let i = 0; i < pp.count; i++) {
+                    const x = pp.getX(i), y = pp.getY(i);
+                    if (Math.hypot(x, y) > 0.01) {
+                        const ang = Math.atan2(y, x);
+                        const k = 1 + (Math.sin(ang * 5) * 0.5 + Math.sin(ang * 8 + 1.3) * 0.5) * 0.07;
+                        pp.setXYZ(i, x * k, y * k, 0);
+                    }
+                }
+                poolGeo.computeVertexNormals();
+                const poolMat = new THREE.MeshBasicMaterial({
+                    color: '#040208', transparent: true, opacity: 0,
+                    depthWrite: false, side: THREE.DoubleSide,
+                });
+                const pool = new THREE.Mesh(poolGeo, poolMat);
+                pool.rotation.x = -Math.PI / 2;
+                pool.position.y = 0.06;
+                puddle.add(pool);
+
+                // Deeper void core
+                const voidMat = new THREE.MeshBasicMaterial({
+                    color: '#000000', transparent: true, opacity: 0,
+                    depthWrite: false, side: THREE.DoubleSide,
+                });
+                const voidMesh = new THREE.Mesh(new THREE.CircleGeometry(wRad * 0.66, 48), voidMat);
+                voidMesh.rotation.x = -Math.PI / 2;
+                voidMesh.position.y = 0.07;
+                puddle.add(voidMesh);
+
+                // Faint violet rim — the only light the darkness gives off
+                const rimMat = new THREE.MeshBasicMaterial({
+                    color: '#7c4dff', transparent: true, opacity: 0,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+                });
+                const rim = new THREE.Mesh(new THREE.RingGeometry(wRad * 0.9, wRad * 1.04, 64), rimMat);
+                rim.rotation.x = -Math.PI / 2;
+                rim.position.y = 0.075;
+                puddle.add(rim);
+
+                // Low purple light so the arena stays readable inside the dark
+                const pLight = new THREE.PointLight('#3a1a6a', 0, TILE * 14, 1.6);
+                pLight.position.set(0, 1.5, 0);
+                puddle.add(pLight);
+
+                groundDecal(worldPx, worldPz, '#0a0418', wRad, duration + 600);
+
+                // Spread the puddle outward across the floor
+                const spreadStart = performance.now();
+                const SPREAD = 750;
+                const spreadAnim = () => {
+                    const t = Math.min((performance.now() - spreadStart) / SPREAD, 1);
+                    const e2 = 1 - Math.pow(1 - t, 3);
+                    puddle.scale.setScalar(0.02 + e2 * 0.98);
+                    poolMat.opacity = e2 * 0.95;
+                    voidMat.opacity = e2;
+                    rimMat.opacity = e2 * 0.5;
+                    pLight.intensity = e2 * 3;
+                    if (t < 1) requestAnimationFrame(spreadAnim);
+                };
+                requestAnimationFrame(spreadAnim);
+
+                // Shadow shikigami inside the garden — 2 divine dogs
+                const lifeEnd = performance.now() + duration;
+                const tempDogStats = {
+                    color: '#1a1a22', radius: 0.5, speed: 5,
+                    damage: Math.round(player.damage * 0.5),
+                    attackRange: 1.8, attackSpeed: 600,
+                    hp: 999, maxHp: 999, life: lifeEnd, _owner: player,
+                };
+                const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
+                spawnMinion('divineDog', px + perpX * 1.5, pz + perpZ * 1.5,
+                    { ...tempDogStats, color: '#e8e0d8', _isWhite: true, _dogSide: 1 });
+                spawnMinion('divineDog', px - perpX * 1.5, pz - perpZ * 1.5,
+                    { ...tempDogStats, _isWhite: false, _dogSide: -1 });
+
+                // Eruption as the darkness opens
+                lightFlash(worldPx, 2.5, worldPz, '#7c4dff', 12, 700);
+                emitParticles(worldPx, 0.6, worldPz, {
+                    color: ['#000000', '#1a0a3a', '#7c4dff', '#0d1b5e'],
+                    count: 70, speed: 6, spread: 2,
+                    gravity: 0, life: 22, size: 0.18, sizeEnd: 0, drag: 0.95, upward: 3
+                });
+                for (let r = 0; r < 3; r++) {
+                    setTimeout(() => groundRing(worldPx, worldPz, r % 2 === 0 ? '#1a0a3a' : '#7c4dff', radius - r * 1.4, 800), r * 90);
+                }
+
+                // ── Per-tick: keep frozen, damage, shadow lightning, bubbling ──
+                const startTime = performance.now();
+                let tickCount = 0;
+                const tickInterval = setInterval(() => {
+                    const elapsed = performance.now() - startTime;
+                    if (elapsed >= duration) {
+                        clearInterval(tickInterval);
+                        const fadeStart = performance.now();
+                        const fadeOut = () => {
+                            const ft = (performance.now() - fadeStart) / 700;
+                            if (ft >= 1) { disposeGroup(puddle); releaseTint(); return; }
+                            puddle.scale.setScalar(Math.max(0.02, 1 - ft));
+                            poolMat.opacity = (1 - ft) * 0.95;
+                            voidMat.opacity = (1 - ft);
+                            rimMat.opacity = (1 - ft) * 0.5;
+                            pLight.intensity = (1 - ft) * 3;
+                            requestAnimationFrame(fadeOut);
+                        };
+                        requestAnimationFrame(fadeOut);
+                        return;
+                    }
+                    tickCount++;
+                    trapInside(); // keep the darkness locking everything inside
+
                     for (const e of enemies3D) {
                         if (!e.data.alive) continue;
-                        if (Math.hypot(e.data.x - px, e.data.z - pz) > radius) continue;
-                        if (e.data.hp > bestHp) { bestHp = e.data.hp; bestE = e; }
+                        if (Math.hypot(e.data.x - px, e.data.z - pz) < radius) {
+                            dealDamageToEnemy(e, Math.round(player.damage * 0.8));
+                        }
                     }
-                    if (bestE) {
-                        const tx = bestE.data.x * TILE, tz = bestE.data.z * TILE;
-                        // Quick bolt
-                        const bGeo = new THREE.CylinderGeometry(0.08, 0.3, 8, 6);
-                        const bMat = new THREE.MeshBasicMaterial({
-                            color: '#ffeb3b', transparent: true, opacity: 0.85,
-                            blending: THREE.AdditiveBlending, depthWrite: false
-                        });
-                        const bolt = new THREE.Mesh(bGeo, bMat);
-                        bolt.position.set(tx, 4, tz);
-                        scene.add(bolt);
-                        const bStart = performance.now();
-                        const fadeBolt = () => {
-                            const ft = (performance.now() - bStart) / 250;
-                            if (ft >= 1) { scene.remove(bolt); bGeo.dispose(); bMat.dispose(); return; }
-                            bMat.opacity = (1 - ft) * 0.85;
+
+                    // Rim pulse so the darkness "breathes"
+                    rimMat.opacity = 0.4 + Math.sin(elapsed * 0.006) * 0.18;
+
+                    // Every 4th tick — shadow lightning on the toughest enemy
+                    if (tickCount % 4 === 0) {
+                        let bestE = null, bestHp = 0;
+                        for (const e of enemies3D) {
+                            if (!e.data.alive) continue;
+                            if (Math.hypot(e.data.x - px, e.data.z - pz) > radius) continue;
+                            if (e.data.hp > bestHp) { bestHp = e.data.hp; bestE = e; }
+                        }
+                        if (bestE) {
+                            const tx = bestE.data.x * TILE, tz = bestE.data.z * TILE;
+                            const bGeo = new THREE.CylinderGeometry(0.08, 0.3, 8, 6);
+                            const bMat = new THREE.MeshBasicMaterial({
+                                color: '#9c4dff', transparent: true, opacity: 0.85,
+                                blending: THREE.AdditiveBlending, depthWrite: false
+                            });
+                            const bolt = new THREE.Mesh(bGeo, bMat);
+                            bolt.position.set(tx, 4, tz);
+                            scene.add(bolt);
+                            const bStart = performance.now();
+                            const fadeBolt = () => {
+                                const ft = (performance.now() - bStart) / 250;
+                                if (ft >= 1) { scene.remove(bolt); bGeo.dispose(); bMat.dispose(); return; }
+                                bMat.opacity = (1 - ft) * 0.85;
+                                requestAnimationFrame(fadeBolt);
+                            };
                             requestAnimationFrame(fadeBolt);
-                        };
-                        requestAnimationFrame(fadeBolt);
-                        lightFlash(tx, 2, tz, '#ffeb3b', 6, 200);
-                        groundRing(tx, tz, '#ffeb3b', 1.8, 300);
-                        emitParticles(tx, 1, tz, {
-                            color: ['#ffeb3b', '#ffffff'], count: 12, speed: 4, spread: 0.6,
-                            gravity: -2, life: 10, size: 0.1, sizeEnd: 0, drag: 0.94
-                        });
-                        dealDamageToEnemy(bestE, Math.round(player.damage * 2));
+                            lightFlash(tx, 2, tz, '#9c4dff', 6, 200);
+                            groundRing(tx, tz, '#7c4dff', 1.8, 300);
+                            emitParticles(tx, 1, tz, {
+                                color: ['#9c4dff', '#ffffff'], count: 12, speed: 4, spread: 0.6,
+                                gravity: -2, life: 10, size: 0.1, sizeEnd: 0, drag: 0.94
+                            });
+                            dealDamageToEnemy(bestE, Math.round(player.damage * 2));
+                        }
                     }
-                }
 
-                // Shadow particles at random points inside the domain
-                const a = Math.random() * Math.PI * 2;
-                const r2 = Math.random() * radius * 0.9;
-                emitParticles(worldPx + Math.cos(a) * r2 * TILE / radius, 1, worldPz + Math.sin(a) * r2 * TILE / radius, {
-                    color: ['#1a237e', '#7c4dff', '#0d1b5e'],
-                    count: 4, speed: 2, spread: 0.6,
-                    gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.96, upward: 1.5
-                });
-                lastTickTime = performance.now();
-            }, 250);
-
-            // Initial ground rings + flash
-            for (let r = 0; r < 4; r++) {
-                setTimeout(() => groundRing(worldPx, worldPz, r % 2 === 0 ? '#1a237e' : '#7c4dff', radius - r * 1.2, 800), r * 80);
-            }
-            lightFlash(worldPx, 3, worldPz, '#7c4dff', 14, 800);
-            emitParticles(worldPx, 1, worldPz, {
-                color: ['#1a237e', '#7c4dff', '#0d1b5e', '#ffffff'],
-                count: 80, speed: 6, spread: 2,
-                gravity: 0, life: 20, size: 0.18, sizeEnd: 0, drag: 0.95, upward: 4
-            });
+                    // Black shadow tendrils bubbling up out of the puddle
+                    const a = Math.random() * Math.PI * 2;
+                    const r2 = Math.random() * radius * 0.92;
+                    emitParticles(worldPx + Math.cos(a) * r2 * TILE, 0.3, worldPz + Math.sin(a) * r2 * TILE, {
+                        color: ['#000000', '#1a0a3a', '#7c4dff'],
+                        count: 4, speed: 1.6, spread: 0.4,
+                        gravity: 0, life: 16, size: 0.12, sizeEnd: 0, drag: 0.95, upward: 2.5
+                    });
+                }, 250);
+            } // ── end beginGarden() ──
         }
 
         else if (slot === 'f') { // Shadow Dash — phase through shadows forward

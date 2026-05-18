@@ -4,6 +4,46 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-18 — Infinite Void freeze + Chimera Shadow Garden rework
+
+### Gojo — Infinite Void (V)
+Now reliably **freezes every enemy in place** for the full domain
+instead of only snapshotting enemies in range at the cast instant. The
+trap loop was extracted to `trapInside()`, the radius widened
+(15→18 world units) to cover the visible void, and `trapInside()` is
+re-run every 500ms damage tick so enemies that wander in also lock.
+Freeze itself is the existing `_domainTrapped` check in `update()`.
+
+### Megumi — Chimera Shadow Garden (V) — full rework
+Replaced the blue dome/rings/spokes visual with a **spreading black
+puddle of darkness**, and added a Malevolent-Shrine-style cinematic
+cut-in with on-screen subtitles taken from the reference clip
+(`src/classes/domain expansion.gif`).
+
+- New top-level helper `showCinematicSubtitle(text, holdMs, opts)` —
+  fade-in/hold/fade-out anime caption (z-index 60).
+- Cut-in (~1750ms): `setCinematic()` front camera on Megumi,
+  `_cutsceneActive` freezes the world, both arms raise + clasp into
+  the domain seal with a press tremor, a navy/violet shadow-energy orb
+  condenses + brightens between the hands. Subtitles fire on a
+  timeline: **"Screw it!" → "I'll do it!" → "Domain Expansion:" →
+  "Chimera Shadow Garden"**. On completion: flare, clear cinematic,
+  `beginGarden()`.
+- `beginGarden()`: irregular pitch-black `CircleGeometry` pool +
+  deeper void core + faint violet rim + low purple light, all sized to
+  the full **8-tile** gameplay radius (`radius * TILE` — the old dome
+  was only ~2 tiles wide vs its damage field) and eased outward over
+  750ms. Enemies inside are frozen via `_domainTrapped` (re-applied
+  each tick), take a 3× activation burst then 0.8×/tick, with shadow
+  lightning on the toughest enemy every 4th tick. 2 temporary divine
+  dogs still spawn. Collapse shrinks/fades the puddle, `disposeGroup()`
+  frees it, and `releaseTint()` clears the shadow emissive on enemies.
+- Player invincible for the whole cut-in + domain.
+
+`node --check` clean.
+
+---
+
 ## 2026-05-17 — Malevolent Shrine: 3D structure + hand-sign cut-in
 
 Sukuna's **Malevolent Shrine** (V / Domain Expansion) was upgraded from a

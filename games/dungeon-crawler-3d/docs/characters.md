@@ -94,14 +94,14 @@ Flying owl shikigami one-shot (8s cooldown). Big crimson red feathered owl scale
 Behaviour: spawns above Megumi, rises, swoops to the nearest enemy within 12 tiles in front, fires a vertical lightning bolt on arrival (bright cylinder + white core, hitstop, screen shake, ground rings + decal, 8 radiating speed-line streaks, 50-particle burst). AoE 3.5× player damage within 3 tiles + 1s stun. Owl fades after the strike.
 
 ### V — Chimera Shadow Garden
-Megumi's incomplete domain expansion. 20s cooldown, 7s duration, 8-tile radius.
-- Patterned floor: 4 concentric rings (alternating navy + purple) + 8 spokes, the whole ring spins each tick.
-- Faint purple half-dome overhead with a wireframe inner shell + central PointLight.
-- Player invincibility for 1.5s on activation.
+Megumi's domain expansion, rendered as a **black puddle of darkness**. 20s cooldown, 7s duration, 8-tile radius.
+- **Cut-in (~1750ms)**: Malevolent-Shrine-style — `setCinematic()` swings the camera to a front view of Megumi, `_cutsceneActive` freezes the world, both arms raise and clasp into the domain seal with a press tremor, and a navy/violet shadow-energy orb condenses + brightens between his hands. On-screen subtitles fire on a timeline (from `src/classes/domain expansion.gif`): **"Screw it!" → "I'll do it!" → "Domain Expansion:" → "Chimera Shadow Garden"** (via `showCinematicSubtitle()`). Player invincible for the whole cut-in + domain.
+- **Visual**: an irregular pitch-black `CircleGeometry` pool + deeper void core + faint violet rim + low purple PointLight (so the arena stays readable), sized to the full **8-tile** radius (`radius * TILE`) and eased outward over 750ms. Black shadow tendrils bubble up from the surface; rim "breathes". No dome/rings/spokes.
+- **Freeze**: every enemy inside is locked in place for the whole domain via `_domainTrapped` (re-applied each 250ms tick so stragglers also lock; emissive shadow-tint cleared on collapse).
 - Activation burst: 3× damage to every enemy in radius.
-- Spawns 2 temporary divine dogs that auto-flank inside the dome (life timestamp = now + 7s, despawn cleanly at end).
-- Per-tick (250ms): spins floor pattern, 0.8× damage to all enemies inside, every 4th tick fires a yellow lightning bolt at the highest-HP enemy for 2× damage.
-- Dome and pattern fade out cleanly when duration elapses.
+- Spawns 2 temporary divine dogs that auto-flank inside (life timestamp = now + 7s, despawn cleanly at end).
+- Per-tick (250ms): 0.8× damage to all enemies inside, every 4th tick fires a violet shadow-lightning bolt at the highest-HP enemy for 2× damage.
+- Puddle shrinks + fades out, `disposeGroup()` frees it when duration elapses.
 
 ### G — Toad (Megumi-only key)
 Fan of 3 winged toad shikigami, 7s cooldown. Each toad: squat green body, lighter underbelly, big bulbous white eyes with black pupils, wide mouth, ring belly pattern, two small white feathered angel-wings on the back, four leg bumps, faint green aura.
