@@ -3661,16 +3661,85 @@ function mahitoDetonate() {
 }
 
 function explodeMahito(e) {
-    const wx = e.data.x * TILE, wz = e.data.z * TILE, wy = 1.3;
+    if (!e || !e.data || !e.data.alive || e.data._mahitoBursting) return;
+    e.data._mahitoBursting = true;
     e.data._mahitoMarked = false;
     if (e.data._mahitoMark) {
         e.mesh.remove(e.data._mahitoMark);
         e.data._mahitoMark.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } });
         e.data._mahitoMark = null;
     }
+    const wx = e.data.x * TILE, wz = e.data.z * TILE, wy = 1.3;
+    const mesh = e.mesh;
+    const base = mesh ? (mesh.scale.x || 1) : 1;
 
-    // Grotesque warp bulge an instant before the pop
-    if (e.mesh) e.mesh.scale.set(1.45, 0.7, 1.45);
+    // Stretched-skin membrane that swells around the body as it distends
+    const memGeo = new THREE.SphereGeometry(0.55, 14, 12);
+    const mgp = memGeo.attributes.position;
+    for (let i = 0; i < mgp.count; i++) {
+        const x = mgp.getX(i), y = mgp.getY(i), z = mgp.getZ(i);
+        const n = Math.sin(x * 6 + 0.7) * Math.cos(y * 7 + 1.1) * Math.sin(z * 5 + 2.3) * 0.18;
+        const L = Math.hypot(x, y, z) || 1, k = 1 + n / L;
+        mgp.setXYZ(i, x * k, y * k, z * k);
+    }
+    memGeo.computeVertexNormals();
+    const memMat = new THREE.MeshStandardMaterial({
+        color: '#7a0c1c', roughness: 0.5, transparent: true, opacity: 0.45,
+        emissive: '#3a0008', emissiveIntensity: 0.4, depthWrite: false,
+    });
+    const membrane = new THREE.Mesh(memGeo, memMat);
+    membrane.position.set(wx, wy, wz);
+    scene.add(membrane);
+
+    // ── BULGE PHASE — uneven accelerating swell + throbbing wobble ──
+    const bulgeDur = 540;
+    const start = performance.now();
+    const bulge = () => {
+        if (!e.data.alive) { scene.remove(membrane); memGeo.dispose(); memMat.dispose(); return; }
+        const t = Math.min((performance.now() - start) / bulgeDur, 1);
+        const tn = performance.now() * 0.03;
+        const grow = 1 + Math.pow(t, 1.6) * 1.2;            // accelerates to ~2.2x
+        const wob = 0.24 * t;                                // wobble grows with swell
+        if (mesh) {
+            mesh.scale.set(
+                base * (grow + Math.sin(tn * 1.7) * wob),
+                base * (grow * 0.8 + Math.cos(tn * 2.3) * wob * 1.5),
+                base * (grow + Math.sin(tn * 1.3 + 1.7) * wob)
+            );
+            mesh.rotation.z = Math.sin(tn * 0.9) * 0.16 * t;
+            mesh.position.set(
+                wx + Math.sin(tn * 5) * 0.05 * t,
+                Math.abs(Math.sin(tn * 3)) * 0.09 * t,
+                wz + Math.cos(tn * 4) * 0.05 * t
+            );
+        }
+        const ms = (0.7 + Math.pow(t, 1.4) * 1.8) * (1 + Math.sin(tn * 6) * 0.06 * t);
+        membrane.scale.setScalar(ms);
+        membrane.rotation.y += 0.03;
+        memMat.opacity = 0.35 + t * 0.4;
+        // Blood bubbling through the distending skin
+        if (Math.random() < 0.55) {
+            emitParticles(wx + (Math.random() - 0.5) * 1.3, wy + (Math.random() - 0.2) * 1.5, wz + (Math.random() - 0.5) * 1.3, {
+                color: ['#6a0816', '#3a0008', '#7a0820', '#aa0020'],
+                count: 2, speed: 1.6, spread: 0.4, gravity: -3, life: 14, size: 0.1, sizeEnd: 0, drag: 0.92, upward: 1
+            });
+        }
+        if (t > 0.55) screenShake(0.08 + (t - 0.55) * 0.5, 60); // build-up tremor
+        if (t < 1) { requestAnimationFrame(bulge); return; }
+        scene.remove(membrane); memGeo.dispose(); memMat.dispose();
+        _mahitoPop(e, wx, wy, wz);
+    };
+    requestAnimationFrame(bulge);
+}
+
+// The burst itself — fires once the bulge peaks.
+function _mahitoPop(e, wx, wy, wz) {
+    if (!e.data.alive) return;
+    e.data._mahitoBursting = false;
+
+    // White over-pressure pop ring
+    screenFlash('rgba(255,230,235,0.22)', 90);
+    groundRing(wx, wz, '#ffffff', 1.4, 220);
 
     // Bursting flesh mass — deformed dark-red sphere expands + fades
     const blobGeo = new THREE.SphereGeometry(0.5, 12, 10);
@@ -15852,6 +15921,8 @@ function update() {
         // Trapped inside an active Domain Expansion (Malevolent Shrine / Infinite Void)
         // — freeze movement and attacks for the domain's duration
         if (e.data._domainTrapped && now < e.data._domainTrapped) continue;
+        // Mahito Idle Transfiguration — the bulge animation owns the mesh
+        if (e.data._mahitoBursting) continue;
 
         const distToPlayer = Math.hypot(px - e.data.x, pz - e.data.z);
         // PERF: hard distance cap — enemies past ~18 tiles aren't worth drawing or animating.

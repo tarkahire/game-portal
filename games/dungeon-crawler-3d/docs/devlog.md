@@ -4,6 +4,20 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-18 — Mahito detonation: grotesque bulge phase
+
+`explodeMahito(e)` reworked from an instant pop into a two-stage
+finisher. New `_mahitoBursting` flag (early `continue` in the enemy
+update loop) hands the mesh to a ~540 ms **bulge** rAF: the enemy
+swells unevenly (accelerating non-uniform scale + throb wobble),
+jitters, blood bubbles out, a stretched dark-red skin membrane
+distends around it, and a tremor builds. At peak, `_mahitoPop(e)`
+fires the burst (white over-pressure ring + the existing flesh
+blob / gore spray / ballistic chunks / decal / kill). Aborts cleanly
+if the enemy dies mid-bulge. `node --check` clean.
+
+---
+
 ## 2026-05-18 — Mahito: Idle Transfiguration mark & detonate (E)
 
 Mahito's signature mechanic. Every M1 that connects marks the enemy;
