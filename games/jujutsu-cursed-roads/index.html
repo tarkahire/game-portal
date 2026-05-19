@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jujutsu — Cursed Roads</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<!-- Sign-in -->
+<div id="signin-screen" class="screen active">
+    <h1>JUJUTSU</h1>
+    <div class="sub">CURSED ROADS</div>
+    <p class="tag">Sign in, sorcerer. Your road is saved.</p>
+    <input id="name-input" class="name" type="text" maxlength="16" placeholder="ENTER YOUR NAME" autocomplete="off">
+    <button id="btn-enter" class="btn">Enter the Roads</button>
+    <div id="slot-list" class="slots"></div>
+    <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+    <div class="panel">
+        <div class="who" id="hud-name">—</div>
+        <div class="grade" id="hud-grade">Grade 4</div>
+        <div class="barwrap"><div class="bar hp" id="hud-hp"></div><div class="lbl" id="hud-hp-t">100/100</div></div>
+        <div class="barwrap"><div class="bar ce" id="hud-ce"></div><div class="lbl" id="hud-ce-t">CE</div></div>
+        <div class="barwrap" style="height:6px"><div class="bar xp" id="hud-xp"></div></div>
+        <div class="gold" id="hud-gold">Gold: 0 &nbsp; Lv.1</div>
+    </div>
+    <div id="mission">
+        <div class="mt">CURRENT MISSION</div>
+        <div class="md" id="mission-text">Find the mission board in town.</div>
+    </div>
+    <div id="prompt"></div>
+    <div id="crosshair">+</div>
+    <canvas id="minimap" width="150" height="150"></canvas>
+    <div id="hint">WASD move · Mouse look · LMB strike · Z cursed technique · Shift sprint · Space dash · E interact · ESC pause</div>
+    <div id="toast"></div>
+</div>
+
+<!-- Panel overlay -->
+<div id="overlay">
+    <div class="card" id="overlay-card"></div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

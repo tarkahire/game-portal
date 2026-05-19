@@ -23,6 +23,7 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 | `games/dungeon-crawler/` | 2D Roguelike dungeon crawler (vanilla JS Canvas + PeerJS) |
 | `games/dungeon-crawler-3d/` | 3D First-person dungeon crawler (Three.js + PeerJS) |
 | `games/anime-battle-royale/` | 3D third-person Battle Royale (Three.js, reuses dungeon-crawler-3d roster) |
+| `games/jujutsu-cursed-roads/` | JJK open-world action RPG (Three.js) — name sign-in + localStorage save, quests, grade climb |
 | `vercel.json` | Vercel deployment config |
 
 ## Games
@@ -53,6 +54,13 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 - **Classes (64)**: Angel, Demon, Draco, Healer, Lightning, Portal, Katakuri, Naruto, Megumi, Jin-Woo, Frog, Bee Swarm, T-Rex, Wendigo, Alien Queen, Comet, Telekinesis, Mind Control, Chimera, Mimic, Supernova, Puppet Master, Medusa, Cerberus, Minotaur, Anubis, Thor, Venom, Cordyceps, Leech, Chrono, Dimension Cutter, Paradox, Drummer, Siren, Mercury, Acid, Smoke, Ant Colony, Rat King, Locust, Mecha Shark, Ghost Rider, Ice Phoenix, Plague Rat, Card Dealer, Dice Roller, Chess King, Rage, Fear, Love, Chaos, Senor Pink, Ink, Dog, Kitsune, Mahoraga, Parasite, Skeleton, Archer, Slime, Bat, Dark Knight, Necromancer
 - **Recent additions**: Katakuri 16-portal ring system with dough fist M1s + Fusillade + Haki (blue); Senor Pink (Sui Sui) walk-through-walls + dive + whirlpool; Ink class with puddle resource system + Draw Soldier + Masterpiece golem; Dog class (OP) with permanent pack + puppy spawn + fetch frenzy + alpha howl; Kitsune with tails meter transformation (human -> nine-tailed fox with cyan arc slashes)
 - **Full docs**: See `games/dungeon-crawler/docs/` for architecture, classes, gameplay, network, controls
+
+### Jujutsu — Cursed Roads
+- **Path**: `games/jujutsu-cursed-roads/`
+- **Tech**: Three.js v0.162.0 (CDN importmap), vanilla JS ES modules — no build step
+- **Concept**: JJK-inspired open-world action RPG. Name sign-in + `localStorage` autosave (behind a swappable `SaveAdapter` so a Supabase/Resend backend can drop in later). Hilly heightmap world, one town with **non-enterable houses** + mission board / cursed-tool smith / Jujutsu High contact, curse-spirit spawn director scaled by player grade, M1 melee + Z cursed-technique projectile + dash, quests (exorcism + Grade Exam boss), XP/levels, **grade climb Grade 4 → Special Grade** (MVP ships G4→G3), gold smith upgrades, HUD + minimap.
+- **Status**: MVP playable (2026-05-19). Full design + doc framework in `games/jujutsu-cursed-roads/docs/` (`design.md` first); roadmap in `docs/todo.md`.
+- **Build base**: meant to grow by porting combat/VFX/cursed-technique kits from `dungeon-crawler-3d` / `anime-battle-royale` (copy-and-adapt; games stay self-contained).
 
 ### Anime Battle Royale
 - **Path**: `games/anime-battle-royale/`
