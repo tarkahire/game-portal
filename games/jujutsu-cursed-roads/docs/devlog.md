@@ -4,6 +4,32 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-19 — Update 1: techniques + sound + full grade chain
+
+- **Selectable cursed techniques** (`TECHNIQUES` map): new sorcerers
+  pick one at sign-in (overlay picker); stored in `save.technique`.
+  Three kits, each with **Z primary + X secondary**:
+  - Cursed Strike — Z bolt projectile · X Reversal Pull (yank+dmg).
+  - Dismantle — Z close cleave cone · X piercing slash-wave.
+  - Flame Arrow — Z explosive arrow · X Flame Nova (AoE).
+  `cursedTechnique()` replaced by `techZ()/techX()` + helpers
+  (`spawnTechProj`, `coneHit`, `nova`, `ringFx`, `spend`). Projectiles
+  now support pierce + per-shot radius/AoE/colour/hit-set.
+- **Sound**: tiny WebAudio synth (`audioInit`/`blip`/`sfx`) — no asset
+  files. Cues: hit, tech, curse death, hurt, level-up, boss, UI. Audio
+  context unlocked on first gesture (sign-in / canvas click).
+- **Full grade-exam chain**: generalized `exam_g3` → reusable `exam`
+  quest. The Jujutsu High Contact offers the next promotion gated by
+  `examReqLevel(grade)` (G4→Lv4, G3→7, G2→10, G1→13) + the cleansing
+  quest; each win promotes one grade and re-opens for the next, all
+  the way to **Special Grade**. Boss + rewards scale with grade.
+- HUD shows grade · technique; hint + welcome toast updated;
+  `newSave()` carries `technique`.
+
+`node --check` clean on all 3 JS files.
+
+---
+
 ## 2026-05-19 — MVP built (first playable)
 
 New game **Jujutsu — Cursed Roads** scaffolded and built to a playable

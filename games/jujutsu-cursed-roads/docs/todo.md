@@ -13,15 +13,19 @@
 - [x] HUD: HP/CE/XP/grade/gold, mission tracker, minimap, toasts, pause
 - [x] Portal card + thumbnail
 
+## UPDATE 1 — DONE (2026-05-19)
+- [x] Sound (hit, technique, curse death, hurt, level-up, boss, UI) — WebAudio, no assets
+- [x] 3 selectable cursed techniques (Z primary + X secondary), picked at sign-in
+- [x] Full grade-exam chain G4→Special (level-gated, scaling bosses/rewards)
+
 ## NEXT (polish)
-- [ ] Sound (hit, technique, curse death, level-up)
 - [ ] Death penalty option (lose gold / no full heal) — currently gentle
 - [ ] Better player + curse models / animations
 - [ ] Save player position + time-of-day
+- [ ] Technique-swap at the smith (own multiple, switch loadout)
 
 ## CONTENT
-- [ ] More grade exams (G3→G2→G1→Special) + bigger bosses
-- [ ] More cursed techniques (port more from dungeon-crawler-3d kits) + technique select/swap
+- [ ] More cursed techniques (port more from dungeon-crawler-3d kits)
 - [ ] More cursed tools at the smith, with movesets
 - [ ] Veiled zones (dome + gating + named curses)
 - [ ] Escort / Veil-clear / Investigation quest types

@@ -29,6 +29,7 @@ let yaw = 0, pitch = -0.18;
 let pointerLocked = false;
 let toastTimer = 0;
 let autosaveAccum = 0;
+let pendingSave = null;   // new save awaiting technique choice
 
 const GRADE_NAME = { 4: 'Grade 4', 3: 'Grade 3', 2: 'Grade 2', 1: 'Grade 1', 0: 'Special Grade' };
 
@@ -41,15 +42,15 @@ const QUESTS = {
         reward: { xp: 120, gold: 60 },
         giver: 'board',
     },
-    exam_g3: {
-        title: 'Grade Exam: Promotion to Grade 3',
-        desc: 'Slay the Special-Grade-fragment curse that has manifested.',
+    exam: {
+        title: 'Grade Exam',
+        desc: 'Slay the manifested exam curse to earn promotion.',
         target: 1,
-        reward: { xp: 300, gold: 150, gradeUp: true },
         giver: 'contact',
-        require: (s) => s.level >= 4 && s.quests.exorcism1?.state === 'done',
     },
 };
+// Level required for the exam that promotes OUT of `grade`.
+function examReqLevel(grade) { return 4 + (4 - grade) * 3; }   // G4:4 G3:7 G2:10 G1:13
 
 // ─── TERRAIN ────────────────────────────────────────────────
 // Cheap analytic heightfield. Flattened toward the town so the
@@ -263,6 +264,34 @@ function updateCurseDirector(dt) {
     }
 }
 
+// ─── AUDIO (tiny WebAudio SFX — no asset files) ─────────────
+let actx = null;
+function audioInit() {
+    if (actx) return;
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+}
+function blip(freq, dur, type, vol, slideTo) {
+    if (!actx) return;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'square';
+    o.frequency.setValueAtTime(freq, actx.currentTime);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, actx.currentTime + dur);
+    g.gain.setValueAtTime(vol == null ? 0.16 : vol, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g).connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + dur);
+}
+function sfx(name) {
+    if (!actx) return;
+    if (name === 'hit') blip(230, 0.10, 'square', 0.15, 90);
+    else if (name === 'tech') blip(420, 0.26, 'sawtooth', 0.15, 130);
+    else if (name === 'death') blip(170, 0.22, 'triangle', 0.17, 48);
+    else if (name === 'hurt') blip(120, 0.16, 'sawtooth', 0.19, 60);
+    else if (name === 'level') { blip(520, 0.14, 'square', 0.15); setTimeout(() => blip(800, 0.20, 'square', 0.15), 110); }
+    else if (name === 'boss') blip(68, 0.75, 'sawtooth', 0.22, 38);
+    else if (name === 'ui') blip(660, 0.05, 'square', 0.09);
+}
+
 // ─── VFX ────────────────────────────────────────────────────
 function burst(x, y, z, color, n) {
     for (let i = 0; i < n; i++) {
@@ -307,22 +336,85 @@ function meleeStrike() {
         damageCurse(c, player.damage);
         hit = true;
     }
-    if (hit) burst(player.x + fx * 2, 1.3, player.z + fz * 2, '#cbb6ff', 8);
+    if (hit) { burst(player.x + fx * 2, 1.3, player.z + fz * 2, '#cbb6ff', 8); sfx('hit'); }
 }
 
-function cursedTechnique() {
-    if (player.ce < 25) { toast('Not enough cursed energy'); return; }
-    player.ce -= 25;
-    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12),
-        new THREE.MeshBasicMaterial({ color: '#7c4dff' }));
-    orb.add(new THREE.Mesh(new THREE.SphereGeometry(0.8, 10, 10),
-        new THREE.MeshBasicMaterial({ color: '#b388ff', transparent: true, opacity: 0.3 })));
-    orb.add(new THREE.PointLight('#7c4dff', 3, 9, 2));
+// ─── CURSED TECHNIQUES (Z primary, X secondary) ─────────────
+const TECHNIQUES = {
+    strike: {
+        name: 'Cursed Strike', color: '#7c4dff', zName: 'Bolt', xName: 'Reversal Pull',
+        z(fx, fz) { spawnTechProj(fx, fz, '#7c4dff', player.damage * 2.4, 1.6, false, 26, 1.8, 3.2, 0.4, 25); },
+        x(fx, fz) {
+            if (!spend(34)) return;
+            const tx = player.x + fx * 7, tz = player.z + fz * 7;
+            for (const c of curses) {
+                const dx = tx - c.x, dz = tz - c.z, d = Math.hypot(dx, dz);
+                if (d < 6) { c.x += dx * 0.55; c.z += dz * 0.55; damageCurse(c, player.damage * 1.5); }
+            }
+            ringFx(tx, tz, '#7c4dff'); burst(tx, 1.4, tz, '#b388ff', 16); sfx('tech');
+        },
+    },
+    dismantle: {
+        name: 'Dismantle', color: '#ff3a5a', zName: 'Cleave', xName: 'Slash Wave',
+        z() { if (!spend(18)) return; coneHit(3.8, 0.35, player.damage * 1.7, '#ff3a5a'); },
+        x(fx, fz) { spawnTechProj(fx, fz, '#ff3a5a', player.damage * 1.7, 2.0, true, 30, 1.7, 2.4, 0.5, 30); },
+    },
+    flame: {
+        name: 'Flame Arrow', color: '#ff8a3a', zName: 'Arrow', xName: 'Flame Nova',
+        z(fx, fz) { spawnTechProj(fx, fz, '#ff8a3a', player.damage * 2.0, 1.7, false, 30, 1.7, 3.6, 0.7, 26); },
+        x() { if (!spend(40)) return; nova(6.5, player.damage * 1.6, '#ff8a3a'); },
+    },
+};
+function curTech() { return TECHNIQUES[save && save.technique] || TECHNIQUES.strike; }
+function spend(c) { if (player.ce < c) { toast('Not enough cursed energy'); return false; } player.ce -= c; return true; }
+function techZ() { const fx = -Math.sin(yaw), fz = -Math.cos(yaw); curTech().z(fx, fz); swingArm(); }
+function techX() { const fx = -Math.sin(yaw), fz = -Math.cos(yaw); curTech().x(fx, fz); swingArm(); }
+
+function spawnTechProj(fx, fz, color, dmg, r, pierce, spd, life, aoe, aoeMul, ce) {
+    if (!spend(ce)) return;
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12), new THREE.MeshBasicMaterial({ color }));
+    orb.add(new THREE.Mesh(new THREE.SphereGeometry(0.85, 10, 10),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3 })));
+    orb.add(new THREE.PointLight(color, 3, 9, 2));
     orb.position.set(player.x + fx * 1.4, 1.5, player.z + fz * 1.4);
     scene.add(orb);
-    projectiles.push({ mesh: orb, vx: fx * 26, vz: fz * 26, life: 1.8, dmg: player.damage * 2.4 });
-    swingArm();
+    projectiles.push({ mesh: orb, vx: fx * spd, vz: fz * spd, life, dmg, r, pierce: !!pierce, color, aoe, aoeMul, hit: new Set() });
+    sfx('tech');
+}
+function coneHit(range, minDot, dmg, color) {
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    let any = false;
+    for (const c of curses.slice()) {
+        const dx = c.x - player.x, dz = c.z - player.z, d = Math.hypot(dx, dz) || 1;
+        if (d > range) continue;
+        if ((dx / d) * fx + (dz / d) * fz < minDot) continue;
+        damageCurse(c, dmg); any = true;
+    }
+    burst(player.x + fx * 2, 1.3, player.z + fz * 2, color, 14);
+    ringFx(player.x + fx * 2, player.z + fz * 2, color);
+    if (any) sfx('hit'); sfx('tech');
+}
+function nova(radius, dmg, color) {
+    for (const c of curses.slice()) {
+        if (Math.hypot(c.x - player.x, c.z - player.z) < radius) damageCurse(c, dmg);
+    }
+    burst(player.x, 1.3, player.z, color, 28);
+    ringFx(player.x, player.z, color); sfx('tech');
+}
+function ringFx(x, z, color) {
+    const g = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.62, 24),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
+    g.rotation.x = -Math.PI / 2;
+    g.position.set(x, terrainHeight(x, z) + 0.1, z);
+    scene.add(g);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 420;
+        if (t >= 1) { scene.remove(g); g.geometry.dispose(); g.material.dispose(); return; }
+        g.scale.setScalar(1 + t * 6); g.material.opacity = 0.8 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
 }
 
 function updateProjectiles(dt) {
@@ -333,14 +425,18 @@ function updateProjectiles(dt) {
         p.mesh.position.y = terrainHeight(p.mesh.position.x, p.mesh.position.z) + 1.5;
         p.life -= dt;
         let done = p.life <= 0;
-        for (const c of curses) {
-            if (Math.hypot(c.x - p.mesh.position.x, c.z - p.mesh.position.z) < 1.6) {
+        const R = p.r || 1.6;
+        for (const c of curses.slice()) {
+            if (p.hit && p.hit.has(c)) continue;
+            if (Math.hypot(c.x - p.mesh.position.x, c.z - p.mesh.position.z) < R) {
                 damageCurse(c, p.dmg);
-                for (const c2 of curses) {
-                    if (c2 !== c && Math.hypot(c2.x - c.x, c2.z - c.z) < 3.2) damageCurse(c2, p.dmg * 0.4);
+                if (p.hit) p.hit.add(c);
+                const aoe = p.aoe || 3.2, aMul = p.aoeMul == null ? 0.4 : p.aoeMul;
+                for (const c2 of curses.slice()) {
+                    if (c2 !== c && Math.hypot(c2.x - c.x, c2.z - c.z) < aoe) damageCurse(c2, p.dmg * aMul);
                 }
-                burst(p.mesh.position.x, 1.5, p.mesh.position.z, '#b388ff', 14);
-                done = true; break;
+                burst(p.mesh.position.x, 1.5, p.mesh.position.z, p.color || '#b388ff', 14);
+                if (!p.pierce) { done = true; break; }
             }
         }
         if (done) { scene.remove(p.mesh); projectiles.splice(i, 1); }
@@ -358,6 +454,7 @@ function damageCurse(c, dmg) {
         const idx = curses.indexOf(c);
         if (idx >= 0) curses.splice(idx, 1);
         burst(c.x, 1.4, c.z, c.boss ? '#ff3a3a' : '#aa1840', c.boss ? 40 : 16);
+        sfx('death');
         if (c.boss) onBossKilled();
         else {
             gainXp(c.xp);
@@ -378,7 +475,7 @@ function acceptQuest(id) {
     if (q.state !== 'available') return;
     q.state = 'active'; q.progress = 0;
     toast('Mission accepted: ' + QUESTS[id].title);
-    if (id === 'exam_g3') spawnCurse(true);
+    if (id === 'exam') { spawnCurse(true); sfx('boss'); }
     refreshMissionHud();
     persist();
 }
@@ -386,7 +483,7 @@ function acceptQuest(id) {
 function questProgress() {
     for (const id of Object.keys(save.quests)) {
         const q = save.quests[id], def = QUESTS[id];
-        if (!def || q.state !== 'active' || id === 'exam_g3') continue;
+        if (!def || q.state !== 'active' || id === 'exam') continue;
         q.progress = Math.min(def.target, q.progress + 1);
         if (q.progress >= def.target) completeQuest(id);
     }
@@ -395,13 +492,25 @@ function questProgress() {
 
 function completeQuest(id) {
     const q = save.quests[id], def = QUESTS[id];
-    q.state = 'done';
-    if (def.reward.xp) gainXp(def.reward.xp);
-    if (def.reward.gold) save.gold += def.reward.gold;
-    if (def.reward.gradeUp && save.grade > 0) {
-        save.grade--;
-        toast('PROMOTED — now ' + GRADE_NAME[save.grade] + '!');
+    if (id === 'exam') {
+        const g = save.grade;
+        gainXp(220 + (4 - g) * 130);
+        save.gold += 130 + (4 - g) * 80;
+        if (g > 0) {
+            save.grade--;
+            sfx('level');
+            toast('PROMOTED — now ' + GRADE_NAME[save.grade] + '!');
+            // Re-open for the next grade exam (gated by level in openContact)
+            q.state = save.grade > 0 ? 'available' : 'done';
+            q.progress = 0;
+        } else {
+            q.state = 'done';
+            toast('Special Grade — the pinnacle, sorcerer.');
+        }
     } else {
+        q.state = 'done';
+        if (def.reward && def.reward.xp) gainXp(def.reward.xp);
+        if (def.reward && def.reward.gold) save.gold += def.reward.gold;
         toast('Mission complete: ' + def.title);
     }
     refreshMissionHud();
@@ -409,8 +518,8 @@ function completeQuest(id) {
 }
 
 function onBossKilled() {
-    const q = save.quests.exam_g3;
-    if (q && q.state === 'active') completeQuest('exam_g3');
+    const q = save.quests.exam;
+    if (q && q.state === 'active') completeQuest('exam');
 }
 
 function xpToNext(lv) { return Math.round(60 * Math.pow(lv, 1.45)); }
@@ -426,6 +535,7 @@ function gainXp(amount) {
     if (leveled) {
         deriveStats();
         player.hp = player.maxHp; player.ce = player.maxCe;
+        sfx('level');
         toast('LEVEL UP — Lv.' + save.level);
         persist();
     }
@@ -435,6 +545,7 @@ function damagePlayer(dmg) {
     if (state !== 'playing' || player.iframes > 0) return;
     player.hp -= dmg;
     player.iframes = 0.4;
+    sfx('hurt');
     document.body.style.boxShadow = 'inset 0 0 120px rgba(200,0,40,0.5)';
     setTimeout(() => { document.body.style.boxShadow = ''; }, 140);
     if (player.hp <= 0) {
@@ -476,14 +587,25 @@ function openBoard() {
 }
 
 function openContact() {
-    const def = QUESTS.exam_g3, q = qstate('exam_g3');
+    const q = qstate('exam'), g = save.grade;
     let body;
-    if (q.state === 'done') body = '<p style="color:#3adf8a">You have passed this exam, sorcerer.</p>';
-    else if (q.state === 'active') body = `<p style="color:#ffcf66">Exam underway — slay the manifested curse in the hills.</p>`;
-    else if (def.require(save)) body = `<p>${def.desc}</p><button class="btn sec act" data-accept="exam_g3">Begin Grade Exam</button>`;
-    else body = `<p>Return at <b>Lv.4+</b> with the backroads cleansed. (Lv.${save.level}, ` +
-        `Cleansing: ${qstate('exorcism1').state})</p>`;
-    showOverlay(`<h2>Jujutsu High Contact</h2><p>Grade: <b>${GRADE_NAME[save.grade]}</b></p>${body}
+    if (g === 0) {
+        body = '<p style="color:#3adf8a">Special Grade. There is no higher rank, sorcerer.</p>';
+    } else if (q.state === 'active') {
+        body = '<p style="color:#ffcf66">Exam underway — slay the manifested curse out in the hills.</p>';
+    } else {
+        const need = examReqLevel(g);
+        const cleansed = qstate('exorcism1').state === 'done';
+        const next = GRADE_NAME[g - 1];
+        if (save.level >= need && cleansed) {
+            body = `<p>Promotion exam to <b>${next}</b>. ${QUESTS.exam.desc}</p>` +
+                `<button class="btn sec act" data-accept="exam">Begin Grade Exam</button>`;
+        } else {
+            body = `<p>To attempt promotion to <b>${next}</b>: reach <b>Lv.${need}</b>` +
+                `${cleansed ? '' : ' and finish <b>Cleansing the Backroads</b>'}. (You: Lv.${save.level})</p>`;
+        }
+    }
+    showOverlay(`<h2>Jujutsu High Contact</h2><p>Grade: <b>${GRADE_NAME[g]}</b></p>${body}
         <button class="btn sec act" data-close="1">Close</button>`);
 }
 
@@ -498,6 +620,16 @@ function openSmith() {
         <button class="btn sec act" data-close="1">Close</button>`);
 }
 
+function chooseTechnique() {
+    const rows = Object.entries(TECHNIQUES).map(([id, t]) =>
+        `<div class="row"><span><b style="color:${t.color}">${t.name}</b><br>` +
+        `<small style="color:#7a8a9a">Z: ${t.zName} &nbsp;·&nbsp; X: ${t.xName}</small></span>` +
+        `<button class="btn sec act" data-tech="${id}">Choose</button></div>`).join('');
+    showOverlay(`<h2>Choose Your Cursed Technique</h2>
+        <p>Defines your <b>Z</b> (primary) and <b>X</b> (secondary). Permanent for this save.</p>
+        ${rows}`);
+}
+
 function openPause() {
     showOverlay(`<h2>Paused</h2>
         <p>${save.name} — ${GRADE_NAME[save.grade]} · Lv.${save.level}</p>
@@ -507,6 +639,13 @@ function openPause() {
 
 document.getElementById('overlay').addEventListener('click', (e) => {
     const t = e.target;
+    if (!t.dataset || (!t.dataset.close && !t.dataset.resume && !t.dataset.accept &&
+        !t.dataset.quit && !t.dataset.buy && !t.dataset.tech)) return;
+    sfx('ui');
+    if (t.dataset.tech) {
+        if (pendingSave) { pendingSave.technique = t.dataset.tech; hideOverlay(); startGame(pendingSave); persist(); pendingSave = null; }
+        return;
+    }
     if (t.dataset.close || t.dataset.resume) { hideOverlay(); if (state === 'paused') resume(); }
     else if (t.dataset.accept) { acceptQuest(t.dataset.accept); hideOverlay(); }
     else if (t.dataset.quit) { persist(); hideOverlay(); toSignin(); }
@@ -539,7 +678,7 @@ function swingArm() { armSwing = 1; }
 // ─── GAME FLOW ──────────────────────────────────────────────
 function startGame(loaded) {
     save = loaded;
-    // apply persistent shop bonuses into derived stats
+    if (!save.technique) save.technique = 'strike';
     document.getElementById('signin-screen').classList.remove('active');
     document.getElementById('hud').style.display = 'block';
     player = { x: TOWN.x, z: TOWN.z + 6, vy: 0, iframes: 0, hp: undefined, ce: undefined };
@@ -549,7 +688,7 @@ function startGame(loaded) {
     player.hp = player.maxHp; player.ce = player.maxCe;
     refreshMissionHud();
     state = 'playing';
-    toast('Welcome, ' + save.name + ' — ' + GRADE_NAME[save.grade]);
+    toast('Welcome, ' + save.name + ' — ' + GRADE_NAME[save.grade] + ' · ' + curTech().name);
 }
 
 function toSignin() {
@@ -566,11 +705,11 @@ function resume() { state = 'playing'; }
 function refreshMissionHud() {
     let txt = 'Visit the Mission Board in town.';
     const ex = save.quests.exorcism1;
-    const exam = save.quests.exam_g3;
+    const exam = save.quests.exam;
     if (exam && exam.state === 'active') txt = 'GRADE EXAM: slay the manifested curse.';
     else if (ex && ex.state === 'active') txt = `Exorcise curses (${ex.progress}/${QUESTS.exorcism1.target})`;
-    else if (ex && ex.state === 'done' && (!exam || exam.state !== 'done')) txt = 'See the Jujutsu High Contact for your Grade Exam.';
-    else if (exam && exam.state === 'done') txt = 'Grade 3 attained. More roads await (updates coming).';
+    else if (save.grade === 0) txt = 'Special Grade — the pinnacle. More roads in updates.';
+    else if (ex && ex.state === 'done') txt = `See the Jujutsu High Contact — Grade Exam (need Lv.${examReqLevel(save.grade)}).`;
     document.getElementById('mission-text').textContent = txt;
 }
 
@@ -580,12 +719,13 @@ function initInput() {
         keys[e.code] = true;
         if (e.code === 'Escape' && state === 'playing') { state = 'paused'; openPause(); }
         else if (e.code === 'KeyE' && state === 'playing') tryInteract();
-        else if (e.code === 'KeyZ' && state === 'playing') cursedTechnique();
+        else if (e.code === 'KeyZ' && state === 'playing') techZ();
+        else if (e.code === 'KeyX' && state === 'playing') techX();
         else if (e.code === 'Space' && state === 'playing') doDash();
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
     const cv = document.getElementById('game-canvas');
-    cv.addEventListener('click', () => { if (state === 'playing') cv.requestPointerLock(); });
+    cv.addEventListener('click', () => { audioInit(); if (state === 'playing') cv.requestPointerLock(); });
     cv.addEventListener('mousedown', (e) => { if (e.button === 0 && state === 'playing' && pointerLocked) meleeStrike(); });
     document.addEventListener('pointerlockchange', () => { pointerLocked = document.pointerLockElement === cv; });
     addEventListener('mousemove', (e) => {
@@ -712,7 +852,7 @@ function update(dt) {
 
 function updateHud() {
     document.getElementById('hud-name').textContent = save.name;
-    document.getElementById('hud-grade').textContent = GRADE_NAME[save.grade];
+    document.getElementById('hud-grade').textContent = GRADE_NAME[save.grade] + '  ·  ' + curTech().name;
     document.getElementById('hud-hp').style.width = Math.max(0, player.hp / player.maxHp * 100) + '%';
     document.getElementById('hud-hp-t').textContent = Math.ceil(player.hp) + '/' + player.maxHp;
     document.getElementById('hud-ce').style.width = (player.ce / player.maxCe * 100) + '%';
@@ -783,11 +923,18 @@ function init() {
 }
 
 async function enterPressed() {
+    audioInit(); sfx('ui');
     const name = (document.getElementById('name-input').value || '').trim().slice(0, 16);
     if (!name) { document.getElementById('name-input').focus(); return; }
     const existing = await adapter.load(name);
-    startGame(existing || newSave(name));
-    if (!existing) persist();
+    if (existing) {
+        startGame(existing);
+    } else {
+        // New sorcerer — pick a cursed technique first
+        pendingSave = newSave(name);
+        document.getElementById('signin-screen').classList.remove('active');
+        chooseTechnique();
+    }
 }
 
 function loop() {

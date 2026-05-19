@@ -7,8 +7,17 @@
 Jujutsu High Contact. Curse HP/damage scale with player grade
 (`gradeMul = 1 + (4 - grade) * 0.4`) so the world keeps pace.
 
-MVP ships **Grade 4 → Grade 3** (one exam). Further exams are content
-additions (same pattern, new boss + requirements).
+The **full chain is implemented** (G4 → 3 → 2 → 1 → Special). One
+reusable `exam` quest from the Contact, gated by `examReqLevel(grade)`
+(G4→Lv4, G3→7, G2→10, G1→13) + the cleansing quest; each win promotes
+one grade and re-opens for the next.
+
+## Cursed Techniques (chosen at sign-in)
+
+New saves pick one of three in `save.technique` (permanent):
+**Cursed Strike** (Z bolt / X pull), **Dismantle** (Z cleave cone /
+X piercing wave), **Flame Arrow** (Z explosive arrow / X nova). Z is
+primary, X secondary; both spend cursed energy.
 
 ## Levels
 
