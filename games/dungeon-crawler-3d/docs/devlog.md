@@ -4,6 +4,20 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-19 — Mahito X Body Repel: dense flesh-limb barrage
+
+User reference (anime clip) → Body Repel should be a barrage of
+lashing transfigured limbs. Reworked the eruption from 6 sparse
+snake-cones into **14 transfigured-flesh ARMS**: 8-segment tapered
+limb tipped with a clawed grasping hand (palm + 5 fingers + a small
+gaping dark mouth, no eyes), staggered eruption, per-limb random
+reach/height-bias/whip-frequency, hand aimed outward along its reach.
+Pale pastel soul palette kept. Gameplay (damage ×1.8 / 4.2-tile
+radius / knockback / back-hop / i-frames) unchanged. `node --check`
+clean; characters.md updated.
+
+---
+
 ## 2026-05-19 — Mahito: canon anime visual pass + pastel transfigured humans
 
 Made Mahito's kit *look* like the anime. Damage / cooldowns / ranges

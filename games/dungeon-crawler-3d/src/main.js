@@ -3898,47 +3898,75 @@ function mahitoBodyRepel() {
         e.data.x += (dx / d) * 2.6; e.data.z += (dz / d) * 2.6;
         e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
     }
-    // Canon Body Repel: incompatible fused souls erupt as grotesque
-    // multi-headed transfigured-flesh snakes lashing out from the body.
-    const heads = 6;
-    for (let h = 0; h < heads; h++) {
-        const ang = (h / heads) * Math.PI * 2 + Math.random() * 0.5;
-        const snake = new THREE.Group();
-        // Pale reshaped-flesh limbs (canon: incompatible fused souls)
+    // Canon Body Repel: a DENSE BARRAGE of grotesque transfigured-flesh
+    // ARMS erupts from his reshaped body and lashes outward in every
+    // direction — each a segmented limb tipped with a clawed grasping
+    // hand (small gaping mouth on the palm, no eyes), pale pastel soul.
+    const limbCount = 14;
+    for (let h = 0; h < limbCount; h++) {
+        const ang = (h / limbCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+        const limb = new THREE.Group();
         const fpc = SOUL[h % SOUL.length];
         const fleshA = new THREE.MeshStandardMaterial({ color: fpc, roughness: 0.7 });
-        const fleshB = new THREE.MeshStandardMaterial({ color: new THREE.Color(fpc).multiplyScalar(0.85), roughness: 0.75 });
-        const segN = 5;
+        const fleshB = new THREE.MeshStandardMaterial({ color: new THREE.Color(fpc).multiplyScalar(0.82), roughness: 0.75 });
+        const segN = 8;
         const segs = [];
         for (let i = 0; i < segN; i++) {
-            const s = new THREE.Mesh(new THREE.SphereGeometry(0.17 - i * 0.018, 7, 6), i % 2 ? fleshA : fleshB);
-            snake.add(s); segs.push(s);
+            const r = Math.max(0.05, 0.20 - i * 0.018);
+            const s = new THREE.Mesh(new THREE.SphereGeometry(r, 7, 6), i % 2 ? fleshA : fleshB);
+            limb.add(s); segs.push(s);
         }
-        const headM = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.36, 6), fleshA);
-        snake.add(headM); segs.push(headM);
-        // No eyes — just a small gaping dark mouth (matches the theme)
-        const maw = new THREE.Mesh(new THREE.SphereGeometry(0.07, 7, 6),
+        // Clawed grasping hand at the tip
+        const hand = new THREE.Group();
+        const palm = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 7), fleshA);
+        palm.scale.set(1.1, 0.7, 1.2); hand.add(palm);
+        const maw = new THREE.Mesh(new THREE.SphereGeometry(0.06, 7, 6),
             new THREE.MeshBasicMaterial({ color: '#241c2a' }));
-        maw.position.set(0, 0.02, 0.13); maw.scale.set(1.1, 1.5, 0.7);
-        headM.add(maw);
-        scene.add(snake);
+        maw.position.set(0, 0, 0.14); maw.scale.set(1.2, 1.5, 0.6); hand.add(maw);
+        for (let fI = 0; fI < 5; fI++) {
+            const isThumb = fI === 4;
+            const fg = new THREE.Mesh(new THREE.ConeGeometry(0.035, isThumb ? 0.22 : 0.30, 5), fleshB);
+            const fa = isThumb ? -1.1 : (-0.45 + fI * 0.3);
+            fg.position.set(Math.sin(fa) * 0.18, isThumb ? -0.02 : 0, 0.16 + Math.cos(fa) * 0.05);
+            fg.rotation.x = -1.25;
+            fg.rotation.z = fa * 0.5;
+            hand.add(fg);
+        }
+        limb.add(hand); segs.push(hand);
+        scene.add(limb);
         const baseY = EYE_HEIGHT * 0.7 + fly;
-        const t0 = performance.now(), dur = 620;
-        const animSnake = () => {
-            const t = (performance.now() - t0) / dur;
-            if (t >= 1) { scene.remove(snake); snake.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } }); return; }
-            const reach = Math.sin(Math.min(t * 1.4, 1) * Math.PI) * radius * TILE * 0.95;
+        // Per-limb variation so it reads as a chaotic barrage
+        const reachMul = 0.78 + Math.random() * 0.42;    // mixed short/long
+        const heightBias = (Math.random() - 0.35) * 0.9;  // some up, some low
+        const wobF = 18 + Math.random() * 12;
+        const wobA = 0.22 + Math.random() * 0.18;
+        const delay = Math.random() * 140;                // staggered eruption
+        const dur = 540 + Math.random() * 220;
+        const t0 = performance.now();
+        const animLimb = () => {
+            const el = performance.now() - t0;
+            if (el < delay) { limb.visible = false; requestAnimationFrame(animLimb); return; }
+            limb.visible = true;
+            const t = (el - delay) / dur;
+            if (t >= 1) { scene.remove(limb); limb.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } }); return; }
+            const reach = Math.sin(Math.min(t * 1.5, 1) * Math.PI) * radius * TILE * reachMul;
             for (let i = 0; i < segs.length; i++) {
                 const f = (i + 1) / segs.length;
-                const wob = Math.sin(t * 22 + i * 0.9) * 0.28 * f;
-                segs[i].position.set(
+                const wob = Math.sin(t * wobF + i * 0.8) * wobA * f;
+                const obj = segs[i];
+                obj.position.set(
                     wx + Math.cos(ang + wob) * reach * f,
-                    baseY + Math.sin(t * 9 + i) * 0.18 * f + f * 0.25,
+                    baseY + Math.sin(t * 9 + i) * 0.2 * f + f * (0.25 + heightBias),
                     wz + Math.sin(ang + wob) * reach * f);
+                // Aim the hand outward along the limb's reach direction
+                if (obj === hand && i > 0) {
+                    const prev = segs[i - 1].position;
+                    hand.lookAt(obj.position.x * 2 - prev.x, obj.position.y * 2 - prev.y, obj.position.z * 2 - prev.z);
+                }
             }
-            requestAnimationFrame(animSnake);
+            requestAnimationFrame(animLimb);
         };
-        requestAnimationFrame(animSnake);
+        requestAnimationFrame(animLimb);
     }
     // Recoil backward out of danger with brief i-frames
     fpsCamera.safeMove(px - fwdX * 3, pz - fwdZ * 3, dungeon.map);
