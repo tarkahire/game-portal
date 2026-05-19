@@ -21,7 +21,10 @@ save(data):  Promise<void>
 remove(name):Promise<void>
 ```
 
-`SaveData` = `{ name, level, xp, grade, gold, quests, flags, updatedAt }`.
+`SaveData` = `{ name, level, xp, grade, technique, gold, quests, flags, updatedAt }`
+where `technique` ∈ `strike|dismantle|flame` (chosen at sign-in,
+permanent) and `flags` holds permanent smith upgrades
+(`dmgBonus`, `ceBonus`).
 
 Position is intentionally **not** saved — you respawn at town on load
 (simpler, and town is the natural hub). Add to schema later if needed.

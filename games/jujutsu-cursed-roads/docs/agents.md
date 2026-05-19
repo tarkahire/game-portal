@@ -19,9 +19,19 @@ Read `CLAUDE.md` then `docs/design.md` first.
   `save.level` + `save.flags`.
 
 ## Current shape
-- One monolithic `src/main.js` (MVP pragmatism, like dungeon-crawler-3d).
-  Split into the `src/world|combat|quests|progression` modules from
-  `docs/architecture.md` when it grows.
+- One monolithic `src/main.js` (MVP pragmatism, like dungeon-crawler-3d)
+  + `src/save/{saveAdapter,localStorageAdapter}.js`. Split into the
+  `src/world|combat|quests|progression` modules from
+  `docs/architecture.md` only when it grows.
+- The 3 techniques (`TECHNIQUES` table, keys `strike`/`dismantle`/
+  `flame` kept stable for saves) are **re-creations** of Megumi/Sukuna/
+  Todo kits in this engine — do not try to literal-port
+  dungeon-crawler-3d combat code (different engine/scale).
+- Shared FX helpers exist (`explode`, `shockRing`, `flashLight`,
+  `vortexFx`, `burst`, `ringFx`, `camShake`, `screenFlash`) + WebAudio
+  `sfx` — reuse these rather than hand-rolling new ones.
+- `allies[]` = Megumi's shadow hounds; clear them alongside `curses`
+  on death/sign-out.
 
 ## Good next tasks
 See `docs/todo.md` → NEXT / CONTENT / SYSTEMS. Highest value:

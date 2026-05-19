@@ -5,8 +5,11 @@ countryside dotted with little towns, exorcise cursed spirits, clear missions
 for Jujutsu High, climb the sorcerer **grade system**, and unlock cursed
 techniques and cursed tools (swords).
 
-> **STATUS: DESIGN PHASE — no code yet.** This folder currently contains the
-> design + documentation framework only. Build order lives in `docs/todo.md`.
+> **STATUS: PLAYABLE.** MVP shipped 2026-05-19, plus Updates 1–3 (selectable
+> techniques, sound, full grade chain, town NPCs, juicy VFX, and the three
+> techniques re-themed to dungeon-crawler-3d character kits — Megumi / Sukuna
+> / Todo). Code lives in `index.html` + `style.css` + `src/main.js` +
+> `src/save/`. History in `docs/devlog.md`; roadmap in `docs/todo.md`.
 
 ## Quick Reference
 
@@ -63,7 +66,23 @@ techniques and cursed tools (swords).
 | Sword/spear/cane viewmodels + swing system | `dungeon-crawler-3d/src/main.js` `buildFPS*()` |
 | VFX (beams, rings, particles, hitstop, domains) | `dungeon-crawler-3d/src/main.js` VFX section |
 
-## Adding to the Portal
+## Portal
 
-When the MVP is playable: add a card to root `index.html`, a thumbnail to
-`assets/thumbnails/`, push → Vercel auto-deploys (same as every other game).
+Already wired in: a card on the root `index.html` links here; Vercel
+auto-deploys on push (static, no build). The portal uses an emoji
+placeholder thumbnail (no image file needed).
+
+## Cursed Techniques (current)
+
+Three, chosen at sign-in, stored in `save.technique` (keys kept stable —
+`strike`/`dismantle`/`flame` — so old saves still resolve). Re-themed to
+dungeon-crawler-3d character kits:
+
+| Key | Character | Z | X |
+|-----|-----------|---|---|
+| `strike` | Megumi — Ten Shadows | Divine Dogs (hound summons) | Nue (lightning strike) |
+| `dismantle` | Sukuna | Dismantle (slash volley) | Cleave (front arc) |
+| `flame` | Todo | Black Flash (blink-detonation) | Boulder Kick |
+
+These are *re-creations* in this game's simpler engine — **not** a literal
+port of dungeon-crawler-3d's combat code (different engine/scale).

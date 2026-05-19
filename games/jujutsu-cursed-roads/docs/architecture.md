@@ -1,61 +1,59 @@
-# Architecture (Planned)
+# Architecture
 
-> Design phase. This is the intended structure once the build starts —
-> nothing here exists yet.
+> **Status: BUILT (MVP + Updates 1–3).** The game is a self-contained
+> Three.js (CDN importmap, no build) static site, written from scratch
+> (the "fork anime-battle-royale" plan in the original draft was not
+> taken — a clean lean build was faster). The planned multi-module
+> `src/` split below is the **future refactor target**, not the current
+> layout.
 
-## Approach
-
-Fork `games/anime-battle-royale/` (already 3rd-person Three.js with the
-character roster, ability dispatcher, camera, and curse-styled enemies).
-Strip the storm / battle-royale loop. Add: heightmap world, exterior
-towns, a progression layer, a quest manager, a curse-spawn director, and a
-localStorage save layer.
-
-## Planned File Structure
+## Actual File Structure (current)
 
 | Path | Purpose |
 |------|---------|
-| `index.html` | Three.js importmap, sign-in screen, HUD, screens |
-| `style.css` | UI (reuse the portal neon/horror styling baseline) |
-| `src/main.js` | Game loop, scene, input, state machine, screen flow |
-| `src/world/terrain.js` | Heightmap ground (hills), walkability, ground sampling |
-| `src/world/props.js` | Trees/rocks/shrines/fences instancing |
-| `src/world/town.js` | Town builder — non-enterable house props, board, smith, contact NPC, safe-zone radius |
-| `src/world/veils.js` | Veiled-zone domes + zone gating by grade |
-| `src/player/player.js` | Player state, stats derived from level/grade |
-| `src/player/camera.js` | 3rd-person camera (reuse `anime-battle-royale/src/camera.js`) |
-| `src/combat/techniques.js` | Cursed-technique loadouts (adapted from `dungeon-crawler-3d` `definitions.js` + ability code) |
-| `src/combat/swords.js` | Cursed-tool weapon defs + viewmodels |
-| `src/combat/vfx.js` | Ported VFX helpers (rings/particles/beams/hitstop) |
-| `src/enemies/curses.js` | Curse spawn director; reuses `meshFactory.js` builders, tiered by grade |
-| `src/progression/xp.js` | XP curve, level-up, grade rules, skill tree |
-| `src/quests/questManager.js` | Quest defs, state, board UI, markers, rewards |
-| `src/save/saveAdapter.js` | **Storage interface** (see `docs/save.md`) |
-| `src/save/localStorageAdapter.js` | MVP implementation of the interface |
-| `src/ui/hud.js` | HP / CE / XP / grade / mission / minimap |
+| `index.html` | Three.js importmap, sign-in screen, HUD, overlay panels |
+| `style.css` | Cyberpunk-ish UI: sign-in, HUD, overlay cards, minimap |
+| `src/main.js` | **Everything** — monolithic (MVP pragmatism, like `dungeon-crawler-3d`'s `main.js`): scene/loop/input, terrain, town + NPCs, player, curses + spawn director, the 3 cursed-technique kits + helpers, Megumi's `allies` (shadow hounds), VFX (`explode`/`shockRing`/`flashLight`/`vortexFx`/`burst`/`ringFx`/`camShake`/`screenFlash`), WebAudio `sfx`, quests, progression, HUD/minimap, sign-in flow |
+| `src/save/saveAdapter.js` | Storage interface + `newSave()` |
+| `src/save/localStorageAdapter.js` | MVP localStorage implementation |
 | `docs/` | This documentation framework |
 
-## Key Boundaries
+## Key Boundaries (in force)
 
-- **Combat ⟂ Save**: gameplay never calls `localStorage` directly — only
-  `saveAdapter`. Swapping to a backend later touches one file.
-- **World ⟂ Quests**: the quest manager places markers/objectives; the
-  world module knows nothing about quests.
-- **Reuse via copy, then adapt**: copy proven modules from
-  `dungeon-crawler-3d` / `anime-battle-royale` into `src/` and trim, rather
-  than importing across game folders (each game stays self-contained, per
-  portal convention).
+- **Gameplay ⟂ Save**: gameplay never calls `localStorage` directly —
+  only the `SaveAdapter`. Swapping to a real backend = one new adapter
+  file + one `new LocalStorageAdapter()` line. (Holds today.)
+- **`deriveStats()`** is the single source of truth for player stats
+  from `save.level` + `save.flags`.
+- **Cursed techniques** are a `TECHNIQUES` table (`strike`/`dismantle`/
+  `flame` keys kept stable for save compatibility) → `techZ()/techX()`
+  dispatch. Each entry is a re-creation of a dungeon-crawler-3d
+  character kit (Megumi/Sukuna/Todo) in this engine — **not** a literal
+  code port (different engine/scale).
+- Self-contained: no cross-imports from other game folders (portal
+  convention).
 
-## Coordinate / Scale Conventions
+## Planned Module Split (future refactor — NOT current)
 
-- Adopt the existing portal convention: world units, a `TILE`-style scale
-  constant, player position in world space, terrain height sampled per
-  frame for grounding. Finalise in `src/world/terrain.js` when built.
+When `main.js` grows too large, split into:
+`src/world/{terrain,props,town,veils}.js`,
+`src/player/{player,camera}.js`,
+`src/combat/{techniques,vfx,allies}.js`,
+`src/enemies/curses.js`, `src/progression/xp.js`,
+`src/quests/questManager.js`, `src/ui/hud.js`.
+Boundaries above already make this mechanical.
 
-## Open Architectural Decisions
+## Coordinate / Scale
 
-- Terrain: authored heightmap image vs. procedural noise (MVP leans
-  authored single map for control).
-- Curse spawning: fixed spawn nodes vs. director that spawns around the
-  player out of sight. (Director preferred — keeps the world feeling alive
-  without populating the whole map.)
+World units; player position in world space (`player.x/z`); ground is
+an analytic `terrainHeight(x,z)` sampled per frame for grounding
+(player, curses, NPCs, allies, props, FX).
+
+## Resolved Decisions
+
+- Terrain: **analytic procedural** heightfield (not an authored image),
+  flattened toward the town.
+- Curse spawning: **director** spawns around the player out of the town
+  safe radius, capped + grade-scaled, despawns far ones.
+- Build base: **clean from-scratch**, not a fork (faster than stripping
+  anime-battle-royale). Combat/VFX *ideas* were reused, not the code.

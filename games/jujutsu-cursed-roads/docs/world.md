@@ -16,12 +16,18 @@ This is a deliberate scope decision: **houses are solid exterior props**.
 No interiors, no room LOD, no door logic.
 
 A town =
-- A cluster of **non-enterable houses** (collide as solid boxes/meshes).
-- **Mission Board**: interact → quest list UI.
-- **Cursed Tool Smith**: interact → buy/swap swords with gold.
-- **Jujutsu High Contact**: interact → story missions / Grade Exam access.
-- A **safe-zone radius**: no curse spawns inside; curses already aggroed
-  disengage at the edge. Visual cue (lantern light / clean ground).
+- A cluster of **non-enterable houses** (9, collide as solid circles).
+- **SHIPPED — three walk-up human NPCs** (`makeNpc`), not signposts:
+  - **Mission Board clerk** (clipboard + a notice board behind) →
+    quest list overlay.
+  - **Cursed Tool Smith** (apron, hammer, anvil) → gold upgrades
+    overlay (permanent +damage / +max-CE; cursed-tool weapons TBD).
+  - **Jujutsu High Contact** (crossed arms, high collar) → Grade Exam
+    chain overlay.
+  Each idles (breathing, spinning marker, pulsing ground ring) and
+  turns to face the player nearby. Press **E** in range.
+- A **safe-zone radius**: no curse spawns inside; slow HP regen while
+  inside.
 
 MVP: **1 town**. Stretch: 3–4 towns with fast-travel between discovered
 boards.
@@ -42,10 +48,10 @@ boards.
 - Near veils / at night (stretch): denser, higher grade.
 - Towns: none (safe).
 
-## World MVP Checklist
+## World Checklist
 
-- [ ] Heightmap terrain + grounding
-- [ ] Prop instancing (trees/rocks/shrines/fences)
-- [ ] 1 town: houses (solid) + board + smith + contact + safe radius
-- [ ] 1 veiled zone (dome + gating)
-- [ ] Path decals between key points
+- [x] Heightmap terrain + per-frame grounding
+- [x] Scattered props (trees + rocks; ~260, none in town)
+- [x] 1 town: 9 solid houses + 3 human NPCs + safe radius + town heal
+- [ ] 1 veiled zone (dome + gating) — stretch, not built
+- [ ] Path decals between key points — stretch, not built

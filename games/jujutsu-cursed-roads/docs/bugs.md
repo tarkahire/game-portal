@@ -4,7 +4,12 @@ Newest first. None blocking the MVP.
 
 ## Open
 - Camera can graze terrain on very steep slopes (mitigated by a
-  `terrainHeight + 1.2` clamp; may still jitter on sharp ridges).
+  `terrainHeight + 1.2` clamp; may still jitter on sharp ridges);
+  camera-shake adds extra offset on top.
+- Megumi's shadow hounds + curses seek in a straight line — they can
+  clip house corners while chasing.
+- Many transient FX each run their own `requestAnimationFrame`; fine
+  at MVP scale, would want pooling if FX/curse counts grow.
 - Curse pathing is straight-line (no terrain/house avoidance) — they
   can clip house corners while chasing.
 - House collision is a flat circle (footprint), so very tall roofs

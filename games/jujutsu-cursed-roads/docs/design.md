@@ -1,6 +1,10 @@
 # Jujutsu — Cursed Roads — Game Design Document
 
-> Vision + future-direction doc. Design phase; nothing here is built yet.
+> Vision + future-direction doc.
+> **Current state: MVP + Updates 1–3 are BUILT and playable** (see
+> `docs/devlog.md`). Sections below describe the intended design; where
+> the shipped game differs it's noted inline. Remaining/cut scope is
+> tracked in `docs/todo.md`.
 
 ## 1. Elevator Pitch
 
@@ -37,10 +41,13 @@ Session length target: a quest is 3–8 minutes. Always something nearby.
 - **Little towns (exterior only)**: clusters of houses you **cannot enter**
   (deliberate scope choice). A town has a **Mission Board**, a **Cursed
   Tool Smith**, and a **Jujutsu High contact** NPC. Towns are safe (no curse
-  spawns inside the town radius).
+  spawns inside the town radius). **SHIPPED:** the three are walk-up
+  **human NPCs** (role clothing/props, idle anim, turn to face you) —
+  press **E** to talk; a soft ground ring + marker keeps them findable.
 - **Veiled zones**: a dark dome on the horizon marks a curtain/veil. Inside
-  = stronger curses, better rewards, sometimes a named curse.
-- **Day/night (stretch)**: night raises curse count + grade.
+  = stronger curses, better rewards, sometimes a named curse. *(stretch —
+  not yet built)*
+- **Day/night (stretch)**: night raises curse count + grade. *(not built)*
 
 Full spec: `docs/world.md`.
 
@@ -58,19 +65,27 @@ Full spec: `docs/world.md`.
   a swappable weapon with its own moveset. Examples: Playful Cloud, Inverted
   Spear of Heaven, Slaughter Demon, Split Soul Katana, Soul Solid.
 
+**SHIPPED:** the full grade chain (G4 → Special) works via one reusable
+Grade-Exam quest from the Contact, level-gated. Stats auto-scale per
+level (no skill tree yet); cursed *tools* aren't in yet — the Smith
+currently sells permanent +damage / +max-CE upgrades for gold.
+
 Full spec: `docs/progression.md`.
 
 ## 6. Combat
 
-- Reuse `dungeon-crawler-3d`'s combat feel: M1 melee combo, Z/X/C/V/F
-  abilities, F mobility, dash i-frames, Domain Expansion ultimate, hitstop +
-  VFX. Cursed energy is a resource bar abilities spend; **Reverse Cursed
-  Technique** heals (unlockable).
-- **One starting Cursed Technique** at MVP (pick at first sign-in), more
-  unlockable later. CTs are loadouts adapted from the existing 12-character
-  `definitions.js` kits.
-- Curses (enemies) reuse `meshFactory.js` fleshy-horror builders, grouped by
-  curse grade so difficulty tracks the player's grade.
+- Cursed energy is a regenerating resource bar; Z/X spend it. M1 melee +
+  Space dash (i-frames). Juicy VFX: explosions, shockwave rings, slash
+  arcs, vortex, comet trails, camera shake, WebAudio SFX.
+- **SHIPPED:** the player picks **one of three cursed techniques** at
+  sign-in (permanent, in `save.technique`). Each is a re-creation of a
+  dungeon-crawler-3d character kit in this game's simpler engine —
+  **Megumi** (Z Divine Dogs hound-summons / X Nue), **Sukuna**
+  (Z Dismantle slash volley / X Cleave arc), **Todo** (Z Black Flash
+  blink-detonation / X Boulder Kick). Not a literal code port — DC-3D
+  has a different engine/scale. Technique-swap is a future item.
+- Curses are deformed glow meshes spawned by a director that scales HP/
+  damage with the player's grade.
 
 ## 7. Quests
 
@@ -81,8 +96,8 @@ Mission types (issued at town boards / picked up by roaming):
 - **Investigation** — visit map markers, trigger a fight at the last one.
 - **Grade Exam** — scripted boss; the only way to rank up.
 
-A light story spine threads the Grade Exams (mentor NPC at Jujutsu High
-outposts). Full spec: `docs/quests.md`.
+**SHIPPED:** Exorcism (board) + the Grade Exam chain (contact). Veil
+clear / escort / investigation are stretch. Full spec: `docs/quests.md`.
 
 ## 8. Sign-in & Save (MVP = localStorage)
 
@@ -95,17 +110,21 @@ outposts). Full spec: `docs/quests.md`.
   already exists) can be swapped in later with **zero gameplay-code
   changes**. Save schema + adapter contract: `docs/save.md`.
 
-## 9. MVP Scope (first playable)
+## 9. Scope — what actually shipped (MVP + Updates 1–3)
 
-- 1 hilly map, 1 town (board + smith + contact).
-- Player + **1 cursed technique** + **1 starter sword**.
-- Levels 1–10; Grade 4 → Grade 3 (one Grade Exam boss).
-- 3 quest types: Exorcism, Escort, Grade Exam.
-- Curse spawn director (3–4 curse types tiered by grade).
-- Name sign-in + localStorage autosave.
-- HUD: HP, cursed energy, XP/level, grade, current mission, minimap.
+- ✅ 1 hilly heightmap map, 1 town with non-enterable houses + 3 human NPCs.
+- ✅ Player, M1 melee, dash; **3 selectable cursed techniques**
+  (Megumi / Sukuna / Todo) with Z + X each + the shadow-hound ally system.
+- ✅ Levels (uncapped curve); **full grade chain Grade 4 → Special**.
+- ✅ Quests: Exorcism (board) + reusable Grade Exam (contact).
+- ✅ Grade-scaled curse spawn director + scaling exam boss.
+- ✅ Name sign-in + localStorage autosave behind a swappable adapter.
+- ✅ HUD (HP/CE/XP/grade·technique/gold), minimap, pause, toasts.
+- ✅ WebAudio SFX; juicy VFX + camera shake; smith gold upgrades.
 
-Anything past this is **stretch** (see §11).
+Not yet built (see §11 + `docs/todo.md`): veiled zones, more quest
+types, technique-swap/skill tree, cursed *tools*, more towns, sound
+polish, model/animation upgrades, real backend.
 
 ## 10. Why This Is Achievable Here
 
