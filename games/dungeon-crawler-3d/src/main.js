@@ -3898,76 +3898,100 @@ function mahitoBodyRepel() {
         e.data.x += (dx / d) * 2.6; e.data.z += (dz / d) * 2.6;
         e.mesh.position.set(e.data.x * TILE, 0, e.data.z * TILE);
     }
-    // Canon Body Repel: a DENSE BARRAGE of grotesque transfigured-flesh
-    // ARMS erupts from his reshaped body and lashes outward in every
-    // direction — each a segmented limb tipped with a clawed grasping
-    // hand (small gaping mouth on the palm, no eyes), pale pastel soul.
-    const limbCount = 14;
-    for (let h = 0; h < limbCount; h++) {
-        const ang = (h / limbCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-        const limb = new THREE.Group();
+    // ── Mahito SLAMS BOTH HANDS down onto the floor ──
+    const pm = fpsCamera.playerModel;
+    if (pm?._rightArm && pm?._leftArm) {
+        pm._rightArm.rotation.set(1.45, 0, -0.35);
+        pm._leftArm.rotation.set(1.45, 0, 0.35);
+        setTimeout(() => {
+            if (pm?._rightArm) pm._rightArm.rotation.set(0.05, 0, 0);
+            if (pm?._leftArm) pm._leftArm.rotation.set(0.05, 0, 0);
+        }, 480);
+    }
+    const slamX = wx + fwdX * 1.0, slamZ = wz + fwdZ * 1.0;
+    setTimeout(() => {
+        groundRing(slamX, slamZ, '#e7c9e0', 4.5, 520);
+        groundRing(slamX, slamZ, '#cdbce8', 2.6, 420);
+        lightFlash(slamX, 0.5, slamZ, '#d8c2ec', 7, 260);
+        emitParticles(slamX, 0.3, slamZ, {
+            color: SOUL, count: 30, speed: 5, spread: 1.4,
+            gravity: -3, life: 16, size: 0.14, sizeEnd: 0, drag: 0.92, upward: 1.2
+        });
+        screenShake(0.4, 200);
+    }, 140);
+
+    // ── Separate snake-like transfigured humans erupt FROM THE FLOOR,
+    //    fanned toward where Mahito is aiming. Each is a smooth pale
+    //    pastel tapered body with a single gaping mouth at the head —
+    //    no hands, no eyes.
+    const baseAng = Math.atan2(fwdZ, fwdX);
+    const snakeCount = 7;
+    const fanWidth = 1.7;            // ~98° forward fan
+    const snakeReach = 6.0 * TILE;
+    setTimeout(() => {
+      for (let h = 0; h < snakeCount; h++) {
+        const frac = snakeCount === 1 ? 0.5 : h / (snakeCount - 1);
+        const sAng = baseAng + (frac - 0.5) * fanWidth + (Math.random() - 0.5) * 0.12;
+        // Floor spot a little ahead this snake bursts out of
+        const startR = (0.7 + Math.random() * 0.6) * TILE;
+        const ox = wx + Math.cos(sAng) * startR;
+        const oz = wz + Math.sin(sAng) * startR;
+        const snake = new THREE.Group();
         const fpc = SOUL[h % SOUL.length];
-        const fleshA = new THREE.MeshStandardMaterial({ color: fpc, roughness: 0.7 });
-        const fleshB = new THREE.MeshStandardMaterial({ color: new THREE.Color(fpc).multiplyScalar(0.82), roughness: 0.75 });
-        const segN = 8;
+        const skinA = new THREE.MeshStandardMaterial({ color: fpc, roughness: 0.72 });
+        const skinB = new THREE.MeshStandardMaterial({ color: new THREE.Color(fpc).multiplyScalar(0.86), roughness: 0.76 });
+        const segN = 11;
         const segs = [];
         for (let i = 0; i < segN; i++) {
-            const r = Math.max(0.05, 0.20 - i * 0.018);
-            const s = new THREE.Mesh(new THREE.SphereGeometry(r, 7, 6), i % 2 ? fleshA : fleshB);
-            limb.add(s); segs.push(s);
+            // Smooth taper — thin at the floor base, fuller mid, fine tail
+            const f = i / (segN - 1);
+            const r = Math.max(0.05, 0.07 + Math.sin(f * Math.PI) * 0.16);
+            const s = new THREE.Mesh(new THREE.SphereGeometry(r, 9, 7), i % 2 ? skinA : skinB);
+            snake.add(s); segs.push(s);
         }
-        // Clawed grasping hand at the tip
-        const hand = new THREE.Group();
-        const palm = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 7), fleshA);
-        palm.scale.set(1.1, 0.7, 1.2); hand.add(palm);
-        const maw = new THREE.Mesh(new THREE.SphereGeometry(0.06, 7, 6),
+        // Head — single gaping dark mouth, nothing else
+        const head = new THREE.Group();
+        const skull = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), skinA);
+        skull.scale.set(0.95, 0.85, 1.25);
+        head.add(skull);
+        const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.13, 9, 7),
             new THREE.MeshBasicMaterial({ color: '#241c2a' }));
-        maw.position.set(0, 0, 0.14); maw.scale.set(1.2, 1.5, 0.6); hand.add(maw);
-        for (let fI = 0; fI < 5; fI++) {
-            const isThumb = fI === 4;
-            const fg = new THREE.Mesh(new THREE.ConeGeometry(0.035, isThumb ? 0.22 : 0.30, 5), fleshB);
-            const fa = isThumb ? -1.1 : (-0.45 + fI * 0.3);
-            fg.position.set(Math.sin(fa) * 0.18, isThumb ? -0.02 : 0, 0.16 + Math.cos(fa) * 0.05);
-            fg.rotation.x = -1.25;
-            fg.rotation.z = fa * 0.5;
-            hand.add(fg);
-        }
-        limb.add(hand); segs.push(hand);
-        scene.add(limb);
-        const baseY = EYE_HEIGHT * 0.7 + fly;
-        // Per-limb variation so it reads as a chaotic barrage
-        const reachMul = 0.78 + Math.random() * 0.42;    // mixed short/long
-        const heightBias = (Math.random() - 0.35) * 0.9;  // some up, some low
-        const wobF = 18 + Math.random() * 12;
-        const wobA = 0.22 + Math.random() * 0.18;
-        const delay = Math.random() * 140;                // staggered eruption
-        const dur = 540 + Math.random() * 220;
+        mouth.position.set(0, -0.02, 0.16);
+        mouth.scale.set(1.05, 1.35, 0.85);
+        head.add(mouth);
+        snake.add(head); segs.push(head);
+        scene.add(snake);
+
+        const reachMul = 0.8 + Math.random() * 0.35;
+        const wobF = 14 + Math.random() * 8;
+        const wobA = 0.16 + Math.random() * 0.12;
+        const dur = 620 + Math.random() * 200;
+        const headLift = 1.2 + Math.random() * 0.6;
         const t0 = performance.now();
-        const animLimb = () => {
-            const el = performance.now() - t0;
-            if (el < delay) { limb.visible = false; requestAnimationFrame(animLimb); return; }
-            limb.visible = true;
-            const t = (el - delay) / dur;
-            if (t >= 1) { scene.remove(limb); limb.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } }); return; }
-            const reach = Math.sin(Math.min(t * 1.5, 1) * Math.PI) * radius * TILE * reachMul;
+        const animSnake = () => {
+            const t = (performance.now() - t0) / dur;
+            if (t >= 1) { scene.remove(snake); snake.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } }); return; }
+            // Erupt & strike forward, then retract at the end
+            const ext = t < 0.7 ? (1 - Math.pow(1 - t / 0.7, 3)) : (1 - (t - 0.7) / 0.3);
+            const reach = Math.max(0, ext) * snakeReach * reachMul;
+            const strike = Math.sin(Math.min(t * 1.4, 1) * Math.PI);
             for (let i = 0; i < segs.length; i++) {
                 const f = (i + 1) / segs.length;
-                const wob = Math.sin(t * wobF + i * 0.8) * wobA * f;
-                const obj = segs[i];
-                obj.position.set(
-                    wx + Math.cos(ang + wob) * reach * f,
-                    baseY + Math.sin(t * 9 + i) * 0.2 * f + f * (0.25 + heightBias),
-                    wz + Math.sin(ang + wob) * reach * f);
-                // Aim the hand outward along the limb's reach direction
-                if (obj === hand && i > 0) {
-                    const prev = segs[i - 1].position;
-                    hand.lookAt(obj.position.x * 2 - prev.x, obj.position.y * 2 - prev.y, obj.position.z * 2 - prev.z);
-                }
+                const wob = Math.sin(t * wobF + i * 0.7) * wobA * f;
+                segs[i].position.set(
+                    ox + Math.cos(sAng + wob) * reach * f,
+                    0.12 + f * f * headLift * strike,    // rises out of the floor
+                    oz + Math.sin(sAng + wob) * reach * f);
             }
-            requestAnimationFrame(animLimb);
+            // Aim the head where the body is travelling
+            const tip = segs[segs.length - 1].position;
+            const nck = segs[segs.length - 2].position;
+            head.lookAt(tip.x * 2 - nck.x, tip.y * 2 - nck.y, tip.z * 2 - nck.z);
+            requestAnimationFrame(animSnake);
         };
-        requestAnimationFrame(animLimb);
-    }
+        requestAnimationFrame(animSnake);
+      }
+    }, 160);
     // Recoil backward out of danger with brief i-frames
     fpsCamera.safeMove(px - fwdX * 3, pz - fwdZ * 3, dungeon.map);
     player.invincible = performance.now() + 450;

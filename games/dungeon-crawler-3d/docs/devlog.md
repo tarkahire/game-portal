@@ -4,17 +4,27 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
-## 2026-05-19 — Mahito X Body Repel: dense flesh-limb barrage
+## 2026-05-19 — Mahito X Body Repel: floor-snake barrage (v3, matches clip)
 
-User reference (anime clip) → Body Repel should be a barrage of
-lashing transfigured limbs. Reworked the eruption from 6 sparse
-snake-cones into **14 transfigured-flesh ARMS**: 8-segment tapered
-limb tipped with a clawed grasping hand (palm + 5 fingers + a small
-gaping dark mouth, no eyes), staggered eruption, per-limb random
-reach/height-bias/whip-frequency, hand aimed outward along its reach.
-Pale pastel soul palette kept. Gameplay (damage ×1.8 / 4.2-tile
-radius / knockback / back-hop / i-frames) unchanged. `node --check`
-clean; characters.md updated.
+User clarified the anime clip: Mahito **slams both hands on the
+ground** and **separate snake-like transfigured humans** erupt **from
+the floor**, aimed forward — smooth snake body + just a mouth at the
+head, no hands/eyes, pale pastel.
+
+Replaced the v2 radial clawed-arm barrage with:
+- both-hands ground-slam arm animation + a pastel slam impact ring
+- **7 separate floor-snakes** fanned ~98° toward the aim direction,
+  each emerging from its own floor spot ahead of Mahito
+- smooth 11-seg sin-tapered body; head = skull sphere + single gaping
+  dark mouth only (no eyes, no hands/fingers)
+- per-snake reach/whip/head-lift variation; rises out of the ground
+  in a striking arc then retracts; head aimed along travel
+
+Gameplay (damage ×1.8 / 4.2-tile radius / knockback / back-hop /
+i-frames) unchanged. `node --check` clean; characters.md updated.
+
+> NOTE: built from the user's text description — the reference video
+> (Reddit DASH/MP4) can't be opened here.
 
 ---
 
