@@ -14,10 +14,18 @@ one grade and re-opens for the next.
 
 ## Cursed Techniques (chosen at sign-in)
 
-New saves pick one of three in `save.technique` (permanent):
-**Cursed Strike** (Z bolt / X pull), **Dismantle** (Z cleave cone /
-X piercing wave), **Flame Arrow** (Z explosive arrow / X nova). Z is
-primary, X secondary; both spend cursed energy.
+New saves pick one of three in `save.technique` (permanent) — each is
+a dungeon-crawler-3d character kit (save keys kept for compatibility):
+- **Ten Shadows / Megumi** (`strike`): Z **Divine Dogs** (summons a
+  white + black shadow hound that hunt curses for ~10 s) · X **Nue**
+  (lightning strike + AoE on the nearest curse ahead).
+- **Dismantle / Sukuna** (`dismantle`): Z **Dismantle** (forward
+  red slash volley, cuts in a line) · X **Cleave** (wide front arc,
+  heavy damage + knockback).
+- **Black Flash / Todo** (`flame`): Z **Black Flash** (blink-strike,
+  black→red detonation) · X **Boulder Kick** (heavy rock projectile).
+
+Z primary, X secondary; both spend cursed energy.
 
 ## Levels
 

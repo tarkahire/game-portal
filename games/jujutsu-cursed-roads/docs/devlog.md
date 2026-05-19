@@ -4,6 +4,31 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-19 — Update 3: techniques become DC-3D character kits
+
+The three cursed techniques are re-themed to dungeon-crawler-3d
+characters (save keys kept — `strike`/`dismantle`/`flame` — so
+existing saves still resolve):
+
+- **`strike` → Megumi (Ten Shadows)**: Z **Divine Dogs** summons a
+  white + black shadow hound (new lightweight `allies` system —
+  `spawnHound`/`updateAllies`, ~10 s, seek-and-bite nearest curse,
+  else heel by the player); X **Nue** calls a lightning strike + AoE
+  on the nearest curse in front.
+- **`dismantle` → Sukuna**: Z **Dismantle** — a 6-slash red/white
+  plane volley streaking forward, each cutting curses in a line;
+  X **Cleave** — ~150° front arc, big damage + knockback + huge
+  double red sweeping arc + screen flash.
+- **`flame` → Todo**: Z **Black Flash** — blink forward, line+landing
+  crush, black→red two-stage screen flash + double explosion;
+  X **Boulder Kick** — heavy slow rock projectile, big AoE.
+
+Added `screenFlash()` helper + `allies` array (cleared on death /
+sign-out alongside curses). HUD/picker pick up the new names/colours
+automatically (generic). `node --check` clean.
+
+---
+
 ## 2026-05-19 — Update 2: town NPCs replace poles + juicier moves
 
 - **Town people**: the glowing "poles" (board / smith / contact) are
