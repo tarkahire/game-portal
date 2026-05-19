@@ -4,7 +4,23 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
-## 2026-05-19 — Mahito X Body Repel v4: snakes from below + smooth tube bodies
+## 2026-05-19 — Mahito X Body Repel v5: sharp erupt→strike→withdraw motion
+
+User feedback: origin/motion wrong — no real "strike". Reworked the
+per-frame motion into 3 distinct phases driven by separate envelopes:
+- **Erupt** (0–22%): body bursts straight UP as a vertical column out
+  of a hole at Mahito's feet (smoothstep `E`).
+- **Strike** (20–55%): explosive forward snap — reach uses
+  `1-(1-s)^5` so it lunges fast; the column tips into a forward arc
+  and the head dives down for the "bite" at the end.
+- **Withdraw** (70–100%): `live=1-W` collapses reach + height so it
+  sinks back into the ground.
+- Added a one-shot strike feedback (screenShake + hitstop + fovPunch +
+  pastel ground ring) timed to the snap, fired once per cast (not per
+  snake). Dropped the old `THREE.MathUtils.lerp` surface blend.
+
+`node --check` clean; characters.md updated. (Built from text desc —
+reference video can't be opened here.)
 
 User: snakes come from BELOW Mahito (not floor spots ahead) and must
 be long smooth snakes, not strings of blobs.

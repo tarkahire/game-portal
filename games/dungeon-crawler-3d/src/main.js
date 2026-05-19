@@ -3931,6 +3931,12 @@ function mahitoBodyRepel() {
     const SPINE_N = 12;
     const snakeRadii = [0.04, 0.09, 0.13, 0.155, 0.16, 0.16, 0.155, 0.145, 0.125, 0.10, 0.07, 0.035];
     setTimeout(() => {
+      // One-shot strike feedback at the moment the snakes snap forward
+      setTimeout(() => {
+        if (gameState !== 'playing') return;
+        screenShake(0.5, 180); triggerHitstop(60); fovPunch(12, 0.14);
+        groundRing(wx + fwdX * 3, wz + fwdZ * 3, '#e7c9e0', 4, 360);
+      }, 230);
       for (let h = 0; h < snakeCount; h++) {
         const frac = snakeCount === 1 ? 0.5 : h / (snakeCount - 1);
         const sAng = baseAng + (frac - 0.5) * fanWidth + (Math.random() - 0.5) * 0.12;
@@ -3967,20 +3973,29 @@ function mahitoBodyRepel() {
                 head.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } });
                 return;
             }
-            // Erupt & strike forward, then retract at the end
-            const ext = t < 0.7 ? (1 - Math.pow(1 - t / 0.7, 3)) : (1 - (t - 0.7) / 0.3);
-            const reach = Math.max(0, ext) * snakeReach * reachMul;
-            const strike = Math.sin(Math.min(t * 1.4, 1) * Math.PI);
-            // The whole body surfaces from under Mahito over the first ~22%
-            const surf = Math.min(1, t / 0.22);
+            // ── 3-phase motion: ERUPT up out of a hole at his feet →
+            //    SNAP forward in a real strike → WITHDRAW back down ──
+            const eT = Math.min(1, t / 0.22);
+            const E = eT * eT * (3 - 2 * eT);                  // burst up out of the ground
+            const sT = Math.max(0, Math.min(1, (t - 0.20) / 0.35));
+            const S = 1 - Math.pow(1 - sT, 5);                 // explosive forward snap
+            const wT = Math.max(0, Math.min(1, (t - 0.70) / 0.30));
+            const W = wT * wT;                                 // sink back down
+            const live = 1 - W;
+            const eruptH = 1.7 + headLift * 0.3;
+            const reach = snakeReach * reachMul * S * live;
+            const dive = Math.max(0, (sT - 0.75) / 0.25);      // head plunges at strike end
             const spine = [];
             for (let k = 0; k < SPINE_N; k++) {
-                const f = k / (SPINE_N - 1);         // 0 = anchored under Mahito, 1 = head
+                const f = k / (SPINE_N - 1);        // 0 = root in the ground at his feet, 1 = head
                 const dist = reach * f;
-                const lat = Math.sin(t * wobF + f * 5.5) * wobA * f;
+                const lat = Math.sin(t * wobF + f * 5.5) * wobA * f * S;
+                const yCol = eruptH * f * E * (1 - S) * live;          // standing column (erupt)
+                const yArc = eruptH * 0.85 * Math.sin(f * Math.PI) * S * live; // forward strike arc
+                const yDive = dive * f * f * 1.1 * live;               // bite down at the tip
                 spine.push(new THREE.Vector3(
                     wx + ca * dist + perpX * lat,
-                    THREE.MathUtils.lerp(-1.5, 0.12, surf) + f * f * headLift * strike,
+                    0.06 + yCol + yArc - yDive,
                     wz + sa * dist + perpZ * lat
                 ));
             }
