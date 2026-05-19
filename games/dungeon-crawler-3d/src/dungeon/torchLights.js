@@ -39,10 +39,20 @@ const TORCH_LIGHT_BUDGET = 6;
 const _torchSort = [];
 
 export function updateTorchLights(lights, time, cameraPos) {
-    // Flicker every torch (cheap math, no light cost)
+    // Failing emergency lights — erratic flicker + occasional brownout/dropout
+    // (cheap math, no light cost). Horror cue: the power is dying.
     for (const light of lights) {
-        const pulse = Math.sin(time * 0.008 + light._torchIndex * 2) * 0.3;
-        light.intensity = light._baseIntensity + pulse * 0.5;
+        const i = light._torchIndex;
+        // Layered noise so no two lamps pulse in sync
+        const wob = Math.sin(time * 0.011 + i * 2.0)
+                  + Math.sin(time * 0.047 + i * 5.3) * 0.5
+                  + Math.sin(time * 0.123 + i) * 0.25;
+        let mul = 0.78 + wob * 0.16;
+        // Brief stutter dropouts — light cuts to a dim ember then snaps back
+        const drop = Math.sin(time * 0.0017 + i * 3.1);
+        if (drop > 0.93) mul *= 0.18;
+        else if (drop > 0.88) mul *= 0.55;
+        light.intensity = light._baseIntensity * Math.max(0.12, mul);
     }
 
     if (!cameraPos) return;

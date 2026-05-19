@@ -4,6 +4,39 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-19 — Environment retheme: cyberpunk → abandoned-lab horror
+
+Full 3D-world art pass turning the cyberpunk neon dungeon into a
+grimy, power-failing research-lab catastrophe. Menus/HUD untouched.
+
+- **Palette** (`src/constants.js`): `PAL` reworked — dirty grey-green
+  floor/concrete, murky near-black fog, dried-blood + hazard-amber
+  accents. `torchCyan`/`torchPink` keys reused as **emergency alarm
+  red** `#ff2e1a` / **toxic green** `#7dff4a` so the two alternating
+  lamp colours now read as hazard lighting. `neon*`/`hpBar`/`xpBar`
+  keys retinted to blood/sickly-green (keys kept so refs still work).
+- **Lighting + fog** (`src/main.js` `init`): fog density `0.003 →
+  0.013` (oppressive murk); ambient `#5a5a7a@2.6 → #3a3a30@1.5`;
+  hemisphere dimmed to `#3c4034/#0e0c08@1.0`; player light is now a
+  failing warm flashlight (`#ffdca8`, 5.5, range TILE*15).
+- **Floor texture** (`meshBuilder.createFloorTexture`): replaced the
+  neon circuit board with dirty 2×2 lab tiles — dark grout, grime
+  blotches, spidering cracks, rust/dried-blood stains, scuff scratches.
+- **Wall texture** (`meshBuilder.createWallTexture`): grimy grey
+  concrete — water-damage blotches, vertical rust/blood drip streaks,
+  hairline cracks, a faded hazard chevron, and a **dim red emergency
+  baseboard** instead of the cyan neon edge.
+- **Wall trim/panel** (`buildDungeonMesh`): base-strip material
+  `#00ffcc → #7a0c12` (red emergency glow); inset panel `#999999 →
+  #7d7a6e` (grimy off-white).
+- **Failing lights** (`torchLights.updateTorchLights`): flicker
+  reworked into layered erratic noise + occasional brownout/dropout
+  stutters — the lab's power is dying.
+
+`node --check` clean on all four JS files.
+
+---
+
 ## 2026-05-19 — Dungeon: invisible lamps + grey walls
 
 User-requested environment tweaks.

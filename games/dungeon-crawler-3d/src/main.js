@@ -88,7 +88,8 @@ function init() {
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(PAL.fog);
-    scene.fog = new THREE.FogExp2(PAL.fog, 0.003);
+    // Thicker, oppressive murk for the abandoned-lab horror mood
+    scene.fog = new THREE.FogExp2(PAL.fog, 0.013);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
     scene.add(camera);
@@ -107,13 +108,15 @@ function init() {
     renderer.setScissorTest(false); // enabled during split-screen render
     renderer.autoClear = false; // we'll clear manually for split-screen
 
-    const ambient = new THREE.AmbientLight('#5a5a7a', 2.6);
+    // Dim, sickly fill light — the lab lost power; just enough to navigate
+    const ambient = new THREE.AmbientLight('#3a3a30', 1.5);
     scene.add(ambient);
-    const hemi = new THREE.HemisphereLight('#5a7a9a', '#1a1a24', 1.8);
+    const hemi = new THREE.HemisphereLight('#3c4034', '#0e0c08', 1.0);
     scene.add(hemi);
-    playerLight = new THREE.PointLight('#ffeecc', 6.5, TILE * 16, 0.9);
+    // Player carries a failing warm flashlight
+    playerLight = new THREE.PointLight('#ffdca8', 5.5, TILE * 15, 1.0);
     scene.add(playerLight);
-    playerLight2 = new THREE.PointLight('#ffeecc', 6.5, TILE * 16, 0.9);
+    playerLight2 = new THREE.PointLight('#ffdca8', 5.5, TILE * 15, 1.0);
     playerLight2.visible = false; // PERF: only switch on for local co-op (otherwise unused light)
     scene.add(playerLight2);
 

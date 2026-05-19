@@ -5,47 +5,81 @@
 import * as THREE from 'three';
 import { TILE, WALL_HEIGHT, MAP_COLS, MAP_ROWS, PAL } from '../constants.js';
 
-// Create a cyberpunk circuit-board floor texture procedurally
+// Grimy abandoned-lab floor: dirty tiles, grout, rust/blood stains, scuffs
 function createFloorTexture() {
     const size = 128;
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // Dark base
-    ctx.fillStyle = '#0a0a14';
+    // Dirty grey-green tile base
+    ctx.fillStyle = '#1c1d18';
     ctx.fillRect(0, 0, size, size);
 
-    // Subtle tile variation
-    for (let i = 0; i < 4; i++) {
-        ctx.fillStyle = `rgba(0,255,200,${0.02 + Math.random() * 0.02})`;
-        ctx.fillRect(Math.random() * size, Math.random() * size, size * 0.5, size * 0.5);
+    // Mottled grime / worn patches
+    for (let i = 0; i < 14; i++) {
+        const g = 0.04 + Math.random() * 0.06;
+        ctx.fillStyle = Math.random() < 0.5
+            ? `rgba(8,8,5,${g})` : `rgba(60,62,52,${g * 0.7})`;
+        const r = size * (0.12 + Math.random() * 0.3);
+        ctx.beginPath();
+        ctx.arc(Math.random() * size, Math.random() * size, r, 0, Math.PI * 2);
+        ctx.fill();
     }
 
-    // Neon grid lines
-    ctx.strokeStyle = 'rgba(0,255,200,0.06)';
-    ctx.lineWidth = 1;
+    // 2x2 tile grid with recessed dark grout lines
+    ctx.strokeStyle = 'rgba(6,6,4,0.85)';
+    ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, size - 2, size - 2);
-
-    // Circuit traces
-    ctx.strokeStyle = 'rgba(0,255,200,0.08)';
-    ctx.lineWidth = 0.5;
     ctx.beginPath();
-    ctx.moveTo(0, size / 2); ctx.lineTo(size, size / 2);
     ctx.moveTo(size / 2, 0); ctx.lineTo(size / 2, size);
+    ctx.moveTo(0, size / 2); ctx.lineTo(size, size / 2);
     ctx.stroke();
-
-    // Pink accent traces
-    ctx.strokeStyle = 'rgba(255,0,128,0.05)';
+    // Faint worn highlight on the grout's upper edge
+    ctx.strokeStyle = 'rgba(70,72,60,0.25)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(size * 0.25, 0); ctx.lineTo(size * 0.25, size);
-    ctx.moveTo(0, size * 0.75); ctx.lineTo(size, size * 0.75);
+    ctx.moveTo(0, size / 2 - 1.5); ctx.lineTo(size, size / 2 - 1.5);
     ctx.stroke();
 
-    // Neon dots at intersections
-    ctx.fillStyle = 'rgba(0,255,200,0.12)';
-    ctx.fillRect(size / 2 - 1, size / 2 - 1, 2, 2);
-    ctx.fillRect(size * 0.25 - 1, size * 0.75 - 1, 2, 2);
+    // Cracks spidering across a tile
+    ctx.strokeStyle = 'rgba(4,4,3,0.7)';
+    ctx.lineWidth = 1;
+    for (let c = 0; c < 3; c++) {
+        let cx = Math.random() * size, cy = Math.random() * size;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        for (let s = 0; s < 5; s++) {
+            cx += (Math.random() - 0.5) * 26;
+            cy += (Math.random() - 0.5) * 26;
+            ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+    }
+
+    // Old rust / dried-blood stains
+    for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = Math.random() < 0.5
+            ? `rgba(58,12,8,${0.12 + Math.random() * 0.14})`   // rust
+            : `rgba(70,2,12,${0.12 + Math.random() * 0.16})`;  // dried blood
+        const r = size * (0.08 + Math.random() * 0.18);
+        ctx.beginPath();
+        ctx.ellipse(Math.random() * size, Math.random() * size,
+            r, r * (0.5 + Math.random() * 0.5), Math.random() * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Scuff scratches
+    ctx.strokeStyle = 'rgba(90,92,78,0.10)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 6; i++) {
+        const x = Math.random() * size, y = Math.random() * size;
+        const a = Math.random() * Math.PI, len = 10 + Math.random() * 30;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+        ctx.stroke();
+    }
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = THREE.RepeatWrapping;
@@ -60,21 +94,69 @@ function createWallTexture() {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // Grey walls (was near-black #04040c)
+    // Grimy grey lab concrete
     ctx.fillStyle = '#7c7c86';
     ctx.fillRect(0, 0, size, size);
 
-    // Subtle panel lines — darker grey so seams still read on the lighter wall
-    ctx.strokeStyle = 'rgba(40,40,52,0.7)';
+    // Blotchy grime / water damage
+    for (let i = 0; i < 9; i++) {
+        const g = 0.05 + Math.random() * 0.09;
+        ctx.fillStyle = Math.random() < 0.55
+            ? `rgba(20,20,16,${g})` : `rgba(110,112,100,${g * 0.6})`;
+        const r = size * (0.15 + Math.random() * 0.35);
+        ctx.beginPath();
+        ctx.arc(Math.random() * size, Math.random() * size, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Panel seams — darker grey so they still read on the grimy wall
+    ctx.strokeStyle = 'rgba(34,34,40,0.7)';
     ctx.lineWidth = 1;
     ctx.strokeRect(2, 2, size - 4, size - 4);
     ctx.beginPath();
     ctx.moveTo(size / 2, 2); ctx.lineTo(size / 2, size - 2);
     ctx.stroke();
 
-    // Neon edge at bottom
-    ctx.fillStyle = 'rgba(0,255,200,0.15)';
-    ctx.fillRect(0, size - 2, size, 2);
+    // Vertical rust / drip streaks running down from the top
+    for (let i = 0; i < 5; i++) {
+        const x = Math.random() * size;
+        const w = 0.6 + Math.random() * 2.2;
+        const h = size * (0.3 + Math.random() * 0.6);
+        ctx.fillStyle = Math.random() < 0.5
+            ? `rgba(48,18,8,${0.10 + Math.random() * 0.14})`   // rust
+            : `rgba(60,4,12,${0.10 + Math.random() * 0.12})`;  // bled-through stain
+        ctx.fillRect(x, 0, w, h);
+    }
+
+    // Hairline cracks
+    ctx.strokeStyle = 'rgba(18,18,16,0.6)';
+    ctx.lineWidth = 1;
+    for (let c = 0; c < 2; c++) {
+        let cx = Math.random() * size, cy = Math.random() * size;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        for (let s = 0; s < 4; s++) {
+            cx += (Math.random() - 0.5) * 18;
+            cy += 6 + Math.random() * 12;
+            ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+    }
+
+    // Faded hazard chevron stripe near the top of some panels
+    if (Math.random() < 0.5) {
+        ctx.strokeStyle = 'rgba(140,110,0,0.16)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        for (let x = -size; x < size; x += 10) {
+            ctx.moveTo(x, 10); ctx.lineTo(x + 6, 4);
+        }
+        ctx.stroke();
+    }
+
+    // Dim red emergency baseboard strip (replaces the cyan neon edge)
+    ctx.fillStyle = 'rgba(120,12,18,0.30)';
+    ctx.fillRect(0, size - 3, size, 3);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = THREE.RepeatWrapping;
@@ -108,15 +190,16 @@ export function buildDungeonMesh(dungeon) {
         metalness: 0,
     });
 
+    // Dim red emergency strip at the base of every wall (was cyan neon)
     const neonEdgeMat = new THREE.MeshBasicMaterial({
-        color: '#00ffcc',
+        color: '#7a0c12',
         transparent: true,
-        opacity: 0.15,
+        opacity: 0.35,
     });
 
-    // Bright grey wall panel material — emissive so it glows without needing lights
+    // Grimy off-white lab wall panel (was bright grey #999999)
     const panelMat = new THREE.MeshBasicMaterial({
-        color: '#999999',
+        color: '#7d7a6e',
     });
 
     // Collect geometry for merging

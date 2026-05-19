@@ -10,20 +10,22 @@ export const MAX_FLOORS = Infinity;
 export const EYE_HEIGHT = 2.4;  // camera Y position
 export const PLAYER_RADIUS = 0.4; // collision radius in tile units
 
-// Cyberpunk color palette
+// Abandoned-lab horror palette (was cyberpunk neon).
+// torchCyan/torchPink + neon* keys are reused as the new theme colours so
+// existing references keep working — they now read as hazard/emergency tones.
 export const PAL = {
-    floor: '#0a0a14',
-    wall: '#04040c',
-    wallTop: '#1a1a2e',
-    fog: '#020208',
-    blood: '#ff0055',
-    torchCyan: '#00ffcc',
-    torchPink: '#ff0080',
-    hpBar: '#ff0055',
-    xpBar: '#ff00ff',
-    neonCyan: '#00ffee',
-    neonPink: '#ff0080',
-    neonPurple: '#aa00ff',
-    neonYellow: '#eeff00',
-    ambient: '#080818',
+    floor: '#1c1d18',          // dirty grey-green lab tile
+    wall: '#22231d',           // grimy concrete
+    wallTop: '#34352c',
+    fog: '#070806',            // murky near-black
+    blood: '#6a0010',          // dried blood
+    torchCyan: '#ff2e1a',      // emergency alarm red (primary lamp)
+    torchPink: '#7dff4a',      // sickly toxic green (secondary lamp)
+    hpBar: '#8a0014',
+    xpBar: '#6abf3a',
+    neonCyan: '#6abf3a',       // sickly green accents
+    neonPink: '#8a0014',       // blood accents
+    neonPurple: '#4a2a5a',
+    neonYellow: '#d9b300',     // hazard amber
+    ambient: '#14130f',
 };
