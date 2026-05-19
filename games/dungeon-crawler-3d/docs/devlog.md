@@ -4,7 +4,22 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
-## 2026-05-19 — Mahito X Body Repel: floor-snake barrage (v3, matches clip)
+## 2026-05-19 — Mahito X Body Repel v4: snakes from below + smooth tube bodies
+
+User: snakes come from BELOW Mahito (not floor spots ahead) and must
+be long smooth snakes, not strings of blobs.
+
+- Origin moved to directly under Mahito (`wx,wz`); each snake's spine
+  anchored beneath him, surfacing from y -1.5 over the first ~22%.
+- Body is now a **continuous lofted tube** rebuilt every frame from a
+  12-point spine via the existing `buildLoftedTube()` (same builder the
+  Megumi serpent uses) instead of a chain of spheres — reads as one
+  smooth long snake. Length bumped to ~8 tiles, slender radii profile.
+- Head kept minimal: skull + single gaping dark mouth (no eyes/hands).
+- Per-snake reach/slither/head-lift variation; surface→strike→retract.
+
+`node --check` clean; characters.md updated. (Built from text desc —
+the reference video can't be opened here.)
 
 User clarified the anime clip: Mahito **slams both hands on the
 ground** and **separate snake-like transfigured humans** erupt **from

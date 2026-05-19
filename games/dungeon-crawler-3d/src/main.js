@@ -3920,72 +3920,74 @@ function mahitoBodyRepel() {
         screenShake(0.4, 200);
     }, 140);
 
-    // ── Separate snake-like transfigured humans erupt FROM THE FLOOR,
-    //    fanned toward where Mahito is aiming. Each is a smooth pale
-    //    pastel tapered body with a single gaping mouth at the head —
-    //    no hands, no eyes.
+    // ── Snake-like transfigured humans erupt FROM BELOW MAHITO and
+    //    lash forward, fanned toward where he's aiming. Each is a LONG
+    //    SMOOTH snake (rebuilt as a continuous lofted tube every frame,
+    //    not a string of blobs) with a single gaping mouth at the tip.
     const baseAng = Math.atan2(fwdZ, fwdX);
     const snakeCount = 7;
-    const fanWidth = 1.7;            // ~98° forward fan
-    const snakeReach = 6.0 * TILE;
+    const fanWidth = 1.7;             // ~98° forward fan
+    const snakeReach = 8.0 * TILE;    // long
+    const SPINE_N = 12;
+    const snakeRadii = [0.04, 0.09, 0.13, 0.155, 0.16, 0.16, 0.155, 0.145, 0.125, 0.10, 0.07, 0.035];
     setTimeout(() => {
       for (let h = 0; h < snakeCount; h++) {
         const frac = snakeCount === 1 ? 0.5 : h / (snakeCount - 1);
         const sAng = baseAng + (frac - 0.5) * fanWidth + (Math.random() - 0.5) * 0.12;
-        // Floor spot a little ahead this snake bursts out of
-        const startR = (0.7 + Math.random() * 0.6) * TILE;
-        const ox = wx + Math.cos(sAng) * startR;
-        const oz = wz + Math.sin(sAng) * startR;
-        const snake = new THREE.Group();
         const fpc = SOUL[h % SOUL.length];
-        const skinA = new THREE.MeshStandardMaterial({ color: fpc, roughness: 0.72 });
-        const skinB = new THREE.MeshStandardMaterial({ color: new THREE.Color(fpc).multiplyScalar(0.86), roughness: 0.76 });
-        const segN = 11;
-        const segs = [];
-        for (let i = 0; i < segN; i++) {
-            // Smooth taper — thin at the floor base, fuller mid, fine tail
-            const f = i / (segN - 1);
-            const r = Math.max(0.05, 0.07 + Math.sin(f * Math.PI) * 0.16);
-            const s = new THREE.Mesh(new THREE.SphereGeometry(r, 9, 7), i % 2 ? skinA : skinB);
-            snake.add(s); segs.push(s);
-        }
-        // Head — single gaping dark mouth, nothing else
+        const bodyMat = new THREE.MeshStandardMaterial({ color: fpc, roughness: 0.72 });
+        const skullMat = new THREE.MeshStandardMaterial({ color: fpc, roughness: 0.72 });
+        const snakeMesh = new THREE.Mesh(new THREE.BufferGeometry(), bodyMat);
+        scene.add(snakeMesh);
+        // Head — single gaping dark mouth, nothing else (no eyes/hands)
         const head = new THREE.Group();
-        const skull = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), skinA);
-        skull.scale.set(0.95, 0.85, 1.25);
+        const skull = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), skullMat);
+        skull.scale.set(0.95, 0.85, 1.3);
         head.add(skull);
-        const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.13, 9, 7),
+        const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.12, 9, 7),
             new THREE.MeshBasicMaterial({ color: '#241c2a' }));
         mouth.position.set(0, -0.02, 0.16);
-        mouth.scale.set(1.05, 1.35, 0.85);
+        mouth.scale.set(1.05, 1.4, 0.9);
         head.add(mouth);
-        snake.add(head); segs.push(head);
-        scene.add(snake);
+        scene.add(head);
 
-        const reachMul = 0.8 + Math.random() * 0.35;
-        const wobF = 14 + Math.random() * 8;
-        const wobA = 0.16 + Math.random() * 0.12;
-        const dur = 620 + Math.random() * 200;
-        const headLift = 1.2 + Math.random() * 0.6;
+        const reachMul = 0.82 + Math.random() * 0.30;
+        const wobF = 9 + Math.random() * 5;
+        const wobA = 0.55 + Math.random() * 0.4;   // world-unit lateral slither
+        const dur = 680 + Math.random() * 220;
+        const headLift = 1.3 + Math.random() * 0.7;
+        const ca = Math.cos(sAng), sa = Math.sin(sAng);
+        const perpX = -sa, perpZ = ca;             // sideways for the slither
         const t0 = performance.now();
         const animSnake = () => {
             const t = (performance.now() - t0) / dur;
-            if (t >= 1) { scene.remove(snake); snake.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } }); return; }
+            if (t >= 1) {
+                scene.remove(snakeMesh); snakeMesh.geometry.dispose(); bodyMat.dispose();
+                scene.remove(head);
+                head.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); } });
+                return;
+            }
             // Erupt & strike forward, then retract at the end
             const ext = t < 0.7 ? (1 - Math.pow(1 - t / 0.7, 3)) : (1 - (t - 0.7) / 0.3);
             const reach = Math.max(0, ext) * snakeReach * reachMul;
             const strike = Math.sin(Math.min(t * 1.4, 1) * Math.PI);
-            for (let i = 0; i < segs.length; i++) {
-                const f = (i + 1) / segs.length;
-                const wob = Math.sin(t * wobF + i * 0.7) * wobA * f;
-                segs[i].position.set(
-                    ox + Math.cos(sAng + wob) * reach * f,
-                    0.12 + f * f * headLift * strike,    // rises out of the floor
-                    oz + Math.sin(sAng + wob) * reach * f);
+            // The whole body surfaces from under Mahito over the first ~22%
+            const surf = Math.min(1, t / 0.22);
+            const spine = [];
+            for (let k = 0; k < SPINE_N; k++) {
+                const f = k / (SPINE_N - 1);         // 0 = anchored under Mahito, 1 = head
+                const dist = reach * f;
+                const lat = Math.sin(t * wobF + f * 5.5) * wobA * f;
+                spine.push(new THREE.Vector3(
+                    wx + ca * dist + perpX * lat,
+                    THREE.MathUtils.lerp(-1.5, 0.12, surf) + f * f * headLift * strike,
+                    wz + sa * dist + perpZ * lat
+                ));
             }
-            // Aim the head where the body is travelling
-            const tip = segs[segs.length - 1].position;
-            const nck = segs[segs.length - 2].position;
+            snakeMesh.geometry.dispose();
+            snakeMesh.geometry = buildLoftedTube(spine, snakeRadii, 10, null);
+            const tip = spine[SPINE_N - 1], nck = spine[SPINE_N - 2];
+            head.position.copy(tip);
             head.lookAt(tip.x * 2 - nck.x, tip.y * 2 - nck.y, tip.z * 2 - nck.z);
             requestAnimationFrame(animSnake);
         };
