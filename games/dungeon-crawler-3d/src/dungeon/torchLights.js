@@ -7,8 +7,6 @@ import { TILE, WALL_HEIGHT, PAL } from '../constants.js';
 
 export function createTorchLights(dungeon, scene) {
     const lights = [];
-    const torchMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.9 });
-    const torchGeo = new THREE.SphereGeometry(0.12, 8, 8);
 
     for (let i = 0; i < dungeon.torches.length; i++) {
         const torch = dungeon.torches[i];
@@ -28,19 +26,8 @@ export function createTorchLights(dungeon, scene) {
         scene.add(light);
         lights.push(light);
 
-        // Visible orb
-        const orbMat = torchMat.clone();
-        orbMat.color = new THREE.Color(color);
-        const orb = new THREE.Mesh(torchGeo, orbMat);
-        orb.position.set(x, y, z);
-        scene.add(orb);
-
-        // Pillar below orb
-        const pillarGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.4, 4);
-        const pillarMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.3 });
-        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-        pillar.position.set(x, y - 0.3, z);
-        scene.add(pillar);
+        // Lamps are invisible — only the point light remains. The visible
+        // orb + pillar geometry was removed by request; lighting is unchanged.
     }
 
     return lights;

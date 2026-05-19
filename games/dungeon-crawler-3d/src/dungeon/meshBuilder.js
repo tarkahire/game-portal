@@ -60,11 +60,12 @@ function createWallTexture() {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#04040c';
+    // Grey walls (was near-black #04040c)
+    ctx.fillStyle = '#7c7c86';
     ctx.fillRect(0, 0, size, size);
 
-    // Subtle panel lines
-    ctx.strokeStyle = 'rgba(26,26,46,0.8)';
+    // Subtle panel lines — darker grey so seams still read on the lighter wall
+    ctx.strokeStyle = 'rgba(40,40,52,0.7)';
     ctx.lineWidth = 1;
     ctx.strokeRect(2, 2, size - 4, size - 4);
     ctx.beginPath();

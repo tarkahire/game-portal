@@ -4,6 +4,26 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-19 — Dungeon: invisible lamps + grey walls
+
+User-requested environment tweaks.
+
+- **Invisible lamps** (`src/dungeon/torchLights.js`): removed the visible
+  torch orb (`SphereGeometry`) + pillar (`CylinderGeometry`) meshes.
+  Only the `PointLight` per torch remains, so rooms still light up
+  (flicker + 6-light budget + room-explored gating unchanged) but there
+  are no glowing lamp props in the scene. Dropped the now-unused
+  `torchMat`/`torchGeo`.
+- **Grey walls** (`src/dungeon/meshBuilder.js`): `createWallTexture()`
+  base fill changed from near-black `#04040c` → grey `#7c7c86`; panel
+  seam stroke darkened to `rgba(40,40,52,0.7)` so the panel lines still
+  read against the lighter wall. Floor, neon edge strip, and the bright
+  `#999999` inset wall panel are unchanged.
+
+`node --check` clean on both files.
+
+---
+
 ## 2026-05-18 — Mahito reworked for anime accuracy
 
 User feedback: the original Mahito "looks nothing like" the anime.
