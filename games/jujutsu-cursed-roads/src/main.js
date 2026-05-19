@@ -30,6 +30,7 @@ let pointerLocked = false;
 let toastTimer = 0;
 let autosaveAccum = 0;
 let pendingSave = null;   // new save awaiting technique choice
+let shakeAmp = 0, shakeT = 0;
 
 const GRADE_NAME = { 4: 'Grade 4', 3: 'Grade 3', 2: 'Grade 2', 1: 'Grade 1', 0: 'Special Grade' };
 
@@ -138,23 +139,97 @@ function buildTown() {
         houses.push({ x: hx, z: hz, r: Math.max(w, d) * 0.62 });
     }
 
-    board = makeInteractable('#a06bff', TOWN.x - 4, TOWN.z - 2, 'MISSION BOARD');
-    smith = makeInteractable('#ff8a3a', TOWN.x + 6, TOWN.z + 3, 'CURSED TOOL SMITH');
-    contact = makeInteractable('#3adf8a', TOWN.x + 1, TOWN.z - 9, 'JUJUTSU HIGH CONTACT');
+    board = makeNpc('#a06bff', TOWN.x - 4, TOWN.z - 2, 'MISSION BOARD', 'board');
+    smith = makeNpc('#ff8a3a', TOWN.x + 6, TOWN.z + 3, 'CURSED TOOL SMITH', 'smith');
+    contact = makeNpc('#3adf8a', TOWN.x + 1, TOWN.z - 9, 'JUJUTSU HIGH CONTACT', 'contact');
 }
 
-function makeInteractable(color, x, z, label) {
+// A talkable human NPC (replaces the old glowing pole). Role gives
+// them clothing + props; a soft ground ring + marker keep them findable.
+function makeNpc(color, x, z, label, role) {
     const y = terrainHeight(x, z);
     const g = new THREE.Group();
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.4, 6),
-        new THREE.MeshStandardMaterial({ color: '#2a2a30', roughness: 0.8 }));
-    post.position.y = 1.2; g.add(post);
-    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 12),
-        new THREE.MeshBasicMaterial({ color }));
-    orb.position.y = 2.7; g.add(orb);
-    g.add(new THREE.PointLight(color, 1.6, 16, 2).translateY(2.7));
+    let coatCol = '#384258';
+    if (role === 'smith') coatCol = '#5a3a26';
+    else if (role === 'contact') coatCol = '#0c1020';
+    const coat = new THREE.MeshStandardMaterial({ color: coatCol, roughness: 0.78 });
+    const skinM = new THREE.MeshStandardMaterial({ color: '#e8c8a8', roughness: 0.6 });
+    const hairM = new THREE.MeshStandardMaterial({ color: '#161620', roughness: 0.7 });
+    const dark = new THREE.MeshStandardMaterial({ color: '#0a0c12', roughness: 0.8 });
+
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.82, 4, 10), coat);
+    torso.position.y = 1.05; g.add(torso);
+    const headPivot = new THREE.Group();
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 12), skinM);
+    head.position.y = 1.78; headPivot.add(head);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.29, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), hairM);
+    cap.position.y = 1.84; headPivot.add(cap);
+    for (const s of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6),
+            new THREE.MeshBasicMaterial({ color: '#10131c' }));
+        eye.position.set(s * 0.1, 1.8, 0.25); headPivot.add(eye);
+    }
+    g.add(headPivot);
+    const armGeo = new THREE.CapsuleGeometry(0.11, 0.6, 4, 8);
+    const lArm = new THREE.Mesh(armGeo, coat); lArm.position.set(-0.44, 1.16, 0);
+    const rArm = new THREE.Mesh(armGeo, coat); rArm.position.set(0.44, 1.16, 0);
+    g.add(lArm, rArm);
+    for (const s of [-1, 1]) {
+        const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.68, 4, 8), dark);
+        leg.position.set(s * 0.16, 0.45, 0); g.add(leg);
+    }
+
+    if (role === 'board') {
+        const bp = new THREE.Group();
+        bp.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.5, 0.12),
+            new THREE.MeshStandardMaterial({ color: '#3a2c1c', roughness: 0.9 })).translateY(2.0).translateZ(-0.95));
+        for (const s of [-1, 1]) bp.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3, 6),
+            new THREE.MeshStandardMaterial({ color: '#2a2018' })).translateX(s * 0.92).translateY(1.5).translateZ(-0.95));
+        for (let i = 0; i < 4; i++) {
+            const n = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.52),
+                new THREE.MeshBasicMaterial({ color: '#d8d2c0' }));
+            n.position.set(-0.55 + (i % 2) * 0.7, 2.25 - Math.floor(i / 2) * 0.6, -0.88);
+            bp.add(n);
+        }
+        g.add(bp);
+        rArm.rotation.x = -1.1;
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.44, 0.04),
+            new THREE.MeshStandardMaterial({ color: '#caa86a' })).translateX(0.5).translateY(1.02).translateZ(0.34));
+    } else if (role === 'smith') {
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.8, 0.16),
+            new THREE.MeshStandardMaterial({ color: '#3a2416', roughness: 0.9 })).translateY(0.95).translateZ(0.28));
+        const anv = new THREE.Group();
+        anv.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.34, 0.9),
+            new THREE.MeshStandardMaterial({ color: '#2a2d33', metalness: 0.6, roughness: 0.5 })).translateY(0.6));
+        anv.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.46, 0.34),
+            new THREE.MeshStandardMaterial({ color: '#23262b' })).translateY(0.23));
+        anv.position.set(1.15, 0, 0.2); g.add(anv);
+        rArm.rotation.x = -0.7;
+        const ham = new THREE.Group();
+        ham.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.7, 6),
+            new THREE.MeshStandardMaterial({ color: '#5a3a22' })));
+        ham.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.16),
+            new THREE.MeshStandardMaterial({ color: '#3a3d44', metalness: 0.6 })).translateY(0.4));
+        ham.position.set(0.52, 1.0, 0.32); ham.rotation.z = 0.35; g.add(ham);
+    } else { // contact — arms crossed, high collar
+        lArm.rotation.set(-1.2, 0, 0.5);
+        rArm.rotation.set(-1.2, 0, -0.5);
+        lArm.position.set(-0.3, 1.18, 0.18);
+        rArm.position.set(0.3, 1.18, 0.18);
+        g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.27, 0.24, 8),
+            new THREE.MeshStandardMaterial({ color: '#1a1f30', roughness: 0.7 })).translateY(1.5));
+    }
+
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.18, 28),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; g.add(ring);
+    g.add(new THREE.PointLight(color, 1.0, 11, 2).translateY(2.0));
+    const mk = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), new THREE.MeshBasicMaterial({ color }));
+    mk.position.y = 2.55; g.add(mk);
+
     g.position.set(x, y, z);
-    g.userData = { x, z, label, color };
+    g.rotation.y = Math.atan2(TOWN.x - x, TOWN.z - z);
+    g.userData = { x, z, label, color, _head: headPivot, _ring: ring, _mk: mk, _t: Math.random() * 6 };
     scene.add(g);
     return g;
 }
@@ -351,7 +426,9 @@ const TECHNIQUES = {
                 const dx = tx - c.x, dz = tz - c.z, d = Math.hypot(dx, dz);
                 if (d < 6) { c.x += dx * 0.55; c.z += dz * 0.55; damageCurse(c, player.damage * 1.5); }
             }
-            ringFx(tx, tz, '#7c4dff'); burst(tx, 1.4, tz, '#b388ff', 16); sfx('tech');
+            vortexFx(tx, tz, '#7c4dff');
+            explode(tx, 1.4, tz, '#b388ff', 3);
+            camShake(0.08, 0.2); sfx('tech');
         },
     },
     dismantle: {
@@ -390,16 +467,36 @@ function coneHit(range, minDot, dmg, color) {
         if ((dx / d) * fx + (dz / d) * fz < minDot) continue;
         damageCurse(c, dmg); any = true;
     }
-    burst(player.x + fx * 2, 1.3, player.z + fz * 2, color, 14);
-    ringFx(player.x + fx * 2, player.z + fz * 2, color);
+    // A big sweeping slash arc in front
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.16, 8, 28, Math.PI * 1.1),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, side: THREE.DoubleSide }));
+    arc.position.set(player.x + fx * 1.6, 1.4, player.z + fz * 1.6);
+    arc.rotation.set(Math.PI / 2, 0, Math.atan2(fx, fz));
+    scene.add(arc);
+    const s0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - s0) / 260;
+        if (t >= 1) { scene.remove(arc); arc.geometry.dispose(); arc.material.dispose(); return; }
+        arc.scale.set(1 + t * 1.4, 1 + t * 1.4, 1);
+        arc.rotation.z += 0.22;
+        arc.material.opacity = 0.95 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    explode(player.x + fx * 2.4, 1.3, player.z + fz * 2.4, color, 2);
+    camShake(0.07, 0.15);
     if (any) sfx('hit'); sfx('tech');
 }
 function nova(radius, dmg, color) {
     for (const c of curses.slice()) {
         if (Math.hypot(c.x - player.x, c.z - player.z) < radius) damageCurse(c, dmg);
     }
-    burst(player.x, 1.3, player.z, color, 28);
-    ringFx(player.x, player.z, color); sfx('tech');
+    explode(player.x, 1.3, player.z, color, 4);
+    shockRing(player.x, player.z, color, radius * 1.4, 600, 0.8);
+    shockRing(player.x, player.z, '#ffffff', radius, 460, 0.4);
+    burst(player.x, 1.3, player.z, color, 40);
+    camShake(0.13, 0.26);
+    sfx('tech'); sfx('boss');
 }
 function ringFx(x, z, color) {
     const g = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.62, 24),
@@ -417,12 +514,114 @@ function ringFx(x, z, color) {
     requestAnimationFrame(tk);
 }
 
+// ─── Juicy impact helpers ───────────────────────────────────
+function camShake(amp, dur) { shakeAmp = Math.max(shakeAmp, amp); shakeT = Math.max(shakeT, dur); }
+
+function flashLight(x, y, z, color, intensity, dur) {
+    const L = new THREE.PointLight(color, intensity, 16, 2);
+    L.position.set(x, y, z); scene.add(L);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / dur;
+        if (t >= 1) { scene.remove(L); return; }
+        L.intensity = intensity * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+// Expanding flat shockwave ring on the ground.
+function shockRing(x, z, color, maxR, dur, thick) {
+    const g = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.2 + (thick || 0.5), 36),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
+    g.rotation.x = -Math.PI / 2;
+    g.position.set(x, terrainHeight(x, z) + 0.12, z);
+    scene.add(g);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / (dur || 480);
+        if (t >= 1) { scene.remove(g); g.geometry.dispose(); g.material.dispose(); return; }
+        const s = 1 + t * (maxR || 6);
+        g.scale.set(s, s, s);
+        g.material.opacity = 0.9 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+// Big layered explosion: core flash + 2 rings + sparks + light + shake.
+function explode(x, y, z, color, power) {
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95 }));
+    core.position.set(x, y, z); scene.add(core);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 240;
+        if (t >= 1) { scene.remove(core); core.geometry.dispose(); core.material.dispose(); return; }
+        core.scale.setScalar(1 + t * power * 1.6);
+        core.material.opacity = 0.95 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    shockRing(x, z, color, power * 2.4, 460, 0.6);
+    shockRing(x, z, '#ffffff', power * 1.5, 340, 0.3);
+    burst(x, y, z, color, 14 + power * 4);
+    flashLight(x, y + 0.4, z, color, 4 + power, 260);
+    camShake(0.05 + power * 0.03, 0.18);
+}
+
+// Spiralling-inward vortex (for the Reversal Pull).
+function vortexFx(x, z, color) {
+    const grp = new THREE.Group();
+    grp.position.set(x, terrainHeight(x, z) + 0.6, z);
+    scene.add(grp);
+    const rings = [];
+    for (let i = 0; i < 4; i++) {
+        const r = new THREE.Mesh(new THREE.TorusGeometry(2.4 - i * 0.1, 0.07, 8, 28),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+        r.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+        grp.add(r); rings.push(r);
+    }
+    grp.add(new THREE.PointLight(color, 3, 10, 2));
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 520;
+        if (t >= 1) { scene.remove(grp); grp.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); return; }
+        for (let i = 0; i < rings.length; i++) {
+            const s = Math.max(0.05, (1 - t) - i * 0.06);
+            rings[i].scale.setScalar(s);
+            rings[i].rotation.z += 0.25 + i * 0.05;
+            rings[i].material.opacity = 0.7 * (1 - t);
+        }
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
 function updateProjectiles(dt) {
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const p = projectiles[i];
         p.mesh.position.x += p.vx * dt;
         p.mesh.position.z += p.vz * dt;
         p.mesh.position.y = terrainHeight(p.mesh.position.x, p.mesh.position.z) + 1.5;
+        // glowing comet trail
+        p._tr = (p._tr || 0) + dt;
+        if (p._tr > 0.03) {
+            p._tr = 0;
+            const puff = new THREE.Mesh(new THREE.SphereGeometry(0.32, 7, 6),
+                new THREE.MeshBasicMaterial({ color: p.color || '#b388ff', transparent: true, opacity: 0.6 }));
+            puff.position.copy(p.mesh.position);
+            scene.add(puff);
+            const s0 = performance.now();
+            const tp = () => {
+                const tt = (performance.now() - s0) / 280;
+                if (tt >= 1) { scene.remove(puff); puff.geometry.dispose(); puff.material.dispose(); return; }
+                puff.scale.setScalar(1 - tt * 0.7); puff.material.opacity = 0.6 * (1 - tt);
+                requestAnimationFrame(tp);
+            };
+            requestAnimationFrame(tp);
+        }
+        p.mesh.rotation.y += dt * 9;
         p.life -= dt;
         let done = p.life <= 0;
         const R = p.r || 1.6;
@@ -435,7 +634,8 @@ function updateProjectiles(dt) {
                 for (const c2 of curses.slice()) {
                     if (c2 !== c && Math.hypot(c2.x - c.x, c2.z - c.z) < aoe) damageCurse(c2, p.dmg * aMul);
                 }
-                burst(p.mesh.position.x, 1.5, p.mesh.position.z, p.color || '#b388ff', 14);
+                explode(p.mesh.position.x, 1.5, p.mesh.position.z, p.color || '#b388ff', p.pierce ? 2 : 3);
+                sfx('hit');
                 if (!p.pierce) { done = true; break; }
             }
         }
@@ -808,6 +1008,14 @@ function update(dt) {
     const cy = gy + camHt - Math.sin(pitch) * 5;
     camera.position.set(cx, Math.max(terrainHeight(cx, cz) + 1.2, cy), cz);
     camera.lookAt(player.x, gy + 1.7, player.z);
+    if (shakeT > 0) {
+        shakeT -= dt;
+        const k = shakeAmp * Math.max(0, shakeT);
+        camera.position.x += (Math.random() - 0.5) * k * 12;
+        camera.position.y += (Math.random() - 0.5) * k * 7;
+        camera.position.z += (Math.random() - 0.5) * k * 12;
+        if (shakeT <= 0) shakeAmp = 0;
+    }
 
     // Curses
     updateCurseDirector(dt);
@@ -827,6 +1035,24 @@ function update(dt) {
     }
 
     updateProjectiles(dt);
+
+    // NPC idle life — breathing bob, spinning marker, pulsing ring,
+    // and they turn to face you when you're close.
+    for (const o of [board, smith, contact]) {
+        const ud = o.userData;
+        ud._t += dt;
+        if (ud._mk) { ud._mk.rotation.y += dt * 2; ud._mk.position.y = 2.55 + Math.sin(ud._t * 2) * 0.12; }
+        if (ud._ring) ud._ring.material.opacity = 0.32 + Math.sin(ud._t * 2.4) * 0.16;
+        const pd = Math.hypot(player.x - ud.x, player.z - ud.z);
+        if (ud._head) {
+            const want = pd < 8 ? Math.atan2(player.x - ud.x, player.z - ud.z) - o.rotation.y : 0;
+            let d = want - ud._head.rotation.y;
+            while (d > Math.PI) d -= Math.PI * 2;
+            while (d < -Math.PI) d += Math.PI * 2;
+            ud._head.rotation.y += d * Math.min(1, dt * 6);
+        }
+        o.position.y = terrainHeight(ud.x, ud.z) + Math.sin(ud._t * 1.6) * 0.03;
+    }
 
     // Interactables proximity
     nearInteract = null;

@@ -4,6 +4,29 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-19 — Update 2: town NPCs replace poles + juicier moves
+
+- **Town people**: the glowing "poles" (board / smith / contact) are
+  replaced by `makeNpc()` humanoids — torso/head/arms/legs, role
+  clothing + props (board: clipboard + notice board; smith: apron +
+  anvil + hammer; contact: crossed arms + high collar). Kept findable
+  via a soft ground ring + light + spinning marker. They idle-breathe,
+  the marker spins/bobs, the ring pulses, and **they turn to face you**
+  when you get close. `userData` API unchanged so proximity/minimap/
+  interaction still work.
+- **Juicier technique VFX**: new helpers `explode()` (white core flash
+  + double shockwave ring + sparks + light + camera shake),
+  `shockRing()`, `flashLight()`, `vortexFx()`, and a lightweight
+  `camShake()` (applied after the camera each frame). Applied to:
+  projectiles (glowing comet trail + spin + big impact explosion),
+  Dismantle cleave (sweeping torus slash arc), Flame Nova (huge layered
+  blast + rings), Reversal Pull (inward vortex + explosion). All with
+  hit/boss SFX.
+
+`node --check` clean.
+
+---
+
 ## 2026-05-19 — Update 1: techniques + sound + full grade chain
 
 - **Selectable cursed techniques** (`TECHNIQUES` map): new sorcerers

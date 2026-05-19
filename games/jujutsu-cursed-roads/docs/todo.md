@@ -18,6 +18,10 @@
 - [x] 3 selectable cursed techniques (Z primary + X secondary), picked at sign-in
 - [x] Full grade-exam chain G4→Special (level-gated, scaling bosses/rewards)
 
+## UPDATE 2 — DONE (2026-05-19)
+- [x] Town poles replaced with human NPCs (role clothing/props, idle + face-player)
+- [x] Much juicier technique VFX (explosions, shockwaves, slash arc, vortex, camera shake, trails)
+
 ## NEXT (polish)
 - [ ] Death penalty option (lose gold / no full heal) — currently gentle
 - [ ] Better player + curse models / animations
