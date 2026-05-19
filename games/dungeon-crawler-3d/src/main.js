@@ -3641,9 +3641,9 @@ function markMahito(e) {
     const mk = new THREE.Group();
     mk.add(new THREE.Mesh(
         new THREE.SphereGeometry(0.16, 8, 8),
-        new THREE.MeshBasicMaterial({ color: '#7fbfe0', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
+        new THREE.MeshBasicMaterial({ color: '#d8c2ec', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
     ));
-    const crossMat = new THREE.MeshBasicMaterial({ color: '#2a2e36' });
+    const crossMat = new THREE.MeshBasicMaterial({ color: '#2a2230' });
     mk.add(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.045, 0.045), crossMat));
     mk.add(new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.32, 0.045), crossMat));
     mk.position.set(0, e.data.isBoss ? 5.5 : 3.4, 0);
@@ -3740,9 +3740,15 @@ function _mahitoPop(e, wx, wy, wz) {
     if (!e.data.alive) return;
     e.data._mahitoBursting = false;
 
-    // White over-pressure pop ring
-    screenFlash('rgba(255,230,235,0.22)', 90);
+    // White over-pressure pop ring + a pastel released-soul flash
+    screenFlash('rgba(235,215,240,0.22)', 90);
     groundRing(wx, wz, '#ffffff', 1.4, 220);
+    groundRing(wx, wz, '#cdbce8', 2.2, 420);
+    lightFlash(wx, wy, wz, '#d8c2ec', 7, 240);
+    emitParticles(wx, wy, wz, {
+        color: ['#e7c9e0', '#cdbce8', '#bfe0cf', '#ffffff'],
+        count: 24, speed: 6, spread: 1.0, gravity: -1, life: 20, size: 0.14, sizeEnd: 0, drag: 0.93, upward: 1.4
+    });
 
     // Bursting flesh mass — deformed dark-red sphere expands + fades
     const blobGeo = new THREE.SphereGeometry(0.5, 12, 10);
@@ -3818,13 +3824,16 @@ function mahitoIdleTransfig() {
         pm._rightArm.rotation.set(-1.6, 0, 0);
         setTimeout(() => { if (pm._rightArm) pm._rightArm.rotation.set(0.05, 0, 0); }, 360);
     }
+    // Pale "reshaped-soul" energy (canon Idle Transfiguration look)
+    const SOUL = ['#e7c9e0', '#cdbce8', '#bfe0cf', '#bcd6ee', '#ffffff'];
     const hx = wx + fwdX * 1.6, hy = EYE_HEIGHT * 0.9 + fly, hz = wz + fwdZ * 1.6;
+    // A soul-handprint shockring blooms from where his palm lands
     emitParticles(hx, hy, hz, {
-        color: ['#7fbfe0', '#6a0816', '#aa0020', '#ffffff'],
-        count: 22, speed: 5, spread: 0.9, gravity: -2, life: 14, size: 0.13, sizeEnd: 0, drag: 0.92
+        color: SOUL,
+        count: 24, speed: 4, spread: 0.8, gravity: -1, life: 16, size: 0.13, sizeEnd: 0, drag: 0.92, upward: 0.6
     });
-    groundRing(hx, hz, '#7fbfe0', 1.6, 320);
-    lightFlash(hx, hy, hz, '#7fbfe0', 5, 220);
+    groundRing(hx, hz, '#cdbce8', 1.8, 340);
+    lightFlash(hx, hy, hz, '#d8c2ec', 5, 240);
     screenShake(0.18, 90); triggerHitstop(45); fovPunch(7, 0.14);
     const range = 3.2;
     for (const e of enemies3D) {
@@ -3837,9 +3846,29 @@ function mahitoIdleTransfig() {
         if (Math.abs(ad) > Math.PI * 0.45) continue;
         dealDamageToEnemy(e, Math.round(player.damage * 2.2));
         if (e.data.alive) { markMahito(e); e.data.lastAttack = performance.now() + 900; }
-        emitParticles(e.data.x * TILE, 1.3, e.data.z * TILE, {
-            color: ['#6a0816', '#3a0008', '#7fbfe0'],
-            count: 10, speed: 4, spread: 0.7, gravity: -3, life: 12, size: 0.1, sizeEnd: 0, drag: 0.92
+        // The touched soul visibly warps — an expanding translucent
+        // distortion shell + pastel soul wisps peel off the body.
+        const ex = e.data.x * TILE, ez = e.data.z * TILE;
+        const warpMat = new THREE.MeshBasicMaterial({
+            color: '#e7c9e0', transparent: true, opacity: 0.7,
+            blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+        });
+        const warp = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), warpMat);
+        warp.position.set(ex, 1.3, ez);
+        scene.add(warp);
+        const wt0 = performance.now();
+        const animWarp = () => {
+            const t = (performance.now() - wt0) / 360;
+            if (t >= 1) { scene.remove(warp); warp.geometry.dispose(); warpMat.dispose(); return; }
+            const s = 0.6 + t * 2.4;
+            warp.scale.set(s, s * (1.1 + Math.sin(t * 20) * 0.18), s);
+            warpMat.opacity = (1 - t) * 0.7;
+            requestAnimationFrame(animWarp);
+        };
+        requestAnimationFrame(animWarp);
+        emitParticles(ex, 1.3, ez, {
+            color: SOUL,
+            count: 12, speed: 3.5, spread: 0.7, gravity: -1, life: 14, size: 0.1, sizeEnd: 0, drag: 0.92, upward: 1
         });
     }
 }
@@ -3850,15 +3879,16 @@ function mahitoBodyRepel() {
     const px = fpsCamera.posX, pz = fpsCamera.posZ, yaw = fpsCamera.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const wx = px * TILE, wz = pz * TILE, fly = fpsCamera.flyHeight || 0;
+    const SOUL = ['#e7c9e0', '#cdbce8', '#bfe0cf', '#bcd6ee', '#f2d2e0', '#ffffff'];
     screenShake(0.45, 260); triggerHitstop(70); fovPunch(14, 0.16);
-    screenFlash('rgba(120,0,20,0.22)', 160);
+    screenFlash('rgba(220,200,235,0.2)', 160);
     emitParticles(wx, EYE_HEIGHT * 0.8 + fly, wz, {
-        color: ['#6a0816', '#aa0020', '#3a0008', '#7a0820', '#ffffff'],
-        count: 50, speed: 8, spread: 1.6, gravity: -4, life: 22, size: 0.18, sizeEnd: 0, drag: 0.9, upward: 1.4
+        color: SOUL,
+        count: 52, speed: 8, spread: 1.6, gravity: -3, life: 22, size: 0.18, sizeEnd: 0, drag: 0.9, upward: 1.6
     });
-    groundRing(wx, wz, '#aa0020', 5, 600);
-    groundRing(wx, wz, '#6a0816', 3, 500);
-    lightFlash(wx, 1, wz, '#aa0020', 8, 300);
+    groundRing(wx, wz, '#cdbce8', 5, 600);
+    groundRing(wx, wz, '#e7c9e0', 3, 500);
+    lightFlash(wx, 1, wz, '#d8c2ec', 8, 300);
     const radius = 4.2;
     for (const e of enemies3D) {
         if (!e.data.alive) continue;
@@ -3874,21 +3904,23 @@ function mahitoBodyRepel() {
     for (let h = 0; h < heads; h++) {
         const ang = (h / heads) * Math.PI * 2 + Math.random() * 0.5;
         const snake = new THREE.Group();
-        const fleshA = new THREE.MeshStandardMaterial({ color: '#7a1020', roughness: 0.5, emissive: '#2a0006', emissiveIntensity: 0.4 });
-        const fleshB = new THREE.MeshStandardMaterial({ color: '#9a4a4a', roughness: 0.55 });
+        // Pale reshaped-flesh limbs (canon: incompatible fused souls)
+        const fpc = SOUL[h % SOUL.length];
+        const fleshA = new THREE.MeshStandardMaterial({ color: fpc, roughness: 0.7 });
+        const fleshB = new THREE.MeshStandardMaterial({ color: new THREE.Color(fpc).multiplyScalar(0.85), roughness: 0.75 });
         const segN = 5;
         const segs = [];
         for (let i = 0; i < segN; i++) {
-            const s = new THREE.Mesh(new THREE.SphereGeometry(0.16 - i * 0.018, 7, 6), i % 2 ? fleshA : fleshB);
+            const s = new THREE.Mesh(new THREE.SphereGeometry(0.17 - i * 0.018, 7, 6), i % 2 ? fleshA : fleshB);
             snake.add(s); segs.push(s);
         }
-        const headM = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.34, 6), fleshA);
+        const headM = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.36, 6), fleshA);
         snake.add(headM); segs.push(headM);
-        for (let m = -1; m <= 1; m += 2) {
-            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.03, 5, 5),
-                new THREE.MeshBasicMaterial({ color: '#ffe24a' }));
-            eye.position.set(m * 0.06, 0.05, 0.1); headM.add(eye);
-        }
+        // No eyes — just a small gaping dark mouth (matches the theme)
+        const maw = new THREE.Mesh(new THREE.SphereGeometry(0.07, 7, 6),
+            new THREE.MeshBasicMaterial({ color: '#241c2a' }));
+        maw.position.set(0, 0.02, 0.13); maw.scale.set(1.1, 1.5, 0.7);
+        headM.add(maw);
         scene.add(snake);
         const baseY = EYE_HEIGHT * 0.7 + fly;
         const t0 = performance.now(), dur = 620;
@@ -3920,13 +3952,18 @@ function mahitoSoulMultiplicity() {
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const perpX = Math.cos(yaw), perpZ = -Math.sin(yaw);
     const wx = px * TILE, wz = pz * TILE;
+    // Pale reshaped-soul tones — Mahito moulds fused souls into bodies
+    const SOUL = ['#e7c9e0', '#cdbce8', '#bfe0cf', '#bcd6ee', '#f2d2e0', '#ffffff'];
     screenShake(0.3, 300); fovPunch(10, 0.15);
-    emitParticles(wx, 0.5, wz, {
-        color: ['#6a0816', '#9a4a4a', '#3a0008', '#7fbfe0'],
-        count: 40, speed: 5, spread: 2, gravity: 0, life: 18, size: 0.16, sizeEnd: 0, drag: 0.94, upward: 2
+    screenFlash('rgba(220,200,235,0.16)', 140);
+    // Soul stuff swells up out of the floor around Mahito
+    emitParticles(wx, 0.4, wz, {
+        color: SOUL,
+        count: 46, speed: 5, spread: 2.2, gravity: -1, life: 22, size: 0.17, sizeEnd: 0, drag: 0.94, upward: 2.6
     });
-    groundRing(wx, wz, '#6a0816', 4, 600);
-    lightFlash(wx, EYE_HEIGHT, wz, '#aa0020', 6, 400);
+    groundRing(wx, wz, '#cdbce8', 4, 600);
+    groundRing(wx, wz, '#e7c9e0', 2.6, 480);
+    lightFlash(wx, EYE_HEIGHT, wz, '#d8c2ec', 6, 420);
     const life = performance.now() + 9000;
     const count = 5;
     for (let i = 0; i < count; i++) {
@@ -3934,16 +3971,18 @@ function mahitoSoulMultiplicity() {
         const sx = px + fwdX * 1.4 + perpX * off;
         const sz = pz + fwdZ * 1.4 + perpZ * off;
         if (!isWalkable(dungeon.map, sx, sz)) continue;
-        spawnMinion('imp', sx, sz, {
-            color: '#9a4a4a', radius: 0.45, speed: 4.2,
+        spawnMinion('transfigured', sx, sz, {
+            color: '#cdbce8', radius: 0.45, speed: 4.2,
             damage: Math.max(2, Math.round(player.damage * 0.5)),
             attackRange: 1.6, attackSpeed: 700,
             hp: 45, maxHp: 45, life, _owner: player,
         });
-        emitParticles(sx * TILE, 0.6, sz * TILE, {
-            color: ['#6a0816', '#9a4a4a', '#ffffff'],
-            count: 10, speed: 3, spread: 0.6, gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.93, upward: 2
+        // Each figure forms out of a column of rising pastel soul-matter
+        emitParticles(sx * TILE, 0.5, sz * TILE, {
+            color: SOUL,
+            count: 16, speed: 2.5, spread: 0.5, gravity: -1, life: 16, size: 0.12, sizeEnd: 0, drag: 0.93, upward: 3.2
         });
+        groundRing(sx * TILE, sz * TILE, '#e7c9e0', 1.3, 360);
     }
 }
 
@@ -3953,14 +3992,33 @@ function mahitoShadowStep() {
     const px = fpsCamera.posX, pz = fpsCamera.posZ, yaw = fpsCamera.yaw;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const wx = px * TILE, wz = pz * TILE, fly = fpsCamera.flyHeight || 0;
+    const SOUL = ['#e7c9e0', '#cdbce8', '#bfe0cf', '#bcd6ee', '#ffffff'];
     const dashDist = 6;
+    // Pale soul-trail along the blink path
     for (let i = 0; i < 8; i++) {
         const t = i / 8;
         emitParticles(wx + fwdX * TILE * t * dashDist, EYE_HEIGHT * 0.8 + fly, wz + fwdZ * TILE * t * dashDist, {
-            color: ['#6a0816', '#3a0008', '#7fbfe0'],
-            count: 4, speed: 2, spread: 0.5, gravity: 0, life: 12, size: 0.1, sizeEnd: 0, drag: 0.92
+            color: SOUL,
+            count: 5, speed: 2, spread: 0.5, gravity: 0, life: 13, size: 0.11, sizeEnd: 0, drag: 0.92
         });
     }
+    // A pale reshaped-flesh afterimage left where he was standing
+    const ghostMat = new THREE.MeshBasicMaterial({
+        color: '#cdbce8', transparent: true, opacity: 0.45,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const ghost = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 1.2, 4, 8), ghostMat);
+    ghost.position.set(wx, 1.1 + fly, wz);
+    scene.add(ghost);
+    const gt0 = performance.now();
+    const animGhost = () => {
+        const t = (performance.now() - gt0) / 380;
+        if (t >= 1) { scene.remove(ghost); ghost.geometry.dispose(); ghostMat.dispose(); return; }
+        ghostMat.opacity = (1 - t) * 0.45;
+        ghost.scale.set(1 + t * 0.4, 1, 1 + t * 0.4);
+        requestAnimationFrame(animGhost);
+    };
+    requestAnimationFrame(animGhost);
     for (const e of enemies3D) {
         if (!e.data.alive) continue;
         const tx = e.data.x - px, tz = e.data.z - pz;
@@ -3972,8 +4030,8 @@ function mahitoShadowStep() {
     fpsCamera.safeMove(px + fwdX * dashDist, pz + fwdZ * dashDist, dungeon.map);
     player.invincible = performance.now() + 350;
     showSpeedLines(350); fovPunch(16, 0.12);
-    lightFlash(wx, EYE_HEIGHT, wz, '#7fbfe0', 4, 220);
-    groundRing(wx, wz, '#6a0816', 2.5, 300);
+    lightFlash(wx, EYE_HEIGHT, wz, '#d8c2ec', 4, 220);
+    groundRing(wx, wz, '#cdbce8', 2.5, 300);
 }
 
 // ─── MAHITO — V: Self-Embodiment of Perfection (domain) ────────────
@@ -13704,6 +13762,90 @@ function spawnMinion(type, tileX, tileZ, data) {
         group.add(r);
         group.userData._rightArm = r.userData._rightArm;
         group.userData._leftArm = r.userData._leftArm;
+
+    } else if (type === 'transfigured') {
+        // ── Mahito's transfigured human — a malformed pastel humanoid
+        //    with NO face, just a gaping dark mouth + a lumpen body.
+        //    Each one picks a random pastel "reshaped-soul" tone.
+        const PASTELS = ['#e7c9e0', '#cdbce8', '#bfe0cf', '#ffd6c2', '#bcd6ee', '#f2d2e0', '#d9d0ec'];
+        const base = new THREE.Color(PASTELS[Math.floor(Math.random() * PASTELS.length)]);
+        const limbCol = base.clone().multiplyScalar(0.86);
+        const skinMat = new THREE.MeshStandardMaterial({ color: base, roughness: 0.78, metalness: 0.0 });
+        const limbMat = new THREE.MeshStandardMaterial({ color: limbCol, roughness: 0.8, metalness: 0.0 });
+        const mouthMat = new THREE.MeshBasicMaterial({ color: '#241c2a' });
+        const mouthInnerMat = new THREE.MeshStandardMaterial({
+            color: '#3a2438', roughness: 0.6, emissive: '#1a0f1e', emissiveIntensity: 0.3,
+        });
+
+        // Slightly melted, asymmetric organic body (transfigured = wrong)
+        const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.44, 0.95, 5, 10), skinMat);
+        torso.position.y = 1.05;
+        torso.scale.set(1.0, 1.0, 0.86);
+        torso.rotation.z = (Math.random() - 0.5) * 0.18;
+        group.add(torso);
+        // Lumpen growths on the torso
+        for (let b = 0; b < 3; b++) {
+            const lump = new THREE.Mesh(new THREE.SphereGeometry(0.16 + Math.random() * 0.12, 7, 6), skinMat);
+            lump.position.set((Math.random() - 0.5) * 0.7, 0.8 + Math.random() * 0.7, 0.34 + Math.random() * 0.1);
+            lump.scale.set(1, 0.8, 0.7);
+            group.add(lump);
+        }
+
+        // Head — smooth blob, NO eyes/nose
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 12, 10), skinMat);
+        head.position.set((Math.random() - 0.5) * 0.12, 1.78, 0);
+        head.scale.set(0.92, 1.12, 0.95);
+        head.rotation.z = (Math.random() - 0.5) * 0.3;
+        group.add(head);
+
+        // The one feature: a gaping dark mouth low on the face
+        const mouthOuter = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), mouthMat);
+        mouthOuter.position.set(head.position.x, 1.66, 0.28);
+        mouthOuter.scale.set(1.25, 1.6, 0.55);
+        group.add(mouthOuter);
+        const mouthInner = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), mouthInnerMat);
+        mouthInner.position.set(head.position.x, 1.66, 0.22);
+        mouthInner.scale.set(1.1, 1.45, 0.6);
+        group.add(mouthInner);
+        // A couple of pale uneven teeth
+        for (let t = -1; t <= 1; t += 2) {
+            const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.09, 4),
+                new THREE.MeshStandardMaterial({ color: '#efe6dc', roughness: 0.5 }));
+            tooth.position.set(head.position.x + t * 0.05, 1.71, 0.33);
+            tooth.rotation.x = Math.PI;
+            group.add(tooth);
+        }
+
+        // Asymmetric arms (one longer/lower — malformed)
+        const armSpec = [
+            { s: -1, len: 0.95, y: 1.42, rz: 0.5 },
+            { s: 1, len: 0.72, y: 1.5, rz: -0.35 },
+        ];
+        for (const a of armSpec) {
+            const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, a.len, 4, 8), limbMat);
+            arm.position.set(a.s * 0.5, a.y - a.len * 0.4, 0);
+            arm.rotation.z = a.rz;
+            group.add(arm);
+            const hand = new THREE.Mesh(new THREE.SphereGeometry(0.15, 7, 6), skinMat);
+            hand.position.set(a.s * (0.5 + Math.sin(a.rz) * a.len * 0.8), a.y - a.len * 0.9, 0.05);
+            hand.scale.set(1, 1.2, 0.8);
+            group.add(hand);
+        }
+
+        // Stumpy uneven legs
+        for (let l = -1; l <= 1; l += 2) {
+            const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.55 + (l > 0 ? 0.12 : 0), 4, 8), limbMat);
+            leg.position.set(l * 0.18, 0.35, 0);
+            leg.rotation.z = l * 0.06;
+            group.add(leg);
+        }
+
+        // Faint pastel soul aura (small + cheap)
+        const auraLight = new THREE.PointLight(base, 0.7, TILE * 2.2, 2);
+        auraLight.position.y = 1.2;
+        group.add(auraLight);
+
+        group.scale.setScalar(1.35);
 
     } else {
         // ── Default humanoid minion ──

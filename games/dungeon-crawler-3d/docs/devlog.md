@@ -4,6 +4,38 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-19 — Mahito: canon anime visual pass + pastel transfigured humans
+
+Made Mahito's kit *look* like the anime. Damage / cooldowns / ranges
+all unchanged — purely a VFX + minion-mesh pass (per user request).
+
+- **New `transfigured` minion mesh** (`spawnMinion`): Soul
+  Multiplicity (C) now spawns malformed pastel humanoids instead of
+  the generic red `imp`. **No face — just a gaping dark mouth** + a
+  lumpen asymmetric body, mismatched arms/legs, growth lumps, faint
+  per-figure pastel soul aura; each rolls a random pastel tone. Uses
+  the existing default-minion AI (chase/attack/billboard).
+- **Pastel "reshaped-soul" palette** across every Mahito move
+  (`#e7c9e0`/`#cdbce8`/`#bfe0cf`/`#bcd6ee` + white) replacing the old
+  gore-red:
+  - **Z Idle Transfiguration** — soul-handprint ring + each struck
+    enemy gets an expanding additive distortion shell ("the soul
+    warps") + soul wisps.
+  - **X Body Repel** — the 6 erupting fused-soul limbs are now pale
+    pastel flesh with a small gaping dark mouth at the tip (no more
+    yellow eyes); pastel shockwave.
+  - **C Soul Multiplicity** — pastel soul eruption + per-figure rising
+    soul-matter columns.
+  - **F Shadow Step** — pastel soul-trail + a fading reshaped-flesh
+    afterimage left at the origin.
+  - **E detonation** (`_mahitoPop`) — added a pastel released-soul
+    flash/ring/wisps over the existing kill burst; mark tag recoloured
+    to pastel lavender.
+
+`node --check src/main.js` clean. characters.md updated.
+
+---
+
 ## 2026-05-19 — Environment retheme: cyberpunk → abandoned-lab horror
 
 Full 3D-world art pass turning the cyberpunk neon dungeon into a
