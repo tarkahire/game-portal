@@ -23,7 +23,10 @@
     <div class="sub">CURSED ROADS</div>
     <p class="tag">Sign in, sorcerer. Your road is saved.</p>
     <input id="name-input" class="name" type="text" maxlength="16" placeholder="ENTER YOUR NAME" autocomplete="off">
+    <input id="pw-input" class="name" type="password" maxlength="32" placeholder="PASSWORD" autocomplete="off">
+    <div id="signin-error" class="error"></div>
     <button id="btn-enter" class="btn">Enter the Roads</button>
+    <button id="btn-register" class="btn sec">Register account</button>
     <div id="slot-list" class="slots"></div>
     <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
 </div>
@@ -52,6 +55,7 @@
     <canvas id="minimap" width="150" height="150"></canvas>
     <div id="hint">WASD move · Mouse look · LMB combo · Space jump · Q dash · F block · G grab · Shift sprint · E interact · ESC pause</div>
     <div id="toast"></div>
+    <button id="admin-btn">ADMIN PANEL  ·  F1</button>
 </div>
 
 <!-- Panel overlay -->

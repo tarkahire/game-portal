@@ -4,6 +4,58 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Password sign-in, Register button, dbag admin panel
+
+### Password gate
+
+- Save schema gained `pwHash` (client-side djb2 hash — privacy-theatre
+  only; localStorage is anyone's to read with dev tools).
+- Sign-in screen now has two inputs (name + password) and two
+  buttons:
+  - **Enter the Roads** — login only. Fails if name doesn't exist
+    or password is wrong. Pre-password saves backfill their hash on
+    first sign-in.
+  - **Register account** — create new save. Fails if name is taken.
+- Inline `#signin-error` div shows mismatch / taken / empty-field
+  messages instead of a console-only log.
+- Slot-click chips now just populate the name and focus the
+  password field — they no longer auto-submit.
+- Tab order: name → password (Enter), password → submit (Enter).
+
+### Admin panel (dbag only)
+
+- `isAdmin()` returns true when `save.name.toLowerCase() === 'dbag'`.
+- HUD gains a small red **ADMIN PANEL · F1** button top-right,
+  visible only for the dbag account. **F1 hotkey** also opens/closes.
+- Overlay shows a 3-column grid of ~20 commands:
+  - **Currency**: +1M gold, +9999 shards
+  - **Progression**: Level +5, Level +20, Set Special Grade, Reset
+    to Grade 4
+  - **State**: Full HP+Stamina, Save now
+  - **Toggles**: God mode, Inf Stamina, One-Shot, Noclip (green ✓
+    on active)
+  - **World**: Kill all curses, Spawn 10 curses, Spawn boss, Curse
+    Rain (30 s of 4/s spawns), TP plaza, TP city centre
+  - **Quests**: Complete all active quests
+  - **Danger** (red): Wipe save (with confirm + reload)
+- Toggles wired into the game loop:
+  - **god** → `damagePlayer` early returns
+  - **infStam** → block doesn't drain, stamina forced to max each tick
+  - **oneShot** → melee damage × 9999
+  - **noclip** → bypasses AABB push-out on both ground move + air-leap
+
+### Files touched
+
+- `index.html` — password input, error div, register button, admin button
+- `style.css` — input spacing, error styling, admin button + grid styles
+- `src/save/saveAdapter.js` — `pwHash` field
+- `src/main.js` — `hashPw`, `readSigninFields`, `enterPressed` (login-only),
+  `registerPressed`, full admin panel infrastructure + per-toggle hooks
+
+`src/main.js`: 1881 → 2026 lines.
+
+---
+
 ## 2026-05-21 — Repeatable quests, tiered givers, auto grade-up, tougher curses
 
 Big quest + progression rework.

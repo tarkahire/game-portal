@@ -32,6 +32,8 @@ export class SaveAdapter {
 export function newSave(name) {
     return {
         name,
+        pwHash: '',               // set on registration. Client-side hash —
+                                  // this is a friend gate, not real auth.
         level: 1,
         xp: 0,
         grade: 4,                 // everyone starts Grade 4

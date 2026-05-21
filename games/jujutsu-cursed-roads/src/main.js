@@ -1129,7 +1129,7 @@ function meleeStrike() {
         const d = Math.hypot(dx, dz);
         if (d > hit.reach) continue;
         if ((dx / d) * fx + (dz / d) * fz < 0.25) continue;
-        damageCurse(c, player.damage * hit.dmgMul);
+        damageCurse(c, player.damage * hit.dmgMul * (admin.oneShot ? 9999 : 1));
         if (hit.knock) { c.x += (dx / d) * hit.knock; c.z += (dz / d) * hit.knock; }
         hitAny = true;
     }
@@ -1249,6 +1249,7 @@ function gainXp(amount) {
 
 function damagePlayer(dmg) {
     if (state !== 'playing' || player.iframes > 0) return;
+    if (admin.god) return;          // admin god-mode toggle
     // Block reduces incoming damage 70%
     if (player.blocking) dmg *= 0.30;
     player.hp -= dmg;
@@ -1428,6 +1429,7 @@ function startGame(loaded) {
     player.hp = player.maxHp;
     player.stamina = player.maxStamina;
     refreshMissionHud();
+    refreshAdminButton();
     state = 'playing';
     toast('Welcome, ' + save.name + ' — ' + GRADE_NAME[save.grade]);
 }
@@ -1435,6 +1437,7 @@ function startGame(loaded) {
 function toSignin() {
     state = 'signin';
     document.getElementById('hud').style.display = 'none';
+    document.getElementById('admin-btn').style.display = 'none';
     document.getElementById('signin-screen').classList.add('active');
     for (const c of curses.slice()) scene.remove(c.mesh);
     curses.length = 0;
@@ -1627,14 +1630,21 @@ function update(dt) {
     const wantBlock = !!keys['KeyF'];
     if (wantBlock && player.stamina > 0) {
         player.blocking = true;
-        player.stamina = Math.max(0, player.stamina - dt * 30);
+        if (!admin.infStam) player.stamina = Math.max(0, player.stamina - dt * 30);
     } else {
         player.blocking = false;
     }
     // Stamina regen when not blocking (faster when standing still)
-    if (!player.blocking) {
+    if (!player.blocking && !admin.infStam) {
         const regen = 18;       // /s
         player.stamina = Math.min(player.maxStamina, player.stamina + dt * regen);
+    }
+    if (admin.infStam) player.stamina = player.maxStamina;
+    // Curse rain — spawn ~4 curses/sec for the duration
+    if (admin.rain > 0) {
+        admin.rain -= dt;
+        admin._rainAcc = (admin._rainAcc || 0) + dt;
+        while (admin._rainAcc > 0.25) { admin._rainAcc -= 0.25; spawnCurse(false); }
     }
 
     // Movement relative to camera yaw (locked while blocking)
@@ -1653,8 +1663,10 @@ function update(dt) {
         const airMul = (player.y > 0) ? 0.45 : 1.0;   // air control reduced
         const sp = player.speed * airMul * (keys['ShiftLeft'] || keys['ShiftRight'] ? 1.7 : 1) * dt;
         let nx = player.x + mx * sp, nz = player.z + mz * sp;
-        nx = pushOutObstacles(nx, nz, 'x', player.x);
-        nz = pushOutObstacles(nx, nz, 'z', player.z);
+        if (!admin.noclip) {
+            nx = pushOutObstacles(nx, nz, 'x', player.x);
+            nz = pushOutObstacles(nx, nz, 'z', player.z);
+        }
         nx = Math.max(-WORLD + 4, Math.min(WORLD - 4, nx));
         nz = Math.max(-WORLD + 4, Math.min(WORLD - 4, nz));
         player.x = nx; player.z = nz;
@@ -1668,8 +1680,10 @@ function update(dt) {
         if (player.airVx || player.airVz) {
             let nx = player.x + player.airVx * dt;
             let nz = player.z + player.airVz * dt;
-            nx = pushOutObstacles(nx, nz, 'x', player.x);
-            nz = pushOutObstacles(nx, nz, 'z', player.z);
+            if (!admin.noclip) {
+                nx = pushOutObstacles(nx, nz, 'x', player.x);
+                nz = pushOutObstacles(nx, nz, 'z', player.z);
+            }
             nx = Math.max(-WORLD + 4, Math.min(WORLD - 4, nx));
             nz = Math.max(-WORLD + 4, Math.min(WORLD - 4, nz));
             player.x = nx; player.z = nz;
@@ -1996,25 +2010,162 @@ function init() {
 
     // Sign-in wiring
     const nameIn = document.getElementById('name-input');
+    const pwIn = document.getElementById('pw-input');
     document.getElementById('btn-enter').onclick = enterPressed;
-    nameIn.addEventListener('keydown', (e) => { if (e.code === 'Enter') enterPressed(); });
+    document.getElementById('btn-register').onclick = registerPressed;
+    // Enter key inside any field → login. Use Register button for new accounts.
+    nameIn.addEventListener('keydown', (e) => { if (e.code === 'Enter') pwIn.focus(); });
+    pwIn.addEventListener('keydown', (e) => { if (e.code === 'Enter') enterPressed(); });
+    // Click a slot name → populate name + focus password (don't auto-submit)
     document.getElementById('slot-list').addEventListener('click', (e) => {
-        if (e.target.dataset.slot) { nameIn.value = e.target.dataset.slot; enterPressed(); }
+        if (e.target.dataset.slot) {
+            nameIn.value = e.target.dataset.slot;
+            pwIn.value = '';
+            pwIn.focus();
+        }
     });
     refreshSlots();
 
     loop();
 }
 
+// Cheap djb2 hash. Honest disclaimer: localStorage is fully readable by
+// anyone with browser dev tools, so this is privacy-theatre, not real
+// auth. It stops casual snooping at the same machine.
+function hashPw(pw) {
+    let h = 5381;
+    for (let i = 0; i < pw.length; i++) h = (((h << 5) + h) ^ pw.charCodeAt(i)) | 0;
+    return ('00000000' + (h >>> 0).toString(16)).slice(-8);
+}
+function signinError(msg) {
+    const el = document.getElementById('signin-error');
+    el.textContent = msg;
+    el.style.opacity = '1';
+    clearTimeout(signinError._t);
+    signinError._t = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
+
+// Pull the name + password the user typed. Returns null with a UI
+// error if either field is empty.
+function readSigninFields() {
+    const nameInput = document.getElementById('name-input');
+    const pwInput = document.getElementById('pw-input');
+    const name = (nameInput.value || '').trim().slice(0, 16);
+    const pw = pwInput.value || '';
+    if (!name) { signinError('Enter a name'); nameInput.focus(); return null; }
+    if (!pw)   { signinError('Enter a password'); pwInput.focus(); return null; }
+    return { name, pw, nameInput, pwInput };
+}
+
+// "Enter the Roads" — log in only. Fails if the account doesn't exist.
 async function enterPressed() {
     audioInit(); sfx('ui');
-    const name = (document.getElementById('name-input').value || '').trim().slice(0, 16);
-    if (!name) { document.getElementById('name-input').focus(); return; }
-    const existing = await adapter.load(name);
-    const data = existing || newSave(name);
+    const v = readSigninFields(); if (!v) return;
+    const existing = await adapter.load(v.name);
+    if (!existing) {
+        signinError(`No account named "${v.name}". Use Register instead.`);
+        return;
+    }
+    const hash = hashPw(v.pw);
+    if (existing.pwHash && existing.pwHash !== hash) {
+        v.pwInput.value = '';
+        v.pwInput.focus();
+        signinError('Incorrect password');
+        return;
+    }
+    if (!existing.pwHash) existing.pwHash = hash;   // backfill pre-pw saves
+    startGame(existing);
+    persist();
+}
+
+// "Register account" — create a new save. Fails if the name is taken.
+async function registerPressed() {
+    audioInit(); sfx('ui');
+    const v = readSigninFields(); if (!v) return;
+    const existing = await adapter.load(v.name);
+    if (existing) {
+        signinError(`Name "${v.name}" is taken. Sign in instead.`);
+        return;
+    }
+    const data = newSave(v.name);
+    data.pwHash = hashPw(v.pw);
     startGame(data);
     persist();
 }
+
+// ─── ADMIN PANEL (only for the username `dbag`) ─────────────
+const admin = { god: false, infStam: false, oneShot: false, noclip: false, rain: 0 };
+function isAdmin() { return save && save.name && save.name.toLowerCase() === 'dbag'; }
+const ADMIN_CMDS = [
+    { l: '+1,000,000 gold',     f: () => { save.gold += 1000000; toast('+1M gold'); } },
+    { l: '+9,999 shards',       f: () => { save.shards = (save.shards||0) + 9999; toast('+9999 shards'); } },
+    { l: 'Level +5',            f: () => { for (let i=0;i<5;i++) gainXp(xpToNext(save.level)); } },
+    { l: 'Level +20',           f: () => { for (let i=0;i<20;i++) gainXp(xpToNext(save.level)); } },
+    { l: 'Set Special Grade',   f: () => { save.grade = 0; toast('GRADE: SPECIAL'); refreshMissionHud(); } },
+    { l: 'Reset to Grade 4',    f: () => { save.grade = 4; toast('GRADE: 4'); refreshMissionHud(); } },
+    { l: 'Full HP + Stamina',   f: () => { player.hp = player.maxHp; player.stamina = player.maxStamina; toast('Restored.'); } },
+    { l: 'Toggle God Mode',     f: () => { admin.god = !admin.god; toast('God: ' + (admin.god?'ON':'OFF')); }, toggle: 'god' },
+    { l: 'Toggle Inf Stamina',  f: () => { admin.infStam = !admin.infStam; toast('Inf stam: ' + (admin.infStam?'ON':'OFF')); }, toggle: 'infStam' },
+    { l: 'Toggle One-Shot',     f: () => { admin.oneShot = !admin.oneShot; toast('OneShot: ' + (admin.oneShot?'ON':'OFF')); }, toggle: 'oneShot' },
+    { l: 'Toggle Noclip',       f: () => { admin.noclip = !admin.noclip; toast('Noclip: ' + (admin.noclip?'ON':'OFF')); }, toggle: 'noclip' },
+    { l: 'Kill ALL curses',     f: () => { for (const c of curses.slice()) damageCurse(c, 999999); toast('Mass exorcism.'); } },
+    { l: 'Spawn 10 curses',     f: () => { for (let i=0;i<10;i++) spawnCurse(false); toast('+10 curses'); } },
+    { l: 'Spawn boss',          f: () => { spawnCurse(true); toast('Boss spawned.'); } },
+    { l: 'Curse Rain (30 s)',   f: () => { admin.rain = 30; toast('CURSE RAIN — 30 s'); } },
+    { l: 'TP to Plaza',         f: () => { player.x = TOWN.x; player.z = TOWN.z + 4; player.y = 0; player.vy = 0; player.airVx = 0; player.airVz = 0; toast('TP plaza'); } },
+    { l: 'TP to City Centre',   f: () => { player.x = 0; player.z = 100; player.y = 0; player.vy = 0; player.airVx = 0; player.airVz = 0; toast('TP city'); } },
+    { l: 'Complete active quests', f: () => {
+        for (const id in save.quests) {
+            const q = save.quests[id], def = QUESTS[id];
+            if (q && def && q.state === 'active') { q.progress = def.target; completeQuest(id); }
+        }
+        toast('Active quests done.');
+    }},
+    { l: 'Save now',            f: () => { persist(); toast('Saved.'); } },
+    { l: 'Wipe save (confirm)', f: () => {
+        if (confirm('Wipe save for "' + save.name + '"? This is permanent.')) {
+            adapter.remove(save.name).then(() => location.reload());
+        }
+    }, danger: true },
+];
+
+let adminOpen = false;
+function renderAdminPanel() {
+    const buttons = ADMIN_CMDS.map((c, i) => {
+        const cls = c.danger ? 'danger' : (c.toggle && admin[c.toggle] ? 'on' : '');
+        return `<button class="${cls}" data-admin="${i}">${c.l}${c.toggle && admin[c.toggle] ? ' ✓' : ''}</button>`;
+    }).join('');
+    showOverlay(`<h2 style="color:#ff5a6a">ADMIN PANEL</h2>
+        <p style="color:#7a8a9a;font-size:0.78rem">Crazy commands. Use responsibly. (F1 to close.)</p>
+        <div class="admin-grid">${buttons}</div>
+        <button class="btn sec act" data-close="1" style="margin-top:1rem">Close</button>`);
+}
+function toggleAdminPanel() {
+    if (!isAdmin()) return;
+    if (adminOpen) { hideOverlay(); adminOpen = false; }
+    else { renderAdminPanel(); adminOpen = true; }
+}
+function refreshAdminButton() {
+    document.getElementById('admin-btn').style.display = isAdmin() ? 'block' : 'none';
+}
+
+// Hotkey + click wiring
+addEventListener('keydown', (e) => {
+    if (e.code === 'F1' && state === 'playing') {
+        e.preventDefault();
+        toggleAdminPanel();
+    }
+});
+document.getElementById('admin-btn').addEventListener('click', toggleAdminPanel);
+document.getElementById('overlay').addEventListener('click', (e) => {
+    const t = e.target;
+    if (t.dataset && t.dataset.admin != null) {
+        const i = parseInt(t.dataset.admin, 10);
+        const cmd = ADMIN_CMDS[i];
+        if (cmd) { cmd.f(); renderAdminPanel(); persist(); sfx('ui'); }
+    }
+    if (t.dataset && t.dataset.close) adminOpen = false;
+});
 
 function loop() {
     requestAnimationFrame(loop);

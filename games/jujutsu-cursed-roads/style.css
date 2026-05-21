@@ -15,8 +15,11 @@ h1 { font-size: 3.6rem; font-weight: 900; letter-spacing: 0.12em; color: #a06bff
 
 input.name { background: #11151f; border: 1px solid #2a3245; color: #fff;
     padding: 0.8rem 1rem; font-size: 1.2rem; letter-spacing: 0.12em; text-align: center;
-    width: 280px; font-family: inherit; }
+    width: 280px; font-family: inherit; margin-top: 0.4rem; }
 input.name:focus { outline: none; border-color: #a06bff; }
+input[type="password"].name { letter-spacing: 0.4em; font-size: 1rem; }
+.error { color: #ff5a6a; font-size: 0.85rem; min-height: 1.2rem; margin-top: 0.6rem;
+    text-align: center; opacity: 0; transition: opacity 0.2s; }
 
 .btn { background: linear-gradient(180deg, #1a1430 0%, #0a0814 100%); color: #cbb6ff;
     border: 1px solid #5a3aa033; padding: 0.75rem 2.2rem; font-size: 1.05rem; cursor: pointer;
@@ -105,3 +108,19 @@ input.name:focus { outline: none; border-color: #a06bff; }
 .shop-cost { text-align: right; font-size: 0.8rem; }
 .shop-row .btn { min-width: 0; padding: 0.4rem 0.7rem; font-size: 0.8rem; pointer-events: auto; }
 .card { max-width: 620px; }
+
+/* Admin (only visible when signed in as `dbag`) */
+#admin-btn { position: fixed; top: 12px; right: 12px; z-index: 6;
+    background: #2a0a0a; border: 1px solid #ff3a3a; color: #ff5a6a;
+    font-size: 0.78rem; letter-spacing: 0.12em; padding: 0.4rem 0.8rem;
+    cursor: pointer; display: none; font-family: inherit; pointer-events: auto; }
+#admin-btn:hover { background: #5a1010; color: #fff; }
+.admin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+    margin-top: 0.6rem; }
+.admin-grid button { background: #1a1224; border: 1px solid #5a3aa0; color: #cbb6ff;
+    font-size: 0.75rem; padding: 0.55rem 0.4rem; cursor: pointer; font-family: inherit;
+    letter-spacing: 0.04em; transition: all 0.15s; pointer-events: auto; text-align: left; }
+.admin-grid button:hover { background: #2a1a3a; color: #fff; border-color: #a06bff; }
+.admin-grid button.on { background: #1a3a1a; border-color: #3aff8a; color: #3aff8a; }
+.admin-grid button.danger { border-color: #ff3a3a; color: #ff8a8a; }
+.admin-grid button.danger:hover { background: #5a1010; color: #fff; }
