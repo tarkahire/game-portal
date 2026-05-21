@@ -565,23 +565,50 @@ function toast(msg) {
 }
 
 // ─── COMBAT ─────────────────────────────────────────────────
+// 4-hit alternating punch combo: jab → cross → hook → finisher.
+// Each hit picks an arm and a torso-twist direction. The 4th hit is the
+// finisher — wider reach, 2× damage, knockback, heavier sfx.
+const COMBO = [
+    { hand: 'L', reach: 2.8, dmgMul: 1.0, knock: 0.0, swing: 1.0 },  // jab
+    { hand: 'R', reach: 3.0, dmgMul: 1.0, knock: 0.0, swing: 1.0 },  // cross
+    { hand: 'L', reach: 2.9, dmgMul: 1.1, knock: 0.0, swing: 1.1 },  // hook
+    { hand: 'R', reach: 3.6, dmgMul: 2.0, knock: 2.2, swing: 1.5 },  // finisher
+];
+const COMBO_HIT_CD = 220;        // ms between hits inside the chain
+const COMBO_RESET_MS = 700;      // chain resets if you pause longer than this
 let lastM1 = 0;
+let comboIdx = 0;
 function meleeStrike() {
     const now = performance.now();
-    if (now - lastM1 < 380) return;
+    if (now - lastM1 < COMBO_HIT_CD) return;
+    if (now - lastM1 > COMBO_RESET_MS) comboIdx = 0;
+    const hit = COMBO[comboIdx];
+    const finisher = comboIdx === COMBO.length - 1;
     lastM1 = now;
-    swingArm();
+    comboIdx = finisher ? 0 : comboIdx + 1;
+
+    // Animation: arm-snap on the swinging hand + body torque opposite side
+    if (hit.hand === 'L') { lArmSwing = hit.swing; torsoTwist = 0.4; }
+    else                  { rArmSwing = hit.swing; torsoTwist = -0.4; }
+    if (finisher) lungeAmount = 0.18;
+
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-    let hit = false;
+    let hitAny = false;
     for (const c of curses) {
         const dx = c.x - player.x, dz = c.z - player.z;
         const d = Math.hypot(dx, dz);
-        if (d > 3.0) continue;
-        if ((dx / d) * fx + (dz / d) * fz < 0.25) continue; // in front
-        damageCurse(c, player.damage);
-        hit = true;
+        if (d > hit.reach) continue;
+        if ((dx / d) * fx + (dz / d) * fz < 0.25) continue;
+        damageCurse(c, player.damage * hit.dmgMul);
+        if (hit.knock) { c.x += (dx / d) * hit.knock; c.z += (dz / d) * hit.knock; }
+        hitAny = true;
     }
-    if (hit) { burst(player.x + fx * 2, 1.3, player.z + fz * 2, '#cbb6ff', 8); sfx('hit'); }
+    if (hitAny) {
+        burst(player.x + fx * 2, 1.3, player.z + fz * 2,
+            finisher ? '#ffcf66' : '#cbb6ff', finisher ? 18 : 8);
+        sfx('hit');
+        if (finisher) sfx('boss');
+    }
 }
 // ═══ (cursed techniques removed) — was: TECHNIQUES dispatcher + Sukuna/Todo/Megumi kits + technique-only VFX helpers + updateProjectiles ═══
 
@@ -797,8 +824,12 @@ async function refreshSlots() {
 }
 
 // ─── ANIMATION HELPERS ──────────────────────────────────────
-let armSwing = 0;
-function swingArm() { armSwing = 1; }
+// Per-hand punch swing + signed torso torque (signed because left punch
+// twists the body one way, right punch the other) + a brief forward
+// lunge for the combo finisher. All decay each frame in update().
+let lArmSwing = 0, rArmSwing = 0;
+let torsoTwist = 0;
+let lungeAmount = 0;
 
 // ─── GAME FLOW ──────────────────────────────────────────────
 function startGame(loaded) {
@@ -912,27 +943,33 @@ function update(dt) {
     const gy = terrainHeight(player.x, player.z);
     playerModel.position.set(player.x, gy, player.z);
     playerModel.rotation.y = yaw + Math.PI;
-    // Constructed-humanoid walk + idle + attack swing
+    // Constructed-humanoid walk + idle + punch combo
     const ud = playerModel.userData;
     const tNow = performance.now();
     const tw = tNow * 0.009;
     const sw = moving ? Math.sin(tw * 1.6) : 0;
     const stride = moving ? Math.abs(Math.sin(tw * 3.2)) * 0.04 : 0;
     const idleBob = !moving ? Math.sin(tNow * 0.002) * 0.015 : 0;
-    ud.pelvisPivot.position.y = (1.06 * ud.S) + idleBob + stride;
+    // Decay combo state
+    lArmSwing = Math.max(0, lArmSwing - dt * 6);
+    rArmSwing = Math.max(0, rArmSwing - dt * 6);
+    torsoTwist *= Math.max(0, 1 - dt * 7);
+    lungeAmount = Math.max(0, lungeAmount - dt * 4);
+    // Pelvic bob (walk) + finisher lunge dip
+    ud.pelvisPivot.position.y = (1.06 * ud.S) + idleBob + stride - lungeAmount * 0.5;
     // Legs: opposite-phase hips with knees bending on the backswing
     ud.lHip.rotation.x = sw * 0.75;
     ud.rHip.rotation.x = -sw * 0.75;
     ud.lKnee.rotation.x = Math.max(0, -sw) * 0.8;
     ud.rKnee.rotation.x = Math.max(0, sw) * 0.8;
-    // Arms: counter-swing; right arm absorbs the attack swing
-    armSwing = Math.max(0, armSwing - dt * 4);
-    ud.lShoulder.rotation.x = -sw * 0.55;
-    ud.rShoulder.rotation.x = sw * 0.55 - armSwing * 2.2;
-    ud.lElbow.rotation.x = Math.max(0, sw) * 0.45;
-    ud.rElbow.rotation.x = Math.max(0, -sw) * 0.45 + armSwing * 1.6;
-    // Subtle torso twist with stride
-    ud.upperTorsoPivot.rotation.y = sw * 0.08;
+    // Arms: walk counter-swing + per-hand punch swing
+    ud.lShoulder.rotation.x = -sw * 0.55 - lArmSwing * 2.3;
+    ud.rShoulder.rotation.x =  sw * 0.55 - rArmSwing * 2.3;
+    ud.lElbow.rotation.x = Math.max(0, sw) * 0.45 + lArmSwing * 1.6;
+    ud.rElbow.rotation.x = Math.max(0, -sw) * 0.45 + rArmSwing * 1.6;
+    // Torso twist: stride sway + punch torque + finisher lean-in
+    ud.upperTorsoPivot.rotation.y = sw * 0.08 + torsoTwist;
+    ud.upperTorsoPivot.rotation.x = lungeAmount;
 
     // Third-person camera
     const camDist = 7, camHt = 3.4;

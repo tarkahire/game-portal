@@ -4,6 +4,32 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — 4-hit punch combo (jab → cross → hook → finisher)
+
+LMB melee is no longer a single strike — it's a chain that alternates
+left and right arm with a body torque per punch (reference: Naruto vs
+Sasuke fist flurry).
+
+- `COMBO` table in `src/main.js` holds the 4 hits with per-hit `hand`,
+  `reach`, `dmgMul`, `knock`, and `swing` amplitude. Defaults:
+  jab (L, 2.8 m, 1.0×), cross (R, 3.0 m, 1.0×), hook (L, 2.9 m, 1.1×),
+  finisher (R, 3.6 m, 2.0× + 2.2 m knockback + extra burst + `boss`
+  sfx layered over the `hit` sfx).
+- `COMBO_HIT_CD = 220 ms` between hits inside the chain (down from
+  the old 380 ms single-strike cooldown); `COMBO_RESET_MS = 700 ms` —
+  pause longer than that and the next click starts at the jab again.
+- New animation state: `lArmSwing` / `rArmSwing` (per-hand punch snap,
+  decay rate 6/s), `torsoTwist` (signed body torque per punch, decay
+  7/s), `lungeAmount` (forward dip + chest pitch on the finisher only,
+  decay 4/s). Old single-arm `armSwing` / `swingArm()` removed.
+- Walk-anim block in `update()` rewritten to layer these on top of
+  the existing stride: left punch torques the chest right and snaps
+  the left shoulder + bends the left elbow (and vice versa for right
+  punches); the finisher dips the pelvis and pitches the upper torso
+  forward.
+
+---
+
 ## 2026-05-21 — Construction-style humanoid (player + town NPCs)
 
 Replaced the single-capsule player + NPC bodies with a proper jointed
