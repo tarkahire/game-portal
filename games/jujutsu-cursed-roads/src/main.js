@@ -1161,6 +1161,88 @@ function explode(x, y, z, color, power) {
     camShake(0.05 + power * 0.03, 0.18);
 }
 
+// ── Black Flash universal mechanic ──
+// 10% chance per M1 hit. The BF strike itself hits for 2.5× and grants
+// a 4 s buff: the *next* M1 within that window also does 2×. If a
+// second BF procs inside the buff window, the player gains 10 s of
+// temporary god mode (works regardless of admin status).
+const BF = {
+    chance: 0.10,
+    hitMul: 2.5,
+    buffMul: 2.0,
+    windowMs: 4000,
+    godMs: 10000,
+};
+function tryBlackFlash(c, baseDmg) {
+    if (Math.random() >= BF.chance) return baseDmg;
+    // Proc — fire VFX + sfx + update buff state
+    const now = performance.now();
+    blackFlashVfx(c.x, 1.5, c.z);
+    sfx('boss');
+    hitstop(0.08);
+    camShake(0.18, 0.28);
+    // Chain check — second BF inside the still-open window?
+    if (player.bfWindowUntil && now < player.bfWindowUntil) {
+        player.tempGodUntil = now + BF.godMs;
+        screenFlash('rgba(255,210,80,0.45)', 600);
+        toast('★ BLACK FLASH x2 — GOD MODE 10s');
+        player.bfWindowUntil = 0;       // reset chain
+        player.bfDoubleNext = false;
+    } else {
+        player.bfWindowUntil = now + BF.windowMs;
+        player.bfDoubleNext = true;     // next M1 gets the 2× buff
+        toast('★ BLACK FLASH — next M1 ×2');
+    }
+    return baseDmg * BF.hitMul;
+}
+function blackFlashVfx(x, y, z) {
+    // Layered detonation: white core flash + dark ring + yellow sparks
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95 }));
+    core.position.set(x, y, z); scene.add(core);
+    const dark = new THREE.Mesh(new THREE.RingGeometry(0.4, 1.0, 28),
+        new THREE.MeshBasicMaterial({ color: '#0a0a14', transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
+    dark.rotation.x = -Math.PI / 2; dark.position.set(x, 0.15, z); scene.add(dark);
+    flashLight(x, y, z, '#ffe066', 8, 380);
+    shockRing(x, z, '#ffe066', 7, 460, 0.6);
+    shockRing(x, z, '#0a0a14', 5, 380, 0.5);
+    // Electric crackle sparks — yellow streaks shooting outward
+    for (let i = 0; i < 14; i++) {
+        const a = Math.random() * Math.PI * 2, len = 1.6 + Math.random() * 1.4;
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, len),
+            new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.95 }));
+        m.position.set(x, y + (Math.random() - 0.5) * 1.0, z);
+        m.rotation.y = a;
+        m.translateZ(len / 2);
+        scene.add(m);
+        const t0 = performance.now();
+        const tk = () => {
+            const t = (performance.now() - t0) / 360;
+            if (t >= 1) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); return; }
+            m.material.opacity = 0.95 * (1 - t);
+            m.scale.z = 1 + t * 2;
+            requestAnimationFrame(tk);
+        };
+        requestAnimationFrame(tk);
+    }
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 420;
+        if (t >= 1) {
+            scene.remove(core); scene.remove(dark);
+            core.geometry.dispose(); core.material.dispose();
+            dark.geometry.dispose(); dark.material.dispose();
+            return;
+        }
+        core.scale.setScalar(1 + t * 4);
+        core.material.opacity = 0.95 * (1 - t);
+        dark.scale.setScalar(1 + t * 6);
+        dark.material.opacity = 0.9 * (1 - t * 0.7);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
 // Vertically rising halo around the player (used as windup/charge)
 function risingHalo(centerObj, color, dur) {
     const g = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.07, 8, 32),
@@ -1219,6 +1301,10 @@ function refreshAbilityHud() {
 
 // Domain Expansion state — only one technique's domain at a time
 let domainActive = null;       // { color, until, dmgEvery, lastDmg }
+// Global speed modifiers used by domains (Naoya's Time-Slip slows
+// curses to 0.25 and boosts player to 1.5; default 1).
+let curseSpeedMul = 1;
+let playerSpeedMul = 1;
 
 // ═══ LIMITLESS — Gojo Satoru ════════════════════════════════
 // Z = Lapse Blue (gravity well that yanks curses + implodes)
@@ -1416,21 +1502,261 @@ TECHNIQUE_KITS.limitless = {
     r: { name: 'Unlimited Void',    cost: 90, cd: 60, run: gojoDomain },
 };
 
+// ═══ PROJECTION SORCERY — Naoya Zenin ════════════════════════
+// Speed-themed kit. Cyan + yellow palette. After-images, lightning
+// crackle, rapid multi-strikes, time-slow domain.
+function naoyaAfterImage(forSecs) {
+    // Spawn a cyan-tinted ghost of the player model that fades out
+    const g = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.7, 0.4),
+        new THREE.MeshBasicMaterial({ color: '#5af0ff', transparent: true, opacity: 0.5 }));
+    g.position.set(player.x, 0.85, player.z);
+    g.rotation.y = playerModel.rotation.y;
+    scene.add(g);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / (forSecs * 1000);
+        if (t >= 1) { scene.remove(g); g.geometry.dispose(); g.material.dispose(); return; }
+        g.material.opacity = 0.5 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+function naoyaSpeedLines(x, z, color, n) {
+    for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2, r0 = 1.5 + Math.random() * 1.5;
+        const len = 2.0 + Math.random() * 1.8;
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, len),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 }));
+        const sx = x + Math.cos(a) * r0, sz = z + Math.sin(a) * r0;
+        m.position.set(sx, 1.4 + Math.random() * 0.6, sz);
+        m.rotation.y = a + Math.PI / 2;
+        scene.add(m);
+        const t0 = performance.now();
+        const tk = () => {
+            const t = (performance.now() - t0) / 320;
+            if (t >= 1) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); return; }
+            m.scale.z = 1 + t * 2;
+            m.material.opacity = 0.9 * (1 - t);
+            requestAnimationFrame(tk);
+        };
+        requestAnimationFrame(tk);
+    }
+}
+
+function naoyaBurst(fx, fz) {
+    // 1/24 Frame Burst — instant 8 m forward zip + line damage + afterimage trail
+    const startX = player.x, startZ = player.z;
+    const dist = 8;
+    let endX = player.x + fx * dist, endZ = player.z + fz * dist;
+    // Spawn after-images along the path
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => naoyaAfterImage(0.45), i * 35);
+    }
+    // Snap the player forward (AABB-aware in two steps)
+    endX = pushOutObstacles(endX, endZ, 'x', player.x);
+    endZ = pushOutObstacles(endX, endZ, 'z', player.z);
+    endX = Math.max(-WORLD + 4, Math.min(WORLD - 4, endX));
+    endZ = Math.max(-WORLD + 4, Math.min(WORLD - 4, endZ));
+    player.x = endX; player.z = endZ;
+    player.iframes = 0.30;
+    // Damage anyone in a tight tube along the path
+    for (const c of curses.slice()) {
+        const ox = c.x - startX, oz = c.z - startZ;
+        const along = ox * fx + oz * fz;
+        if (along < 0 || along > dist + 1.5) continue;
+        const perp = Math.abs(ox * -fz + oz * fx);
+        if (perp > 1.4) continue;
+        damageCurse(c, player.damage * 1.5);
+        burst(c.x, 1.5, c.z, '#5af0ff', 6);
+    }
+    // Cyan streak between start and end
+    const mid = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, dist, 8),
+        new THREE.MeshBasicMaterial({ color: '#5af0ff', transparent: true, opacity: 0.85 }));
+    mid.rotation.z = Math.PI / 2;
+    const grp = new THREE.Group();
+    grp.add(mid);
+    grp.position.set((startX + endX) / 2, 1.4, (startZ + endZ) / 2);
+    grp.rotation.y = Math.atan2(fx, fz) + Math.PI / 2;
+    scene.add(grp);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 360;
+        if (t >= 1) { scene.remove(grp); mid.geometry.dispose(); mid.material.dispose(); return; }
+        mid.material.opacity = 0.85 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    naoyaSpeedLines(endX, endZ, '#ffe066', 10);
+    flashLight(endX, 1.6, endZ, '#5af0ff', 5, 320);
+    camShake(0.06, 0.16); sfx('tech');
+}
+
+function naoyaFrameLock(fx, fz) {
+    // Frame Lock Step — teleport-strike on nearest curse in 15m forward
+    // cone (or 6m forward if no target). Lightning crackle on landing.
+    let tgt = null, best = 15;
+    for (const c of curses) {
+        const dx = c.x - player.x, dz = c.z - player.z, d = Math.hypot(dx, dz) || 1;
+        if (d > best) continue;
+        if ((dx / d) * fx + (dz / d) * fz < 0.0) continue;
+        best = d; tgt = c;
+    }
+    naoyaAfterImage(0.5);
+    let tx, tz;
+    if (tgt) {
+        tx = tgt.x - fx * 1.6;
+        tz = tgt.z - fz * 1.6;
+    } else {
+        tx = player.x + fx * 6;
+        tz = player.z + fz * 6;
+    }
+    tx = pushOutObstacles(tx, tz, 'x', player.x);
+    tz = pushOutObstacles(tx, tz, 'z', player.z);
+    player.x = tx; player.z = tz;
+    player.iframes = 0.25;
+    // Lightning bolts (4 yellow streaks) shooting from sky
+    for (let i = 0; i < 4; i++) {
+        const ang = (i / 4) * Math.PI * 2;
+        const bx = tx + Math.cos(ang) * 0.4;
+        const bz = tz + Math.sin(ang) * 0.4;
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.04, 10, 6),
+            new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.95 }));
+        b.position.set(bx, 5.5, bz); scene.add(b);
+        const t0 = performance.now();
+        const tk = () => {
+            const t = (performance.now() - t0) / 260;
+            if (t >= 1) { scene.remove(b); b.geometry.dispose(); b.material.dispose(); return; }
+            b.material.opacity = 0.95 * (1 - t);
+            requestAnimationFrame(tk);
+        };
+        requestAnimationFrame(tk);
+    }
+    flashLight(tx, 2, tz, '#ffe066', 9, 360);
+    naoyaSpeedLines(tx, tz, '#5af0ff', 14);
+    shockRing(tx, tz, '#5af0ff', 5, 360, 0.5);
+    camShake(0.10, 0.18);
+    sfx('boss');
+    // Damage: target gets 3×, others within 3m get 1.4×
+    if (tgt) { damageCurse(tgt, player.damage * 3.0); explode(tgt.x, 1.6, tgt.z, '#ffe066', 3); }
+    for (const c of curses.slice()) {
+        const d = Math.hypot(c.x - tx, c.z - tz);
+        if (d < 3 && c !== tgt) damageCurse(c, player.damage * 1.4);
+    }
+}
+
+function naoyaBarrage(fx, fz) {
+    // 24-Frame Barrage — 24 rapid strikes in 1.5 s, cone-targeted curses
+    camShake(0.05, 0.30);
+    sfx('tech');
+    const startX = player.x, startZ = player.z;
+    for (let i = 0; i < 24; i++) {
+        setTimeout(() => {
+            if (state !== 'playing') return;
+            // Pick a curse in the forward cone (re-evaluate every tick)
+            const candidates = [];
+            for (const c of curses) {
+                const dx = c.x - startX, dz = c.z - startZ, d = Math.hypot(dx, dz) || 1;
+                if (d > 12) continue;
+                if ((dx / d) * fx + (dz / d) * fz < 0.1) continue;
+                candidates.push(c);
+            }
+            if (!candidates.length) {
+                // No target — speed-line streak in front
+                const px = player.x + fx * (3 + Math.random() * 6);
+                const pz = player.z + fz * (3 + Math.random() * 6);
+                naoyaSpeedLines(px, pz, i % 2 ? '#5af0ff' : '#ffe066', 3);
+                return;
+            }
+            const tgt = candidates[Math.floor(Math.random() * candidates.length)];
+            // Streak from player to target
+            const dx = tgt.x - player.x, dz = tgt.z - player.z, d = Math.hypot(dx, dz) || 1;
+            const len = d;
+            const streak = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, len, 6),
+                new THREE.MeshBasicMaterial({ color: i % 2 ? '#5af0ff' : '#ffe066', transparent: true, opacity: 0.92 }));
+            const grp = new THREE.Group();
+            streak.rotation.z = Math.PI / 2;
+            grp.add(streak);
+            grp.position.set((player.x + tgt.x) / 2, 1.5, (player.z + tgt.z) / 2);
+            grp.rotation.y = Math.atan2(dx, dz) + Math.PI / 2;
+            scene.add(grp);
+            const t0 = performance.now();
+            const tk = () => {
+                const t = (performance.now() - t0) / 160;
+                if (t >= 1) { scene.remove(grp); streak.geometry.dispose(); streak.material.dispose(); return; }
+                streak.material.opacity = 0.92 * (1 - t);
+                requestAnimationFrame(tk);
+            };
+            requestAnimationFrame(tk);
+            burst(tgt.x, 1.6, tgt.z, i % 2 ? '#5af0ff' : '#ffe066', 3);
+            damageCurse(tgt, player.damage * 0.35);
+        }, i * 60);
+    }
+}
+
+function naoyaDomain() {
+    // Domain: Time-Slip — cyan sphere slows curses to 0.25, player to 1.5,
+    // lasts 7 s. No position-lock (Gojo's domain already does that — we
+    // want Naoya's to feel different: enemies sluggish but still mobile).
+    const r = 20, dur = 7000;
+    const grp = new THREE.Group();
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 24),
+        new THREE.MeshBasicMaterial({ color: '#5af0ff', transparent: true, opacity: 0.18, side: THREE.BackSide }));
+    const outer = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 24),
+        new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.08, side: THREE.BackSide }));
+    grp.add(inner); grp.add(outer);
+    grp.position.set(player.x, 0, player.z);
+    scene.add(grp);
+    grp.add(new THREE.PointLight('#5af0ff', 2.5, r, 2));
+
+    screenFlash('rgba(90,240,255,0.4)', 480);
+    camShake(0.25, 0.4);
+    sfx('boss');
+    curseSpeedMul = 0.25;
+    playerSpeedMul = 1.5;
+    domainActive = {
+        color: '#5af0ff', until: performance.now() + dur,
+        dmgEvery: 700, lastDmg: 0, mesh: grp,
+        frozen: null,             // no position lock — Naoya only slows
+        onCleanup: () => { curseSpeedMul = 1; playerSpeedMul = 1; },
+    };
+
+    // Expand the sphere
+    const t0 = performance.now(); const expand = 350;
+    const tk = () => {
+        const t = Math.min(1, (performance.now() - t0) / expand);
+        inner.scale.setScalar(0.4 + t * (r - 0.4));
+        outer.scale.setScalar(0.4 + t * (r * 1.15 - 0.4));
+        if (t < 1) requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+TECHNIQUE_KITS.projection = {
+    z: { name: '1/24 Burst',        cost: 25, cd: 4,  run: naoyaBurst },
+    x: { name: 'Frame Lock Step',   cost: 35, cd: 6,  run: naoyaFrameLock },
+    c: { name: '24-Frame Barrage',  cost: 55, cd: 11, run: naoyaBarrage },
+    r: { name: 'Time-Slip',         cost: 90, cd: 60, run: naoyaDomain },
+};
+
 // Tick the active domain in update() — keeps curses frozen + ticks dmg.
 function updateDomain(dt) {
     if (!domainActive) return;
     const now = performance.now();
     if (now > domainActive.until) {
         // Cleanup
+        if (domainActive.onCleanup) domainActive.onCleanup();
         scene.remove(domainActive.mesh);
         domainActive.mesh.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
         domainActive = null;
         return;
     }
-    // Lock curses
-    for (const [c, pos] of domainActive.frozen) {
-        if (!c.alive) { domainActive.frozen.delete(c); continue; }
-        c.x = pos.x; c.z = pos.z;
+    // Lock curses (only if this domain uses a freeze map — Gojo's does,
+    // Naoya's doesn't because it slows via curseSpeedMul instead)
+    if (domainActive.frozen) {
+        for (const [c, pos] of domainActive.frozen) {
+            if (!c.alive) { domainActive.frozen.delete(c); continue; }
+            c.x = pos.x; c.z = pos.z;
+        }
     }
     // Domain follows the player
     domainActive.mesh.position.set(player.x, 0, player.z);
@@ -1489,13 +1815,19 @@ function meleeStrike() {
         const d = hit.reach * (i / 3) * 0.85;
         burst(player.x + fx * d, 1.4, player.z + fz * d, trailColor, 3);
     }
+    // Spend the post-Black-Flash 2× buff on the *next* M1 only
+    const bfBuffActive = !!player.bfDoubleNext;
+    if (bfBuffActive) player.bfDoubleNext = false;
     let hitAny = false;
     for (const c of curses) {
         const dx = c.x - player.x, dz = c.z - player.z;
         const d = Math.hypot(dx, dz);
         if (d > hit.reach) continue;
         if ((dx / d) * fx + (dz / d) * fz < 0.25) continue;
-        damageCurse(c, player.damage * hit.dmgMul * (admin.oneShot ? 9999 : 1));
+        let dmg = player.damage * hit.dmgMul * (admin.oneShot ? 9999 : 1);
+        if (bfBuffActive) dmg *= BF.buffMul;            // 2× from prior Black Flash
+        dmg = tryBlackFlash(c, dmg);                    // 10% per hit
+        damageCurse(c, dmg);
         if (hit.knock) { c.x += (dx / d) * hit.knock; c.z += (dz / d) * hit.knock; }
         hitAny = true;
     }
@@ -1616,6 +1948,7 @@ function gainXp(amount) {
 function damagePlayer(dmg) {
     if (state !== 'playing' || player.iframes > 0) return;
     if (admin.god) return;          // admin god-mode toggle
+    if (player.tempGodUntil && performance.now() < player.tempGodUntil) return; // BF chain proc
     // Block reduces incoming damage 70%
     if (player.blocking) dmg *= 0.30;
     player.hp -= dmg;
@@ -1710,7 +2043,7 @@ const TECHNIQUE_CATALOG = [
     { id: 'strawDoll',   name: 'Straw Doll (Nobara)',        desc: 'Hammer + nail combo. Resonance through hits.',                     icon: '⨂', gold: 3000, shards: 40 },
     { id: 'cursedSpeech',name: 'Cursed Speech (Inumaki)',    desc: 'Commands curses to do as told. CE-intensive.',                     icon: '◐', gold: 4200, shards: 55 },
     { id: 'boogieWoogie',name: 'Boogie Woogie (Todo)',       desc: 'Clap to swap positions with allies or enemies.',                   icon: '✦', gold: 3500, shards: 45 },
-    { id: 'projection',  name: 'Projection (Naoya)',         desc: '24-frame speed bursts. Slows for the user, freezes the world.',    icon: '➤', gold: 4800, shards: 65 },
+    { id: 'projection',  name: 'Projection (Naoya)',         desc: '1/24 Burst zip · Frame Lock teleport-strike · 24-Frame Barrage · Domain: Time-Slip.', icon: '➤', gold: 4800, shards: 65, ready: true },
     { id: 'bloodManip',  name: 'Blood Manipulation (Choso)', desc: 'Convert blood into ranged piercing attacks.',                      icon: '✿', gold: 3300, shards: 42 },
 ];
 
@@ -1742,7 +2075,7 @@ function openTechniqueShop() {
     }).join('');
     showOverlay(`<h2>Cursed Technique Vendor</h2>
         <p>${goldUI} &nbsp;·&nbsp; ${shardsUI}</p>
-        <p style="margin:0.4rem 0 0.8rem;color:#7a8a9a">Buy a technique once, equip it any time. Only one technique active at a time. <b style="color:#3aff8a">Limitless is live</b> — the rest are placeholders that hotkey-toast for now.</p>
+        <p style="margin:0.4rem 0 0.8rem;color:#7a8a9a">Buy a technique once, equip it any time. Only one technique active at a time. <b style="color:#3aff8a">Limitless</b> and <b style="color:#3aff8a">Projection</b> are live — the rest are placeholders.</p>
         <div class="shop-list">${rows}</div>
         <button class="btn sec act" data-close="1" style="margin-top:1rem">Close</button>`);
 }
@@ -1829,7 +2162,12 @@ function startGame(loaded) {
     if (save.equipped === undefined) save.equipped = null;
     document.getElementById('signin-screen').classList.remove('active');
     document.getElementById('hud').style.display = 'block';
-    player = { x: TOWN.x, z: TOWN.z + 6, y: 0, vy: 0, airVx: 0, airVz: 0, iframes: 0, hp: undefined, stamina: undefined, ce: undefined, blocking: false, comboLockUntil: 0 };
+    player = {
+        x: TOWN.x, z: TOWN.z + 6, y: 0, vy: 0, airVx: 0, airVz: 0,
+        iframes: 0, hp: undefined, stamina: undefined, ce: undefined,
+        blocking: false, comboLockUntil: 0,
+        bfDoubleNext: false, bfWindowUntil: 0, tempGodUntil: 0,
+    };
     deriveStats();
     player.damage += (save.flags.dmgBonus || 0);
     player.hp = player.maxHp;
@@ -2060,6 +2398,12 @@ function update(dt) {
     // Cursed energy regen (constant)
     player.ce = Math.min(player.maxCe, player.ce + dt * 7);
     if (admin.infStam) player.ce = player.maxCe;  // inf-stam toggle also gives inf CE
+    // Black Flash buff window expiry — if no second hit landed in time,
+    // the chain breaks and the next-M1 buff is consumed.
+    if (player.bfWindowUntil && performance.now() > player.bfWindowUntil) {
+        player.bfWindowUntil = 0;
+        player.bfDoubleNext = false;
+    }
     // Active Domain Expansion tick
     updateDomain(dt);
     // Curse rain — spawn ~4 curses/sec for the duration
@@ -2083,7 +2427,7 @@ function update(dt) {
     if (moving) {
         const l = Math.hypot(mx, mz); mx /= l; mz /= l;
         const airMul = (player.y > 0) ? 0.45 : 1.0;   // air control reduced
-        const sp = player.speed * airMul * (keys['ShiftLeft'] || keys['ShiftRight'] ? 1.7 : 1) * dt;
+        const sp = player.speed * playerSpeedMul * airMul * (keys['ShiftLeft'] || keys['ShiftRight'] ? 1.7 : 1) * dt;
         let nx = player.x + mx * sp, nz = player.z + mz * sp;
         if (!admin.noclip) {
             nx = pushOutObstacles(nx, nz, 'x', player.x);
@@ -2308,8 +2652,8 @@ function update(dt) {
         const dx = player.x - c.x, dz = player.z - c.z;
         const d = Math.hypot(dx, dz) || 1;
         if (d < 30 && d > 1.6) {
-            c.x += (dx / d) * c.speed * dt;
-            c.z += (dz / d) * c.speed * dt;
+            c.x += (dx / d) * c.speed * curseSpeedMul * dt;
+            c.z += (dz / d) * c.speed * curseSpeedMul * dt;
         } else if (d <= 1.8 && performance.now() - c.lastHit > 900) {
             c.lastHit = performance.now();
             damagePlayer(c.dmg);
@@ -2386,6 +2730,21 @@ function updateHud() {
     setPip('cd-dash', dashLeft);
     setPip('cd-grab', grabLeft);
     setPip('cd-combo', lockLeft);
+    // Black Flash / god status chip
+    const chip = document.getElementById('bf-chip');
+    if (player.tempGodUntil && now < player.tempGodUntil) {
+        const sec = Math.ceil((player.tempGodUntil - now) / 1000);
+        chip.textContent = `★ GOD MODE  ${sec}s`;
+        chip.style.display = 'block';
+        chip.classList.add('god');
+    } else if (player.bfDoubleNext && player.bfWindowUntil > now) {
+        const sec = Math.ceil((player.bfWindowUntil - now) / 1000);
+        chip.textContent = `★ BLACK FLASH  next M1 ×2  (${sec}s)`;
+        chip.style.display = 'block';
+        chip.classList.remove('god');
+    } else {
+        chip.style.display = 'none';
+    }
     // Ability slot cooldowns (Z/X/C/R)
     const kit = save.equipped ? TECHNIQUE_KITS[save.equipped] : null;
     for (const s of ABILITY_SLOTS) {

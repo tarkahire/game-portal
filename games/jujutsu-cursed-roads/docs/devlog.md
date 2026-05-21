@@ -4,6 +4,85 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Black Flash mechanic + Naoya Projection Sorcery
+
+### Black Flash (universal M1 proc)
+
+Per-hit proc on every melee strike. The chain rewards keeping pressure
+up — landing two BFs back-to-back kicks you into temporary god mode
+even if you're not the admin account.
+
+- **10 %** chance per curse hit. On proc:
+  - Big layered detonation VFX at the curse: white core flash +
+    expanding dark ring + 14 yellow electric streaks shooting
+    outward + flashLight + two shockrings.
+  - 80 ms hitstop, 0.18 amp camera shake, `boss` sfx.
+  - The BF hit itself does **×2.5** damage.
+  - Sets a **4-second buff window**. The *next* M1 inside that
+    window deals **×2** damage on top.
+- If a second BF procs *while the window is still open*:
+  - Triggers **10 s temporary god mode** (works regardless of
+    admin status — `damagePlayer` checks `player.tempGodUntil`).
+  - Golden screen flash + dedicated `★ BLACK FLASH x2 — GOD MODE
+    10s` toast.
+  - Chain resets after.
+- New `#bf-chip` HUD overlay (top-centre): yellow-on-black "★ BLACK
+  FLASH · next M1 ×2 (Xs)" while buff is up; gold-on-amber
+  "★ GOD MODE Xs" while temp god is up.
+- Player state additions: `bfDoubleNext`, `bfWindowUntil`,
+  `tempGodUntil`. Init in `startGame`. Expiry in `update()`.
+
+### Naoya — Projection Sorcery (live)
+
+Cyan + yellow speed-themed kit, polar opposite of Gojo's ranged
+control. Built around motion: after-images, lightning crackles,
+rapid multi-hits, time-slow domain.
+
+- **Z — 1/24 Burst** (25 CE, 4 s cd). Snap-zip 8 m forward with
+  5 cyan after-images, a cyan beam streak left along the path, and
+  10 yellow speed lines at the landing point. AABB-aware — won't
+  phase you into buildings. Line-trace damage ×1.5 to anything in a
+  1.4 m perpendicular distance. 0.30 s i-frames during the zip.
+- **X — Frame Lock Step** (35 CE, 6 s cd). Picks the nearest curse
+  inside a 15 m forward cone, teleports you 1.6 m behind it (or
+  6 m forward if no target). 4 yellow lightning bolts crash down at
+  the landing, flashLight + shockring + 14 cyan speed lines.
+  Target hits for ×3 damage; nearby curses within 3 m take ×1.4.
+  0.25 s i-frames during the teleport.
+- **C — 24-Frame Barrage** (55 CE, 11 s cd). Over 1.5 s, 24 timed
+  60 ms ticks each pick a random curse in a 12 m forward cone, fire
+  a cyan/yellow cylinder streak from player → target, burst at
+  impact, and deal ×0.35 damage. Stationary curses get hammered;
+  empty cone just paints decorative speed lines forward.
+- **R — Domain: Time-Slip** (90 CE, 60 s cd, 7 s duration). Cyan
+  outer + yellow inner sphere expands to 20 m around the player.
+  No position-lock (Gojo's domain already does that — Naoya's feels
+  different):
+  - `curseSpeedMul` → **0.25** (curses crawl)
+  - `playerSpeedMul` → **1.5** (you blitz)
+  - Damage tick **×1.5** every 700 ms inside the radius.
+  - Both speed mods reset to 1 in the domain's `onCleanup` callback.
+- Catalogue entry flagged `ready: true`; shop disclaimer updated.
+
+### Plumbing
+
+- Two new globals — `curseSpeedMul`, `playerSpeedMul` — default to
+  1, multiplied into curse chase movement and player input
+  movement respectively.
+- `domainActive` gained an optional `onCleanup` callback for
+  domains that change global state (Naoya's resets speed mods on
+  exit; Gojo's omits it).
+- `updateDomain` `frozen`-map walk now guarded — Naoya's domain
+  doesn't lock positions, so it skips that branch.
+- `meleeStrike` damage application now:
+  - applies the BF 2× buff if `player.bfDoubleNext` was set,
+  - rolls `tryBlackFlash(c, dmg)` which may multiply the hit ×2.5
+    and open / chain the BF window.
+
+`src/main.js` 2475 → 2825 lines.
+
+---
+
 ## 2026-05-21 — Cursed Techniques infra + Gojo Limitless flagship
 
 End-to-end cursed-technique system + first fully-built kit (Gojo's
