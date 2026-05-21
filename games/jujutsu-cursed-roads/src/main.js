@@ -209,29 +209,27 @@ function buildCity() {
         const body = pick(concreteShades);
         g.add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), body).translateY(h / 2));
 
-        // Window grid — only the N and S faces (road-facing), sparser
-        // sampling to keep mesh counts sane across the whole city.
-        const rows = Math.max(3, Math.min(14, Math.floor((h - 4) / 3.0)));
+        // Window grid — N face only, tight caps, ~60% skip rate.
+        // Total windows per building capped at ~24.
+        const rows = Math.max(3, Math.min(8, Math.floor((h - 4) / 4.5)));
+        const fcols = Math.max(2, Math.min(5, Math.floor(w / 3.5)));
         const wp = winLit, wp2 = winLitWarm;
-        for (const face of ['N', 'S']) {
-            const fcols = Math.max(2, Math.min(8, Math.floor(w / 2.6)));
-            for (let r = 0; r < rows; r++) for (let c = 0; c < fcols; c++) {
-                if (Math.random() < 0.45) continue;       // skip ~half — looks lived-in
-                const mat = Math.random() < 0.75 ? wp : wp2;
-                const win = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.4, 0.12), mat);
-                const u = -w / 2 + 1.3 + c * (w - 2.6) / Math.max(1, fcols - 1);
-                const y = 3 + r * (h - 6) / Math.max(1, rows - 1);
-                if (face === 'N') win.position.set(u, y, -d / 2 - 0.01);
-                else              { win.position.set(u, y, +d / 2 + 0.01); win.rotation.y = Math.PI; }
-                g.add(win);
-            }
+        for (let r = 0; r < rows; r++) for (let c = 0; c < fcols; c++) {
+            if (Math.random() < 0.6) continue;
+            const mat = Math.random() < 0.75 ? wp : wp2;
+            const win = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.7, 0.12), mat);
+            const u = -w / 2 + 1.6 + c * (w - 3.2) / Math.max(1, fcols - 1);
+            const y = 3 + r * (h - 6) / Math.max(1, rows - 1);
+            win.position.set(u, y, -d / 2 - 0.01);
+            g.add(win);
         }
 
         // Ground-level door on the street-facing (north) side
         const door = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.4), doorMat);
         door.position.set(0, 1.2, -d / 2 - 0.02); g.add(door);
 
-        // Random neon billboard on one of the long faces
+        // Neon billboard (emissive material is enough — no per-neon point
+        // light; that's what was crashing the scene).
         if (Math.random() < 0.55) {
             const c = pick(neonPalette);
             const onNorth = Math.random() < 0.5;
@@ -242,25 +240,11 @@ function buildCity() {
             if (onNorth) { neon.position.set(0, ny, -d / 2 - 0.18); }
             else         { neon.position.set(0, ny,  d / 2 + 0.18); neon.rotation.y = Math.PI; }
             g.add(neon);
-            const light = new THREE.PointLight(c, 1.6, 22, 2);
-            light.position.copy(neon.position);
-            light.position.z += onNorth ? -1.2 : 1.2;
-            g.add(light);
         }
 
-        // Rooftop AC unit
-        const ac = new THREE.Mesh(new THREE.BoxGeometry(w * 0.35, 0.9, d * 0.3), acMat);
-        ac.position.set(0, h + 0.45, 0); g.add(ac);
-        // Antenna
-        if (Math.random() < 0.6) {
-            const a = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4, 5), lampMat);
-            a.position.set(w * 0.3, h + 2, -d * 0.2); g.add(a);
-        }
-        // Water tank
-        if (Math.random() < 0.4) {
-            const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 1.8, 10), acMat);
-            tank.position.set(-w * 0.25, h + 0.9, d * 0.15); g.add(tank);
-        }
+        // Rooftop AC unit only (antennas + water tanks removed for perf)
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(w * 0.35, 0.9, d * 0.3), acMat)
+            .translateY(h + 0.45));
 
         g.position.set(cx, 0, cz); scene.add(g);
         obstacles.push({ minX: cx - w / 2, maxX: cx + w / 2,
@@ -271,27 +255,24 @@ function buildCity() {
     function makeShop(cx, cz, w, d, h) {
         const g = new THREE.Group();
         g.add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), pick(concreteShades)).translateY(h / 2));
-        // Two-row windows
-        const cols = Math.max(2, Math.floor(w / 1.7));
-        for (let r = 0; r < Math.max(1, Math.floor((h - 3) / 2.5)); r++) {
-            for (let c = 0; c < cols; c++) {
-                if (Math.random() < 0.45) continue;
-                const win = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.3, 0.1), winLit);
-                win.position.set(-w / 2 + 1 + c * (w - 2) / Math.max(1, cols - 1),
-                    2.5 + r * 2.5, -d / 2 - 0.01);
-                g.add(win);
-            }
+        // One row of upper windows, capped tightly
+        const cols = Math.max(2, Math.min(4, Math.floor(w / 3.0)));
+        for (let c = 0; c < cols; c++) {
+            if (Math.random() < 0.4) continue;
+            const win = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.3, 0.1), winLit);
+            win.position.set(-w / 2 + 1.5 + c * (w - 3) / Math.max(1, cols - 1),
+                Math.max(3.6, h - 1.6), -d / 2 - 0.01);
+            g.add(win);
         }
         // Awning
         const awning = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, 0.15, 1.2),
             new THREE.MeshStandardMaterial({ color: pick(['#c01030', '#1a4a8a', '#3a8a1a', '#a06bff']) }));
         awning.position.set(0, 2.0, -d / 2 - 0.5); g.add(awning);
-        // Neon sign over awning
+        // Neon sign over awning (emissive only — no point light)
         const c = pick(neonPalette);
         const sign = new THREE.Mesh(new THREE.BoxGeometry(w * 0.6, 0.55, 0.18),
             new THREE.MeshBasicMaterial({ color: c }));
         sign.position.set(0, 2.7, -d / 2 - 0.1); g.add(sign);
-        g.add(new THREE.PointLight(c, 0.9, 10, 2).translateY(2.7).translateZ(-d / 2 - 0.5));
         // Door
         const door = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.0), doorMat);
         door.position.set(0, 1.0, -d / 2 - 0.02); g.add(door);
@@ -301,14 +282,14 @@ function buildCity() {
                          minZ: cz - d / 2, maxZ: cz + d / 2 });
     }
 
-    // Streetlamp
+    // Streetlamp — no point light (the emissive bulb + scene ambient
+    // is enough visually, and per-lamp lights were a perf killer).
     function makeLamp(cx, cz) {
         const lp = new THREE.Group();
         lp.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 5.5, 6), lampMat).translateY(2.75));
         lp.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.12), lampMat).translateX(0.5).translateY(5.3));
         lp.add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8),
             new THREE.MeshBasicMaterial({ color: '#fff0c8' })).translateX(1.0).translateY(5.2));
-        lp.add(new THREE.PointLight('#fff0c8', 0.85, 14, 2).translateX(1.0).translateY(5.0));
         lp.position.set(cx, 0, cz); scene.add(lp);
     }
 
@@ -330,17 +311,12 @@ function buildCity() {
         t.position.set(cx, 0.45, cz); scene.add(t);
     }
 
-    // Vending machine
+    // Vending machine (simplified — 1 box, no display light)
     function makeVending(cx, cz, rotY = 0) {
-        const g = new THREE.Group();
         const c = pick(vendingColors);
-        g.add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.9, 0.6),
-            new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, metalness: 0.2 })).translateY(0.95));
-        // Glowing display
-        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.2, 0.05),
-            new THREE.MeshBasicMaterial({ color: '#fff0c8' })).translateY(1.05).translateZ(0.31));
-        g.add(new THREE.PointLight('#fff0c8', 0.5, 4, 2).translateY(1.0).translateZ(0.6));
-        g.position.set(cx, 0, cz); g.rotation.y = rotY; scene.add(g);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.9, 0.6),
+            new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.25, roughness: 0.7 }));
+        m.position.set(cx, 0.95, cz); m.rotation.y = rotY; scene.add(m);
         obstacles.push({ minX: cx - 0.55, maxX: cx + 0.55, minZ: cz - 0.35, maxZ: cz + 0.35 });
     }
 
@@ -352,60 +328,29 @@ function buildCity() {
         tree.position.set(cx, 0, cz); scene.add(tree);
     }
 
-    // Parked car
+    // Parked car (2 meshes: body + cabin, no separate wheels/glass/lights)
     function makeCar(cx, cz, rotY = 0) {
         const g = new THREE.Group();
         const c = pick(carColors);
-        const body = new THREE.Mesh(new THREE.BoxGeometry(4.0, 1.0, 1.7),
-            new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.4 }));
-        body.position.y = 0.6; g.add(body);
-        // Cabin (smaller box on top)
-        const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 1.55),
-            new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.5 }));
-        cabin.position.set(-0.2, 1.45, 0); g.add(cabin);
-        // Windshield strips (dark glass)
-        const glass = new THREE.MeshStandardMaterial({ color: '#0a0e18', roughness: 0.3, metalness: 0.7 });
-        for (const [zx, zr] of [[1.21, 0], [-1.21, Math.PI]]) {
-            const gl = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.55), glass);
-            gl.position.set(zx - 0.2, 1.5, 0); gl.rotation.y = zr + Math.PI / 2; g.add(gl);
-        }
-        for (const sx of [-0.7, 0.7]) {
-            const gl = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.55), glass);
-            gl.position.set(-0.2, 1.5, sx * 1.12); gl.rotation.y = sx > 0 ? Math.PI : 0; g.add(gl);
-        }
-        // Wheels
-        const wheelMat = new THREE.MeshStandardMaterial({ color: '#0a0a0c', roughness: 0.7 });
-        for (const wx of [-1.4, 1.4]) for (const wz of [-0.78, 0.78]) {
-            const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.25, 8), wheelMat);
-            wheel.position.set(wx, 0.35, wz); wheel.rotation.z = Math.PI / 2; g.add(wheel);
-        }
-        // Headlights / taillights
-        for (const [hx, hc] of [[2.0, '#fff0c8'], [-2.0, '#c01030']]) {
-            const h = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.2, 0.4),
-                new THREE.MeshBasicMaterial({ color: hc }));
-            h.position.set(hx, 0.7, 0); g.add(h);
-        }
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(4.0, 1.1, 1.7),
+            new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.4 })).translateY(0.65));
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 1.55),
+            new THREE.MeshStandardMaterial({ color: '#0a0e18', roughness: 0.4, metalness: 0.6 })).translateX(-0.2).translateY(1.55));
         g.position.set(cx, 0, cz); g.rotation.y = rotY; scene.add(g);
-        obstacles.push({ minX: cx - 2.2 * Math.abs(Math.cos(rotY)) - 1.0 * Math.abs(Math.sin(rotY)),
-                         maxX: cx + 2.2 * Math.abs(Math.cos(rotY)) + 1.0 * Math.abs(Math.sin(rotY)),
-                         minZ: cz - 2.2 * Math.abs(Math.sin(rotY)) - 1.0 * Math.abs(Math.cos(rotY)),
-                         maxZ: cz + 2.2 * Math.abs(Math.sin(rotY)) + 1.0 * Math.abs(Math.cos(rotY)) });
+        const cosR = Math.abs(Math.cos(rotY)), sinR = Math.abs(Math.sin(rotY));
+        obstacles.push({
+            minX: cx - 2.0 * cosR - 0.85 * sinR, maxX: cx + 2.0 * cosR + 0.85 * sinR,
+            minZ: cz - 2.0 * sinR - 0.85 * cosR, maxZ: cz + 2.0 * sinR + 0.85 * cosR,
+        });
     }
 
-    // Traffic light pole
+    // Traffic light pole — simplified to pole + box (no tri-dots)
     function makeTrafficLight(cx, cz) {
         const g = new THREE.Group();
         g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 6.0, 6), lampMat).translateY(3.0));
-        g.add(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 0.12), lampMat).translateX(1.0).translateY(5.8));
-        const box = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.4, 0.5),
-            new THREE.MeshStandardMaterial({ color: '#1a1c20', roughness: 0.8 }));
-        box.position.set(1.9, 5.0, 0); g.add(box);
-        // Tri-light
-        for (const [y, c] of [[5.5, '#c01030'], [5.0, '#ffcf3a'], [4.5, '#3aff8a']]) {
-            const dot = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6),
-                new THREE.MeshBasicMaterial({ color: c }));
-            dot.position.set(2.13, y, 0); g.add(dot);
-        }
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.4, 0.5),
+            new THREE.MeshStandardMaterial({ color: '#3aff8a', emissive: '#0a4020', emissiveIntensity: 0.6 }))
+            .translateX(1.9).translateY(5.0));
         g.position.set(cx, 0, cz); scene.add(g);
     }
 
@@ -445,22 +390,16 @@ function buildCity() {
     // ── Build the road grid + sidewalks ──
     // Block size = 50 (40 building area + 10 buffer for road + sidewalk)
     const BLOCK = 50, ROAD_W = 6, SIDE_W = 2.4;
-    const GRID_COLS = 9, GRID_ROWS = 5;
+    const GRID_COLS = 7, GRID_ROWS = 4;
     const XMIN = -((GRID_COLS - 1) * BLOCK) / 2;   // city centred on x=0
     const ZMIN = 35;                                 // first row of blocks just south of plaza
 
-    // East-west roads between every row of blocks (also the top one
-    // separating plaza ↔ city)
+    // East-west roads (no centerline dashes — too many tiny meshes)
     for (let r = 0; r <= GRID_ROWS; r++) {
         const z = ZMIN - BLOCK / 2 + r * BLOCK;
         const road = new THREE.Mesh(
             new THREE.PlaneGeometry((GRID_COLS - 1) * BLOCK + 20, ROAD_W), asphalt);
         road.rotation.x = -Math.PI / 2; road.position.set(0, 0.02, z); scene.add(road);
-        // Yellow centerline dashes
-        for (let xx = XMIN; xx <= -XMIN; xx += 4) {
-            const s = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.18), stripeMat);
-            s.rotation.x = -Math.PI / 2; s.position.set(xx, 0.03, z); scene.add(s);
-        }
     }
     // North-south roads
     for (let c = 0; c <= GRID_COLS - 1; c++) {
@@ -468,24 +407,21 @@ function buildCity() {
         const road = new THREE.Mesh(
             new THREE.PlaneGeometry(ROAD_W, GRID_ROWS * BLOCK + 20), asphalt);
         road.rotation.x = -Math.PI / 2; road.position.set(x, 0.02, ZMIN + (GRID_ROWS - 1) * BLOCK / 2); scene.add(road);
-        for (let zz = ZMIN - BLOCK / 2; zz <= ZMIN + GRID_ROWS * BLOCK; zz += 4) {
-            const s = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 1.6), stripeMat);
-            s.rotation.x = -Math.PI / 2; s.position.set(x, 0.03, zz); scene.add(s);
-        }
     }
 
-    // Crosswalks at every intersection
+    // Crosswalks — 3 stripes per side per intersection (was 5×2),
+    // and traffic light only on every other intersection
     for (let r = 0; r <= GRID_ROWS; r++) for (let c = 0; c <= GRID_COLS - 1; c++) {
         const ix = XMIN - BLOCK / 2 + c * BLOCK;
         const iz = ZMIN - BLOCK / 2 + r * BLOCK;
-        for (let i = 0; i < 5; i++) {
-            const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 5.0), whiteStripeMat);
+        for (let i = 0; i < 3; i++) {
+            const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 5.0), whiteStripeMat);
             stripe.rotation.x = -Math.PI / 2;
-            stripe.position.set(ix + (i - 2) * 0.9, 0.035, iz + 4.5);
+            stripe.position.set(ix + (i - 1) * 1.0, 0.035, iz + 4.5);
             scene.add(stripe);
             const s2 = stripe.clone(); s2.position.z = iz - 4.5; scene.add(s2);
         }
-        makeTrafficLight(ix + 4, iz + 4);
+        if ((r + c) % 2 === 0) makeTrafficLight(ix + 4, iz + 4);
     }
 
     // ── Per-block content ──
@@ -546,42 +482,31 @@ function buildCity() {
             makeParkingLot(blockX, blockZ, usable, usable);
         }
 
-        // Sidewalk decorations along the north edge facing the road
-        const edgeZ = blockZ - sw / 2 + 1.4;
-        const edgeFurniture = ['lamp', 'tree', 'bench', 'trash', 'vending', 'lamp', 'tree', 'tree'];
-        for (let i = 0; i < 4; i++) {
-            const ex = blockX - sw / 2 + 4 + i * (sw - 8) / 3;
-            const kind = pick(edgeFurniture);
-            if      (kind === 'lamp')    makeLamp(ex, edgeZ);
-            else if (kind === 'tree')    makeTree(ex, edgeZ);
-            else if (kind === 'bench')   makeBench(ex, edgeZ, 0);
-            else if (kind === 'trash')   makeTrashCan(ex, edgeZ);
-            else if (kind === 'vending') makeVending(ex, edgeZ, 0);
-        }
-        // Same along south edge
-        const edgeZ2 = blockZ + sw / 2 - 1.4;
-        for (let i = 0; i < 4; i++) {
-            const ex = blockX - sw / 2 + 4 + i * (sw - 8) / 3;
-            const kind = pick(edgeFurniture);
-            if      (kind === 'lamp')    makeLamp(ex, edgeZ2);
-            else if (kind === 'tree')    makeTree(ex, edgeZ2);
-            else if (kind === 'bench')   makeBench(ex, edgeZ2, Math.PI);
-            else if (kind === 'trash')   makeTrashCan(ex, edgeZ2);
-            else if (kind === 'vending') makeVending(ex, edgeZ2, Math.PI);
-        }
-
-        // Parked cars on the street side (every other block)
-        if (Math.random() < 0.5) {
-            const carZ = blockZ - sw / 2 - 2.2;
-            for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
-                const cx2 = blockX - sw / 2 + 4 + i * 5.5;
-                makeCar(cx2, carZ, Math.PI / 2);
+        // Lighter sidewalk decoration: 2 furniture slots per edge,
+        // biased to trees + occasional lamp. Lamps are the only thing
+        // here that adds a point light.
+        const edgeFurniture = ['tree', 'tree', 'tree', 'lamp', 'bench', 'trash'];
+        for (const edgeZ of [blockZ - sw / 2 + 1.4, blockZ + sw / 2 - 1.4]) {
+            for (let i = 0; i < 2; i++) {
+                const ex = blockX - sw / 2 + 6 + i * (sw - 12);
+                const kind = pick(edgeFurniture);
+                if      (kind === 'lamp')    makeLamp(ex, edgeZ);
+                else if (kind === 'tree')    makeTree(ex, edgeZ);
+                else if (kind === 'bench')   makeBench(ex, edgeZ, edgeZ < blockZ ? 0 : Math.PI);
+                else if (kind === 'trash')   makeTrashCan(ex, edgeZ);
             }
+        }
+        // One occasional vending machine in front of every ~3rd block
+        if (Math.random() < 0.3) makeVending(blockX, blockZ - sw / 2 + 1.4);
+        // Street-side parked cars only every ~4th block
+        if (Math.random() < 0.25) {
+            makeCar(blockX - 4, blockZ - sw / 2 - 2.2, Math.PI / 2);
+            makeCar(blockX + 4, blockZ - sw / 2 - 2.2, Math.PI / 2);
         }
     }
 
     // ── Distant skyline (just impression — no collision, far away) ──
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 14; i++) {
         const sx = (Math.random() - 0.5) * (WORLD * 2 + 200);
         const sz = ZMIN + GRID_ROWS * BLOCK + 60 + Math.random() * 120;
         const sw2 = 8 + Math.random() * 22;

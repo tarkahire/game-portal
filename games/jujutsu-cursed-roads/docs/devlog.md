@@ -4,6 +4,57 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Tokyo perf rescue (lights + meshes + grid)
+
+Previous Tokyo build was crashing low-end machines. Mesh count was
+~3000+ and PointLight count was ~70 (every neon billboard + every
+streetlamp + every vending machine), which makes WebGL recompile
+every standard material's shader and run a brutal per-pixel light
+loop. This pass cuts both.
+
+### Lights: ~70 → ~5
+
+- Per-neon PointLights on skyscrapers and shops: **removed**. The
+  `MeshBasicMaterial`-coloured neon box self-glows; no actual light
+  source needed for the look.
+- Per-streetlamp PointLights: **removed**. The emissive bulb sphere
+  + scene ambient/hemisphere/sun is enough.
+- Vending machine display + PointLight: **removed** — vending is
+  now a single emissive box (3 meshes → 1).
+- Traffic light tri-dots: **removed** — replaced with a single
+  emissive green box on the pole (5 meshes → 2).
+- Curse, NPC marker, and player aura PointLights kept (they're few
+  and load-bearing for gameplay readability).
+
+### Mesh count: ~3000+ → ~800
+
+- **Grid** trimmed: 9×5 (40 blocks) → 7×4 (24 blocks).
+- **Cars** simplified: 13 meshes (body / cabin / 4 windshields /
+  4 wheels / 2 head + tail lights) → 2 meshes (body + tinted
+  cabin). Spawn frequency 50% → 25%.
+- **Building windows**: north-face only (was N+S), tighter caps
+  (max 8 rows × 5 cols → ~40 / building, 60% skip rate).
+- **Shop windows**: capped at 4 max per building (was a full grid).
+- **Rooftop antennas + water tanks**: removed.
+- **Road centerline dashes**: removed (were ~200 tiny meshes).
+- **Crosswalk stripes**: 5 → 3 per side per intersection.
+- **Traffic lights**: every other intersection only.
+- **Sidewalk furniture per block**: 8 slots → 4, biased to trees.
+- **Skyline boxes**: 40 → 14.
+
+### Result
+
+`src/main.js` 1768 → 1694 lines. City still reads as a busy district
+(plenty of buildings, varying heights, neon, sidewalks, road grid)
+but should run smoothly on modest hardware.
+
+If it still chugs after this pass, the next levers are: merging
+all building bodies into a single `BufferGeometry`, switching to
+`InstancedMesh` for windows/lamps/trees, or reducing block count
+further. Tell me which way it's going.
+
+---
+
 ## 2026-05-21 — Tokyo procedural city + forward-leap jump
 
 Massive city expansion + jump retune.
