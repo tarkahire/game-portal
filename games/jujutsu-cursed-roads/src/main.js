@@ -141,42 +141,215 @@ function buildTown() {
     contact = makeNpc('#3adf8a', TOWN.x + 1, TOWN.z - 9, 'JUJUTSU HIGH CONTACT', 'contact');
 }
 
-// A talkable human NPC (replaces the old glowing pole). Role gives
-// them clothing + props; a soft ground ring + marker keep them findable.
+// ─── HUMANOID BUILDER ───────────────────────────────────────
+// Construction-style anatomy: separate pelvis / abdomen / chest boxes,
+// jointed shoulders → elbows → wrists, jointed hips → knees → ankles,
+// wedge hands and boots, boxy head with jaw + hair cap. Joint pivots
+// are exposed on userData so the same rig can be walk-animated (player)
+// or posed once (NPCs).
+function buildHumanoid(opts = {}) {
+    const o = Object.assign({
+        height: 1.0,
+        skin: '#e8c8a8',
+        hair: '#15151a',
+        hairCap: true,
+        coat: '#1a2030',
+        pants: '#0a0c14',
+        boots: '#15110c',
+        belt: '#221a14',
+        accent: null,             // chest stripe (color or null)
+        collar: false,            // 'high' = raised collar cylinder
+        eye: '#10131c',
+    }, opts);
+    const S = o.height;
+
+    const matSkin = new THREE.MeshStandardMaterial({ color: o.skin, roughness: 0.6 });
+    const matHair = new THREE.MeshStandardMaterial({ color: o.hair, roughness: 0.7 });
+    const matCoat = new THREE.MeshStandardMaterial({ color: o.coat, roughness: 0.78 });
+    const matPants = new THREE.MeshStandardMaterial({ color: o.pants, roughness: 0.8 });
+    const matBoot = new THREE.MeshStandardMaterial({ color: o.boots, roughness: 0.85 });
+    const matBelt = new THREE.MeshStandardMaterial({ color: o.belt, roughness: 0.7 });
+
+    const g = new THREE.Group();
+
+    // ── Pelvis (root pivot — also lets us bob the whole body) ──
+    const pelvisPivot = new THREE.Group();
+    pelvisPivot.position.y = 1.06 * S;
+    g.add(pelvisPivot);
+    pelvisPivot.add(new THREE.Mesh(
+        new THREE.BoxGeometry(0.5 * S, 0.22 * S, 0.34 * S), matPants));
+    const beltMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.55 * S, 0.07 * S, 0.36 * S), matBelt);
+    beltMesh.position.y = 0.12 * S;
+    pelvisPivot.add(beltMesh);
+
+    // ── Lower torso (abdomen) ──
+    const lowerTorsoPivot = new THREE.Group();
+    lowerTorsoPivot.position.y = 0.17 * S;
+    pelvisPivot.add(lowerTorsoPivot);
+    lowerTorsoPivot.add(new THREE.Mesh(
+        new THREE.BoxGeometry(0.48 * S, 0.24 * S, 0.32 * S), matCoat));
+
+    // ── Upper torso (chest, broader at shoulders) ──
+    const upperTorsoPivot = new THREE.Group();
+    upperTorsoPivot.position.y = 0.27 * S;
+    lowerTorsoPivot.add(upperTorsoPivot);
+    const chest = new THREE.Mesh(
+        new THREE.BoxGeometry(0.62 * S, 0.32 * S, 0.38 * S), matCoat);
+    upperTorsoPivot.add(chest);
+    if (o.accent) {
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.08 * S, 0.34 * S, 0.012),
+            new THREE.MeshBasicMaterial({ color: o.accent, transparent: true, opacity: 0.75 }));
+        stripe.position.set(0, 0, 0.196 * S);
+        chest.add(stripe);
+    }
+    if (o.collar === 'high') {
+        const c = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.13 * S, 0.16 * S, 0.14 * S, 8), matCoat);
+        c.position.y = 0.22 * S;
+        upperTorsoPivot.add(c);
+    }
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.085 * S, 0.1 * S, 0.12 * S, 10), matSkin);
+    neck.position.y = 0.22 * S;
+    upperTorsoPivot.add(neck);
+
+    // ── Head (boxy + jaw + hair cap) ──
+    const headPivot = new THREE.Group();
+    headPivot.position.y = 0.34 * S;
+    upperTorsoPivot.add(headPivot);
+    const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.26 * S, 0.30 * S, 0.26 * S), matSkin);
+    head.position.y = 0.06 * S;
+    headPivot.add(head);
+    const jaw = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22 * S, 0.08 * S, 0.22 * S), matSkin);
+    jaw.position.y = -0.085 * S;
+    headPivot.add(jaw);
+    if (o.hairCap) {
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(
+            0.17 * S, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), matHair);
+        cap.position.y = 0.16 * S;
+        cap.scale.set(1, 0.95, 1);
+        headPivot.add(cap);
+        const bang = new THREE.Mesh(
+            new THREE.BoxGeometry(0.24 * S, 0.06 * S, 0.04 * S), matHair);
+        bang.position.set(0, 0.17 * S, 0.115 * S);
+        headPivot.add(bang);
+    }
+    for (const s of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025 * S, 6, 6),
+            new THREE.MeshBasicMaterial({ color: o.eye }));
+        eye.position.set(s * 0.06 * S, 0.04 * S, 0.13 * S);
+        headPivot.add(eye);
+    }
+
+    // ── Arms: shoulder → elbow → wrist ──
+    function buildArm(side) {
+        const shoulder = new THREE.Group();
+        shoulder.position.set(side * 0.34 * S, 0.12 * S, 0);
+        upperTorsoPivot.add(shoulder);
+        shoulder.add(new THREE.Mesh(
+            new THREE.SphereGeometry(0.1 * S, 10, 10), matCoat));
+        const upper = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.075 * S, 0.07 * S, 0.34 * S, 8), matCoat);
+        upper.position.y = -0.19 * S;
+        shoulder.add(upper);
+
+        const elbow = new THREE.Group();
+        elbow.position.y = -0.36 * S;
+        shoulder.add(elbow);
+        elbow.add(new THREE.Mesh(
+            new THREE.SphereGeometry(0.075 * S, 8, 8), matCoat));
+        const forearm = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.065 * S, 0.058 * S, 0.32 * S, 8), matCoat);
+        forearm.position.y = -0.17 * S;
+        elbow.add(forearm);
+
+        const wrist = new THREE.Group();
+        wrist.position.y = -0.34 * S;
+        elbow.add(wrist);
+        const hand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1 * S, 0.12 * S, 0.06 * S), matSkin);
+        hand.position.y = -0.06 * S;
+        wrist.add(hand);
+        const thumb = new THREE.Mesh(
+            new THREE.BoxGeometry(0.04 * S, 0.06 * S, 0.05 * S), matSkin);
+        thumb.position.set(side * 0.06 * S, -0.04 * S, 0);
+        wrist.add(thumb);
+        return { shoulder, elbow, wrist };
+    }
+    const armL = buildArm(-1);
+    const armR = buildArm(1);
+
+    // ── Legs: hip → knee → ankle ──
+    function buildLeg(side) {
+        const hip = new THREE.Group();
+        hip.position.set(side * 0.13 * S, -0.1 * S, 0);
+        pelvisPivot.add(hip);
+        const thigh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.105 * S, 0.09 * S, 0.42 * S, 8), matPants);
+        thigh.position.y = -0.22 * S;
+        hip.add(thigh);
+
+        const knee = new THREE.Group();
+        knee.position.y = -0.44 * S;
+        hip.add(knee);
+        knee.add(new THREE.Mesh(
+            new THREE.SphereGeometry(0.1 * S, 8, 8), matPants));
+        const shin = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.085 * S, 0.07 * S, 0.40 * S, 8), matPants);
+        shin.position.y = -0.22 * S;
+        knee.add(shin);
+
+        const ankle = new THREE.Group();
+        ankle.position.y = -0.42 * S;
+        knee.add(ankle);
+        const foot = new THREE.Mesh(
+            new THREE.BoxGeometry(0.14 * S, 0.10 * S, 0.32 * S), matBoot);
+        foot.position.set(0, -0.05 * S, 0.06 * S);
+        ankle.add(foot);
+        const toe = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12 * S, 0.06 * S, 0.08 * S), matBoot);
+        toe.position.set(0, -0.07 * S, 0.22 * S);
+        ankle.add(toe);
+        return { hip, knee, ankle };
+    }
+    const legL = buildLeg(-1);
+    const legR = buildLeg(1);
+
+    g.userData = {
+        pelvisPivot, lowerTorsoPivot, upperTorsoPivot, headPivot,
+        lShoulder: armL.shoulder, lElbow: armL.elbow, lWrist: armL.wrist,
+        rShoulder: armR.shoulder, rElbow: armR.elbow, rWrist: armR.wrist,
+        lHip: legL.hip, lKnee: legL.knee, lAnkle: legL.ankle,
+        rHip: legR.hip, rKnee: legR.knee, rAnkle: legR.ankle,
+        S,
+    };
+    return g;
+}
+
+// A talkable human NPC (replaces the old glowing pole). Role gives them
+// clothing colour + a pose + props (notice board / anvil + hammer / high
+// collar). A soft ground ring + floating marker keep them findable.
 function makeNpc(color, x, z, label, role) {
     const y = terrainHeight(x, z);
-    const g = new THREE.Group();
-    let coatCol = '#384258';
-    if (role === 'smith') coatCol = '#5a3a26';
-    else if (role === 'contact') coatCol = '#0c1020';
-    const coat = new THREE.MeshStandardMaterial({ color: coatCol, roughness: 0.78 });
-    const skinM = new THREE.MeshStandardMaterial({ color: '#e8c8a8', roughness: 0.6 });
-    const hairM = new THREE.MeshStandardMaterial({ color: '#161620', roughness: 0.7 });
-    const dark = new THREE.MeshStandardMaterial({ color: '#0a0c12', roughness: 0.8 });
-
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.82, 4, 10), coat);
-    torso.position.y = 1.05; g.add(torso);
-    const headPivot = new THREE.Group();
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 12), skinM);
-    head.position.y = 1.78; headPivot.add(head);
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.29, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), hairM);
-    cap.position.y = 1.84; headPivot.add(cap);
-    for (const s of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6),
-            new THREE.MeshBasicMaterial({ color: '#10131c' }));
-        eye.position.set(s * 0.1, 1.8, 0.25); headPivot.add(eye);
-    }
-    g.add(headPivot);
-    const armGeo = new THREE.CapsuleGeometry(0.11, 0.6, 4, 8);
-    const lArm = new THREE.Mesh(armGeo, coat); lArm.position.set(-0.44, 1.16, 0);
-    const rArm = new THREE.Mesh(armGeo, coat); rArm.position.set(0.44, 1.16, 0);
-    g.add(lArm, rArm);
-    for (const s of [-1, 1]) {
-        const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.68, 4, 8), dark);
-        leg.position.set(s * 0.16, 0.45, 0); g.add(leg);
-    }
+    let coat = '#384258';
+    if (role === 'smith') coat = '#5a3a26';
+    else if (role === 'contact') coat = '#0c1020';
+    const g = buildHumanoid({
+        coat,
+        pants: '#0a0c14',
+        boots: '#15110c',
+        belt: '#221a14',
+        collar: role === 'contact' ? 'high' : false,
+    });
+    const ud = g.userData;
 
     if (role === 'board') {
+        // Notice board behind the clerk
         const bp = new THREE.Group();
         bp.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.5, 0.12),
             new THREE.MeshStandardMaterial({ color: '#3a2c1c', roughness: 0.9 })).translateY(2.0).translateZ(-0.95));
@@ -189,34 +362,48 @@ function makeNpc(color, x, z, label, role) {
             bp.add(n);
         }
         g.add(bp);
-        rArm.rotation.x = -1.1;
-        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.44, 0.04),
-            new THREE.MeshStandardMaterial({ color: '#caa86a' })).translateX(0.5).translateY(1.02).translateZ(0.34));
+        // Right arm raised holding a clipboard
+        ud.rShoulder.rotation.x = -1.1;
+        ud.rElbow.rotation.x = 0.9;
+        const clip = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.44, 0.04),
+            new THREE.MeshStandardMaterial({ color: '#caa86a' }));
+        clip.position.set(0, -0.2, 0.08);
+        ud.rWrist.add(clip);
     } else if (role === 'smith') {
-        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.8, 0.16),
-            new THREE.MeshStandardMaterial({ color: '#3a2416', roughness: 0.9 })).translateY(0.95).translateZ(0.28));
+        // Leather apron over chest + slight forward lean
+        const apron = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.62, 0.04),
+            new THREE.MeshStandardMaterial({ color: '#3a2416', roughness: 0.9 }));
+        apron.position.set(0, -0.04, 0.205);
+        ud.upperTorsoPivot.add(apron);
+        ud.upperTorsoPivot.rotation.x = 0.10;
+        // Anvil to the side
         const anv = new THREE.Group();
         anv.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.34, 0.9),
             new THREE.MeshStandardMaterial({ color: '#2a2d33', metalness: 0.6, roughness: 0.5 })).translateY(0.6));
         anv.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.46, 0.34),
             new THREE.MeshStandardMaterial({ color: '#23262b' })).translateY(0.23));
-        anv.position.set(1.15, 0, 0.2); g.add(anv);
-        rArm.rotation.x = -0.7;
+        anv.position.set(1.15, 0, 0.2);
+        g.add(anv);
+        // Hammer in right hand
+        ud.rShoulder.rotation.x = -0.6;
+        ud.rShoulder.rotation.z = -0.25;
+        ud.rElbow.rotation.x = 0.9;
         const ham = new THREE.Group();
         ham.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.7, 6),
             new THREE.MeshStandardMaterial({ color: '#5a3a22' })));
         ham.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.16),
             new THREE.MeshStandardMaterial({ color: '#3a3d44', metalness: 0.6 })).translateY(0.4));
-        ham.position.set(0.52, 1.0, 0.32); ham.rotation.z = 0.35; g.add(ham);
-    } else { // contact — arms crossed, high collar
-        lArm.rotation.set(-1.2, 0, 0.5);
-        rArm.rotation.set(-1.2, 0, -0.5);
-        lArm.position.set(-0.3, 1.18, 0.18);
-        rArm.position.set(0.3, 1.18, 0.18);
-        g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.27, 0.24, 8),
-            new THREE.MeshStandardMaterial({ color: '#1a1f30', roughness: 0.7 })).translateY(1.5));
+        ham.position.set(0, -0.32, 0);
+        ham.rotation.z = 0.25;
+        ud.rWrist.add(ham);
+    } else { // contact — arms crossed
+        ud.lShoulder.rotation.set(-0.55, 0, 0.85);
+        ud.rShoulder.rotation.set(-0.55, 0, -0.85);
+        ud.lElbow.rotation.x = 1.45;
+        ud.rElbow.rotation.x = 1.45;
     }
 
+    // Ground ring + floating marker (kept; HUD/proximity logic reuses these)
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.18, 28),
         new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; g.add(ring);
@@ -226,37 +413,25 @@ function makeNpc(color, x, z, label, role) {
 
     g.position.set(x, y, z);
     g.rotation.y = Math.atan2(TOWN.x - x, TOWN.z - z);
-    g.userData = { x, z, label, color, _head: headPivot, _ring: ring, _mk: mk, _t: Math.random() * 6 };
+    Object.assign(g.userData, {
+        x, z, label, color,
+        _head: ud.headPivot, _ring: ring, _mk: mk, _t: Math.random() * 6,
+    });
     scene.add(g);
     return g;
 }
 
 // ─── PLAYER ─────────────────────────────────────────────────
 function buildPlayerModel() {
-    const g = new THREE.Group();
-    const uni = new THREE.MeshStandardMaterial({ color: '#10131f', roughness: 0.7 });
-    const skin = new THREE.MeshStandardMaterial({ color: '#e8c8a8', roughness: 0.6 });
-    const hair = new THREE.MeshStandardMaterial({ color: '#15151a', roughness: 0.7 });
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.0, 4, 10), uni);
-    body.position.y = 1.15; g.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12), skin);
-    head.position.y = 2.05; g.add(head);
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.36, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.6), hair);
-    cap.position.y = 2.12; g.add(cap);
-    const armM = uni;
-    for (const s of [-1, 1]) {
-        const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.8, 4, 8), armM);
-        arm.position.set(s * 0.56, 1.25, 0); g.add(arm);
-        g.userData[s > 0 ? 'rarm' : 'larm'] = arm;
-    }
-    for (const s of [-1, 1]) {
-        const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.85, 4, 8),
-            new THREE.MeshStandardMaterial({ color: '#0a0c14', roughness: 0.8 }));
-        leg.position.set(s * 0.2, 0.5, 0); g.add(leg);
-        g.userData[s > 0 ? 'rleg' : 'lleg'] = leg;
-    }
+    const g = buildHumanoid({
+        coat: '#1a2030',     // JJK High navy
+        pants: '#0a0c14',
+        boots: '#15110c',
+        accent: '#3a4cff',   // cyan chest stripe
+    });
     const aura = new THREE.PointLight('#7c4dff', 1.2, 7, 2);
-    aura.position.y = 1.2; g.add(aura);
+    aura.position.y = 1.2;
+    g.add(aura);
     return g;
 }
 
@@ -737,14 +912,27 @@ function update(dt) {
     const gy = terrainHeight(player.x, player.z);
     playerModel.position.set(player.x, gy, player.z);
     playerModel.rotation.y = yaw + Math.PI;
-    // simple walk + arm-swing anim
-    const t = performance.now() * 0.012;
-    const sw = moving ? Math.sin(t) * 0.5 : 0;
-    playerModel.userData.rleg.rotation.x = sw;
-    playerModel.userData.lleg.rotation.x = -sw;
+    // Constructed-humanoid walk + idle + attack swing
+    const ud = playerModel.userData;
+    const tNow = performance.now();
+    const tw = tNow * 0.009;
+    const sw = moving ? Math.sin(tw * 1.6) : 0;
+    const stride = moving ? Math.abs(Math.sin(tw * 3.2)) * 0.04 : 0;
+    const idleBob = !moving ? Math.sin(tNow * 0.002) * 0.015 : 0;
+    ud.pelvisPivot.position.y = (1.06 * ud.S) + idleBob + stride;
+    // Legs: opposite-phase hips with knees bending on the backswing
+    ud.lHip.rotation.x = sw * 0.75;
+    ud.rHip.rotation.x = -sw * 0.75;
+    ud.lKnee.rotation.x = Math.max(0, -sw) * 0.8;
+    ud.rKnee.rotation.x = Math.max(0, sw) * 0.8;
+    // Arms: counter-swing; right arm absorbs the attack swing
     armSwing = Math.max(0, armSwing - dt * 4);
-    playerModel.userData.rarm.rotation.x = -armSwing * 2.4 + (moving ? -sw : 0);
-    playerModel.userData.larm.rotation.x = moving ? sw : 0;
+    ud.lShoulder.rotation.x = -sw * 0.55;
+    ud.rShoulder.rotation.x = sw * 0.55 - armSwing * 2.2;
+    ud.lElbow.rotation.x = Math.max(0, sw) * 0.45;
+    ud.rElbow.rotation.x = Math.max(0, -sw) * 0.45 + armSwing * 1.6;
+    // Subtle torso twist with stride
+    ud.upperTorsoPivot.rotation.y = sw * 0.08;
 
     // Third-person camera
     const camDist = 7, camHt = 3.4;

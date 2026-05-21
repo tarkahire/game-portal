@@ -4,6 +4,45 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Construction-style humanoid (player + town NPCs)
+
+Replaced the single-capsule player + NPC bodies with a proper jointed
+humanoid built off the user's anatomy/construction reference (separate
+pelvis / abdomen / chest boxes, jointed shoulders → elbows → wrists,
+jointed hips → knees → ankles, wedge hands and boots, boxy head with
+jaw + hair cap + bangs).
+
+- New `buildHumanoid(opts)` helper in `src/main.js`. Opts cover height
+  scale + per-region materials (skin / hair / coat / pants / boots /
+  belt) + an optional chest-accent stripe + an optional `'high'`
+  collar. Returns a Group anchored at feet with joint pivots exposed
+  on `userData`: `pelvisPivot`, `lowerTorsoPivot`, `upperTorsoPivot`,
+  `headPivot`, `lShoulder`/`rShoulder`, `lElbow`/`rElbow`,
+  `lWrist`/`rWrist`, `lHip`/`rHip`, `lKnee`/`rKnee`,
+  `lAnkle`/`rAnkle`.
+- `buildPlayerModel()` is now a one-liner around `buildHumanoid` with
+  the JJK navy coat + cyan chest stripe + the existing aura
+  PointLight.
+- `makeNpc()` calls `buildHumanoid` with role-tinted coat, then
+  applies a role pose: mission-board clerk holds a clipboard in the
+  raised right hand; smith leans slightly forward, hammer gripped in
+  the right hand, leather apron over the chest, anvil prop unchanged;
+  Jujutsu High contact stands with arms crossed (rotated shoulders +
+  fully bent elbows). The `_head`/`_ring`/`_mk`/`_t` userData hooks
+  are preserved, so the existing per-frame NPC idle (marker spin,
+  ring pulse, head-track player) keeps working.
+- Walk animation in `update()` now drives the joint pivots: opposite-
+  phase hips with knees bending on the backswing for proper foot
+  pickup, counter-swing arms with elbows bending on the return, a
+  light pelvic bob in step with the stride, and a subtle torso twist.
+  Right-arm attack swing is baked into `rShoulder` + `rElbow`. Idle
+  pose has a tiny breathing bob. Old `larm`/`rarm`/`lleg`/`rleg` flat
+  capsules are gone.
+
+`main.js` is now 828 → 1002 lines (most growth in the new helper).
+
+---
+
 ## 2026-05-21 — Cursed techniques removed (combat = melee + dash)
 
 All fighting styles stripped at the user's request. Removed from
