@@ -514,8 +514,8 @@ function updateCurseDirector(dt) {
 
 // ─── AUDIO ──────────────────────────────────────────────────
 // Tiny WebAudio blips (oscillator-based, no assets) for hit/death/UI,
-// plus an optional sampled `punch.mp3` for the melee swing — fetched
-// on first audio init, silently skipped if absent.
+// plus a sampled `assets/punch.m4a` recording for the melee swing —
+// fetched on first audio init, silently skipped if absent.
 let actx = null;
 let punchBuffer = null;
 function audioInit() {
@@ -524,16 +524,17 @@ function audioInit() {
     if (actx) loadPunchSample();
 }
 async function loadPunchSample() {
-    // Resolve relative to the game's index.html. Drop a recording at
-    // games/jujutsu-cursed-roads/assets/punch.mp3 to enable it.
+    // Loaded from games/jujutsu-cursed-roads/assets/punch.m4a (path is
+    // relative to the game's index.html). AAC-in-MP4 decodes fine via
+    // WebAudio in all modern browsers.
     try {
-        const res = await fetch('assets/punch.mp3');
-        if (!res.ok) { console.log('[audio] no punch.mp3 found — using synthesized hit only'); return; }
+        const res = await fetch('assets/punch.m4a');
+        if (!res.ok) { console.log('[audio] no punch.m4a found — using synthesized hit only'); return; }
         const buf = await res.arrayBuffer();
         punchBuffer = await actx.decodeAudioData(buf);
-        console.log('[audio] punch.mp3 loaded');
+        console.log('[audio] punch.m4a loaded');
     } catch (e) {
-        console.warn('[audio] failed to load punch.mp3', e);
+        console.warn('[audio] failed to load punch.m4a', e);
     }
 }
 function playPunchSample() {
