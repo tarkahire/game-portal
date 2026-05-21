@@ -21,7 +21,7 @@ A town =
   - **Mission Board clerk** (clipboard + a notice board behind) →
     quest list overlay.
   - **Cursed Tool Smith** (apron, hammer, anvil) → gold upgrades
-    overlay (permanent +damage / +max-CE; cursed-tool weapons TBD).
+    overlay (permanent +damage; cursed-tool weapons TBD).
   - **Jujutsu High Contact** (crossed arms, high collar) → Grade Exam
     chain overlay.
   Each idles (breathing, spinning marker, pulsing ground ring) and

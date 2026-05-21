@@ -13,7 +13,7 @@
 |------|---------|
 | `index.html` | Three.js importmap, sign-in screen, HUD, overlay panels |
 | `style.css` | Cyberpunk-ish UI: sign-in, HUD, overlay cards, minimap |
-| `src/main.js` | **Everything** — monolithic (MVP pragmatism, like `dungeon-crawler-3d`'s `main.js`): scene/loop/input, terrain, town + NPCs, player, curses + spawn director, the 3 cursed-technique kits + helpers, Megumi's `allies` (shadow hounds), VFX (`explode`/`shockRing`/`flashLight`/`vortexFx`/`burst`/`ringFx`/`camShake`/`screenFlash`), WebAudio `sfx`, quests, progression, HUD/minimap, sign-in flow |
+| `src/main.js` | **Everything** — monolithic (MVP pragmatism, like `dungeon-crawler-3d`'s `main.js`): scene/loop/input, terrain, town + NPCs, player, curses + spawn director, melee M1 + dash combat, `burst` VFX, WebAudio `sfx`, quests, progression, HUD/minimap, sign-in flow |
 | `src/save/saveAdapter.js` | Storage interface + `newSave()` |
 | `src/save/localStorageAdapter.js` | MVP localStorage implementation |
 | `docs/` | This documentation framework |
@@ -25,11 +25,10 @@
   file + one `new LocalStorageAdapter()` line. (Holds today.)
 - **`deriveStats()`** is the single source of truth for player stats
   from `save.level` + `save.flags`.
-- **Cursed techniques** are a `TECHNIQUES` table (`strike`/`dismantle`/
-  `flame` keys kept stable for save compatibility) → `techZ()/techX()`
-  dispatch. Each entry is a re-creation of a dungeon-crawler-3d
-  character kit (Megumi/Sukuna/Todo) in this engine — **not** a literal
-  code port (different engine/scale).
+- **Combat is melee + dash only.** Cursed techniques and the CE bar
+  were stripped 2026-05-21 (see `docs/devlog.md`). If they come back,
+  introduce a fresh dispatcher — do not resurrect the old `TECHNIQUES`
+  scaffold piecemeal.
 - Self-contained: no cross-imports from other game folders (portal
   convention).
 
@@ -38,7 +37,7 @@
 When `main.js` grows too large, split into:
 `src/world/{terrain,props,town,veils}.js`,
 `src/player/{player,camera}.js`,
-`src/combat/{techniques,vfx,allies}.js`,
+`src/combat/{melee,vfx}.js`,
 `src/enemies/curses.js`, `src/progression/xp.js`,
 `src/quests/questManager.js`, `src/ui/hud.js`.
 Boundaries above already make this mechanical.
@@ -47,7 +46,7 @@ Boundaries above already make this mechanical.
 
 World units; player position in world space (`player.x/z`); ground is
 an analytic `terrainHeight(x,z)` sampled per frame for grounding
-(player, curses, NPCs, allies, props, FX).
+(player, curses, NPCs, props, FX).
 
 ## Resolved Decisions
 

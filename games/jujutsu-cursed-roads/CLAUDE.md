@@ -1,15 +1,15 @@
 # Jujutsu — Cursed Roads
 
 A JJK-inspired **open-world action RPG** for the game portal. Roam a hilly
-countryside dotted with little towns, exorcise cursed spirits, clear missions
-for Jujutsu High, climb the sorcerer **grade system**, and unlock cursed
-techniques and cursed tools (swords).
+countryside dotted with little towns, exorcise cursed spirits with M1 melee
+strikes + dash, clear missions for Jujutsu High, and climb the sorcerer
+**grade system**.
 
-> **STATUS: PLAYABLE.** MVP shipped 2026-05-19, plus Updates 1–3 (selectable
-> techniques, sound, full grade chain, town NPCs, juicy VFX, and the three
-> techniques re-themed to dungeon-crawler-3d character kits — Megumi / Sukuna
-> / Todo). Code lives in `index.html` + `style.css` + `src/main.js` +
-> `src/save/`. History in `docs/devlog.md`; roadmap in `docs/todo.md`.
+> **STATUS: PLAYABLE.** MVP shipped 2026-05-19. **2026-05-21:** all cursed
+> techniques (Megumi / Sukuna / Todo) and the CE bar were stripped — combat
+> is now melee + dash only. Code lives in `index.html` + `style.css` +
+> `src/main.js` + `src/save/`. History in `docs/devlog.md`; roadmap in
+> `docs/todo.md`.
 
 ## Quick Reference
 
@@ -72,17 +72,10 @@ Already wired in: a card on the root `index.html` links here; Vercel
 auto-deploys on push (static, no build). The portal uses an emoji
 placeholder thumbnail (no image file needed).
 
-## Cursed Techniques (current)
+## Combat (current)
 
-Three, chosen at sign-in, stored in `save.technique` (keys kept stable —
-`strike`/`dismantle`/`flame` — so old saves still resolve). Re-themed to
-dungeon-crawler-3d character kits:
-
-| Key | Character | Z | X |
-|-----|-----------|---|---|
-| `strike` | Megumi — Ten Shadows | Divine Dogs (hound summons) | Nue (lightning strike) |
-| `dismantle` | Sukuna | Dismantle (slash volley) | Cleave (front arc) |
-| `flame` | Todo | Black Flash (blink-detonation) | Boulder Kick |
-
-These are *re-creations* in this game's simpler engine — **not** a literal
-port of dungeon-crawler-3d's combat code (different engine/scale).
+Melee only. Click LMB for an M1 strike (short reach, ~380 ms cooldown,
+arm swing animation) and **Space** for a 1.5 s-cooldown dash with brief
+i-frames. No cursed energy bar, no Z/X cursed techniques — those were
+removed 2026-05-21. The `save.technique` field is unused and ignored if
+present on old saves.

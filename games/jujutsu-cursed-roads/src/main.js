@@ -17,8 +17,6 @@ let save = null;
 
 let player, playerModel;
 const curses = [];
-const projectiles = [];
-const allies = [];        // Megumi's shadow hounds (temporary summons)
 const houses = [];                     // { mesh, x, z, r }
 let terrainMesh;
 
@@ -30,8 +28,6 @@ let yaw = 0, pitch = -0.18;
 let pointerLocked = false;
 let toastTimer = 0;
 let autosaveAccum = 0;
-let pendingSave = null;   // new save awaiting technique choice
-let shakeAmp = 0, shakeT = 0;
 
 const GRADE_NAME = { 4: 'Grade 4', 3: 'Grade 3', 2: 'Grade 2', 1: 'Grade 1', 0: 'Special Grade' };
 
@@ -267,11 +263,9 @@ function buildPlayerModel() {
 function deriveStats() {
     const lv = save.level;
     player.maxHp = 90 + lv * 15;
-    player.maxCe = 60 + lv * 8;
     player.damage = 14 + lv * 3;
     player.speed = 8.5;
     if (player.hp === undefined || player.hp > player.maxHp) player.hp = player.maxHp;
-    if (player.ce === undefined) player.ce = player.maxCe;
 }
 
 // ─── CURSES ─────────────────────────────────────────────────
@@ -414,468 +408,7 @@ function meleeStrike() {
     }
     if (hit) { burst(player.x + fx * 2, 1.3, player.z + fz * 2, '#cbb6ff', 8); sfx('hit'); }
 }
-
-// ─── CURSED TECHNIQUES (Z primary, X secondary) ─────────────
-// The three cursed techniques are now the dungeon-crawler-3d character
-// kits (key names kept so existing saves stay valid):
-//   strike    → Megumi (Ten Shadows)  — Z Divine Dogs, X Nue
-//   dismantle → Sukuna                — Z Dismantle,    X Cleave
-//   flame     → Todo                  — Z Black Flash,  X Boulder Kick
-const TECHNIQUES = {
-    strike: {
-        name: 'Ten Shadows (Megumi)', color: '#3a4cff', zName: 'Divine Dogs', xName: 'Nue',
-        z() { megumiDivineDogs(); },
-        x(fx, fz) { megumiNue(fx, fz); },
-    },
-    dismantle: {
-        name: 'Dismantle (Sukuna)', color: '#ff2244', zName: 'Dismantle', xName: 'Cleave',
-        z(fx, fz) { sukunaDismantle(fx, fz); },
-        x(fx, fz) { sukunaCleave(fx, fz); },
-    },
-    flame: {
-        name: 'Black Flash (Todo)', color: '#aa0010', zName: 'Black Flash', xName: 'Boulder Kick',
-        z(fx, fz) { todoBlackFlash(fx, fz); },
-        x(fx, fz) { todoBoulderKick(fx, fz); },
-    },
-};
-function curTech() { return TECHNIQUES[save && save.technique] || TECHNIQUES.strike; }
-function spend(c) { if (player.ce < c) { toast('Not enough cursed energy'); return false; } player.ce -= c; return true; }
-function techZ() { const fx = -Math.sin(yaw), fz = -Math.cos(yaw); curTech().z(fx, fz); swingArm(); }
-function techX() { const fx = -Math.sin(yaw), fz = -Math.cos(yaw); curTech().x(fx, fz); swingArm(); }
-
-// Quick full-screen colour flash (Black Flash / domain feel).
-function screenFlash(color, ms) {
-    const d = document.createElement('div');
-    d.style.cssText = `position:fixed;inset:0;z-index:6;pointer-events:none;background:${color};opacity:0.42;transition:opacity ${ms}ms`;
-    document.body.appendChild(d);
-    requestAnimationFrame(() => { d.style.opacity = '0'; });
-    setTimeout(() => d.remove(), ms + 40);
-}
-
-// ═══ SUKUNA — Dismantle (Z) / Cleave (X) ════════════════════
-function sukunaDismantle(fx, fz) {
-    if (!spend(22)) return;
-    const RED = '#ff2244';
-    screenFlash('rgba(120,0,16,0.18)', 140);
-    camShake(0.07, 0.18); sfx('tech');
-    // A volley of red slash planes streaking forward, cutting in a line.
-    for (let i = 0; i < 6; i++) {
-        setTimeout(() => {
-            if (state !== 'playing') return;
-            const off = (i - 2.5) * 0.35;
-            const px0 = player.x + fx * 1.6 + (-fz) * off;
-            const pz0 = player.z + fz * 1.6 + (fx) * off;
-            const slash = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 2.6),
-                new THREE.MeshBasicMaterial({ color: i % 3 === 0 ? '#ffffff' : RED, transparent: true, opacity: 0.95, side: THREE.DoubleSide }));
-            slash.position.set(px0, 1.5, pz0);
-            slash.rotation.set(0, Math.atan2(fx, fz), (i % 2 ? 1 : -1) * 0.5);
-            scene.add(slash);
-            const hit = new Set();
-            const t0 = performance.now(), reach = 13;
-            const tk = () => {
-                const t = (performance.now() - t0) / 320;
-                if (t >= 1) { scene.remove(slash); slash.geometry.dispose(); slash.material.dispose(); return; }
-                const d = t * reach;
-                slash.position.set(player.x + fx * (1.6 + d), 1.5, player.z + fz * (1.6 + d));
-                slash.material.opacity = 0.95 * (1 - t * 0.7);
-                for (const c of curses.slice()) {
-                    if (hit.has(c)) continue;
-                    if (Math.hypot(c.x - slash.position.x, c.z - slash.position.z) < 1.5) {
-                        hit.add(c); damageCurse(c, player.damage * 1.4);
-                        burst(c.x, 1.4, c.z, RED, 8);
-                    }
-                }
-                requestAnimationFrame(tk);
-            };
-            requestAnimationFrame(tk);
-        }, i * 55);
-    }
-}
-function sukunaCleave(fx, fz) {
-    if (!spend(34)) return;
-    const RED = '#ff2244';
-    let any = false;
-    for (const c of curses.slice()) {
-        const dx = c.x - player.x, dz = c.z - player.z, d = Math.hypot(dx, dz) || 1;
-        if (d > 6) continue;
-        if ((dx / d) * fx + (dz / d) * fz < -0.15) continue;   // ~150° front arc
-        damageCurse(c, player.damage * 3.0);
-        c.x += (dx / d) * 2.2; c.z += (dz / d) * 2.2;
-        any = true;
-    }
-    // Huge double red arc sweeping across the front
-    for (let k = 0; k < 2; k++) {
-        const arc = new THREE.Mesh(new THREE.TorusGeometry(3.4 + k * 0.5, 0.18, 8, 36, Math.PI * 1.25),
-            new THREE.MeshBasicMaterial({ color: k ? '#ff0000' : RED, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
-        arc.position.set(player.x + fx * 2, 1.5, player.z + fz * 2);
-        arc.rotation.set(Math.PI / 2, 0, Math.atan2(fx, fz));
-        scene.add(arc);
-        const t0 = performance.now();
-        const tk = () => {
-            const t = (performance.now() - t0) / 360;
-            if (t >= 1) { scene.remove(arc); arc.geometry.dispose(); arc.material.dispose(); return; }
-            arc.scale.set(1 + t * 1.6, 1 + t * 1.6, 1);
-            arc.rotation.z += 0.28;
-            arc.material.opacity = 0.9 * (1 - t);
-            requestAnimationFrame(tk);
-        };
-        requestAnimationFrame(tk);
-    }
-    explode(player.x + fx * 3, 1.4, player.z + fz * 3, RED, 4);
-    screenFlash('rgba(150,0,18,0.28)', 220);
-    camShake(0.14, 0.26);
-    sfx('tech'); sfx('boss'); if (any) sfx('hit');
-}
-
-// ═══ TODO — Black Flash (Z) / Boulder Kick (X) ══════════════
-function todoBlackFlash(fx, fz) {
-    if (!spend(26)) return;
-    // Blink forward, then a black→red overpressure detonation.
-    let nx = player.x + fx * 5.5, nz = player.z + fz * 5.5;
-    for (const h of houses) {
-        const d = Math.hypot(nx - h.x, nz - h.z);
-        if (d < h.r) { nx = h.x + (nx - h.x) / d * h.r; nz = h.z + (nz - h.z) / d * h.r; }
-    }
-    nx = Math.max(-WORLD + 4, Math.min(WORLD - 4, nx));
-    nz = Math.max(-WORLD + 4, Math.min(WORLD - 4, nz));
-    const ox = player.x, oz = player.z;
-    player.x = nx; player.z = nz;
-    player.iframes = 0.4;
-    // Curses caught on the dash line / around the landing get crushed.
-    for (const c of curses.slice()) {
-        const onLine = Math.abs((c.x - ox) * fz - (c.z - oz) * fx) < 2.0 &&
-            ((c.x - ox) * fx + (c.z - oz) * fz) > 0 && ((c.x - ox) * fx + (c.z - oz) * fz) < 6;
-        if (onLine || Math.hypot(c.x - nx, c.z - nz) < 3.2) damageCurse(c, player.damage * 4.0);
-    }
-    screenFlash('rgba(8,0,16,0.55)', 90);
-    setTimeout(() => screenFlash('rgba(170,0,16,0.42)', 150), 90);
-    explode(nx, 1.4, nz, '#0a0010', 3);
-    setTimeout(() => explode(nx, 1.5, nz, '#ff0033', 4), 90);
-    shockRing(nx, nz, '#aa0010', 9, 520, 0.7);
-    camShake(0.18, 0.28);
-    sfx('hit'); sfx('boss');
-}
-function todoBoulderKick(fx, fz) {
-    if (!spend(34)) return;
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.85, 0),
-        new THREE.MeshStandardMaterial({ color: '#5a5048', roughness: 0.95 }));
-    rock.position.set(player.x + fx * 1.6, 1.4, player.z + fz * 1.6);
-    rock.add(new THREE.PointLight('#aa0010', 1.4, 7, 2));
-    scene.add(rock);
-    projectiles.push({
-        mesh: rock, vx: fx * 17, vz: fz * 17, life: 2.2,
-        dmg: player.damage * 3.6, r: 2.0, pierce: false, color: '#aa0010',
-        aoe: 4.0, aoeMul: 0.6, hit: new Set(),
-    });
-    camShake(0.06, 0.14); sfx('tech');
-}
-
-// ═══ MEGUMI — Divine Dogs (Z) / Nue (X) ═════════════════════
-function buildHoundMesh(white) {
-    const g = new THREE.Group();
-    const fur = new THREE.MeshStandardMaterial({ color: white ? '#dcd6c8' : '#15151f', roughness: 0.9 });
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.95, 4, 8), fur);
-    body.rotation.z = Math.PI / 2; body.position.y = 0.7; g.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 9, 8), fur);
-    head.position.set(0, 0.85, 0.75); head.scale.set(0.9, 0.9, 1.15); g.add(head);
-    const snout = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.34, 6), fur);
-    snout.position.set(0, 0.8, 1.05); snout.rotation.x = Math.PI / 2; g.add(snout);
-    for (const s of [-1, 1]) {
-        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.26, 4), fur);
-        ear.position.set(s * 0.14, 1.12, 0.66); g.add(ear);
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6),
-            new THREE.MeshBasicMaterial({ color: white ? '#ffcf66' : '#ff3a6a' }));
-        eye.position.set(s * 0.13, 0.9, 1.0); g.add(eye);
-    }
-    for (const lx of [-1, 1]) for (const lz of [-1, 1]) {
-        const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 3, 6), fur);
-        leg.position.set(lx * 0.22, 0.32, lz * 0.42); g.add(leg);
-    }
-    const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 3, 6), fur);
-    tail.position.set(0, 0.9, -0.7); tail.rotation.x = -0.7; g.add(tail);
-    g.add(new THREE.PointLight(white ? '#fff0c8' : '#3a4cff', 1.0, 6, 2).translateY(0.7));
-    return g;
-}
-function spawnHound(white, sx, sz) {
-    const mesh = buildHoundMesh(white);
-    mesh.position.set(sx, terrainHeight(sx, sz), sz);
-    scene.add(mesh);
-    allies.push({
-        mesh, x: sx, z: sz, white,
-        life: performance.now() + 10000,
-        dmg: Math.max(4, player.damage * 0.7), speed: 9, cd: 0, bob: Math.random() * 6,
-    });
-}
-function megumiDivineDogs() {
-    if (!spend(30)) return;
-    // Replace any existing pair
-    for (const a of allies.slice()) scene.remove(a.mesh);
-    allies.length = 0;
-    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-    spawnHound(true, player.x - fz * 1.4 + fx, player.z + fx * 1.4 + fz);
-    spawnHound(false, player.x + fz * 1.4 + fx, player.z - fx * 1.4 + fz);
-    shockRing(player.x, player.z, '#3a4cff', 4, 480, 0.6);
-    burst(player.x, 0.6, player.z, '#1a237e', 22);
-    flashLight(player.x, 1, player.z, '#3a4cff', 4, 360);
-    camShake(0.06, 0.16); sfx('tech');
-}
-function megumiNue(fx, fz) {
-    if (!spend(36)) return;
-    // Nue dives onto the nearest curse in front and calls a lightning strike.
-    let tgt = null, best = 14;
-    for (const c of curses) {
-        const dx = c.x - player.x, dz = c.z - player.z, d = Math.hypot(dx, dz) || 1;
-        if (d > best) continue;
-        if ((dx / d) * fx + (dz / d) * fz < 0.1) continue;
-        best = d; tgt = c;
-    }
-    const tx = tgt ? tgt.x : player.x + fx * 9;
-    const tz = tgt ? tgt.z : player.z + fz * 9;
-    const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.06, 14, 8),
-        new THREE.MeshBasicMaterial({ color: '#bcd0ff', transparent: true, opacity: 0.95 }));
-    bolt.position.set(tx, 7.5, tz); scene.add(bolt);
-    const t0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - t0) / 240;
-        if (t >= 1) { scene.remove(bolt); bolt.geometry.dispose(); bolt.material.dispose(); return; }
-        bolt.material.opacity = 0.95 * (1 - t);
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
-    for (const c of curses.slice()) {
-        if (Math.hypot(c.x - tx, c.z - tz) < 3.6) damageCurse(c, player.damage * 2.6);
-    }
-    explode(tx, 1.4, tz, '#3a4cff', 4);
-    shockRing(tx, tz, '#bcd0ff', 6, 460, 0.5);
-    camShake(0.12, 0.24);
-    sfx('tech'); sfx('boss');
-}
-
-// Per-frame update for Megumi's shadow hounds.
-function updateAllies(dt, now) {
-    for (let i = allies.length - 1; i >= 0; i--) {
-        const a = allies[i];
-        if (now > a.life) {
-            burst(a.x, 0.6, a.z, a.white ? '#fff0c8' : '#1a237e', 14);
-            scene.remove(a.mesh); allies.splice(i, 1); continue;
-        }
-        let tgt = null, best = 16;
-        for (const c of curses) {
-            const d = Math.hypot(c.x - a.x, c.z - a.z);
-            if (d < best) { best = d; tgt = c; }
-        }
-        let txA, tzA, attacking = false;
-        if (tgt) { txA = tgt.x; tzA = tgt.z; attacking = true; }
-        else { txA = player.x - (-Math.sin(yaw)) * 2.4; tzA = player.z - (-Math.cos(yaw)) * 2.4; }
-        const dx = txA - a.x, dz = tzA - a.z, d = Math.hypot(dx, dz) || 1;
-        if (d > (attacking ? 1.4 : 0.6)) {
-            a.x += (dx / d) * a.speed * dt;
-            a.z += (dz / d) * a.speed * dt;
-        } else if (attacking && now - a.cd > 600) {
-            a.cd = now; damageCurse(tgt, a.dmg);
-            burst(tgt.x, 1.2, tgt.z, a.white ? '#ffcf66' : '#3a4cff', 6); sfx('hit');
-        }
-        a.bob += dt * 10;
-        a.mesh.position.set(a.x, terrainHeight(a.x, a.z) + Math.abs(Math.sin(a.bob)) * 0.12, a.z);
-        a.mesh.rotation.y = Math.atan2(dx, dz);
-    }
-}
-
-function spawnTechProj(fx, fz, color, dmg, r, pierce, spd, life, aoe, aoeMul, ce) {
-    if (!spend(ce)) return;
-    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12), new THREE.MeshBasicMaterial({ color }));
-    orb.add(new THREE.Mesh(new THREE.SphereGeometry(0.85, 10, 10),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3 })));
-    orb.add(new THREE.PointLight(color, 3, 9, 2));
-    orb.position.set(player.x + fx * 1.4, 1.5, player.z + fz * 1.4);
-    scene.add(orb);
-    projectiles.push({ mesh: orb, vx: fx * spd, vz: fz * spd, life, dmg, r, pierce: !!pierce, color, aoe, aoeMul, hit: new Set() });
-    sfx('tech');
-}
-function coneHit(range, minDot, dmg, color) {
-    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-    let any = false;
-    for (const c of curses.slice()) {
-        const dx = c.x - player.x, dz = c.z - player.z, d = Math.hypot(dx, dz) || 1;
-        if (d > range) continue;
-        if ((dx / d) * fx + (dz / d) * fz < minDot) continue;
-        damageCurse(c, dmg); any = true;
-    }
-    // A big sweeping slash arc in front
-    const arc = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.16, 8, 28, Math.PI * 1.1),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, side: THREE.DoubleSide }));
-    arc.position.set(player.x + fx * 1.6, 1.4, player.z + fz * 1.6);
-    arc.rotation.set(Math.PI / 2, 0, Math.atan2(fx, fz));
-    scene.add(arc);
-    const s0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - s0) / 260;
-        if (t >= 1) { scene.remove(arc); arc.geometry.dispose(); arc.material.dispose(); return; }
-        arc.scale.set(1 + t * 1.4, 1 + t * 1.4, 1);
-        arc.rotation.z += 0.22;
-        arc.material.opacity = 0.95 * (1 - t);
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
-    explode(player.x + fx * 2.4, 1.3, player.z + fz * 2.4, color, 2);
-    camShake(0.07, 0.15);
-    if (any) sfx('hit'); sfx('tech');
-}
-function nova(radius, dmg, color) {
-    for (const c of curses.slice()) {
-        if (Math.hypot(c.x - player.x, c.z - player.z) < radius) damageCurse(c, dmg);
-    }
-    explode(player.x, 1.3, player.z, color, 4);
-    shockRing(player.x, player.z, color, radius * 1.4, 600, 0.8);
-    shockRing(player.x, player.z, '#ffffff', radius, 460, 0.4);
-    burst(player.x, 1.3, player.z, color, 40);
-    camShake(0.13, 0.26);
-    sfx('tech'); sfx('boss');
-}
-function ringFx(x, z, color) {
-    const g = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.62, 24),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
-    g.rotation.x = -Math.PI / 2;
-    g.position.set(x, terrainHeight(x, z) + 0.1, z);
-    scene.add(g);
-    const t0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - t0) / 420;
-        if (t >= 1) { scene.remove(g); g.geometry.dispose(); g.material.dispose(); return; }
-        g.scale.setScalar(1 + t * 6); g.material.opacity = 0.8 * (1 - t);
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
-}
-
-// ─── Juicy impact helpers ───────────────────────────────────
-function camShake(amp, dur) { shakeAmp = Math.max(shakeAmp, amp); shakeT = Math.max(shakeT, dur); }
-
-function flashLight(x, y, z, color, intensity, dur) {
-    const L = new THREE.PointLight(color, intensity, 16, 2);
-    L.position.set(x, y, z); scene.add(L);
-    const t0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - t0) / dur;
-        if (t >= 1) { scene.remove(L); return; }
-        L.intensity = intensity * (1 - t);
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
-}
-
-// Expanding flat shockwave ring on the ground.
-function shockRing(x, z, color, maxR, dur, thick) {
-    const g = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.2 + (thick || 0.5), 36),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
-    g.rotation.x = -Math.PI / 2;
-    g.position.set(x, terrainHeight(x, z) + 0.12, z);
-    scene.add(g);
-    const t0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - t0) / (dur || 480);
-        if (t >= 1) { scene.remove(g); g.geometry.dispose(); g.material.dispose(); return; }
-        const s = 1 + t * (maxR || 6);
-        g.scale.set(s, s, s);
-        g.material.opacity = 0.9 * (1 - t);
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
-}
-
-// Big layered explosion: core flash + 2 rings + sparks + light + shake.
-function explode(x, y, z, color, power) {
-    const core = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12),
-        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95 }));
-    core.position.set(x, y, z); scene.add(core);
-    const t0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - t0) / 240;
-        if (t >= 1) { scene.remove(core); core.geometry.dispose(); core.material.dispose(); return; }
-        core.scale.setScalar(1 + t * power * 1.6);
-        core.material.opacity = 0.95 * (1 - t);
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
-    shockRing(x, z, color, power * 2.4, 460, 0.6);
-    shockRing(x, z, '#ffffff', power * 1.5, 340, 0.3);
-    burst(x, y, z, color, 14 + power * 4);
-    flashLight(x, y + 0.4, z, color, 4 + power, 260);
-    camShake(0.05 + power * 0.03, 0.18);
-}
-
-// Spiralling-inward vortex (for the Reversal Pull).
-function vortexFx(x, z, color) {
-    const grp = new THREE.Group();
-    grp.position.set(x, terrainHeight(x, z) + 0.6, z);
-    scene.add(grp);
-    const rings = [];
-    for (let i = 0; i < 4; i++) {
-        const r = new THREE.Mesh(new THREE.TorusGeometry(2.4 - i * 0.1, 0.07, 8, 28),
-            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
-        r.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
-        grp.add(r); rings.push(r);
-    }
-    grp.add(new THREE.PointLight(color, 3, 10, 2));
-    const t0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - t0) / 520;
-        if (t >= 1) { scene.remove(grp); grp.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); return; }
-        for (let i = 0; i < rings.length; i++) {
-            const s = Math.max(0.05, (1 - t) - i * 0.06);
-            rings[i].scale.setScalar(s);
-            rings[i].rotation.z += 0.25 + i * 0.05;
-            rings[i].material.opacity = 0.7 * (1 - t);
-        }
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
-}
-
-function updateProjectiles(dt) {
-    for (let i = projectiles.length - 1; i >= 0; i--) {
-        const p = projectiles[i];
-        p.mesh.position.x += p.vx * dt;
-        p.mesh.position.z += p.vz * dt;
-        p.mesh.position.y = terrainHeight(p.mesh.position.x, p.mesh.position.z) + 1.5;
-        // glowing comet trail
-        p._tr = (p._tr || 0) + dt;
-        if (p._tr > 0.03) {
-            p._tr = 0;
-            const puff = new THREE.Mesh(new THREE.SphereGeometry(0.32, 7, 6),
-                new THREE.MeshBasicMaterial({ color: p.color || '#b388ff', transparent: true, opacity: 0.6 }));
-            puff.position.copy(p.mesh.position);
-            scene.add(puff);
-            const s0 = performance.now();
-            const tp = () => {
-                const tt = (performance.now() - s0) / 280;
-                if (tt >= 1) { scene.remove(puff); puff.geometry.dispose(); puff.material.dispose(); return; }
-                puff.scale.setScalar(1 - tt * 0.7); puff.material.opacity = 0.6 * (1 - tt);
-                requestAnimationFrame(tp);
-            };
-            requestAnimationFrame(tp);
-        }
-        p.mesh.rotation.y += dt * 9;
-        p.life -= dt;
-        let done = p.life <= 0;
-        const R = p.r || 1.6;
-        for (const c of curses.slice()) {
-            if (p.hit && p.hit.has(c)) continue;
-            if (Math.hypot(c.x - p.mesh.position.x, c.z - p.mesh.position.z) < R) {
-                damageCurse(c, p.dmg);
-                if (p.hit) p.hit.add(c);
-                const aoe = p.aoe || 3.2, aMul = p.aoeMul == null ? 0.4 : p.aoeMul;
-                for (const c2 of curses.slice()) {
-                    if (c2 !== c && Math.hypot(c2.x - c.x, c2.z - c.z) < aoe) damageCurse(c2, p.dmg * aMul);
-                }
-                explode(p.mesh.position.x, 1.5, p.mesh.position.z, p.color || '#b388ff', p.pierce ? 2 : 3);
-                sfx('hit');
-                if (!p.pierce) { done = true; break; }
-            }
-        }
-        if (done) { scene.remove(p.mesh); projectiles.splice(i, 1); }
-    }
-}
+// ═══ (cursed techniques removed) — was: TECHNIQUES dispatcher + Sukuna/Todo/Megumi kits + technique-only VFX helpers + updateProjectiles ═══
 
 function damageCurse(c, dmg) {
     if (!c.alive) return;
@@ -968,7 +501,7 @@ function gainXp(amount) {
     }
     if (leveled) {
         deriveStats();
-        player.hp = player.maxHp; player.ce = player.maxCe;
+        player.hp = player.maxHp;
         sfx('level');
         toast('LEVEL UP — Lv.' + save.level);
         persist();
@@ -984,12 +517,10 @@ function damagePlayer(dmg) {
     setTimeout(() => { document.body.style.boxShadow = ''; }, 140);
     if (player.hp <= 0) {
         // Respawn at town — gentle MVP penalty (no loss), curses cleared
-        player.hp = player.maxHp; player.ce = player.maxCe;
+        player.hp = player.maxHp;
         player.x = TOWN.x; player.z = TOWN.z + 6;
         for (const c of curses.slice()) { scene.remove(c.mesh); }
         curses.length = 0;
-        for (const a of allies.slice()) scene.remove(a.mesh);
-        allies.length = 0;
         toast('You were overwhelmed... carried back to town.');
         persist();
     }
@@ -1050,20 +581,8 @@ function openSmith() {
         <p>Gold: <b style="color:#ffe066">${save.gold}</b></p>
         <div class="row"><span>Whetstone — +6 base damage (permanent)</span>
             <button class="btn sec act" data-buy="dmg">120 g</button></div>
-        <div class="row"><span>Cursed Charm — +20 max cursed energy</span>
-            <button class="btn sec act" data-buy="ce">100 g</button></div>
-        <p style="margin-top:0.8rem">More cursed tools &amp; full technique tree: coming in updates.</p>
+        <p style="margin-top:0.8rem">More cursed tools coming in updates.</p>
         <button class="btn sec act" data-close="1">Close</button>`);
-}
-
-function chooseTechnique() {
-    const rows = Object.entries(TECHNIQUES).map(([id, t]) =>
-        `<div class="row"><span><b style="color:${t.color}">${t.name}</b><br>` +
-        `<small style="color:#7a8a9a">Z: ${t.zName} &nbsp;·&nbsp; X: ${t.xName}</small></span>` +
-        `<button class="btn sec act" data-tech="${id}">Choose</button></div>`).join('');
-    showOverlay(`<h2>Choose Your Cursed Technique</h2>
-        <p>Defines your <b>Z</b> (primary) and <b>X</b> (secondary). Permanent for this save.</p>
-        ${rows}`);
 }
 
 function openPause() {
@@ -1076,18 +595,13 @@ function openPause() {
 document.getElementById('overlay').addEventListener('click', (e) => {
     const t = e.target;
     if (!t.dataset || (!t.dataset.close && !t.dataset.resume && !t.dataset.accept &&
-        !t.dataset.quit && !t.dataset.buy && !t.dataset.tech)) return;
+        !t.dataset.quit && !t.dataset.buy)) return;
     sfx('ui');
-    if (t.dataset.tech) {
-        if (pendingSave) { pendingSave.technique = t.dataset.tech; hideOverlay(); startGame(pendingSave); persist(); pendingSave = null; }
-        return;
-    }
     if (t.dataset.close || t.dataset.resume) { hideOverlay(); if (state === 'paused') resume(); }
     else if (t.dataset.accept) { acceptQuest(t.dataset.accept); hideOverlay(); }
     else if (t.dataset.quit) { persist(); hideOverlay(); toSignin(); }
     else if (t.dataset.buy) {
         if (t.dataset.buy === 'dmg' && save.gold >= 120) { save.gold -= 120; save.flags.dmgBonus = (save.flags.dmgBonus || 0) + 6; }
-        else if (t.dataset.buy === 'ce' && save.gold >= 100) { save.gold -= 100; save.flags.ceBonus = (save.flags.ceBonus || 0) + 20; }
         else { toast('Not enough gold'); return; }
         deriveStats(); persist(); openSmith();
     }
@@ -1114,17 +628,15 @@ function swingArm() { armSwing = 1; }
 // ─── GAME FLOW ──────────────────────────────────────────────
 function startGame(loaded) {
     save = loaded;
-    if (!save.technique) save.technique = 'strike';
     document.getElementById('signin-screen').classList.remove('active');
     document.getElementById('hud').style.display = 'block';
-    player = { x: TOWN.x, z: TOWN.z + 6, vy: 0, iframes: 0, hp: undefined, ce: undefined };
+    player = { x: TOWN.x, z: TOWN.z + 6, vy: 0, iframes: 0, hp: undefined };
     deriveStats();
     player.damage += (save.flags.dmgBonus || 0);
-    player.maxCe += (save.flags.ceBonus || 0);
-    player.hp = player.maxHp; player.ce = player.maxCe;
+    player.hp = player.maxHp;
     refreshMissionHud();
     state = 'playing';
-    toast('Welcome, ' + save.name + ' — ' + GRADE_NAME[save.grade] + ' · ' + curTech().name);
+    toast('Welcome, ' + save.name + ' — ' + GRADE_NAME[save.grade]);
 }
 
 function toSignin() {
@@ -1133,8 +645,6 @@ function toSignin() {
     document.getElementById('signin-screen').classList.add('active');
     for (const c of curses.slice()) scene.remove(c.mesh);
     curses.length = 0;
-    for (const a of allies.slice()) scene.remove(a.mesh);
-    allies.length = 0;
     refreshSlots();
 }
 
@@ -1157,8 +667,6 @@ function initInput() {
         keys[e.code] = true;
         if (e.code === 'Escape' && state === 'playing') { state = 'paused'; openPause(); }
         else if (e.code === 'KeyE' && state === 'playing') tryInteract();
-        else if (e.code === 'KeyZ' && state === 'playing') techZ();
-        else if (e.code === 'KeyX' && state === 'playing') techX();
         else if (e.code === 'Space' && state === 'playing') doDash();
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -1202,7 +710,6 @@ function update(dt) {
     if (state !== 'playing') return;
 
     player.iframes = Math.max(0, player.iframes - dt);
-    player.ce = Math.min(player.maxCe, player.ce + dt * 7);
 
     // Movement relative to camera yaw
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
@@ -1246,14 +753,6 @@ function update(dt) {
     const cy = gy + camHt - Math.sin(pitch) * 5;
     camera.position.set(cx, Math.max(terrainHeight(cx, cz) + 1.2, cy), cz);
     camera.lookAt(player.x, gy + 1.7, player.z);
-    if (shakeT > 0) {
-        shakeT -= dt;
-        const k = shakeAmp * Math.max(0, shakeT);
-        camera.position.x += (Math.random() - 0.5) * k * 12;
-        camera.position.y += (Math.random() - 0.5) * k * 7;
-        camera.position.z += (Math.random() - 0.5) * k * 12;
-        if (shakeT <= 0) shakeAmp = 0;
-    }
 
     // Curses
     updateCurseDirector(dt);
@@ -1271,9 +770,6 @@ function update(dt) {
         c.mesh.position.set(c.x, terrainHeight(c.x, c.z) + Math.sin(c.bob) * 0.15, c.z);
         c.mesh.lookAt(player.x, c.mesh.position.y, player.z);
     }
-
-    updateProjectiles(dt);
-    updateAllies(dt, performance.now());
 
     // NPC idle life — breathing bob, spinning marker, pulsing ring,
     // and they turn to face you when you're close.
@@ -1317,11 +813,9 @@ function update(dt) {
 
 function updateHud() {
     document.getElementById('hud-name').textContent = save.name;
-    document.getElementById('hud-grade').textContent = GRADE_NAME[save.grade] + '  ·  ' + curTech().name;
+    document.getElementById('hud-grade').textContent = GRADE_NAME[save.grade];
     document.getElementById('hud-hp').style.width = Math.max(0, player.hp / player.maxHp * 100) + '%';
     document.getElementById('hud-hp-t').textContent = Math.ceil(player.hp) + '/' + player.maxHp;
-    document.getElementById('hud-ce').style.width = (player.ce / player.maxCe * 100) + '%';
-    document.getElementById('hud-ce-t').textContent = 'CE ' + Math.ceil(player.ce);
     document.getElementById('hud-xp').style.width = (save.xp / xpToNext(save.level) * 100) + '%';
     document.getElementById('hud-gold').textContent = `Gold: ${save.gold}  ·  Lv.${save.level}`;
     drawMinimap();
@@ -1392,14 +886,9 @@ async function enterPressed() {
     const name = (document.getElementById('name-input').value || '').trim().slice(0, 16);
     if (!name) { document.getElementById('name-input').focus(); return; }
     const existing = await adapter.load(name);
-    if (existing) {
-        startGame(existing);
-    } else {
-        // New sorcerer — pick a cursed technique first
-        pendingSave = newSave(name);
-        document.getElementById('signin-screen').classList.remove('active');
-        chooseTechnique();
-    }
+    const data = existing || newSave(name);
+    startGame(data);
+    persist();
 }
 
 function loop() {

@@ -35,7 +35,6 @@ export function newSave(name) {
         level: 1,
         xp: 0,
         grade: 4,                 // everyone starts Grade 4
-        technique: 'strike',      // overwritten by the sign-in technique picker
         gold: 0,
         quests: {},               // id -> { state:'available'|'active'|'done', progress:0 }
         flags: {},

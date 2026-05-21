@@ -4,6 +4,36 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Cursed techniques removed (combat = melee + dash)
+
+All fighting styles stripped at the user's request. Removed from
+`src/main.js`:
+
+- `TECHNIQUES` dispatcher table, `curTech()`, `spend()`, `techZ()`,
+  `techX()`, and the sign-in `chooseTechnique()` picker / `pendingSave`
+  handshake.
+- The three character kits in full: **Sukuna** (`sukunaDismantle`,
+  `sukunaCleave`), **Todo** (`todoBlackFlash`, `todoBoulderKick`),
+  **Megumi** (`buildHoundMesh`, `spawnHound`, `megumiDivineDogs`,
+  `megumiNue`, `updateAllies`) plus the `allies[]` shadow-hound array.
+- Technique-only VFX helpers: `screenFlash`, `explode`, `shockRing`,
+  `flashLight`, `camShake` (+ `shakeAmp`/`shakeT` globals and the
+  per-frame shake block), `vortexFx`, `ringFx`, `nova`, `coneHit`,
+  `spawnTechProj`, plus `projectiles[]` + `updateProjectiles()`.
+- Cursed energy: `player.ce` / `player.maxCe`, the regen tick, the HUD
+  CE bar (DOM + CSS class), the smith's "Cursed Charm +20 max CE" item
+  and `flags.ceBonus`, and the welcome-toast technique-name suffix.
+- Save schema: dropped `technique` field from `newSave()`. Existing
+  saves with `technique` set are ignored (field never read).
+- Input: Z and X are now unbound.
+- HUD: controls hint updated to drop "Z / X cursed technique".
+
+Combat is now just LMB M1 (~380 ms cd, front-cone, ~3 m reach) and
+Space dash (1.5 s cd, brief i-frames). `burst`, `sfx`, and `toast` are
+kept — they're the only feedback the melee path still uses.
+
+---
+
 ## 2026-05-19 — Update 3: techniques become DC-3D character kits
 
 The three cursed techniques are re-themed to dungeon-crawler-3d

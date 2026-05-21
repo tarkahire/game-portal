@@ -68,22 +68,22 @@ Full spec: `docs/world.md`.
 **SHIPPED:** the full grade chain (G4 → Special) works via one reusable
 Grade-Exam quest from the Contact, level-gated. Stats auto-scale per
 level (no skill tree yet); cursed *tools* aren't in yet — the Smith
-currently sells permanent +damage / +max-CE upgrades for gold.
+currently sells just one permanent +damage upgrade for gold (the
++max-CE charm was removed 2026-05-21 with the technique system).
 
 Full spec: `docs/progression.md`.
 
 ## 6. Combat
 
-- Cursed energy is a regenerating resource bar; Z/X spend it. M1 melee +
-  Space dash (i-frames). Juicy VFX: explosions, shockwave rings, slash
-  arcs, vortex, comet trails, camera shake, WebAudio SFX.
-- **SHIPPED:** the player picks **one of three cursed techniques** at
-  sign-in (permanent, in `save.technique`). Each is a re-creation of a
-  dungeon-crawler-3d character kit in this game's simpler engine —
-  **Megumi** (Z Divine Dogs hound-summons / X Nue), **Sukuna**
-  (Z Dismantle slash volley / X Cleave arc), **Todo** (Z Black Flash
-  blink-detonation / X Boulder Kick). Not a literal code port — DC-3D
-  has a different engine/scale. Technique-swap is a future item.
+- **Current (2026-05-21):** melee + dash only. LMB M1 strike
+  (~380 ms cd, front-cone, ~3 m reach) and Space dash (1.5 s cd, brief
+  i-frames). Feedback = `burst` sparks + WebAudio `sfx` hit/death blips.
+- The three cursed techniques (Megumi / Sukuna / Todo), the Z/X keys,
+  the cursed-energy resource bar, the sign-in technique picker, and
+  the heavier VFX kit (explosions, shockwave rings, slash arcs, vortex,
+  camera shake) were all removed at the user's request. If techniques
+  come back later, they ship behind a fresh dispatcher — not by
+  resurrecting the old scaffold.
 - Curses are deformed glow meshes spawned by a director that scales HP/
   damage with the player's grade.
 
@@ -113,18 +113,17 @@ clear / escort / investigation are stretch. Full spec: `docs/quests.md`.
 ## 9. Scope — what actually shipped (MVP + Updates 1–3)
 
 - ✅ 1 hilly heightmap map, 1 town with non-enterable houses + 3 human NPCs.
-- ✅ Player, M1 melee, dash; **3 selectable cursed techniques**
-  (Megumi / Sukuna / Todo) with Z + X each + the shadow-hound ally system.
+- ✅ Player, M1 melee, dash (cursed techniques removed 2026-05-21).
 - ✅ Levels (uncapped curve); **full grade chain Grade 4 → Special**.
 - ✅ Quests: Exorcism (board) + reusable Grade Exam (contact).
 - ✅ Grade-scaled curse spawn director + scaling exam boss.
 - ✅ Name sign-in + localStorage autosave behind a swappable adapter.
-- ✅ HUD (HP/CE/XP/grade·technique/gold), minimap, pause, toasts.
-- ✅ WebAudio SFX; juicy VFX + camera shake; smith gold upgrades.
+- ✅ HUD (HP / XP / grade / gold), minimap, pause, toasts.
+- ✅ WebAudio SFX; smith gold upgrades.
 
 Not yet built (see §11 + `docs/todo.md`): veiled zones, more quest
-types, technique-swap/skill tree, cursed *tools*, more towns, sound
-polish, model/animation upgrades, real backend.
+types, cursed *tools*, more towns, sound polish, model/animation
+upgrades, real backend.
 
 ## 10. Why This Is Achievable Here
 
@@ -136,7 +135,8 @@ build step, deploys on Vercel like every other portal game.
 
 ## 11. Stretch / Future Vision
 
-- Multiple cursed techniques + technique-swap.
+- Re-introduce cursed techniques (Z/X kits + CE resource) — fresh
+  dispatcher; do not resurrect the removed scaffold.
 - Domain Expansion vs Domain clashes; Simple Domain.
 - Cursed tool affinities / upgrades at the Smith.
 - Binding Vows (risk/reward toggles: cap your HP for huge damage, etc).

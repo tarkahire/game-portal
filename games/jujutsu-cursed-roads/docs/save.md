@@ -21,10 +21,11 @@ save(data):  Promise<void>
 remove(name):Promise<void>
 ```
 
-`SaveData` = `{ name, level, xp, grade, technique, gold, quests, flags, updatedAt }`
-where `technique` ∈ `strike|dismantle|flame` (chosen at sign-in,
-permanent) and `flags` holds permanent smith upgrades
-(`dmgBonus`, `ceBonus`).
+`SaveData` = `{ name, level, xp, grade, gold, quests, flags, updatedAt }`
+where `flags` holds permanent smith upgrades (currently just
+`dmgBonus`). Old saves may still carry a `technique` field (and/or
+`flags.ceBonus`) from before the 2026-05-21 cursed-technique removal —
+those fields are simply ignored.
 
 Position is intentionally **not** saved — you respawn at town on load
 (simpler, and town is the natural hub). Add to schema later if needed.
