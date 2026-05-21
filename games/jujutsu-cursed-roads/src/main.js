@@ -2130,15 +2130,31 @@ const ADMIN_CMDS = [
 ];
 
 let adminOpen = false;
+// Friendly label for the keyboard shortcut: 1..9, 0 for the 10th,
+// then q/w/e/r/t/y/u/i/o/p for the rest.
+const ADMIN_HOTKEYS = ['1','2','3','4','5','6','7','8','9','0','q','w','e','r','t','y','u','i','o','p'];
 function renderAdminPanel() {
     const buttons = ADMIN_CMDS.map((c, i) => {
         const cls = c.danger ? 'danger' : (c.toggle && admin[c.toggle] ? 'on' : '');
-        return `<button class="${cls}" data-admin="${i}">${c.l}${c.toggle && admin[c.toggle] ? ' ✓' : ''}</button>`;
+        const key = ADMIN_HOTKEYS[i] || '·';
+        const check = (c.toggle && admin[c.toggle]) ? ' ✓' : '';
+        return `<button class="admin-tile ${cls}" data-admin="${i}">
+            <span class="admin-num">${key.toUpperCase()}</span>
+            <span class="admin-lbl">${c.l}${check}</span>
+        </button>`;
     }).join('');
     showOverlay(`<h2 style="color:#ff5a6a">ADMIN PANEL</h2>
-        <p style="color:#7a8a9a;font-size:0.78rem">Crazy commands. Use responsibly. (F1 to close.)</p>
+        <p style="color:#7a8a9a;font-size:0.78rem">Press a number / letter to fire that command. (F1 to close.)</p>
         <div class="admin-grid">${buttons}</div>
         <button class="btn sec act" data-close="1" style="margin-top:1rem">Close</button>`);
+}
+function runAdminCmd(i) {
+    const cmd = ADMIN_CMDS[i];
+    if (!cmd) return;
+    cmd.f();
+    if (adminOpen) renderAdminPanel();
+    persist();
+    sfx('ui');
 }
 function toggleAdminPanel() {
     if (!isAdmin()) return;
@@ -2154,17 +2170,29 @@ addEventListener('keydown', (e) => {
     if (e.code === 'F1' && state === 'playing') {
         e.preventDefault();
         toggleAdminPanel();
+        return;
+    }
+    // Number / letter shortcuts only fire while the admin panel is open
+    if (adminOpen && isAdmin()) {
+        const key = e.key.toLowerCase();
+        const idx = ADMIN_HOTKEYS.indexOf(key);
+        if (idx >= 0) {
+            e.preventDefault();
+            // Tile flash so the user sees what they triggered
+            const tile = document.querySelector(`.admin-tile[data-admin="${idx}"]`);
+            if (tile) { tile.classList.add('flash'); setTimeout(() => tile.classList.remove('flash'), 200); }
+            runAdminCmd(idx);
+        }
     }
 });
 document.getElementById('admin-btn').addEventListener('click', toggleAdminPanel);
 document.getElementById('overlay').addEventListener('click', (e) => {
-    const t = e.target;
-    if (t.dataset && t.dataset.admin != null) {
+    const t = e.target.closest('[data-admin]');
+    if (t) {
         const i = parseInt(t.dataset.admin, 10);
-        const cmd = ADMIN_CMDS[i];
-        if (cmd) { cmd.f(); renderAdminPanel(); persist(); sfx('ui'); }
+        runAdminCmd(i);
     }
-    if (t.dataset && t.dataset.close) adminOpen = false;
+    if (e.target.dataset && e.target.dataset.close) adminOpen = false;
 });
 
 function loop() {

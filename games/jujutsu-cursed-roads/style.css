@@ -115,12 +115,21 @@ input[type="password"].name { letter-spacing: 0.4em; font-size: 1rem; }
     font-size: 0.78rem; letter-spacing: 0.12em; padding: 0.4rem 0.8rem;
     cursor: pointer; display: none; font-family: inherit; pointer-events: auto; }
 #admin-btn:hover { background: #5a1010; color: #fff; }
-.admin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+.admin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.45rem;
     margin-top: 0.6rem; }
-.admin-grid button { background: #1a1224; border: 1px solid #5a3aa0; color: #cbb6ff;
-    font-size: 0.75rem; padding: 0.55rem 0.4rem; cursor: pointer; font-family: inherit;
-    letter-spacing: 0.04em; transition: all 0.15s; pointer-events: auto; text-align: left; }
-.admin-grid button:hover { background: #2a1a3a; color: #fff; border-color: #a06bff; }
-.admin-grid button.on { background: #1a3a1a; border-color: #3aff8a; color: #3aff8a; }
-.admin-grid button.danger { border-color: #ff3a3a; color: #ff8a8a; }
-.admin-grid button.danger:hover { background: #5a1010; color: #fff; }
+.admin-tile { background: #1a1224; border: 1px solid #5a3aa0; color: #cbb6ff;
+    cursor: pointer; font-family: inherit; transition: all 0.12s;
+    pointer-events: auto; padding: 0.4rem 0.3rem 0.45rem; display: flex;
+    flex-direction: column; align-items: center; gap: 0.18rem; }
+.admin-tile:hover { background: #2a1a3a; color: #fff; border-color: #a06bff;
+    transform: translateY(-1px); }
+.admin-tile .admin-num { font-size: 1.45rem; font-weight: 800; letter-spacing: 0;
+    color: #a06bff; text-shadow: 0 0 6px rgba(160,107,255,0.6); line-height: 1; }
+.admin-tile .admin-lbl { font-size: 0.62rem; letter-spacing: 0.04em;
+    line-height: 1.15; opacity: 0.9; text-align: center; }
+.admin-tile.on { background: #1a3a1a; border-color: #3aff8a; color: #3aff8a; }
+.admin-tile.on .admin-num { color: #3aff8a; text-shadow: 0 0 6px rgba(58,255,138,0.6); }
+.admin-tile.danger { border-color: #ff3a3a; color: #ff8a8a; }
+.admin-tile.danger .admin-num { color: #ff5a6a; text-shadow: 0 0 6px rgba(255,90,106,0.6); }
+.admin-tile.danger:hover { background: #5a1010; color: #fff; }
+.admin-tile.flash { background: #5a3aa0 !important; color: #fff !important; transform: scale(1.04); }
