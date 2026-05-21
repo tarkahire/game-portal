@@ -426,14 +426,16 @@ function makeNpc(color, x, z, label, role) {
 
 // ─── PLAYER ─────────────────────────────────────────────────
 function buildPlayerModel() {
+    const playerScale = 0.88;   // ~12% shorter than the default rig (and the NPCs)
     const g = buildHumanoid({
+        height: playerScale,
         coat: '#1a2030',     // JJK High navy
         pants: '#0a0c14',
         boots: '#15110c',
         accent: '#3a4cff',   // cyan chest stripe
     });
     const aura = new THREE.PointLight('#7c4dff', 1.2, 7, 2);
-    aura.position.y = 1.2;
+    aura.position.y = 1.2 * playerScale;
     g.add(aura);
     return g;
 }
@@ -647,8 +649,9 @@ function meleeStrike() {
     if (hitAny) {
         burst(player.x + fx * 2, 1.3, player.z + fz * 2,
             trailColor, hit.heavy ? 22 : 10);
-        sfx('hit');
-        if (hit.heavy) sfx('boss');
+        // Synth `hit`/`boss` blips intentionally absent — the recorded
+        // assets/punch.m4a (fired in playPunchSample above) is the
+        // only punch noise we want.
     }
 }
 // ═══ (cursed techniques removed) — was: TECHNIQUES dispatcher + Sukuna/Todo/Megumi kits + technique-only VFX helpers + updateProjectiles ═══
