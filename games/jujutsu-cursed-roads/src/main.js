@@ -443,9 +443,11 @@ function buildPlayerModel() {
 function deriveStats() {
     const lv = save.level;
     player.maxHp = 90 + lv * 15;
+    player.maxStamina = 90 + lv * 8;       // drained by block, dash, grab, sprint
     player.damage = 14 + lv * 3;
     player.speed = 8.5;
     if (player.hp === undefined || player.hp > player.maxHp) player.hp = player.maxHp;
+    if (player.stamina === undefined || player.stamina > player.maxStamina) player.stamina = player.maxStamina;
 }
 
 // ─── CURSES ─────────────────────────────────────────────────
@@ -609,15 +611,18 @@ const COMBO = [
 ];
 const COMBO_HIT_CD = 270;        // ms between hits — slowed so each punch lingers visibly
 const COMBO_RESET_MS = 700;      // chain resets if you pause longer than this
+const COMBO_DOWNTIME_MS = 1500;  // Kaizen-style forced breathing room after the heavy 3rd
 let lastM1 = 0;
 let comboIdx = 0;
 function meleeStrike() {
     const now = performance.now();
+    if (now < player.comboLockUntil) return;  // post-heavy downtime
     if (now - lastM1 < COMBO_HIT_CD) return;
     if (now - lastM1 > COMBO_RESET_MS) comboIdx = 0;
     const hit = COMBO[comboIdx];
     lastM1 = now;
     comboIdx = (comboIdx + 1) % COMBO.length;
+    if (hit.heavy) player.comboLockUntil = now + COMBO_DOWNTIME_MS;
 
     // Arm extension on the punching hand + body torque the opposite way
     if (hit.hand === 'L') { lArmSwing = 1; torsoTwist =  0.18; }
@@ -756,6 +761,8 @@ function gainXp(amount) {
 
 function damagePlayer(dmg) {
     if (state !== 'playing' || player.iframes > 0) return;
+    // Block reduces incoming damage 70%
+    if (player.blocking) dmg *= 0.30;
     player.hp -= dmg;
     player.iframes = 0.4;
     sfx('hurt');
@@ -764,6 +771,8 @@ function damagePlayer(dmg) {
     if (player.hp <= 0) {
         // Respawn at town — gentle MVP penalty (no loss), curses cleared
         player.hp = player.maxHp;
+        player.stamina = player.maxStamina;
+        player.blocking = false;
         player.x = TOWN.x; player.z = TOWN.z + 6;
         for (const c of curses.slice()) { scene.remove(c.mesh); }
         curses.length = 0;
@@ -882,10 +891,11 @@ function startGame(loaded) {
     save = loaded;
     document.getElementById('signin-screen').classList.remove('active');
     document.getElementById('hud').style.display = 'block';
-    player = { x: TOWN.x, z: TOWN.z + 6, vy: 0, iframes: 0, hp: undefined };
+    player = { x: TOWN.x, z: TOWN.z + 6, vy: 0, iframes: 0, hp: undefined, stamina: undefined, blocking: false, comboLockUntil: 0 };
     deriveStats();
     player.damage += (save.flags.dmgBonus || 0);
     player.hp = player.maxHp;
+    player.stamina = player.maxStamina;
     refreshMissionHud();
     state = 'playing';
     toast('Welcome, ' + save.name + ' — ' + GRADE_NAME[save.grade]);
@@ -919,12 +929,15 @@ function initInput() {
         keys[e.code] = true;
         if (e.code === 'Escape' && state === 'playing') { state = 'paused'; openPause(); }
         else if (e.code === 'KeyE' && state === 'playing') tryInteract();
-        else if (e.code === 'Space' && state === 'playing') doDash();
+        else if (e.code === 'KeyQ' && state === 'playing') doDash();
+        else if (e.code === 'KeyG' && state === 'playing') doGrab();
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
     const cv = document.getElementById('game-canvas');
     cv.addEventListener('click', () => { audioInit(); if (state === 'playing') cv.requestPointerLock(); });
-    cv.addEventListener('mousedown', (e) => { if (e.button === 0 && state === 'playing' && pointerLocked) meleeStrike(); });
+    cv.addEventListener('mousedown', (e) => {
+        if (e.button === 0 && state === 'playing' && pointerLocked && !player.blocking) meleeStrike();
+    });
     document.addEventListener('pointerlockchange', () => { pointerLocked = document.pointerLockElement === cv; });
     addEventListener('mousemove', (e) => {
         if (!pointerLocked) return;
@@ -940,13 +953,52 @@ function initInput() {
 }
 
 let lastDash = 0;
+const DASH_CD = 1500;
+const DASH_STAMINA = 20;
 function doDash() {
     const now = performance.now();
-    if (now - lastDash < 1500) return;
+    if (now - lastDash < DASH_CD) return;
+    if (player.stamina < DASH_STAMINA) { toast('Out of stamina'); return; }
+    if (player.blocking) return;
     lastDash = now;
+    player.stamina -= DASH_STAMINA;
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     player.x += fx * 5; player.z += fz * 5;
     player.iframes = 0.45;
+}
+
+// G — forward grab/lunge: 3m reach, 25 stamina, 3s cooldown,
+// deals 1.4× base melee damage with strong knockback. Plays punch.m4a.
+let lastGrab = 0;
+const GRAB_CD = 3000;
+const GRAB_STAMINA = 25;
+const GRAB_REACH = 3.0;
+function doGrab() {
+    const now = performance.now();
+    if (now - lastGrab < GRAB_CD) return;
+    if (player.stamina < GRAB_STAMINA) { toast('Out of stamina'); return; }
+    if (player.blocking) return;
+    lastGrab = now;
+    player.stamina -= GRAB_STAMINA;
+    // Trigger right-arm extension animation + a small lunge body commit
+    rArmSwing = 1;
+    torsoTwist = -0.25;
+    lungeAmount = 0.7;
+    playPunchSample();
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    let hitAny = false;
+    for (const c of curses) {
+        const dx = c.x - player.x, dz = c.z - player.z;
+        const d = Math.hypot(dx, dz);
+        if (d > GRAB_REACH) continue;
+        if ((dx / d) * fx + (dz / d) * fz < 0.25) continue;
+        damageCurse(c, player.damage * 1.4);
+        // Strong knockback
+        c.x += (dx / d) * 3.0; c.z += (dz / d) * 3.0;
+        burst(c.x, 1.4, c.z, '#aa5cff', 12);
+        hitAny = true;
+    }
+    if (!hitAny) burst(player.x + fx * 1.6, 1.4, player.z + fz * 1.6, '#aa5cff', 6);
 }
 
 let nearInteract = null;
@@ -963,14 +1015,31 @@ function update(dt) {
 
     player.iframes = Math.max(0, player.iframes - dt);
 
-    // Movement relative to camera yaw
+    // Block — hold F. Drains 30 stamina/s while held. Auto-drops when
+    // empty. Can't M1, dash, grab, or move while blocking.
+    const wantBlock = !!keys['KeyF'];
+    if (wantBlock && player.stamina > 0) {
+        player.blocking = true;
+        player.stamina = Math.max(0, player.stamina - dt * 30);
+    } else {
+        player.blocking = false;
+    }
+    // Stamina regen when not blocking (faster when standing still)
+    if (!player.blocking) {
+        const regen = 18;       // /s
+        player.stamina = Math.min(player.maxStamina, player.stamina + dt * regen);
+    }
+
+    // Movement relative to camera yaw (locked while blocking)
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     const rx = Math.cos(yaw), rz = -Math.sin(yaw);
     let mx = 0, mz = 0;
-    if (keys['KeyW']) { mx += fx; mz += fz; }
-    if (keys['KeyS']) { mx -= fx; mz -= fz; }
-    if (keys['KeyA']) { mx -= rx; mz -= rz; }
-    if (keys['KeyD']) { mx += rx; mz += rz; }
+    if (!player.blocking) {
+        if (keys['KeyW']) { mx += fx; mz += fz; }
+        if (keys['KeyS']) { mx -= fx; mz -= fz; }
+        if (keys['KeyA']) { mx -= rx; mz -= rz; }
+        if (keys['KeyD']) { mx += rx; mz += rz; }
+    }
     const moving = mx || mz;
     if (moving) {
         const l = Math.hypot(mx, mz); mx /= l; mz /= l;
@@ -1067,22 +1136,51 @@ function update(dt) {
     const leadBreath = !moving ? breath * 0.04 : 0;
     const leadSway   = !moving ? sway   * 0.04 : 0;
 
-    ud.lShoulder.rotation.x = lerp(GL_SHX + leadBreath, E_SHX, lArmSwing);
-    ud.lShoulder.rotation.z = lerp(GL_SHZ + leadSway,   E_SHZ_L, lArmSwing);
-    ud.lShoulder.rotation.y = 0;
-    ud.lElbow.rotation.x    = lerp(GL_EBX,              E_EBX,   lArmSwing);
+    // Block pose: both arms tight across the face, forearms forming an
+    // X. Overrides the lazy guard while F is held.
+    if (player.blocking) {
+        ud.lShoulder.rotation.x = -1.05;
+        ud.lShoulder.rotation.z =  0.95;
+        ud.lShoulder.rotation.y = 0;
+        ud.lElbow.rotation.x    = -1.95;
+        ud.rShoulder.rotation.x = -1.05;
+        ud.rShoulder.rotation.z = -0.95;
+        ud.rShoulder.rotation.y = 0;
+        ud.rElbow.rotation.x    = -1.95;
+        ud.lWrist.scale.setScalar(1);
+        ud.rWrist.scale.setScalar(1);
+        // Knees bend more, both feet planted, head tucked
+        ud.lHip.rotation.x = 0;
+        ud.rHip.rotation.x = 0;
+        ud.lHip.rotation.z = 0;
+        ud.rHip.rotation.z = 0;
+        ud.lKnee.rotation.x = 0.45;
+        ud.rKnee.rotation.x = 0.45;
+        ud.headPivot.rotation.x = 0.12;     // chin tucked down
+        ud.headPivot.rotation.z = 0;
+        ud.pelvisPivot.rotation.z = 0;
+        ud.lowerTorsoPivot.rotation.z = 0;
+        ud.upperTorsoPivot.rotation.x = 0.08;
+        ud.upperTorsoPivot.rotation.y = 0;
+        ud.upperTorsoPivot.rotation.z = 0;
+    } else {
+        ud.lShoulder.rotation.x = lerp(GL_SHX + leadBreath, E_SHX, lArmSwing);
+        ud.lShoulder.rotation.z = lerp(GL_SHZ + leadSway,   E_SHZ_L, lArmSwing);
+        ud.lShoulder.rotation.y = 0;
+        ud.lElbow.rotation.x    = lerp(GL_EBX,              E_EBX,   lArmSwing);
 
-    ud.rShoulder.rotation.x = lerp(GR_SHX,              E_SHX,   rArmSwing);
-    ud.rShoulder.rotation.z = lerp(GR_SHZ,              E_SHZ_R, rArmSwing);
-    ud.rShoulder.rotation.y = 0;
-    ud.rElbow.rotation.x    = lerp(GR_EBX,              E_EBX,   rArmSwing);
+        ud.rShoulder.rotation.x = lerp(GR_SHX,              E_SHX,   rArmSwing);
+        ud.rShoulder.rotation.z = lerp(GR_SHZ,              E_SHZ_R, rArmSwing);
+        ud.rShoulder.rotation.y = 0;
+        ud.rElbow.rotation.x    = lerp(GR_EBX,              E_EBX,   rArmSwing);
 
-    // Fist "POW" — wrist scales up as the punch peaks, sells the impact
-    ud.lWrist.scale.setScalar(1 + lArmSwing * 0.35);
-    ud.rWrist.scale.setScalar(1 + rArmSwing * 0.35);
+        // Fist "POW" — wrist scales up as the punch peaks, sells the impact
+        ud.lWrist.scale.setScalar(1 + lArmSwing * 0.35);
+        ud.rWrist.scale.setScalar(1 + rArmSwing * 0.35);
 
-    // Punch torso twist (overrides the idle upperTorso.y channel)
-    ud.upperTorsoPivot.rotation.y = torsoTwist;
+        // Punch torso twist (overrides the idle upperTorso.y channel)
+        ud.upperTorsoPivot.rotation.y = torsoTwist;
+    }
 
     // Heavy-3rd body lunge: pelvis throws forward in model space, chest
     // pitches in over the strike. Layered on top of whatever the
@@ -1160,8 +1258,23 @@ function updateHud() {
     document.getElementById('hud-grade').textContent = GRADE_NAME[save.grade];
     document.getElementById('hud-hp').style.width = Math.max(0, player.hp / player.maxHp * 100) + '%';
     document.getElementById('hud-hp-t').textContent = Math.ceil(player.hp) + '/' + player.maxHp;
+    document.getElementById('hud-st').style.width = (player.stamina / player.maxStamina * 100) + '%';
+    document.getElementById('hud-st-t').textContent = 'ST ' + Math.ceil(player.stamina);
     document.getElementById('hud-xp').style.width = (save.xp / xpToNext(save.level) * 100) + '%';
     document.getElementById('hud-gold').textContent = `Gold: ${save.gold}  ·  Lv.${save.level}`;
+    // Cooldown pips — fill from bottom while on cooldown, clear when ready
+    const now = performance.now();
+    const dashLeft = Math.max(0, DASH_CD - (now - lastDash)) / DASH_CD;
+    const grabLeft = Math.max(0, GRAB_CD - (now - lastGrab)) / GRAB_CD;
+    const lockLeft = Math.max(0, (player.comboLockUntil - now)) / COMBO_DOWNTIME_MS;
+    const setPip = (id, frac) => {
+        const el = document.getElementById(id);
+        el.querySelector('i').style.height = (frac * 100) + '%';
+        el.classList.toggle('ready', frac <= 0.001);
+    };
+    setPip('cd-dash', dashLeft);
+    setPip('cd-grab', grabLeft);
+    setPip('cd-combo', lockLeft);
     drawMinimap();
 }
 

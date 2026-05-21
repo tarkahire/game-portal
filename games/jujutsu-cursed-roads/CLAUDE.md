@@ -72,10 +72,34 @@ Already wired in: a card on the root `index.html` links here; Vercel
 auto-deploys on push (static, no build). The portal uses an emoji
 placeholder thumbnail (no image file needed).
 
-## Combat (current)
+## Combat (current — Kaizen-style action shell, Update 1 of 5)
 
-Melee only. Click LMB for an M1 strike (short reach, ~380 ms cooldown,
-arm swing animation) and **Space** for a 1.5 s-cooldown dash with brief
-i-frames. No cursed energy bar, no Z/X cursed techniques — those were
-removed 2026-05-21. The `save.technique` field is unused and ignored if
-present on old saves.
+Modelled on Roblox **Kaizen**'s combat rhythm:
+
+- **LMB** — 3-hit punch chain (jab L → cross R → heavy R). 270 ms
+  between hits, chain resets if you pause >700 ms. After the heavy
+  there's a **1.5 s combo lockout** (Kaizen's "downtime") before any
+  M1 fires again — forced breathing room.
+- **Q** — dash (was Space). 1.5 s cooldown, 20 stamina, 0.45 s i-frames.
+- **F** — hold to block. 30 stamina/s drain. Reduces incoming damage
+  by 70%. Can't move, M1, dash, or grab while blocking. Animation:
+  arms tight across the face, knees bent, chin tucked.
+- **G** — grab/lunge. 25 stamina, 3 s cooldown. 3 m reach, 1.4×
+  base damage + strong knockback. Right-arm clutching motion. Plays
+  `assets/punch.m4a`. Future use: breaks blocks (when PvP / boss
+  block kits ship).
+- **Shift** — sprint (1.7× speed).
+- **Stamina** bar (yellow, below HP): regens 18/s when not blocking.
+  Caps at `90 + level*8`.
+- **HUD cooldown pips** for Q / G / M1-lockout next to the stat bars.
+
+Future updates (planned):
+2. Cursed energy bar + cursed-technique hotkeys (Z/X/C/V) with
+   per-ability cooldowns. Roster TBD — leaning Gojo / Sukuna /
+   Megumi / Yuji.
+3. Awakening / Domain Expansion burst mode on R (drains CE, halves
+   cooldowns, +damage).
+4. Stat-point allocation on level-up (3 pts/level into Melee /
+   Stamina / Defense / Cursed Energy / Weapon).
+5. Fighting-style swap (Karate / Boxing / etc) chosen at sign-in,
+   modifying the M1 moveset.

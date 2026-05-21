@@ -37,8 +37,18 @@ input.name:focus { outline: none; border-color: #a06bff; }
 .barwrap { position: relative; width: 220px; height: 12px; background: #1a0f22; margin: 4px 0; }
 .bar { height: 100%; transition: width 0.15s; }
 .hp { background: linear-gradient(90deg, #c01030, #ff3a5a); width: 100%; }
+.st { background: linear-gradient(90deg, #6a5a10, #ffe066); width: 100%; }
 .ce { background: linear-gradient(90deg, #5a2da0, #a06bff); width: 100%; }
 .xp { background: linear-gradient(90deg, #2a6a4a, #3adf8a); width: 0%; height: 6px; }
+.cdrow { display: flex; gap: 6px; margin-top: 6px; }
+.cdpip { position: relative; display: inline-block; width: 36px; height: 22px; background: #11151f;
+    border: 1px solid #2a3245; font-size: 10px; color: #cbb6ff; letter-spacing: 0.06em;
+    line-height: 22px; text-align: center; overflow: hidden; }
+.cdpip b { position: relative; z-index: 2; font-weight: 700; }
+.cdpip i { position: absolute; left: 0; bottom: 0; width: 100%; height: 0%;
+    background: rgba(160,107,255,0.45); z-index: 1; transition: height 0.05s linear; }
+.cdpip.ready { color: #fff; border-color: #a06bff; }
+.cdpip.lock i { background: rgba(255,80,80,0.55); }
 .barwrap .lbl { position: absolute; inset: 0; text-align: center; font-size: 8px;
     color: #eee; line-height: 12px; }
 #hud .who { color: #cbb6ff; font-weight: bold; letter-spacing: 0.06em; font-size: 0.9rem; }

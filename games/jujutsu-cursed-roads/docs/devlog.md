@@ -4,6 +4,53 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Kaizen Update 1: combat fundamentals
+
+First of five planned updates retooling the combat to match Roblox
+**Kaizen**'s feel: action-game tempo with a block / dash / grab
+defensive triangle, stamina resource, and forced post-combo downtime.
+
+- **Stamina resource** (`player.stamina` / `player.maxStamina = 90 +
+  lv*8`). Regenerates 18/s when not blocking. Drained by dash (20),
+  grab (25), and block hold (30/s). New yellow bar in the HUD panel
+  (`#hud-st`), under HP.
+- **Dash rebind**: Space → **Q**. Costs 20 stamina + 1.5 s cooldown,
+  0.45 s i-frames retained. Bail-outs if stamina too low or while
+  blocking. Cooldown pip on HUD.
+- **F = Block** (hold). Sets `player.blocking`. Drains 30 stamina/s.
+  Locks out movement, M1, dash, grab. Halves incoming damage to 30%
+  (70% reduction). New animation branch: both arms fold tight across
+  the face (shoulder.x -1.05, .z ±0.95, elbow -1.95), knees deeper
+  bent, chin tucked.
+- **G = Grab**. 25 stamina, 3 s cooldown, 3 m reach. Right-arm
+  forward lunge — triggers `rArmSwing = 1`, `lungeAmount = 0.7`,
+  `torsoTwist = -0.25`. Deals `damage * 1.4` + 3 m knockback on the
+  curse. Plays `assets/punch.m4a`. Useful right now as a long-reach
+  knockback attack; will break blocks once enemy / PvP block kits
+  ship.
+- **Post-combo lockout**: heavy 3rd punch sets
+  `player.comboLockUntil = now + 1500 ms`. `meleeStrike()` no-ops
+  during that window. This is Kaizen's defining tempo.
+- **HUD cooldown pips**: three small boxes (`Q`, `G`, `M1`) at the
+  bottom of the stat panel. They fill from the bottom while on
+  cooldown / locked and clear when ready (added `.cdrow` and
+  `.cdpip` to `style.css`). M1 lockout pip uses a red tint
+  (`.cdpip.lock`) instead of the default purple.
+- **Controls hint** updated: "LMB combo · Q dash · F block · G
+  grab · Shift sprint".
+- **damagePlayer** now multiplies incoming damage by 0.30 if
+  `player.blocking`. Stamina + blocking flag reset on respawn.
+- Project `CLAUDE.md` "Combat (current)" section rewritten to
+  document the new bindings + tempo, and to flag the future
+  updates (CE bar / awakening / stat points / fighting styles)
+  that are still pending.
+
+This shipped without breaking the existing punch animation work —
+the 3-hit chain, the chunky arm geometry, the cocky idle, the
+`punch.m4a` sound, and the heavy 3rd-punch lunge all still apply.
+
+---
+
 ## 2026-05-21 — Custom punch sound (assets/punch.mp3)
 
 Player can drop a recording at `games/jujutsu-cursed-roads/assets/
