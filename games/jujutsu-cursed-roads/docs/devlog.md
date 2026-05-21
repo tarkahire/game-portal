@@ -4,6 +4,114 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Repeatable quests, tiered givers, auto grade-up, tougher curses
+
+Big quest + progression rework.
+
+### Repeatable quests
+
+- `completeQuest` no longer locks a quest to `'done'`. After paying out
+  rewards it resets `state='available'` and `progress=0` so the player
+  can grind. New per-quest `completedCount` is incremented each time
+  and surfaced in the giver overlay + on the mission HUD as `×N`.
+- Mission Board overlay button says **"Retake mission"** after a first
+  clear, not "Done".
+
+### Tiered city quest givers (Lv 10 / 20 / 30 / 40)
+
+Four new NPCs scattered around Tokyo, each gated by player level:
+
+| Lv  | NPC                     | Location  | Quest                  | Target | Reward       |
+|-----|-------------------------|-----------|------------------------|--------|--------------|
+| 10  | Curse Hunter (blue)     | (-60, 60) | Sweep the Backstreets  | 10     | 260 XP / 130g |
+| 20  | Veteran Sorcerer (gold) | (60, 110) | Cursed Spirit Hunt     | 20     | 520 XP / 260g |
+| 30  | Special Grade Mentor    | (-80, 150)| Special Grade Watch    | 30     | 880 XP / 440g |
+| 40  | Elder Sorcerer (pink)   | (80, 170) | The Reckoning          | 50     | 1600 XP / 800g|
+
+- Interacting while under-level shows a toast `Need Lv.X to take this
+  mission` instead of opening the overlay.
+- All quest givers (plaza board + the 4 city ones) live in
+  `questGivers[]`. Each NPC has `userData._questId` and `_minLevel`.
+- New generic `openQuestGiver(npc)` overlay replaces the old shared
+  `openBoard()` — shows just that NPC's single quest with Accept /
+  Retake / In-progress state + reward line + completion count.
+- Kills credit **all active exorcism quests** simultaneously, so
+  stacking them is the move.
+
+### Overhead arrow
+
+- Yellow cone + shaft arrow attached above the player model (visible
+  from third-person camera).
+- Per frame in `update()` it picks the closest unlocked-with-available-
+  quest giver and rotates to point at it. Hides when within 12 m, when
+  no eligible giver, or when the player is below Lv 10 (the first
+  tiered giver unlocks at Lv 10).
+- Bobs slowly via `Math.sin(tNow * 0.005)`.
+
+### Auto grade-up every 20 levels
+
+- Exam quest **removed** (`QUESTS.exam`, `examReqLevel`, the boss
+  spawn on accept, the contact's exam overlay — all gone).
+- New logic in `gainXp`: after each level-up,
+  `newGrade = max(0, 4 - floor(level/20))`. If lower than current,
+  promote with sfx + delayed toast. So **Lv 20→G3, 40→G2, 60→G1,
+  80→Special Grade**.
+- `openContact` now shows pure progression: "Next promotion: G3 at
+  Lv 20. X levels to go." No more exam offer.
+- `refreshMissionHud` falls back to "Grade up at Lv.X" when no quest
+  is active.
+
+### Tougher curses
+
+- Curse base HP **34 → 40**, base damage **9 → 14**. Boss HP 320 → 380,
+  boss damage 22 → 28.
+- `gradeMul = 1 + (4 - grade) * 0.5` (was 0.4) — steeper grade scaling.
+- New `levelMul = 1 + level * 0.04` multiplied on top of `gradeMul`.
+  At Lv 80 Special Grade, a normal curse hits ~120 dmg and survives
+  4-5 punches (was 1-2). The game should feel *challenging* at high
+  rank — Kaizen's whole appeal.
+- XP and gold drops also scale with level so payouts keep up.
+- Curse spawn cap **6+(4-grade) → 7+(4-grade)*2** (Special Grade fills
+  the streets) and spawn timer tightens with grade (down to ~0.6 s
+  between spawns at Special).
+
+### Other
+
+- `onBossKilled` is now a no-op (kept for future).
+- `acceptQuest` no longer special-cases exam.
+- `questProgress` no longer skips id==='exam' (the entry is gone).
+
+### Cursed Technique Vendor + shard currency
+
+- New plaza NPC **Cursed Technique Vendor** (pink-purple ring), placed
+  next to the Mission Board. `tryInteract` routes to a new
+  `openTechniqueShop()` overlay.
+- **Shards**: new `save.shards` currency. Backfilled to 0 on existing
+  saves at `startGame`. Drop rule in `damageCurse` kill block: bosses
+  → +5 shards guaranteed, normal curses → 67% chance of +1.
+- **HUD** gold line now reads `Gold: X  ·  Shards: Y  ·  Lv.Z`.
+- **Shop UI**: scrollable list (50vh max, custom purple scrollbar)
+  of 10 placeholder cursed techniques (Limitless / Dismantle / Ten
+  Shadows / Black Flash / Copy / Straw Doll / Cursed Speech /
+  Boogie Woogie / Projection / Blood Manipulation), each with an
+  icon, name, flavor blurb, gold + shard cost, and a disabled
+  "Soon" button. Real purchase logic comes in a later update — for
+  now the structure is wired so we can swap in actual techniques
+  without rebuilding the UI.
+- **Bug fix discovered**: the NPC proximity scan + idle anim +
+  minimap were all hardcoded to `[board, smith, contact]`, which
+  means the 4 new tiered city quest givers (Curse Hunter, Veteran,
+  Mentor, Elder) were unreachable. Replaced with
+  `[board, smith, contact, vendor, ...questGivers.slice(1)]` so
+  every interactable NPC is now scanned/animated/mapped.
+- `style.css` gained `.shop-list`, `.shop-row`, `.shop-icon`,
+  `.shop-body`, `.shop-cost` rules + bumped `.card` max-width to
+  620 px so the shop has breathing room.
+
+`src/main.js`: 1694 → 1881 lines.
+
+---
+
 ## 2026-05-21 — Tokyo perf rescue (lights + meshes + grid)
 
 Previous Tokyo build was crashing low-end machines. Mesh count was

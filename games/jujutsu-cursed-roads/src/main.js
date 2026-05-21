@@ -47,16 +47,43 @@ const QUESTS = {
         target: 5,
         reward: { xp: 120, gold: 60 },
         giver: 'board',
+        minLevel: 1,
     },
-    exam: {
-        title: 'Grade Exam',
-        desc: 'Slay the manifested exam curse to earn promotion.',
-        target: 1,
-        giver: 'contact',
+    exorcism2: {
+        title: 'Sweep the Backstreets',
+        desc: 'Exorcise 10 curses across the city.',
+        target: 10,
+        reward: { xp: 260, gold: 130 },
+        giver: 'hunter',
+        minLevel: 10,
     },
+    exorcism3: {
+        title: 'Cursed Spirit Hunt',
+        desc: 'Exorcise 20 curses for the veteran sorcerers.',
+        target: 20,
+        reward: { xp: 520, gold: 260 },
+        giver: 'veteran',
+        minLevel: 20,
+    },
+    exorcism4: {
+        title: 'Special Grade Watch',
+        desc: 'Exorcise 30 curses for the mentor.',
+        target: 30,
+        reward: { xp: 880, gold: 440 },
+        giver: 'mentor',
+        minLevel: 30,
+    },
+    exorcism5: {
+        title: 'The Reckoning',
+        desc: 'Exorcise 50 curses for the elder sorcerer.',
+        target: 50,
+        reward: { xp: 1600, gold: 800 },
+        giver: 'elder',
+        minLevel: 40,
+    },
+    // (exam quest removed — grade-up is automatic every 20 levels now)
 };
-// Level required for the exam that promotes OUT of `grade`.
-function examReqLevel(grade) { return 4 + (4 - grade) * 3; }   // G4:4 G3:7 G2:10 G1:13
+// (examReqLevel removed — grade-up is automatic every 20 levels)
 
 // ─── TERRAIN ────────────────────────────────────────────────
 // Flat paved ground. terrainHeight() kept as a function so the existing
@@ -518,13 +545,39 @@ function buildCity() {
 }
 
 // ─── CENTRAL PLAZA ──────────────────────────────────────────
-let board, smith, contact;
+let board, smith, contact, vendor;
+// All quest-giver NPCs (board + the 4 tiered city givers). Used by
+// tryInteract + the overhead-arrow navigation system.
+const questGivers = [];
 function buildPlaza() {
     // Plaza ground tile + neon ring are already built in buildTerrain.
-    // Just drop the 3 NPCs around the center.
-    board   = makeNpc('#a06bff', TOWN.x - 8, TOWN.z + 2, 'MISSION BOARD', 'board');
-    smith   = makeNpc('#ff8a3a', TOWN.x + 8, TOWN.z + 4, 'CURSED TOOL SMITH', 'smith');
-    contact = makeNpc('#3adf8a', TOWN.x,     TOWN.z - 7, 'JUJUTSU HIGH CONTACT', 'contact');
+    // Drop the 4 plaza NPCs around the center.
+    board   = makeNpc('#a06bff', TOWN.x - 8, TOWN.z + 2,  'MISSION BOARD', 'board');
+    smith   = makeNpc('#ff8a3a', TOWN.x + 8, TOWN.z + 4,  'CURSED TOOL SMITH', 'smith');
+    contact = makeNpc('#3adf8a', TOWN.x,     TOWN.z - 7,  'JUJUTSU HIGH CONTACT', 'contact');
+    vendor  = makeNpc('#d24aff', TOWN.x - 14, TOWN.z - 4, 'CURSED TECHNIQUE VENDOR', 'board');
+    // Wire the plaza board as the L1 quest giver
+    board.userData._questId = 'exorcism1';
+    board.userData._minLevel = 1;
+    questGivers.push(board);
+}
+
+// 4 additional quest-giver NPCs scattered around the Tokyo district.
+// Each is gated by player level — the overhead arrow points at the
+// closest unlocked one with an available (or retake-able) quest.
+function buildCityQuestGivers() {
+    const givers = [
+        { color: '#3a8aff', label: 'CURSE HUNTER',          questId: 'exorcism2', minLevel: 10, x:  -60, z:  60 },
+        { color: '#ffcf3a', label: 'VETERAN SORCERER',      questId: 'exorcism3', minLevel: 20, x:   60, z: 110 },
+        { color: '#3aff8a', label: 'SPECIAL GRADE MENTOR',  questId: 'exorcism4', minLevel: 30, x:  -80, z: 150 },
+        { color: '#ff3a8a', label: 'ELDER SORCERER',        questId: 'exorcism5', minLevel: 40, x:   80, z: 170 },
+    ];
+    for (const g of givers) {
+        const npc = makeNpc(g.color, g.x, g.z, g.label, 'board');
+        npc.userData._questId = g.questId;
+        npc.userData._minLevel = g.minLevel;
+        questGivers.push(npc);
+    }
 }
 
 // ─── HUMANOID BUILDER ───────────────────────────────────────
@@ -823,6 +876,25 @@ function buildPlayerModel() {
     const aura = new THREE.PointLight('#7c4dff', 1.2, 7, 2);
     aura.position.y = 1.2 * playerScale;
     g.add(aura);
+
+    // Overhead quest-direction arrow. Group so we can swing it on Y
+    // (yaw toward the target) while the inner arrow keeps its tilt.
+    const arrow = new THREE.Group();
+    arrow.position.y = 2.5 * playerScale;     // floating above the head
+    arrow.visible = false;                    // hidden until target chosen
+    const arrowMat = new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.95 });
+    // Tip (cone pointing in +Z)
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.7, 4), arrowMat);
+    tip.rotation.x = Math.PI / 2;             // cone's +Y → world +Z
+    tip.position.z = 0.45;
+    arrow.add(tip);
+    // Shaft
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.6), arrowMat);
+    shaft.position.z = -0.05;
+    arrow.add(shaft);
+    g.add(arrow);
+    g.userData.arrow = arrow;
+
     return g;
 }
 
@@ -887,13 +959,22 @@ function spawnCurse(boss) {
     const mesh = buildCurseMesh(boss);
     mesh.position.set(x, terrainHeight(x, z), z);
     scene.add(mesh);
-    const gradeMul = 1 + (4 - save.grade) * 0.4;
+    // Difficulty curve — both grade and level pump curse stats so
+    // higher-tier play stays challenging. At L80 Special Grade a
+    // normal curse takes 4-5 hits and hits the player for ~120.
+    const gradeMul = 1 + (4 - save.grade) * 0.5;
+    const levelMul = 1 + save.level * 0.04;
+    const baseHp  = boss ? 380 : 40;
+    const baseDmg = boss ? 28  : 14;
     curses.push({
         mesh, x, z, boss: !!boss,
-        hp: (boss ? 320 : 34) * gradeMul, maxHp: (boss ? 320 : 34) * gradeMul,
-        dmg: (boss ? 22 : 9) * gradeMul, speed: boss ? 4.2 : 3.4,
+        hp:  baseHp  * gradeMul * levelMul,
+        maxHp: baseHp * gradeMul * levelMul,
+        dmg: baseDmg * gradeMul * levelMul,
+        speed: boss ? 4.4 : 3.6,
         lastHit: 0, bob: Math.random() * 6, alive: true,
-        xp: boss ? 0 : 22, gold: boss ? 0 : 6,
+        xp:   boss ? 0 : Math.round(22 * (1 + save.level * 0.05)),
+        gold: boss ? 0 : Math.round(6  * (1 + save.level * 0.04)),
     });
 }
 
@@ -901,11 +982,12 @@ let curseTimer = 0;
 function updateCurseDirector(dt) {
     curseTimer -= dt;
     const inTown = Math.hypot(player.x - TOWN.x, player.z - TOWN.z) < TOWN.r;
-    const cap = 6 + (4 - save.grade);
+    // More curses at higher grades — Special Grade gets a busier district
+    const cap = 7 + (4 - save.grade) * 2;
     const normalCount = curses.filter(c => !c.boss).length;
     if (!inTown && curseTimer <= 0 && normalCount < cap) {
         spawnCurse(false);
-        curseTimer = 1.4 + Math.random();
+        curseTimer = Math.max(0.5, 1.2 - (4 - save.grade) * 0.15) + Math.random() * 0.7;
     }
     // despawn far normals
     for (let i = curses.length - 1; i >= 0; i--) {
@@ -1073,6 +1155,16 @@ function damageCurse(c, dmg) {
         if (idx >= 0) curses.splice(idx, 1);
         burst(c.x, 1.4, c.z, c.boss ? '#ff3a3a' : '#aa1840', c.boss ? 40 : 16);
         sfx('death');
+        // Cursed-spirit shard drop. Bosses always give 5; normal curses
+        // roll 67% for +1.
+        let shardDrop = 0;
+        if (c.boss) shardDrop = 5;
+        else if (Math.random() < 0.67) shardDrop = 1;
+        if (shardDrop > 0) {
+            save.shards = (save.shards || 0) + shardDrop;
+            // Cyan-ish glint particle to read as "loot"
+            burst(c.x, 1.6, c.z, '#a06bff', 6);
+        }
         if (c.boss) onBossKilled();
         else {
             gainXp(c.xp);
@@ -1093,7 +1185,6 @@ function acceptQuest(id) {
     if (q.state !== 'available') return;
     q.state = 'active'; q.progress = 0;
     toast('Mission accepted: ' + QUESTS[id].title);
-    if (id === 'exam') { spawnCurse(true); sfx('boss'); }
     refreshMissionHud();
     persist();
 }
@@ -1101,7 +1192,7 @@ function acceptQuest(id) {
 function questProgress() {
     for (const id of Object.keys(save.quests)) {
         const q = save.quests[id], def = QUESTS[id];
-        if (!def || q.state !== 'active' || id === 'exam') continue;
+        if (!def || q.state !== 'active') continue;
         q.progress = Math.min(def.target, q.progress + 1);
         if (q.progress >= def.target) completeQuest(id);
     }
@@ -1110,34 +1201,19 @@ function questProgress() {
 
 function completeQuest(id) {
     const q = save.quests[id], def = QUESTS[id];
-    if (id === 'exam') {
-        const g = save.grade;
-        gainXp(220 + (4 - g) * 130);
-        save.gold += 130 + (4 - g) * 80;
-        if (g > 0) {
-            save.grade--;
-            sfx('level');
-            toast('PROMOTED — now ' + GRADE_NAME[save.grade] + '!');
-            // Re-open for the next grade exam (gated by level in openContact)
-            q.state = save.grade > 0 ? 'available' : 'done';
-            q.progress = 0;
-        } else {
-            q.state = 'done';
-            toast('Special Grade — the pinnacle, sorcerer.');
-        }
-    } else {
-        q.state = 'done';
-        if (def.reward && def.reward.xp) gainXp(def.reward.xp);
-        if (def.reward && def.reward.gold) save.gold += def.reward.gold;
-        toast('Mission complete: ' + def.title);
-    }
+    q.completedCount = (q.completedCount || 0) + 1;
+    if (def.reward && def.reward.xp) gainXp(def.reward.xp);
+    if (def.reward && def.reward.gold) save.gold += def.reward.gold;
+    q.state = 'available';
+    q.progress = 0;
+    toast('Mission complete: ' + def.title + ' (×' + q.completedCount + ')');
     refreshMissionHud();
     persist();
 }
 
 function onBossKilled() {
-    const q = save.quests.exam;
-    if (q && q.state === 'active') completeQuest('exam');
+    // Exam quest is gone — boss kills just yield their bounty in damageCurse.
+    return;
 }
 
 function xpToNext(lv) { return Math.round(60 * Math.pow(lv, 1.45)); }
@@ -1155,6 +1231,18 @@ function gainXp(amount) {
         player.hp = player.maxHp;
         sfx('level');
         toast('LEVEL UP — Lv.' + save.level);
+        // Auto grade-up every 20 levels: G4→G3 at 20, G2 at 40, G1 at
+        // 60, Special Grade at 80. No more exam quest — the grind IS
+        // the test.
+        const newGrade = Math.max(0, 4 - Math.floor(save.level / 20));
+        if (newGrade < save.grade) {
+            save.grade = newGrade;
+            sfx('level');
+            setTimeout(() => {
+                if (save.grade === 0) toast('SPECIAL GRADE — the pinnacle, sorcerer.');
+                else toast('PROMOTED — ' + GRADE_NAME[save.grade] + '!');
+            }, 600);
+        }
         persist();
     }
 }
@@ -1191,41 +1279,44 @@ function hideOverlay() {
     document.getElementById('overlay').style.display = 'none';
 }
 
-function openBoard() {
-    let rows = '';
-    for (const id of Object.keys(QUESTS)) {
-        const def = QUESTS[id];
-        if (def.giver !== 'board') continue;
-        const q = qstate(id);
-        let act = '';
-        if (q.state === 'available') act = `<button class="btn sec act" data-accept="${id}">Accept</button>`;
-        else if (q.state === 'active') act = `<span style="color:#ffcf66">In progress (${q.progress}/${def.target})</span>`;
-        else act = `<span style="color:#3adf8a">Done</span>`;
-        rows += `<div class="row"><span>${def.title}<br><small style="color:#7a8a9a">${def.desc}</small></span>${act}</div>`;
+// Open a single quest-giver's panel — shows just that giver's quest
+// with Accept / Retake / In-progress state + reward + completion count.
+function openQuestGiver(npc) {
+    const id = npc.userData._questId;
+    const def = QUESTS[id];
+    const q = qstate(id);
+    const done = q.completedCount || 0;
+    const tag = done > 0 ? ` <span style="color:#3adf8a">· ✓×${done}</span>` : '';
+    let act;
+    if (q.state === 'active') {
+        act = `<span style="color:#ffcf66">In progress (${q.progress}/${def.target})</span>`;
+    } else {
+        act = `<button class="btn act" data-accept="${id}">${done > 0 ? 'Retake mission' : 'Accept mission'}</button>`;
     }
-    showOverlay(`<h2>Mission Board</h2>${rows || '<p>No missions posted.</p>'}
-        <p style="margin-top:1rem">Reward: XP + gold. Higher grade → tougher curses.</p>
+    const reward = def.reward
+        ? `<p style="margin-top:0.8rem;color:#ffe066">Reward: ${def.reward.xp} XP · ${def.reward.gold} gold</p>`
+        : '';
+    showOverlay(`<h2>${npc.userData.label}</h2>
+        <p style="color:#cbb6ff">Lv.${def.minLevel}+ mission · Repeatable</p>
+        <div class="row"><span><b>${def.title}</b>${tag}<br><small style="color:#7a8a9a">${def.desc}</small></span>${act}</div>
+        ${reward}
         <button class="btn sec act" data-close="1">Close</button>`);
 }
 
 function openContact() {
-    const q = qstate('exam'), g = save.grade;
+    const g = save.grade;
     let body;
     if (g === 0) {
         body = '<p style="color:#3adf8a">Special Grade. There is no higher rank, sorcerer.</p>';
-    } else if (q.state === 'active') {
-        body = '<p style="color:#ffcf66">Exam underway — slay the manifested curse out in the hills.</p>';
     } else {
-        const need = examReqLevel(g);
-        const cleansed = qstate('exorcism1').state === 'done';
+        // Grade-ups are automatic every 20 levels. Show the player where
+        // they are on that staircase.
         const next = GRADE_NAME[g - 1];
-        if (save.level >= need && cleansed) {
-            body = `<p>Promotion exam to <b>${next}</b>. ${QUESTS.exam.desc}</p>` +
-                `<button class="btn sec act" data-accept="exam">Begin Grade Exam</button>`;
-        } else {
-            body = `<p>To attempt promotion to <b>${next}</b>: reach <b>Lv.${need}</b>` +
-                `${cleansed ? '' : ' and finish <b>Cleansing the Backroads</b>'}. (You: Lv.${save.level})</p>`;
-        }
+        const needLevel = (4 - g + 1) * 20;     // 20 → G3, 40 → G2, etc.
+        const toGo = needLevel - save.level;
+        body = `<p>Next promotion: <b>${next}</b> at <b>Lv.${needLevel}</b>.</p>
+                <p style="color:#ffcf66">${toGo} level${toGo === 1 ? '' : 's'} to go (you: Lv.${save.level}).</p>
+                <p style="color:#7a8a9a">No exam. Grind curses, level up, the rank follows.</p>`;
     }
     showOverlay(`<h2>Jujutsu High Contact</h2><p>Grade: <b>${GRADE_NAME[g]}</b></p>${body}
         <button class="btn sec act" data-close="1">Close</button>`);
@@ -1238,6 +1329,45 @@ function openSmith() {
             <button class="btn sec act" data-buy="dmg">120 g</button></div>
         <p style="margin-top:0.8rem">More cursed tools coming in updates.</p>
         <button class="btn sec act" data-close="1">Close</button>`);
+}
+
+// Placeholder cursed-technique catalogue. None of these are actually
+// buyable yet — the shop is wired so we can drop real entries in later.
+const TECHNIQUE_CATALOG = [
+    { id: 'limitless',   name: 'Limitless (Gojo)',           desc: 'Cursed Energy manipulation — repulsion, attraction, Hollow Purple.', icon: '◌', gold:  6000, shards: 80 },
+    { id: 'dismantle',   name: 'Dismantle (Sukuna)',         desc: 'Innate slashing technique. Auto-targets nearby curses.',           icon: '⌁', gold:  4500, shards: 60 },
+    { id: 'tenShadows',  name: 'Ten Shadows (Megumi)',       desc: 'Summon shikigami — Divine Dogs, Nue, Mahoraga.',                   icon: '▲', gold:  5200, shards: 70 },
+    { id: 'blackFlash',  name: 'Black Flash (Itadori)',      desc: 'Cursed-energy detonation on each strike. Pure damage.',            icon: '⚡', gold:  3800, shards: 50 },
+    { id: 'copy',        name: 'Copy (Yuta)',                desc: 'Mimics any technique you\'ve seen.',                               icon: '☯', gold:  7000, shards: 90 },
+    { id: 'strawDoll',   name: 'Straw Doll (Nobara)',        desc: 'Hammer + nail combo. Resonance through hits.',                    icon: '⨂', gold:  3000, shards: 40 },
+    { id: 'cursedSpeech',name: 'Cursed Speech (Inumaki)',    desc: 'Commands curses to do as told. CE-intensive.',                    icon: '◐', gold:  4200, shards: 55 },
+    { id: 'boogieWoogie',name: 'Boogie Woogie (Todo)',       desc: 'Clap to swap positions with allies or enemies.',                  icon: '✦', gold:  3500, shards: 45 },
+    { id: 'projection',  name: 'Projection (Naoya)',         desc: '24-frame speed bursts. Slows for the user, freezes the world.',   icon: '➤', gold:  4800, shards: 65 },
+    { id: 'bloodManip',  name: 'Blood Manipulation (Choso)', desc: 'Convert blood into ranged piercing attacks.',                     icon: '✿', gold:  3300, shards: 42 },
+];
+
+function openTechniqueShop() {
+    const goldUI   = `<span style="color:#ffe066">${save.gold} g</span>`;
+    const shardsUI = `<span style="color:#a06bff">${save.shards || 0} shards</span>`;
+    const rows = TECHNIQUE_CATALOG.map(t => `
+        <div class="shop-row">
+            <span class="shop-icon">${t.icon}</span>
+            <span class="shop-body">
+                <b>${t.name}</b><br>
+                <small style="color:#7a8a9a">${t.desc}</small>
+            </span>
+            <span class="shop-cost">
+                <span style="color:#ffe066">${t.gold} g</span><br>
+                <span style="color:#a06bff">${t.shards} shards</span>
+            </span>
+            <button class="btn sec act" disabled style="opacity:0.45;cursor:not-allowed">Soon</button>
+        </div>
+    `).join('');
+    showOverlay(`<h2>Cursed Technique Vendor</h2>
+        <p>${goldUI} &nbsp;·&nbsp; ${shardsUI}</p>
+        <p style="margin:0.4rem 0 0.8rem;color:#7a8a9a">Wares are coming soon. Stockpile shards while you wait — they drop from curses (67%).</p>
+        <div class="shop-list">${rows}</div>
+        <button class="btn sec act" data-close="1" style="margin-top:1rem">Close</button>`);
 }
 
 function openPause() {
@@ -1289,6 +1419,7 @@ let lungeAmount = 0;
 // ─── GAME FLOW ──────────────────────────────────────────────
 function startGame(loaded) {
     save = loaded;
+    if (save.shards == null) save.shards = 0;     // backfill for pre-shard saves
     document.getElementById('signin-screen').classList.remove('active');
     document.getElementById('hud').style.display = 'block';
     player = { x: TOWN.x, z: TOWN.z + 6, y: 0, vy: 0, airVx: 0, airVz: 0, iframes: 0, hp: undefined, stamina: undefined, blocking: false, comboLockUntil: 0 };
@@ -1313,13 +1444,25 @@ function toSignin() {
 function resume() { state = 'playing'; }
 
 function refreshMissionHud() {
-    let txt = 'Visit the Mission Board in town.';
-    const ex = save.quests.exorcism1;
-    const exam = save.quests.exam;
-    if (exam && exam.state === 'active') txt = 'GRADE EXAM: slay the manifested curse.';
-    else if (ex && ex.state === 'active') txt = `Exorcise curses (${ex.progress}/${QUESTS.exorcism1.target})`;
-    else if (save.grade === 0) txt = 'Special Grade — the pinnacle. More roads in updates.';
-    else if (ex && ex.state === 'done') txt = `See the Jujutsu High Contact — Grade Exam (need Lv.${examReqLevel(save.grade)}).`;
+    let txt = 'Visit a quest giver in the city.';
+    // Show the highest-tier active exorcism quest (most relevant)
+    const active = [];
+    for (const id of Object.keys(QUESTS)) {
+        const q = save.quests[id], def = QUESTS[id];
+        if (!def || !q || q.state !== 'active') continue;
+        active.push({ id, q, def });
+    }
+    if (active.length) {
+        active.sort((a, b) => (b.def.minLevel || 0) - (a.def.minLevel || 0));
+        const a = active[0];
+        const extra = active.length > 1 ? ` (+${active.length - 1} more)` : '';
+        txt = `${a.def.title} ${a.q.progress}/${a.def.target}${extra}`;
+    } else if (save.grade === 0) {
+        txt = 'Special Grade — the pinnacle.';
+    } else {
+        const need = (4 - save.grade + 1) * 20;
+        txt = `Grade up at Lv.${need} (you: Lv.${save.level}).`;
+    }
     document.getElementById('mission-text').textContent = txt;
 }
 
@@ -1429,9 +1572,20 @@ function doGrab() {
 let nearInteract = null;
 function tryInteract() {
     if (!nearInteract) return;
-    if (nearInteract === board) openBoard();
-    else if (nearInteract === smith) openSmith();
-    else if (nearInteract === contact) openContact();
+    if (nearInteract === smith) { openSmith(); return; }
+    if (nearInteract === contact) { openContact(); return; }
+    if (nearInteract === vendor) { openTechniqueShop(); return; }
+    // Quest giver: check level gate, then open this giver's single-quest panel
+    const ud = nearInteract.userData;
+    if (ud._questId) {
+        const minLv = ud._minLevel || 1;
+        if (save.level < minLv) {
+            toast(`Need Lv.${minLv} to take this mission`);
+            sfx('ui');
+            return;
+        }
+        openQuestGiver(nearInteract);
+    }
 }
 
 // ─── COLLISION ──────────────────────────────────────────────
@@ -1661,6 +1815,40 @@ function update(dt) {
     ud.pelvisPivot.position.z = lungeAmount * 0.28;
     ud.upperTorsoPivot.rotation.x += lungeAmount * 0.28;
 
+    // Overhead quest arrow — points at the nearest unlocked giver with
+    // an available (or retake-able) quest. Hidden when none eligible or
+    // when the player is already next to one (or the giver hasn't been
+    // unlocked yet — first eligible giver is the L10 hunter).
+    {
+        const arr = ud.arrow;
+        let best = null, bestD = Infinity;
+        for (const q of questGivers) {
+            const qd = q.userData;
+            if (!qd._questId || !qd._minLevel) continue;
+            if (qd._minLevel < 10) continue;          // hide for the plaza board
+            if (save.level < qd._minLevel) continue;  // not unlocked yet
+            const qs = qstate(qd._questId);
+            if (qs.state === 'active') continue;      // already accepted
+            const dx = qd.x - player.x, dz = qd.z - player.z;
+            const d = Math.hypot(dx, dz);
+            if (d < 12) continue;                     // close enough — hide
+            if (d < bestD) { bestD = d; best = q; }
+        }
+        if (best) {
+            arr.visible = true;
+            const qd = best.userData;
+            // The player model itself is rotated by yaw+π, so we compute
+            // the arrow's local-space yaw to compensate.
+            const dx = qd.x - player.x, dz = qd.z - player.z;
+            const worldYaw = Math.atan2(dx, dz);
+            arr.rotation.y = worldYaw - (yaw + Math.PI);
+            // Floaty bob
+            arr.position.y = 2.5 * ud.S + Math.sin(tNow * 0.005) * 0.12;
+        } else {
+            arr.visible = false;
+        }
+    }
+
     // Third-person camera — tracks the player's vertical position (jumps)
     const camDist = 7, camHt = 3.4;
     const cx = player.x + Math.sin(yaw) * camDist * Math.cos(pitch);
@@ -1687,8 +1875,10 @@ function update(dt) {
     }
 
     // NPC idle life — breathing bob, spinning marker, pulsing ring,
-    // and they turn to face you when you're close.
-    for (const o of [board, smith, contact]) {
+    // and they turn to face you when you're close. Covers every
+    // interactable NPC (plaza + city quest givers + vendor).
+    const allNpcs = [board, smith, contact, vendor, ...questGivers.slice(1)];
+    for (const o of allNpcs) {
         const ud = o.userData;
         ud._t += dt;
         if (ud._mk) { ud._mk.rotation.y += dt * 2; ud._mk.position.y = 2.55 + Math.sin(ud._t * 2) * 0.12; }
@@ -1704,9 +1894,9 @@ function update(dt) {
         o.position.y = terrainHeight(ud.x, ud.z) + Math.sin(ud._t * 1.6) * 0.03;
     }
 
-    // Interactables proximity
+    // Interactables proximity (every NPC)
     nearInteract = null;
-    for (const o of [board, smith, contact]) {
+    for (const o of allNpcs) {
         if (Math.hypot(player.x - o.userData.x, player.z - o.userData.z) < 3.4) { nearInteract = o; break; }
     }
     const pr = document.getElementById('prompt');
@@ -1734,7 +1924,8 @@ function updateHud() {
     document.getElementById('hud-st').style.width = (player.stamina / player.maxStamina * 100) + '%';
     document.getElementById('hud-st-t').textContent = 'ST ' + Math.ceil(player.stamina);
     document.getElementById('hud-xp').style.width = (save.xp / xpToNext(save.level) * 100) + '%';
-    document.getElementById('hud-gold').textContent = `Gold: ${save.gold}  ·  Lv.${save.level}`;
+    document.getElementById('hud-gold').textContent =
+        `Gold: ${save.gold}  ·  Shards: ${save.shards || 0}  ·  Lv.${save.level}`;
     // Cooldown pips — fill from bottom while on cooldown, clear when ready
     const now = performance.now();
     const dashLeft = Math.max(0, DASH_CD - (now - lastDash)) / DASH_CD;
@@ -1759,8 +1950,9 @@ function drawMinimap() {
     // town
     g.fillStyle = 'rgba(160,107,255,0.25)';
     g.beginPath(); g.arc(cx + TOWN.x * sc, cy + TOWN.z * sc, TOWN.r * sc, 0, 7); g.fill();
-    // interactables
-    for (const o of [board, smith, contact]) {
+    // interactables (plaza + city quest givers + vendor)
+    const allNpcs = [board, smith, contact, vendor, ...questGivers.slice(1)];
+    for (const o of allNpcs) {
         g.fillStyle = o.userData.color;
         g.fillRect(cx + o.userData.x * sc - 2, cy + o.userData.z * sc - 2, 4, 4);
     }
@@ -1796,6 +1988,7 @@ function init() {
     buildSchool();
     buildCity();
     buildPlaza();
+    buildCityQuestGivers();
     playerModel = buildPlayerModel();
     scene.add(playerModel);
 

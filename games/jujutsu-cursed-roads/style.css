@@ -87,3 +87,21 @@ input.name:focus { outline: none; border-color: #a06bff; }
 .card .row span:first-child { color: #b8c2cc; }
 .card .row .act { pointer-events: auto; }
 .card p { color: #7a8a9a; font-size: 0.85rem; margin: 0.4rem 0; }
+
+/* Cursed Technique Vendor shop list — scrollable */
+.shop-list { max-height: 50vh; overflow-y: auto; border: 1px solid #1a2030;
+    padding: 0.3rem 0.6rem; background: rgba(8,10,18,0.5); }
+.shop-list::-webkit-scrollbar { width: 8px; }
+.shop-list::-webkit-scrollbar-track { background: #0a0c14; }
+.shop-list::-webkit-scrollbar-thumb { background: #3a2c6a; border-radius: 4px; }
+.shop-list::-webkit-scrollbar-thumb:hover { background: #5a3aa0; }
+.shop-row { display: grid; grid-template-columns: 40px 1fr 110px 80px;
+    gap: 0.6rem; align-items: center; padding: 0.55rem 0;
+    border-bottom: 1px solid #1a2030; font-size: 0.9rem; }
+.shop-row:last-child { border-bottom: none; }
+.shop-icon { font-size: 1.6rem; text-align: center; color: #d24aff;
+    text-shadow: 0 0 8px rgba(210,74,255,0.6); }
+.shop-body b { color: #cbb6ff; }
+.shop-cost { text-align: right; font-size: 0.8rem; }
+.shop-row .btn { min-width: 0; padding: 0.4rem 0.7rem; font-size: 0.8rem; pointer-events: auto; }
+.card { max-width: 620px; }
