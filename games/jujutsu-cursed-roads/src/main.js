@@ -942,65 +942,90 @@ function update(dt) {
     const gy = terrainHeight(player.x, player.z);
     playerModel.position.set(player.x, gy, player.z);
     playerModel.rotation.y = yaw + Math.PI;
-    // Boxer-stance humanoid: legs in orthodox stance when idle (lead
-    // foot forward, rear foot back, both knees slightly bent); arms
-    // always in guard (fists by face, elbows tucked). Punches are
-    // straight-arm extensions — the elbow snaps from tight-bent to
-    // straight, the shoulder pivots forward, no haymaker windup.
+    // Player rig — cocky idle (loose asymmetric guard, hip cock, chin
+    // up, breathing sway) vs walk stride. Punches are straight-arm
+    // extensions layered on top of whichever idle pose is active.
     const ud = playerModel.userData;
     const tNow = performance.now();
     const tw = tNow * 0.009;
     const sw = moving ? Math.sin(tw * 1.6) : 0;
     const stride = moving ? Math.abs(Math.sin(tw * 3.2)) * 0.04 : 0;
-    const idleBob = !moving ? Math.sin(tNow * 0.002) * 0.012 : 0;
     // Decay punch / torque state
     lArmSwing = Math.max(0, lArmSwing - dt * 7);
     rArmSwing = Math.max(0, rArmSwing - dt * 7);
     torsoTwist *= Math.max(0, 1 - dt * 8);
-    ud.pelvisPivot.position.y = (1.06 * ud.S) + idleBob + stride;
+
+    // Idle wobble — three slow oscillators so nothing snaps to a frozen
+    // pose between punches. `sway` is the dominant slow side-to-side
+    // weight shift; `breath` is the chest rise; `bounce` is a tiny
+    // ball-of-feet bob.
+    const idleT = tNow * 0.0014;
+    const sway   = !moving ? Math.sin(idleT)          : 0;
+    const breath = !moving ? Math.sin(idleT * 1.6)    : 0;
+    const bounce = !moving ? Math.sin(idleT * 2.7)    : 0;
+
+    const lerp = (a, b, t) => a + (b - a) * t;
+
+    // ── Pelvis position (walk stride + idle bounce) ──
+    ud.pelvisPivot.position.y = (1.06 * ud.S) + stride + (!moving ? bounce * 0.015 : 0);
 
     // ── Legs ──
     if (moving) {
-        // Walk: opposite-phase hips with knees bending on backswing
         ud.lHip.rotation.x = sw * 0.65;
         ud.rHip.rotation.x = -sw * 0.65;
         ud.lKnee.rotation.x = Math.max(0, -sw) * 0.75;
         ud.rKnee.rotation.x = Math.max(0, sw) * 0.75;
         ud.lHip.rotation.z = 0;
         ud.rHip.rotation.z = 0;
+        // Reset cocky-only torso/head channels for clean walking
+        ud.pelvisPivot.rotation.z = 0;
+        ud.lowerTorsoPivot.rotation.z = 0;
+        ud.headPivot.rotation.x = 0;
+        ud.headPivot.rotation.z = 0;
+        ud.upperTorsoPivot.rotation.x = 0;
+        ud.upperTorsoPivot.rotation.z = 0;
     } else {
-        // Idle stance: lead (left) foot forward, rear (right) foot back,
-        // both knees softened, hips bladed slightly.
-        ud.lHip.rotation.x = -0.20;
-        ud.rHip.rotation.x =  0.18;
-        ud.lHip.rotation.z = -0.05;
-        ud.rHip.rotation.z =  0.05;
-        ud.lKnee.rotation.x = 0.20;
-        ud.rKnee.rotation.x = 0.30;
+        // Cocky idle: weight on rear (right) leg, lead leg loose forward,
+        // hips cocked, chin lifted, slight head tilt, all gently swaying.
+        ud.lHip.rotation.x = -0.22 + sway * 0.04;     // lead leg forward, drifts a bit
+        ud.rHip.rotation.x =  0.08;                   // rear leg planted, weight-bearing
+        ud.lHip.rotation.z = -0.10;                   // lead foot kicked out a touch
+        ud.rHip.rotation.z =  0.04;
+        ud.lKnee.rotation.x = 0.32 - sway * 0.05;     // lead knee soft / springy
+        ud.rKnee.rotation.x = 0.10;                   // rear knee nearly straight (load-bearing)
+        // Contrapposto hip cock + counter-tilt so the head stays upright
+        ud.pelvisPivot.rotation.z = 0.06 + sway * 0.02;
+        ud.lowerTorsoPivot.rotation.z = -0.04;
+        ud.upperTorsoPivot.rotation.x = 0.05 + breath * 0.025;  // slight chest forward + breath
+        ud.upperTorsoPivot.rotation.z = -0.02 + sway * 0.015;
+        // Chin up + head tilt + slow sway
+        ud.headPivot.rotation.x = -0.13;
+        ud.headPivot.rotation.z =  0.10 + sway * 0.05;
     }
 
-    // ── Arms in guard, lerping toward extension per active punch ──
-    const lerp = (a, b, t) => a + (b - a) * t;
-    // Guard pose constants
-    const G_SHX = -0.55;  // shoulder.x: upper arm raised forward ~30°
-    const G_SHZ =  0.55;  // shoulder.z: rotated inward toward centerline (left arm; mirror for right)
-    const G_EBX = -2.00;  // elbow.x: forearm folded up tight to the face
-    // Fully-extended (straight punch)
-    const E_SHX = -1.40;  // upper arm horizontal, pointing forward
-    const E_SHZ =  0.05;  // shoulder almost aligned with body axis
-    const E_EBX = -0.05;  // elbow nearly straight
-    ud.lShoulder.rotation.x = lerp(G_SHX, E_SHX, lArmSwing);
-    ud.lShoulder.rotation.z = lerp( G_SHZ,  E_SHZ, lArmSwing);
-    ud.lShoulder.rotation.y = 0;
-    ud.lElbow.rotation.x    = lerp(G_EBX, E_EBX, lArmSwing);
-    ud.rShoulder.rotation.x = lerp(G_SHX, E_SHX, rArmSwing);
-    ud.rShoulder.rotation.z = lerp(-G_SHZ, -E_SHZ, rArmSwing);
-    ud.rShoulder.rotation.y = 0;
-    ud.rElbow.rotation.x    = lerp(G_EBX, E_EBX, rArmSwing);
+    // ── Arms: asymmetric "lazy guard" with a punch layered on top ──
+    // Lead (left) hand — floating forward as a loose half-guard
+    const GL_SHX = -0.60, GL_SHZ =  0.30, GL_EBX = -1.55;
+    // Rear (right) hand — low and tucked, casual "I'm not even trying"
+    const GR_SHX = -0.18, GR_SHZ = -0.60, GR_EBX = -1.85;
+    // Fully-extended straight punch (both arms target the same shape)
+    const E_SHX = -1.40, E_SHZ_L =  0.05, E_SHZ_R = -0.05, E_EBX = -0.05;
+    // Layer a tiny idle wobble on the lead arm so it doesn't freeze
+    const leadBreath = !moving ? breath * 0.04 : 0;
+    const leadSway   = !moving ? sway   * 0.04 : 0;
 
-    // Subtle torso twist with punches
+    ud.lShoulder.rotation.x = lerp(GL_SHX + leadBreath, E_SHX, lArmSwing);
+    ud.lShoulder.rotation.z = lerp(GL_SHZ + leadSway,   E_SHZ_L, lArmSwing);
+    ud.lShoulder.rotation.y = 0;
+    ud.lElbow.rotation.x    = lerp(GL_EBX,              E_EBX,   lArmSwing);
+
+    ud.rShoulder.rotation.x = lerp(GR_SHX,              E_SHX,   rArmSwing);
+    ud.rShoulder.rotation.z = lerp(GR_SHZ,              E_SHZ_R, rArmSwing);
+    ud.rShoulder.rotation.y = 0;
+    ud.rElbow.rotation.x    = lerp(GR_EBX,              E_EBX,   rArmSwing);
+
+    // Punch torso twist (overrides the idle upperTorso.y channel)
     ud.upperTorsoPivot.rotation.y = torsoTwist;
-    ud.upperTorsoPivot.rotation.x = 0;
 
     // Third-person camera
     const camDist = 7, camHt = 3.4;

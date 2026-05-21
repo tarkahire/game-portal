@@ -4,6 +4,39 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Cocky idle (asymmetric guard, hip cock, breathing sway)
+
+Previous idle was symmetric and frozen. Re-posed it as a smug
+"about-to-fight teenager" — alive, asymmetric, layered with slow
+wobble so it never holds a single frame.
+
+- **Asymmetric arms**: lead (left) hand floats *forward and out* as a
+  loose half-guard (shoulder.x -0.60, .z +0.30, elbow -1.55), while
+  the rear (right) hand sits *low and tucked* across the chest
+  (shoulder.x -0.18, .z -0.60, elbow -1.85) — "I'm barely guarding."
+  The lead arm gets a tiny breath/sway wobble baked into shoulder.x
+  and .z so it drifts continuously.
+- **Hips / legs**: weight planted on the rear (right) leg with the
+  knee nearly straight (load-bearing); lead leg pushed forward with a
+  softer knee and the foot kicked out a touch. Hip Z rotation gives a
+  contrapposto cock, counter-tilted at the lower torso so the chest
+  doesn't lean off-axis.
+- **Head**: chin lifted (head.rotation.x -0.13) plus a slight tilt
+  (.z +0.10) that drifts with the sway oscillator.
+- **Continuous motion**: three layered oscillators driven off
+  `performance.now()` — `sway` (slow side-to-side weight shift),
+  `breath` (chest rise), `bounce` (small ball-of-feet bob on the
+  pelvis). All zeroed when walking.
+- Walking explicitly clears all cocky-only channels (pelvis.z,
+  lowerTorso.z, head.x, head.z, upperTorso.x/.z) each frame so the
+  stride doesn't inherit the contrapposto pose.
+
+Punch animation unchanged — the straight-arm extension lerps from
+whichever guard shape the arm currently has toward the same extended
+pose, so jabs still snap cleanly out of the new lazy stance.
+
+---
+
 ## 2026-05-21 — Boxer stance + straight-punch animation, weaker damage
 
 Retuned the combo to feel like a boxer's jab chain rather than a
