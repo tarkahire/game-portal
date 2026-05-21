@@ -40,9 +40,24 @@ input[type="password"].name { letter-spacing: 0.4em; font-size: 1rem; }
 .barwrap { position: relative; width: 220px; height: 12px; background: #1a0f22; margin: 4px 0; }
 .bar { height: 100%; transition: width 0.15s; }
 .hp { background: linear-gradient(90deg, #c01030, #ff3a5a); width: 100%; }
-.st { background: linear-gradient(90deg, #6a5a10, #ffe066); width: 100%; }
 .ce { background: linear-gradient(90deg, #5a2da0, #a06bff); width: 100%; }
+.st { background: linear-gradient(90deg, #6a5a10, #ffe066); width: 100%; }
 .xp { background: linear-gradient(90deg, #2a6a4a, #3adf8a); width: 0%; height: 6px; }
+.ability-row { display: flex; gap: 6px; margin-top: 6px; }
+.ability-slot { position: relative; width: 44px; height: 44px; background: #1a1224;
+    border: 1px solid #5a3aa0; display: flex; align-items: center; justify-content: center;
+    color: #cbb6ff; font-size: 0.9rem; font-weight: 700; overflow: hidden;
+    box-shadow: 0 0 8px rgba(160,107,255,0.15); }
+.ability-slot b { position: relative; z-index: 3; letter-spacing: 0.05em; }
+.ability-slot i { position: absolute; left: 0; bottom: 0; width: 100%; height: 0%;
+    background: rgba(120,80,200,0.55); z-index: 2; transition: height 0.05s linear; }
+.ability-slot em { position: absolute; top: 2px; right: 4px; font-style: normal;
+    font-size: 0.55rem; color: #ffe066; z-index: 3; }
+.ability-slot.empty { opacity: 0.3; border-color: #2a3245; }
+.ability-slot.domain { border-color: #ff8a3a; color: #ffcfa6;
+    box-shadow: 0 0 14px rgba(255,138,58,0.35); }
+.ability-slot.domain i { background: rgba(255,138,58,0.45); }
+.ability-slot.ready { box-shadow: 0 0 14px rgba(160,107,255,0.55); }
 .cdrow { display: flex; gap: 6px; margin-top: 6px; }
 .cdpip { position: relative; display: inline-block; width: 36px; height: 22px; background: #11151f;
     border: 1px solid #2a3245; font-size: 10px; color: #cbb6ff; letter-spacing: 0.06em;

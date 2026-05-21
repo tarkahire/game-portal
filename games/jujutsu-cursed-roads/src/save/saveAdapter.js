@@ -39,6 +39,8 @@ export function newSave(name) {
         grade: 4,                 // everyone starts Grade 4
         gold: 0,
         shards: 0,                // cursed-spirit shards (drop from curse kills)
+        ownedTechniques: [],      // technique IDs the player has purchased
+        equipped: null,           // currently-equipped technique ID
         quests: {},               // id -> { state:'available'|'active', progress:0, completedCount }
         flags: {},
         updatedAt: Date.now(),

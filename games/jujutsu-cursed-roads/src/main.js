@@ -902,10 +902,12 @@ function deriveStats() {
     const lv = save.level;
     player.maxHp = 90 + lv * 15;
     player.maxStamina = 90 + lv * 8;       // drained by block, dash, grab, sprint
+    player.maxCe = 60 + lv * 8;            // cursed-energy pool for techniques
     player.damage = 14 + lv * 3;
     player.speed = 8.5;
     if (player.hp === undefined || player.hp > player.maxHp) player.hp = player.maxHp;
     if (player.stamina === undefined || player.stamina > player.maxStamina) player.stamina = player.maxStamina;
+    if (player.ce === undefined || player.ce > player.maxCe) player.ce = player.maxCe;
 }
 
 // ─── CURSES ─────────────────────────────────────────────────
@@ -1079,6 +1081,370 @@ function toast(msg) {
     const el = document.getElementById('toast');
     el.textContent = msg; el.style.opacity = '1';
     toastTimer = 2.2;
+}
+
+// ─── HEAVY VFX HELPERS (restored for cursed techniques) ─────
+// Used by Gojo's Limitless + future techniques. Each helper is a
+// fire-and-forget — spawns a mesh / light / overlay that animates
+// itself out via per-effect requestAnimationFrame, then disposes.
+
+// Camera shake state — sampled in update()'s camera block
+let shakeAmp = 0, shakeT = 0;
+function camShake(amp, dur) { shakeAmp = Math.max(shakeAmp, amp); shakeT = Math.max(shakeT, dur); }
+
+// Hitstop — global slowdown for `dur` seconds. We pause `state` and
+// resume on a timer, simpler than juggling dt scaling everywhere.
+let hitstopUntil = 0;
+function hitstop(dur) { hitstopUntil = Math.max(hitstopUntil, performance.now() + dur * 1000); }
+
+// Full-screen colour flash overlay
+function screenFlash(color, ms) {
+    const d = document.createElement('div');
+    d.style.cssText = `position:fixed;inset:0;z-index:7;pointer-events:none;background:${color};opacity:0.5;transition:opacity ${ms}ms`;
+    document.body.appendChild(d);
+    requestAnimationFrame(() => { d.style.opacity = '0'; });
+    setTimeout(() => d.remove(), ms + 60);
+}
+
+// Bright temporary point light at a position
+function flashLight(x, y, z, color, intensity, dur) {
+    const L = new THREE.PointLight(color, intensity, 22, 2);
+    L.position.set(x, y, z); scene.add(L);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / dur;
+        if (t >= 1) { scene.remove(L); return; }
+        L.intensity = intensity * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+// Expanding flat ring on the ground (shockwave)
+function shockRing(x, z, color, maxR, dur, thick) {
+    const g = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.2 + (thick || 0.5), 48),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
+    g.rotation.x = -Math.PI / 2;
+    g.position.set(x, 0.12, z);
+    scene.add(g);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / (dur || 480);
+        if (t >= 1) { scene.remove(g); g.geometry.dispose(); g.material.dispose(); return; }
+        const s = 1 + t * (maxR || 6);
+        g.scale.set(s, s, s);
+        g.material.opacity = 0.9 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+// Big layered explosion: core white flash + 2 shockrings + sparks +
+// light + camera shake. The Swiss-army knife of impact VFX.
+function explode(x, y, z, color, power) {
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95 }));
+    core.position.set(x, y, z); scene.add(core);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 240;
+        if (t >= 1) { scene.remove(core); core.geometry.dispose(); core.material.dispose(); return; }
+        core.scale.setScalar(1 + t * power * 1.6);
+        core.material.opacity = 0.95 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    shockRing(x, z, color, power * 2.4, 500, 0.6);
+    shockRing(x, z, '#ffffff', power * 1.5, 360, 0.3);
+    burst(x, y, z, color, 14 + power * 4);
+    flashLight(x, y + 0.4, z, color, 4 + power, 280);
+    camShake(0.05 + power * 0.03, 0.18);
+}
+
+// Vertically rising halo around the player (used as windup/charge)
+function risingHalo(centerObj, color, dur) {
+    const g = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.07, 8, 32),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }));
+    g.rotation.x = Math.PI / 2;
+    g.position.set(centerObj.x, 0.2, centerObj.z);
+    scene.add(g);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / dur;
+        if (t >= 1) { scene.remove(g); g.geometry.dispose(); g.material.dispose(); return; }
+        g.position.y = 0.2 + t * 3.0;
+        g.scale.setScalar(1 - t * 0.4);
+        g.material.opacity = 0.85 * (1 - t * 0.6);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+// ─── CURSED TECHNIQUES ─────────────────────────────────────
+// `TECHNIQUE_KITS[id]` maps an equipped technique to its 4 abilities
+// (Z / X / C / R-domain). Each entry: { name, cost, cd, run(fx, fz) }.
+// Gojo's Limitless is the flagship — everything else stubs to a toast.
+const TECHNIQUE_KITS = {};   // populated below after the ability fns
+// Per-ability cooldown timestamps (`abilityReady.<slot> = nextReadyMs`)
+const abilityReady = { z: 0, x: 0, c: 0, r: 0 };
+const ABILITY_SLOTS = ['z', 'x', 'c', 'r'];
+
+function castAbility(slot) {
+    if (!save.equipped) { toast('No technique equipped — buy one from the Vendor'); return; }
+    const kit = TECHNIQUE_KITS[save.equipped];
+    if (!kit) { toast('Coming soon (placeholder technique)'); return; }
+    const ab = kit[slot];
+    if (!ab) return;
+    const now = performance.now();
+    if (now < abilityReady[slot]) return;       // on cooldown
+    if (player.ce < ab.cost) { toast('Not enough cursed energy'); return; }
+    if (player.blocking) return;
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    abilityReady[slot] = now + ab.cd * 1000;
+    player.ce -= ab.cost;
+    ab.run(fx, fz);
+}
+
+function refreshAbilityHud() {
+    const kit = save && save.equipped ? TECHNIQUE_KITS[save.equipped] : null;
+    for (const s of ABILITY_SLOTS) {
+        const el = document.getElementById('ab-' + s);
+        if (!el) continue;
+        const ab = kit && kit[s];
+        el.classList.toggle('empty', !ab);
+        const lbl = el.querySelector('em');
+        if (lbl) lbl.textContent = ab ? ab.name.split(' ')[0].slice(0, 4) : '';
+    }
+}
+
+// Domain Expansion state — only one technique's domain at a time
+let domainActive = null;       // { color, until, dmgEvery, lastDmg }
+
+// ═══ LIMITLESS — Gojo Satoru ════════════════════════════════
+// Z = Lapse Blue (gravity well that yanks curses + implodes)
+// X = Reversal Red (radial repulsion shockwave)
+// C = Hollow Purple (windup → piercing beam)
+// R = Domain Expansion: Unlimited Void (freeze + tick damage)
+function gojoBlue(fx, fz) {
+    const dist = 9;
+    const tx = player.x + fx * dist;
+    const tz = player.z + fz * dist;
+    // Visual: orb + 3 rotating rings + bright blue light
+    const grp = new THREE.Group();
+    grp.position.set(tx, 1.6, tz); scene.add(grp);
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 14),
+        new THREE.MeshBasicMaterial({ color: '#3a4cff', transparent: true, opacity: 0.95 }));
+    grp.add(core);
+    const aura = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 12),
+        new THREE.MeshBasicMaterial({ color: '#3a4cff', transparent: true, opacity: 0.25 }));
+    grp.add(aura);
+    const rings = [];
+    for (let i = 0; i < 3; i++) {
+        const r = new THREE.Mesh(new THREE.TorusGeometry(1.0 + i * 0.25, 0.06, 8, 28),
+            new THREE.MeshBasicMaterial({ color: i === 1 ? '#bcd0ff' : '#3a4cff', transparent: true, opacity: 0.85 }));
+        r.rotation.x = Math.random() * Math.PI;
+        r.rotation.y = Math.random() * Math.PI;
+        grp.add(r);
+        rings.push(r);
+    }
+    grp.add(new THREE.PointLight('#3a4cff', 3, 16, 2));
+    flashLight(tx, 2.0, tz, '#3a4cff', 4, 320);
+    camShake(0.08, 0.18); sfx('tech');
+
+    // 1.4s suction phase — pulls curses inward and ticks damage
+    const t0 = performance.now();
+    const dur = 1400;
+    const tk = () => {
+        const t = (performance.now() - t0) / dur;
+        for (const r of rings) { r.rotation.x += 0.08; r.rotation.y += 0.05; r.rotation.z += 0.03; }
+        core.scale.setScalar(1 + Math.sin(t * 30) * 0.12);
+        aura.material.opacity = 0.25 + Math.sin(t * 18) * 0.12;
+        for (const c of curses) {
+            const dx = tx - c.x, dz = tz - c.z;
+            const d = Math.hypot(dx, dz); if (d > 8 || d < 0.5) continue;
+            const pull = (1 - d / 8) * 8 * (1 / 60);
+            c.x += (dx / d) * pull;
+            c.z += (dz / d) * pull;
+        }
+        if (t < 1) requestAnimationFrame(tk);
+        else {
+            // Implosion — damage everything inside
+            for (const c of curses.slice()) {
+                if (Math.hypot(c.x - tx, c.z - tz) < 4.5) damageCurse(c, player.damage * 3.5);
+            }
+            explode(tx, 1.6, tz, '#3a4cff', 5);
+            screenFlash('rgba(58,76,255,0.30)', 220);
+            camShake(0.14, 0.24);
+            scene.remove(grp);
+            grp.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+        }
+    };
+    requestAnimationFrame(tk);
+}
+
+function gojoRed(fx, fz) {
+    // Player palm-pulse: red expanding half-dome + multi-rings + cone damage
+    const startX = player.x + fx * 1.6, startZ = player.z + fz * 1.6;
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.6, 18, 12),
+        new THREE.MeshBasicMaterial({ color: '#ff2244', transparent: true, opacity: 0.85 }));
+    sphere.position.set(startX, 1.6, startZ); scene.add(sphere);
+    flashLight(startX, 1.6, startZ, '#ff2244', 6, 360);
+    screenFlash('rgba(180,0,32,0.30)', 220);
+    camShake(0.16, 0.26); sfx('boss');
+    const t0 = performance.now();
+    const dur = 380;
+    const tk = () => {
+        const t = (performance.now() - t0) / dur;
+        sphere.scale.setScalar(1 + t * 12);
+        sphere.material.opacity = 0.85 * (1 - t);
+        if (t < 1) requestAnimationFrame(tk);
+        else { scene.remove(sphere); sphere.geometry.dispose(); sphere.material.dispose(); }
+    };
+    requestAnimationFrame(tk);
+    // Stacked rings rolling outward
+    for (let k = 0; k < 3; k++) setTimeout(() => shockRing(startX, startZ, k === 1 ? '#ffffff' : '#ff2244', 10, 540, 0.7), k * 70);
+    // Damage + knockback within a 10 m forward cone
+    let hits = 0;
+    for (const c of curses.slice()) {
+        const dx = c.x - player.x, dz = c.z - player.z, d = Math.hypot(dx, dz) || 1;
+        if (d > 11) continue;
+        if ((dx / d) * fx + (dz / d) * fz < -0.2) continue;     // ~120° forward arc
+        damageCurse(c, player.damage * 2.4);
+        c.x += (dx / d) * 5.5; c.z += (dz / d) * 5.5;
+        burst(c.x, 1.5, c.z, '#ff2244', 6);
+        hits++;
+    }
+    if (hits) hitstop(0.05);
+}
+
+function gojoPurple(fx, fz) {
+    // 0.55 s windup — purple inward halo on the player, then unleash
+    risingHalo(player, '#a06bff', 600);
+    risingHalo(player, '#3a4cff', 700);
+    camShake(0.06, 0.30);
+    sfx('tech');
+    setTimeout(() => fireHollowPurple(fx, fz), 550);
+}
+function fireHollowPurple(fx, fz) {
+    const length = 38;
+    // Beam shaft (3 stacked cylinders for the layered look)
+    const grp = new THREE.Group();
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, length, 14),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95 }));
+    const mid = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, length, 16),
+        new THREE.MeshBasicMaterial({ color: '#c08aff', transparent: true, opacity: 0.55 }));
+    const outer = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, length, 16),
+        new THREE.MeshBasicMaterial({ color: '#6a3aa0', transparent: true, opacity: 0.25 }));
+    for (const m of [core, mid, outer]) { m.rotation.z = Math.PI / 2; grp.add(m); }
+    grp.position.set(player.x + fx * length / 2, 2.0, player.z + fz * length / 2);
+    grp.rotation.y = Math.atan2(fx, fz) + Math.PI / 2;
+    scene.add(grp);
+    flashLight(player.x + fx * 2, 2, player.z + fz * 2, '#a06bff', 10, 600);
+    screenFlash('rgba(180,140,255,0.55)', 380);
+    camShake(0.30, 0.45);
+    sfx('boss');
+    // Line-trace damage along the beam
+    for (const c of curses.slice()) {
+        const ox = c.x - player.x, oz = c.z - player.z;
+        const along = ox * fx + oz * fz;
+        if (along < 0 || along > length) continue;
+        const perp = Math.abs(ox * -fz + oz * fx);
+        if (perp > 2.4) continue;
+        damageCurse(c, player.damage * 8);
+        explode(c.x, 1.6, c.z, '#a06bff', 3);
+    }
+    hitstop(0.08);
+    // Fade the beam
+    const t0 = performance.now(); const dur = 700;
+    const tk = () => {
+        const t = (performance.now() - t0) / dur;
+        for (const m of [core, mid, outer]) m.material.opacity *= 0.94;
+        if (t < 1) requestAnimationFrame(tk);
+        else { scene.remove(grp); grp.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); }
+    };
+    requestAnimationFrame(tk);
+}
+
+function gojoDomain() {
+    // Unlimited Void: huge expanding white-purple sphere centred on the
+    // player, freezes curses in place for the duration, ticks damage.
+    const r = 22, dur = 5000;
+    const grp = new THREE.Group();
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 24),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95, side: THREE.BackSide }));
+    const outer = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 24),
+        new THREE.MeshBasicMaterial({ color: '#a06bff', transparent: true, opacity: 0.18, side: THREE.BackSide }));
+    grp.add(outer); grp.add(inner);
+    // Inner "information overload" particles
+    const dots = [];
+    for (let i = 0; i < 40; i++) {
+        const d = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6),
+            new THREE.MeshBasicMaterial({ color: i % 2 ? '#ffffff' : '#a06bff' }));
+        const a = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1);
+        const rad = r * 0.85 * Math.random();
+        d.position.set(Math.sin(p) * Math.cos(a) * rad, Math.cos(p) * rad, Math.sin(p) * Math.sin(a) * rad);
+        grp.add(d); dots.push({ m: d, v: 0.5 + Math.random() * 2.5 });
+    }
+    grp.position.set(player.x, 0, player.z);
+    scene.add(grp);
+    grp.add(new THREE.PointLight('#ffffff', 3, r, 2));
+
+    screenFlash('rgba(255,255,255,0.55)', 500);
+    camShake(0.3, 0.5);
+    sfx('boss'); sfx('level');
+    domainActive = { color: '#a06bff', until: performance.now() + dur, dmgEvery: 500, lastDmg: 0, mesh: grp, frozen: new Map() };
+
+    // Freeze curse positions
+    for (const c of curses) domainActive.frozen.set(c, { x: c.x, z: c.z });
+
+    // Expand from 0.4 to r over 350 ms
+    const t0 = performance.now(); const expand = 350;
+    const tk = () => {
+        const t = Math.min(1, (performance.now() - t0) / expand);
+        const s = 0.4 / 0.4 + t * (r / 0.4 - 1);
+        inner.scale.setScalar(0.4 + t * (r - 0.4));
+        outer.scale.setScalar(0.4 + t * (r * 1.1 - 0.4));
+        if (t < 1) requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+TECHNIQUE_KITS.limitless = {
+    z: { name: 'Lapse: Blue',       cost: 30, cd: 5,  run: gojoBlue },
+    x: { name: 'Reversal: Red',     cost: 35, cd: 6,  run: gojoRed },
+    c: { name: 'Hollow Purple',     cost: 60, cd: 12, run: gojoPurple },
+    r: { name: 'Unlimited Void',    cost: 90, cd: 60, run: gojoDomain },
+};
+
+// Tick the active domain in update() — keeps curses frozen + ticks dmg.
+function updateDomain(dt) {
+    if (!domainActive) return;
+    const now = performance.now();
+    if (now > domainActive.until) {
+        // Cleanup
+        scene.remove(domainActive.mesh);
+        domainActive.mesh.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+        domainActive = null;
+        return;
+    }
+    // Lock curses
+    for (const [c, pos] of domainActive.frozen) {
+        if (!c.alive) { domainActive.frozen.delete(c); continue; }
+        c.x = pos.x; c.z = pos.z;
+    }
+    // Domain follows the player
+    domainActive.mesh.position.set(player.x, 0, player.z);
+    // Tick damage
+    if (now - domainActive.lastDmg > domainActive.dmgEvery) {
+        domainActive.lastDmg = now;
+        for (const c of curses.slice()) {
+            const d = Math.hypot(c.x - player.x, c.z - player.z);
+            if (d < 22) {
+                damageCurse(c, player.damage * 1.5);
+                burst(c.x, 1.6, c.z, '#a06bff', 4);
+            }
+        }
+    }
 }
 
 // ─── COMBAT ─────────────────────────────────────────────────
@@ -1332,43 +1698,78 @@ function openSmith() {
         <button class="btn sec act" data-close="1">Close</button>`);
 }
 
-// Placeholder cursed-technique catalogue. None of these are actually
-// buyable yet — the shop is wired so we can drop real entries in later.
+// Cursed-technique catalogue. `ready: true` entries are fully wired in
+// the ability dispatcher (TECHNIQUE_KITS); others are placeholders that
+// can be bought + equipped but their hotkeys just toast a stub.
 const TECHNIQUE_CATALOG = [
-    { id: 'limitless',   name: 'Limitless (Gojo)',           desc: 'Cursed Energy manipulation — repulsion, attraction, Hollow Purple.', icon: '◌', gold:  6000, shards: 80 },
-    { id: 'dismantle',   name: 'Dismantle (Sukuna)',         desc: 'Innate slashing technique. Auto-targets nearby curses.',           icon: '⌁', gold:  4500, shards: 60 },
-    { id: 'tenShadows',  name: 'Ten Shadows (Megumi)',       desc: 'Summon shikigami — Divine Dogs, Nue, Mahoraga.',                   icon: '▲', gold:  5200, shards: 70 },
-    { id: 'blackFlash',  name: 'Black Flash (Itadori)',      desc: 'Cursed-energy detonation on each strike. Pure damage.',            icon: '⚡', gold:  3800, shards: 50 },
-    { id: 'copy',        name: 'Copy (Yuta)',                desc: 'Mimics any technique you\'ve seen.',                               icon: '☯', gold:  7000, shards: 90 },
-    { id: 'strawDoll',   name: 'Straw Doll (Nobara)',        desc: 'Hammer + nail combo. Resonance through hits.',                    icon: '⨂', gold:  3000, shards: 40 },
-    { id: 'cursedSpeech',name: 'Cursed Speech (Inumaki)',    desc: 'Commands curses to do as told. CE-intensive.',                    icon: '◐', gold:  4200, shards: 55 },
-    { id: 'boogieWoogie',name: 'Boogie Woogie (Todo)',       desc: 'Clap to swap positions with allies or enemies.',                  icon: '✦', gold:  3500, shards: 45 },
-    { id: 'projection',  name: 'Projection (Naoya)',         desc: '24-frame speed bursts. Slows for the user, freezes the world.',   icon: '➤', gold:  4800, shards: 65 },
-    { id: 'bloodManip',  name: 'Blood Manipulation (Choso)', desc: 'Convert blood into ranged piercing attacks.',                     icon: '✿', gold:  3300, shards: 42 },
+    { id: 'limitless',   name: 'Limitless (Gojo)',           desc: 'Blue (gravity well), Red (repulsion blast), Hollow Purple (piercing beam), Domain: Unlimited Void.', icon: '◌', gold: 6000, shards: 80, ready: true },
+    { id: 'dismantle',   name: 'Dismantle (Sukuna)',         desc: 'Innate slashing technique. Auto-targets nearby curses.',           icon: '⌁', gold: 4500, shards: 60 },
+    { id: 'tenShadows',  name: 'Ten Shadows (Megumi)',       desc: 'Summon shikigami — Divine Dogs, Nue, Mahoraga.',                   icon: '▲', gold: 5200, shards: 70 },
+    { id: 'blackFlash',  name: 'Black Flash (Itadori)',      desc: 'Cursed-energy detonation on each strike. Pure damage.',            icon: '⚡', gold: 3800, shards: 50 },
+    { id: 'copy',        name: 'Copy (Yuta)',                desc: 'Mimics any technique you\'ve seen.',                               icon: '☯', gold: 7000, shards: 90 },
+    { id: 'strawDoll',   name: 'Straw Doll (Nobara)',        desc: 'Hammer + nail combo. Resonance through hits.',                     icon: '⨂', gold: 3000, shards: 40 },
+    { id: 'cursedSpeech',name: 'Cursed Speech (Inumaki)',    desc: 'Commands curses to do as told. CE-intensive.',                     icon: '◐', gold: 4200, shards: 55 },
+    { id: 'boogieWoogie',name: 'Boogie Woogie (Todo)',       desc: 'Clap to swap positions with allies or enemies.',                   icon: '✦', gold: 3500, shards: 45 },
+    { id: 'projection',  name: 'Projection (Naoya)',         desc: '24-frame speed bursts. Slows for the user, freezes the world.',    icon: '➤', gold: 4800, shards: 65 },
+    { id: 'bloodManip',  name: 'Blood Manipulation (Choso)', desc: 'Convert blood into ranged piercing attacks.',                      icon: '✿', gold: 3300, shards: 42 },
 ];
 
 function openTechniqueShop() {
     const goldUI   = `<span style="color:#ffe066">${save.gold} g</span>`;
     const shardsUI = `<span style="color:#a06bff">${save.shards || 0} shards</span>`;
-    const rows = TECHNIQUE_CATALOG.map(t => `
-        <div class="shop-row">
+    const rows = TECHNIQUE_CATALOG.map(t => {
+        const owned = save.ownedTechniques.includes(t.id);
+        const equipped = save.equipped === t.id;
+        const canAfford = save.gold >= t.gold && (save.shards || 0) >= t.shards;
+        let btn;
+        if (equipped)      btn = `<button class="btn sec act" data-shop-equip="${t.id}" style="border-color:#3aff8a;color:#3aff8a">Equipped</button>`;
+        else if (owned)    btn = `<button class="btn sec act" data-shop-equip="${t.id}">Equip</button>`;
+        else if (canAfford) btn = `<button class="btn sec act" data-shop-buy="${t.id}">Buy</button>`;
+        else                btn = `<button class="btn sec act" disabled style="opacity:0.4;cursor:not-allowed">Buy</button>`;
+        const flagReady = t.ready ? '<span style="color:#3aff8a;font-size:0.7rem">  · LIVE</span>' : '<span style="color:#7a8a9a;font-size:0.7rem">  · placeholder</span>';
+        return `<div class="shop-row">
             <span class="shop-icon">${t.icon}</span>
             <span class="shop-body">
-                <b>${t.name}</b><br>
+                <b>${t.name}</b>${flagReady}<br>
                 <small style="color:#7a8a9a">${t.desc}</small>
             </span>
             <span class="shop-cost">
                 <span style="color:#ffe066">${t.gold} g</span><br>
                 <span style="color:#a06bff">${t.shards} shards</span>
             </span>
-            <button class="btn sec act" disabled style="opacity:0.45;cursor:not-allowed">Soon</button>
-        </div>
-    `).join('');
+            ${btn}
+        </div>`;
+    }).join('');
     showOverlay(`<h2>Cursed Technique Vendor</h2>
         <p>${goldUI} &nbsp;·&nbsp; ${shardsUI}</p>
-        <p style="margin:0.4rem 0 0.8rem;color:#7a8a9a">Wares are coming soon. Stockpile shards while you wait — they drop from curses (67%).</p>
+        <p style="margin:0.4rem 0 0.8rem;color:#7a8a9a">Buy a technique once, equip it any time. Only one technique active at a time. <b style="color:#3aff8a">Limitless is live</b> — the rest are placeholders that hotkey-toast for now.</p>
         <div class="shop-list">${rows}</div>
         <button class="btn sec act" data-close="1" style="margin-top:1rem">Close</button>`);
+}
+
+function buyTechnique(id) {
+    const t = TECHNIQUE_CATALOG.find(x => x.id === id);
+    if (!t) return;
+    if (save.ownedTechniques.includes(id)) return;
+    if (save.gold < t.gold || (save.shards || 0) < t.shards) { toast('Not enough'); return; }
+    save.gold -= t.gold;
+    save.shards = (save.shards || 0) - t.shards;
+    save.ownedTechniques.push(id);
+    if (!save.equipped) save.equipped = id;
+    toast(`Acquired: ${t.name}`);
+    sfx('level');
+    persist();
+    openTechniqueShop();
+}
+function equipTechnique(id) {
+    if (!save.ownedTechniques.includes(id)) return;
+    save.equipped = id;
+    const t = TECHNIQUE_CATALOG.find(x => x.id === id);
+    toast(`Equipped: ${t ? t.name : id}`);
+    sfx('ui');
+    persist();
+    refreshAbilityHud();
+    openTechniqueShop();
 }
 
 function openPause() {
@@ -1380,8 +1781,11 @@ function openPause() {
 
 document.getElementById('overlay').addEventListener('click', (e) => {
     const t = e.target;
-    if (!t.dataset || (!t.dataset.close && !t.dataset.resume && !t.dataset.accept &&
-        !t.dataset.quit && !t.dataset.buy)) return;
+    if (!t.dataset) return;
+    if (t.dataset.shopBuy)   { sfx('ui'); buyTechnique(t.dataset.shopBuy); return; }
+    if (t.dataset.shopEquip) { equipTechnique(t.dataset.shopEquip); return; }
+    if (!t.dataset.close && !t.dataset.resume && !t.dataset.accept &&
+        !t.dataset.quit && !t.dataset.buy) return;
     sfx('ui');
     if (t.dataset.close || t.dataset.resume) { hideOverlay(); if (state === 'paused') resume(); }
     else if (t.dataset.accept) { acceptQuest(t.dataset.accept); hideOverlay(); }
@@ -1420,16 +1824,20 @@ let lungeAmount = 0;
 // ─── GAME FLOW ──────────────────────────────────────────────
 function startGame(loaded) {
     save = loaded;
-    if (save.shards == null) save.shards = 0;     // backfill for pre-shard saves
+    if (save.shards == null) save.shards = 0;            // backfill
+    if (!Array.isArray(save.ownedTechniques)) save.ownedTechniques = [];
+    if (save.equipped === undefined) save.equipped = null;
     document.getElementById('signin-screen').classList.remove('active');
     document.getElementById('hud').style.display = 'block';
-    player = { x: TOWN.x, z: TOWN.z + 6, y: 0, vy: 0, airVx: 0, airVz: 0, iframes: 0, hp: undefined, stamina: undefined, blocking: false, comboLockUntil: 0 };
+    player = { x: TOWN.x, z: TOWN.z + 6, y: 0, vy: 0, airVx: 0, airVz: 0, iframes: 0, hp: undefined, stamina: undefined, ce: undefined, blocking: false, comboLockUntil: 0 };
     deriveStats();
     player.damage += (save.flags.dmgBonus || 0);
     player.hp = player.maxHp;
     player.stamina = player.maxStamina;
+    player.ce = player.maxCe;
     refreshMissionHud();
     refreshAdminButton();
+    refreshAbilityHud();
     state = 'playing';
     toast('Welcome, ' + save.name + ' — ' + GRADE_NAME[save.grade]);
 }
@@ -1478,6 +1886,10 @@ function initInput() {
         else if (e.code === 'KeyQ' && state === 'playing') doDash();
         else if (e.code === 'KeyG' && state === 'playing') doGrab();
         else if (e.code === 'Space' && state === 'playing') doJump();
+        else if (e.code === 'KeyZ' && state === 'playing') castAbility('z');
+        else if (e.code === 'KeyX' && state === 'playing') castAbility('x');
+        else if (e.code === 'KeyC' && state === 'playing') castAbility('c');
+        else if (e.code === 'KeyR' && state === 'playing') castAbility('r');
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
     const cv = document.getElementById('game-canvas');
@@ -1623,6 +2035,11 @@ function pushOutObstacles(nx, nz, axis, prev) {
 function update(dt) {
     if (state !== 'playing') return;
 
+    // Global hitstop — pause sim updates while active so big abilities
+    // land with weight (camera + VFX still tick because they use their
+    // own per-effect rAF loops).
+    if (performance.now() < hitstopUntil) return;
+
     player.iframes = Math.max(0, player.iframes - dt);
 
     // Block — hold F. Drains 30 stamina/s while held. Auto-drops when
@@ -1640,6 +2057,11 @@ function update(dt) {
         player.stamina = Math.min(player.maxStamina, player.stamina + dt * regen);
     }
     if (admin.infStam) player.stamina = player.maxStamina;
+    // Cursed energy regen (constant)
+    player.ce = Math.min(player.maxCe, player.ce + dt * 7);
+    if (admin.infStam) player.ce = player.maxCe;  // inf-stam toggle also gives inf CE
+    // Active Domain Expansion tick
+    updateDomain(dt);
     // Curse rain — spawn ~4 curses/sec for the duration
     if (admin.rain > 0) {
         admin.rain -= dt;
@@ -1870,6 +2292,15 @@ function update(dt) {
     const cy = gy + player.y + camHt - Math.sin(pitch) * 5;
     camera.position.set(cx, Math.max(terrainHeight(cx, cz) + 1.2, cy), cz);
     camera.lookAt(player.x, gy + player.y + 1.7, player.z);
+    // Camera shake offset (decays each frame)
+    if (shakeT > 0) {
+        shakeT -= dt;
+        const k = shakeAmp * Math.max(0, shakeT);
+        camera.position.x += (Math.random() - 0.5) * k * 12;
+        camera.position.y += (Math.random() - 0.5) * k * 7;
+        camera.position.z += (Math.random() - 0.5) * k * 12;
+        if (shakeT <= 0) shakeAmp = 0;
+    }
 
     // Curses
     updateCurseDirector(dt);
@@ -1935,6 +2366,8 @@ function updateHud() {
     document.getElementById('hud-grade').textContent = GRADE_NAME[save.grade];
     document.getElementById('hud-hp').style.width = Math.max(0, player.hp / player.maxHp * 100) + '%';
     document.getElementById('hud-hp-t').textContent = Math.ceil(player.hp) + '/' + player.maxHp;
+    document.getElementById('hud-ce').style.width = (player.ce / player.maxCe * 100) + '%';
+    document.getElementById('hud-ce-t').textContent = 'CE ' + Math.ceil(player.ce);
     document.getElementById('hud-st').style.width = (player.stamina / player.maxStamina * 100) + '%';
     document.getElementById('hud-st-t').textContent = 'ST ' + Math.ceil(player.stamina);
     document.getElementById('hud-xp').style.width = (save.xp / xpToNext(save.level) * 100) + '%';
@@ -1953,6 +2386,18 @@ function updateHud() {
     setPip('cd-dash', dashLeft);
     setPip('cd-grab', grabLeft);
     setPip('cd-combo', lockLeft);
+    // Ability slot cooldowns (Z/X/C/R)
+    const kit = save.equipped ? TECHNIQUE_KITS[save.equipped] : null;
+    for (const s of ABILITY_SLOTS) {
+        const el = document.getElementById('ab-' + s);
+        if (!el) continue;
+        const ab = kit && kit[s];
+        const fillEl = el.querySelector('i');
+        if (!ab) { fillEl.style.height = '0%'; el.classList.remove('ready'); continue; }
+        const left = Math.max(0, abilityReady[s] - now) / (ab.cd * 1000);
+        fillEl.style.height = (left * 100) + '%';
+        el.classList.toggle('ready', left <= 0.001 && player.ce >= ab.cost);
+    }
     drawMinimap();
 }
 

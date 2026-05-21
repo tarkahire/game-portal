@@ -4,6 +4,88 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Cursed Techniques infra + Gojo Limitless flagship
+
+End-to-end cursed-technique system + first fully-built kit (Gojo's
+Limitless with Lapse Blue / Reversal Red / Hollow Purple / Unlimited
+Void). Other 9 shop entries remain placeholders that toast "coming
+soon" if equipped + hot-keyed — the framework is ready, the content
+isn't.
+
+### Infrastructure
+
+- **CE bar restored**: purple bar between HP and Stamina. Init in
+  startGame (`maxCe = 60 + lv*8`), regens 7/s, drawn by updateHud.
+- **save.ownedTechniques** + **save.equipped** schema additions
+  (backfilled to `[]` / `null` on load).
+- **Shop buy/equip flow**: replaces the old `Soon` placeholders.
+  Each row picks `Buy` / `Equip` / `Equipped` / disabled based on
+  affordability + ownership + currently-equipped state. Auto-equips
+  the first technique you buy if nothing's equipped.
+- **`TECHNIQUE_KITS[id]`** dispatcher: each kit = `{ z, x, c, r }`
+  with `{ name, cost, cd, run(fx, fz) }`. `castAbility(slot)` checks
+  cooldown, CE cost, blocking state, then runs.
+- **Z / X / C / R hotkeys** wired in `initInput` keydown handler.
+- **Ability HUD row** (4 slots in `#ability-row` under the cooldown
+  pips): purple-bordered Z/X/C, orange-bordered R for Domain. Each
+  has a fill-from-bottom cooldown overlay + an `em` label showing
+  the first 4 chars of the ability name. Empty slots (no equipped
+  technique) render greyed out.
+- **VFX helpers restored / rewritten**: `camShake`, `hitstop` (global
+  pause sim, VFX keep ticking), `screenFlash`, `flashLight`,
+  `shockRing`, `explode` (layered core + 2 rings + sparks + light +
+  shake), `risingHalo`. Camera-shake offset wired into the
+  third-person camera block again.
+
+### Gojo Limitless (flagship)
+
+- **Z — Lapse: Blue** (30 CE, 5 s cd). Spawns a gravity-well orb
+  9 m forward: blue sphere + 3 spinning rings + bright point light.
+  Pulls curses inward over 1.4 s, then implodes with a layered
+  `explode()` + screen flash + `damage * 3.5` to anything inside
+  4.5 m. Big shake.
+- **X — Reversal: Red** (35 CE, 6 s cd). Player palm-pulse — red
+  half-dome expands rapidly with 3 stacked shockrings, red screen
+  flash, big shake. 120° forward arc, 11 m reach, `damage * 2.4`
+  + 5.5 m knockback. 50 ms hitstop on connect.
+- **C — Hollow Purple** (60 CE, 12 s cd). 550 ms windup (two rising
+  halos around the player + camera shake) → fires a 38 m piercing
+  beam: 3 stacked cylinders (white core / purple mid / dim outer)
+  oriented along the look direction. Line-trace damages everything
+  in a 2.4 m perpendicular distance for `damage * 8` with a small
+  `explode()` per hit. White screen flash, big shake, 80 ms
+  hitstop. Beam fades over 700 ms.
+- **R — Domain Expansion: Unlimited Void** (90 CE, 60 s cd, 5 s
+  duration). A white sphere expands to 22 m radius around the
+  player; 40 small white+purple "info overload" dots fill it.
+  All curses inside have their positions locked while the domain
+  is active; every 500 ms a `damage * 1.5` tick lands on each.
+  The sphere follows the player. Massive white screen flash,
+  0.3 amp shake, layered SFX. `domainActive` state managed by
+  `updateDomain(dt)` ticked from `update()`.
+
+### File changes
+
+- `index.html`: new `#hud-ce` bar + `#ability-row` with 4 slots,
+  controls hint updated.
+- `style.css`: `.ce` gradient (the one removed earlier),
+  `.ability-row` flexbox, `.ability-slot` styles (purple border,
+  fill-from-bottom cooldown overlay, em label, `.ready` glow,
+  `.empty` greying, `.domain` orange variant).
+- `src/save/saveAdapter.js`: `ownedTechniques` + `equipped` fields.
+- `src/main.js`: VFX helpers, technique catalogue updated with
+  `ready: true` flag on Limitless, buy/equip/castAbility logic,
+  full Gojo kit, domain ticker. 2026 → 2475 lines.
+
+### Performance reality check
+
+Heavier abilities (Domain Expansion in particular — 40 dots + sphere
+mesh + 50 curses being position-clamped each frame) may stutter on
+low-end machines. If it does, we cut the dot count + reduce the
+domain radius. Tell me if perf goes south.
+
+---
+
 ## 2026-05-21 — Password sign-in, Register button, dbag admin panel
 
 ### Password gate
