@@ -4,6 +4,69 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Kaizen Update 2: Jujutsu High + Tokyo plaza map, jump movement
+
+Second of the Kaizen-shaped updates. Whole world rebuilt; movement
+gets vertical for the first time.
+
+### World rewrite
+
+- **Terrain flattened**: analytic hilly heightmap → flat asphalt
+  plane. `terrainHeight()` kept as a function (returns 0) so every
+  downstream callsite (curses, NPCs, camera floor, player snap)
+  still works. Procedural tree/rock scatter removed.
+- **Map halves**:
+  - **North (z < -10): Jujutsu High** — 30×14×18 m school block
+    with three floors of emissive blue window strips and a purple
+    "Jujutsu High" banner; east/west/back perimeter walls + a
+    front wall with a gate gap; stone gate pillars + a torii arch
+    beam; two training dummy posts in the courtyard; lighter
+    courtyard floor tile.
+  - **South (z > 10): Tokyo streets** — 7 boxy skyscrapers
+    (20-36 m tall) in two concrete shades, sparse emissive purple
+    window grids, randomised neon billboards in 5 colours (each
+    with its own point light); three asphalt road strips with
+    yellow lane dashes; six streetlamps at intersections.
+  - **Centre: Plaza** — `TOWN.r = 22`, brighter pavement, neon
+    purple boundary ring. 3 NPCs relocated here.
+- **World shrank**: `WORLD = 240 → 120` half-extent. The map's a
+  hub now, not a wilderness.
+- **AABB obstacle system**: replaced `houses[]` circles with
+  `obstacles[]` rectangles (`{minX,maxX,minZ,maxZ}`). New helpers:
+  - `pushOutObstacles(nx, nz, axis, prev)` — per-axis push-out so
+    the player slides along walls instead of sticking.
+  - `inAnyObstacle(x, z, pad)` — used by the curse director to
+    reject spawns inside buildings.
+- **Curse spawn director** now picks points in `CURSE_ZONE` (the
+  south half, z 12 → 100), rejecting plaza overlap or building
+  overlap, with up to 12 retry attempts per tick.
+- **Quest copy** updated: "Cleansing the Backroads" → "Patrol the
+  City".
+
+### Movement
+
+- **Space = jump**. `vy = 10`, `GRAVITY = 25` m/s² (peak ≈ 2 m,
+  airtime ≈ 0.8 s). Ground-only — no double-jump yet. Blocked while
+  blocking. `doJump()` is a no-op if `player.y > 0.01`.
+- **Player gains vertical state**: `player.y`, `player.vy`. Initialised
+  in `startGame`. Integrated in `update()` (gravity tick, ground snap).
+- **Air control**: ground movement times 0.45 when `player.y > 0`,
+  so you can steer slightly in the air but not full-walk.
+- **Camera tracks the jump**: `cy = gy + player.y + camHt - sin(pitch)*5`
+  and `lookAt(player.x, gy + player.y + 1.7, player.z)`.
+- **Dash is AABB-aware**: `doDash()` now runs the 5 m teleport through
+  the same `pushOutObstacles` resolver so you can't phase through
+  buildings.
+
+### Files touched
+
+`src/main.js` (1411 lines), `index.html` (controls hint),
+`CLAUDE.md` (combat + new world section), `docs/devlog.md`.
+Updates 3-6 (CE bar / techniques / Domain / stat tree / fighting
+styles) still pending; numbering reflected in CLAUDE.md.
+
+---
+
 ## 2026-05-21 — Kaizen Update 1: combat fundamentals
 
 First of five planned updates retooling the combat to match Roblox

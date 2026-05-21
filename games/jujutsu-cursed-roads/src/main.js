@@ -17,11 +17,19 @@ let save = null;
 
 let player, playerModel;
 const curses = [];
-const houses = [];                     // { mesh, x, z, r }
+// Rectangular AABB obstacles for buildings/walls/training dummies.
+// Each entry: { minX, maxX, minZ, maxZ }. Player slides along the
+// shorter overlap axis on collision.
+const obstacles = [];
 let terrainMesh;
 
-const TOWN = { x: 0, z: 0, r: 26 };    // safe-zone radius (no curse spawns)
-const WORLD = 240;                     // half-extent of the playable map
+// Map layout (looking down +Y, +Z = south, -Z = north):
+//   z < -10:  JUJUTSU HIGH — school block + courtyard + perimeter walls
+//   |z| < 10: PLAZA — paved hub with the 3 NPCs (safe zone)
+//   z >  10:  TOKYO STREETS — 7 skyscrapers + road + lamps + neon signs
+const TOWN = { x: 0, z: 0, r: 22 };          // plaza safe-zone radius
+const WORLD = 120;                           // half-extent of the playable map
+const CURSE_ZONE = { minZ: 12, maxZ: 100 };  // curses only spawn in the city half
 
 const keys = {};
 let yaw = 0, pitch = -0.18;
@@ -34,8 +42,8 @@ const GRADE_NAME = { 4: 'Grade 4', 3: 'Grade 3', 2: 'Grade 2', 1: 'Grade 1', 0: 
 // ─── QUEST DEFINITIONS ──────────────────────────────────────
 const QUESTS = {
     exorcism1: {
-        title: 'Cleansing the Backroads',
-        desc: 'Exorcise 5 cursed spirits in the hills.',
+        title: 'Patrol the City',
+        desc: 'Exorcise 5 cursed spirits in the Tokyo streets.',
         target: 5,
         reward: { xp: 120, gold: 60 },
         giver: 'board',
@@ -51,94 +59,189 @@ const QUESTS = {
 function examReqLevel(grade) { return 4 + (4 - grade) * 3; }   // G4:4 G3:7 G2:10 G1:13
 
 // ─── TERRAIN ────────────────────────────────────────────────
-// Cheap analytic heightfield. Flattened toward the town so the
-// settlement sits on level ground.
-function terrainHeight(x, z) {
-    let h = Math.sin(x * 0.018) * 4.2 + Math.cos(z * 0.021) * 3.8
-          + Math.sin((x + z) * 0.011) * 5.5
-          + Math.sin(x * 0.05 + z * 0.03) * 1.3;
-    const dTown = Math.hypot(x - TOWN.x, z - TOWN.z);
-    const flat = 1 - Math.min(1, Math.max(0, (TOWN.r + 10 - dTown) / (TOWN.r + 10)));
-    return h * (0.15 + 0.85 * flat);
-}
+// Flat paved ground. terrainHeight() kept as a function so the existing
+// callsites (curse meshes, NPC y, camera floor clamp, player snap) keep
+// working — it just returns 0 everywhere now.
+function terrainHeight(_x, _z) { return 0; }
 
 function buildTerrain() {
-    const seg = 120;
-    const geo = new THREE.PlaneGeometry(WORLD * 2, WORLD * 2, seg, seg);
+    // Big flat ground plane — dark asphalt-ish concrete
+    const geo = new THREE.PlaneGeometry(WORLD * 2, WORLD * 2, 1, 1);
     geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position;
-    const col = [];
-    for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i), z = pos.getZ(i);
-        const y = terrainHeight(x, z);
-        pos.setY(i, y);
-        // grass → rocky tint by height
-        const t = Math.min(1, Math.max(0, (y + 4) / 14));
-        col.push(0.10 + t * 0.18, 0.16 + t * 0.10, 0.12 + t * 0.06);
-    }
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    geo.computeVertexNormals();
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
+    const mat = new THREE.MeshStandardMaterial({ color: '#23252b', roughness: 0.95 });
     terrainMesh = new THREE.Mesh(geo, mat);
     scene.add(terrainMesh);
 
-    // Scattered props
-    const trunkMat = new THREE.MeshStandardMaterial({ color: '#3a2a1c', roughness: 1 });
-    const leafMat = new THREE.MeshStandardMaterial({ color: '#1d3320', roughness: 1 });
-    const rockMat = new THREE.MeshStandardMaterial({ color: '#3a3f48', roughness: 1 });
-    for (let i = 0; i < 260; i++) {
-        const px = (Math.random() - 0.5) * WORLD * 1.9;
-        const pz = (Math.random() - 0.5) * WORLD * 1.9;
-        if (Math.hypot(px - TOWN.x, pz - TOWN.z) < TOWN.r + 6) continue;
-        const y = terrainHeight(px, pz);
-        if (Math.random() < 0.7) {
-            const tree = new THREE.Group();
-            const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 3.2, 6), trunkMat);
-            tr.position.y = 1.6; tree.add(tr);
-            const lf = new THREE.Mesh(new THREE.ConeGeometry(2.0, 4.2, 7), leafMat);
-            lf.position.y = 4.6; tree.add(lf);
-            tree.position.set(px, y, pz);
-            scene.add(tree);
-        } else {
-            const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8 + Math.random() * 1.4, 0), rockMat);
-            rk.position.set(px, y + 0.4, pz);
-            rk.rotation.set(Math.random(), Math.random(), Math.random());
-            scene.add(rk);
+    // Brighter plaza tile in the center (the safe zone the NPCs sit on)
+    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(TOWN.r * 2.2, TOWN.r * 2.2),
+        new THREE.MeshStandardMaterial({ color: '#4a4d56', roughness: 0.9 }));
+    plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.01;
+    scene.add(plaza);
+
+    // Plaza border ring (purple neon — Kaizen UI palette)
+    const ring = new THREE.Mesh(new THREE.RingGeometry(TOWN.r - 0.1, TOWN.r + 0.4, 64),
+        new THREE.MeshBasicMaterial({ color: '#a06bff', transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02;
+    scene.add(ring);
+}
+
+// ─── JUJUTSU HIGH (north half) ──────────────────────────────
+function buildSchool() {
+    const wallMat = new THREE.MeshStandardMaterial({ color: '#9a9388', roughness: 0.85 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: '#1a1c20', roughness: 0.7 });
+    const winMat  = new THREE.MeshStandardMaterial({ color: '#3a4cff', emissive: '#1a2266',
+        emissiveIntensity: 0.7, roughness: 0.4, metalness: 0.3 });
+    const stoneMat = new THREE.MeshStandardMaterial({ color: '#5a5d65', roughness: 0.9 });
+
+    // Main school block — 30 × 14 × 18 (W×H×D), centered (0, -50)
+    const sx = 30, sy = 14, sz = 18, cx = 0, cz = -50;
+    const block = new THREE.Group();
+    block.add(new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), wallMat).translateY(sy / 2));
+    // 3 floors of window strips on the south (front) face
+    for (let f = 0; f < 3; f++) {
+        const win = new THREE.Mesh(new THREE.BoxGeometry(sx * 0.92, 1.6, 0.2), winMat);
+        win.position.set(0, 3 + f * 4, sz / 2 + 0.01);
+        block.add(win);
+    }
+    block.add(new THREE.Mesh(new THREE.BoxGeometry(sx + 0.6, 0.4, sz + 0.6), roofMat).translateY(sy + 0.2));
+    // "JUJUTSU HIGH" banner over the entrance — purple neon plane
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(10, 1.6),
+        new THREE.MeshBasicMaterial({ color: '#a06bff' }));
+    sign.position.set(0, sy * 0.85, sz / 2 + 0.02);
+    block.add(sign);
+    block.position.set(cx, 0, cz);
+    scene.add(block);
+    obstacles.push({ minX: cx - sx/2, maxX: cx + sx/2, minZ: cz - sz/2, maxZ: cz + sz/2 });
+
+    // Perimeter walls — east, west, and back; front has a gate gap
+    const wallH = 3.0;
+    const addWall = (minX, maxX, minZ, maxZ) => {
+        const w = Math.max(0.6, maxX - minX);
+        const d = Math.max(0.6, maxZ - minZ);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), stoneMat);
+        m.position.set((minX + maxX) / 2, wallH / 2, (minZ + maxZ) / 2);
+        scene.add(m);
+        obstacles.push({ minX, maxX, minZ, maxZ });
+    };
+    addWall( 39.7,  40.3, -100, -15);     // east wall
+    addWall(-40.3, -39.7, -100, -15);     // west wall
+    addWall(-40,    40,   -100.3, -99.7); // back wall
+    addWall(-40,   -12,   -15.3, -14.7);  // front wall (west of gate)
+    addWall( 12,    40,   -15.3, -14.7);  // front wall (east of gate)
+
+    // Gate pillars on either side of the entrance
+    const pillarMat = new THREE.MeshStandardMaterial({ color: '#3a3d44', roughness: 0.85, metalness: 0.2 });
+    for (const px of [-9, 9]) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(1.6, 4.8, 1.6), pillarMat);
+        p.position.set(px, 2.4, -15);
+        scene.add(p);
+        obstacles.push({ minX: px - 0.8, maxX: px + 0.8, minZ: -15.8, maxZ: -14.2 });
+    }
+    // Curved torii-style arch beam between the pillars
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(20.5, 0.6, 0.8),
+        new THREE.MeshStandardMaterial({ color: '#2a1d18', roughness: 0.8 }));
+    arch.position.set(0, 5.0, -15); scene.add(arch);
+
+    // Training dummies in the courtyard
+    for (const [dx, dz] of [[-15, -28], [15, -28]]) {
+        const d = new THREE.Group();
+        d.add(new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.6, 8),
+            new THREE.MeshStandardMaterial({ color: '#3a2c1c', roughness: 0.95 })).translateY(1.3));
+        d.add(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, 1.2, 12),
+            new THREE.MeshStandardMaterial({ color: '#5a3a26', roughness: 0.95 })).translateY(1.9));
+        d.add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10),
+            new THREE.MeshStandardMaterial({ color: '#c0a878', roughness: 0.95 })).translateY(2.85));
+        d.position.set(dx, 0, dz); scene.add(d);
+        obstacles.push({ minX: dx - 0.5, maxX: dx + 0.5, minZ: dz - 0.5, maxZ: dz + 0.5 });
+    }
+
+    // Courtyard tile — slightly lighter ground between gate and school
+    const yard = new THREE.Mesh(new THREE.PlaneGeometry(60, 30),
+        new THREE.MeshStandardMaterial({ color: '#3a3d44', roughness: 0.9 }));
+    yard.rotation.x = -Math.PI / 2; yard.position.set(0, 0.01, -32); scene.add(yard);
+}
+
+// ─── TOKYO STREETS (south half) ─────────────────────────────
+function buildCity() {
+    const wallA = new THREE.MeshStandardMaterial({ color: '#3a3d44', roughness: 0.85 });
+    const wallB = new THREE.MeshStandardMaterial({ color: '#26282e', roughness: 0.85 });
+    const winMat = new THREE.MeshStandardMaterial({ color: '#a06bff', emissive: '#3a2266',
+        emissiveIntensity: 0.9, roughness: 0.45 });
+    const neonPalette = ['#ff3a8a', '#3a8aff', '#3aff8a', '#ffcf3a', '#ff6a3a'];
+
+    const buildings = [
+        { x: -42, z: 25, w: 16, d: 12, h: 24, mat: wallA },
+        { x: -15, z: 26, w: 12, d: 10, h: 32, mat: wallB },
+        { x:  15, z: 30, w: 14, d: 12, h: 28, mat: wallA },
+        { x:  42, z: 25, w: 18, d: 14, h: 20, mat: wallB },
+        { x: -28, z: 60, w: 14, d: 12, h: 36, mat: wallB },
+        { x:  15, z: 62, w: 16, d: 14, h: 30, mat: wallA },
+        { x:  42, z: 70, w: 12, d: 10, h: 24, mat: wallB },
+    ];
+
+    for (const b of buildings) {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), b.mat).translateY(b.h / 2));
+        // Sparse window grid on the plaza-facing (north) side
+        const cols = Math.floor(b.w / 1.8);
+        const rows = Math.floor((b.h - 4) / 2.5);
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+            if (Math.random() > 0.5) continue;
+            const win = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.4, 0.15), winMat);
+            win.position.set(-b.w/2 + 1.2 + c * 1.8, 3 + r * 2.5, -b.d/2 - 0.01);
+            g.add(win);
         }
+        // Maybe slap a neon billboard on the plaza-facing wall
+        if (Math.random() < 0.55) {
+            const c = neonPalette[Math.floor(Math.random() * neonPalette.length)];
+            const neon = new THREE.Mesh(new THREE.BoxGeometry(b.w * 0.55, 1.3, 0.25),
+                new THREE.MeshBasicMaterial({ color: c }));
+            neon.position.set(0, b.h * 0.72, -b.d/2 - 0.15);
+            g.add(neon);
+            g.add(new THREE.PointLight(c, 1.4, 16, 2).translateY(b.h * 0.72).translateZ(-b.d/2 - 0.6));
+        }
+        g.position.set(b.x, 0, b.z); scene.add(g);
+        obstacles.push({ minX: b.x - b.w/2, maxX: b.x + b.w/2,
+                         minZ: b.z - b.d/2, maxZ: b.z + b.d/2 });
+    }
+
+    // Asphalt road strips: two east-west arteries + a central north-south one
+    const asphalt = new THREE.MeshStandardMaterial({ color: '#15161a', roughness: 0.95 });
+    const road = (x, z, w, d) => {
+        const r = new THREE.Mesh(new THREE.PlaneGeometry(w, d), asphalt);
+        r.rotation.x = -Math.PI / 2; r.position.set(x, 0.02, z); scene.add(r);
+    };
+    road(0, 43, 110, 5);
+    road(0, 80, 110, 5);
+    road(0, 50, 5, 80);
+    // Yellow lane dashes along the central N-S road
+    const stripeMat = new THREE.MeshBasicMaterial({ color: '#ffcf3a' });
+    for (let zz = 12; zz <= 95; zz += 4) {
+        const s = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 1.4), stripeMat);
+        s.rotation.x = -Math.PI / 2; s.position.set(0, 0.03, zz); scene.add(s);
+    }
+
+    // Streetlamps at road intersections
+    const lampMat = new THREE.MeshStandardMaterial({ color: '#1a1c20', roughness: 0.6, metalness: 0.5 });
+    for (const [lx, lz] of [[-8, 18], [8, 18], [-8, 50], [8, 50], [-8, 85], [8, 85]]) {
+        const lp = new THREE.Group();
+        lp.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 5.5, 6), lampMat).translateY(2.75));
+        lp.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.12), lampMat).translateX(0.5).translateY(5.3));
+        lp.add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8),
+            new THREE.MeshBasicMaterial({ color: '#fff0c8' })).translateX(1.0).translateY(5.2));
+        lp.add(new THREE.PointLight('#fff0c8', 0.9, 12, 2).translateX(1.0).translateY(5.0));
+        lp.position.set(lx, 0, lz); scene.add(lp);
     }
 }
 
-// ─── TOWN (exterior only — houses cannot be entered) ────────
+// ─── CENTRAL PLAZA ──────────────────────────────────────────
 let board, smith, contact;
-function buildTown() {
-    const wallMat = new THREE.MeshStandardMaterial({ color: '#7a6f5e', roughness: 0.95 });
-    const roofMat = new THREE.MeshStandardMaterial({ color: '#5a2326', roughness: 0.9 });
-    const ring = 9;
-    for (let i = 0; i < 9; i++) {
-        const a = (i / 9) * Math.PI * 2;
-        const r = ring + (i % 2) * 5;
-        const hx = TOWN.x + Math.cos(a) * r * 1.6;
-        const hz = TOWN.z + Math.sin(a) * r * 1.6;
-        const y = terrainHeight(hx, hz);
-        const g = new THREE.Group();
-        const w = 4 + Math.random() * 2, d = 4 + Math.random() * 2, ht = 3.4;
-        const body = new THREE.Mesh(new THREE.BoxGeometry(w, ht, d), wallMat);
-        body.position.y = ht / 2; g.add(body);
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.78, 2.4, 4), roofMat);
-        roof.position.y = ht + 1.1; roof.rotation.y = Math.PI / 4; g.add(roof);
-        // a dark "doorway" decal so it reads as a house you just can't enter
-        const door = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 2.0),
-            new THREE.MeshBasicMaterial({ color: '#15100c' }));
-        door.position.set(0, 1.0, d / 2 + 0.01); g.add(door);
-        g.position.set(hx, y, hz);
-        g.rotation.y = -a + Math.PI / 2;
-        scene.add(g);
-        houses.push({ x: hx, z: hz, r: Math.max(w, d) * 0.62 });
-    }
-
-    board = makeNpc('#a06bff', TOWN.x - 4, TOWN.z - 2, 'MISSION BOARD', 'board');
-    smith = makeNpc('#ff8a3a', TOWN.x + 6, TOWN.z + 3, 'CURSED TOOL SMITH', 'smith');
-    contact = makeNpc('#3adf8a', TOWN.x + 1, TOWN.z - 9, 'JUJUTSU HIGH CONTACT', 'contact');
+function buildPlaza() {
+    // Plaza ground tile + neon ring are already built in buildTerrain.
+    // Just drop the 3 NPCs around the center.
+    board   = makeNpc('#a06bff', TOWN.x - 8, TOWN.z + 2, 'MISSION BOARD', 'board');
+    smith   = makeNpc('#ff8a3a', TOWN.x + 8, TOWN.z + 4, 'CURSED TOOL SMITH', 'smith');
+    contact = makeNpc('#3adf8a', TOWN.x,     TOWN.z - 7, 'JUJUTSU HIGH CONTACT', 'contact');
 }
 
 // ─── HUMANOID BUILDER ───────────────────────────────────────
@@ -479,11 +582,25 @@ function buildCurseMesh(boss) {
 }
 
 function spawnCurse(boss) {
-    const a = Math.random() * Math.PI * 2;
-    const dist = boss ? 14 : 22 + Math.random() * 14;
-    const x = player.x + Math.cos(a) * dist;
-    const z = player.z + Math.sin(a) * dist;
-    if (!boss && Math.hypot(x - TOWN.x, z - TOWN.z) < TOWN.r) return;
+    // Pick a spawn point in the city district (south half). Reject if
+    // it lands inside an obstacle or the plaza safe zone.
+    let x, z, tries = 0;
+    do {
+        if (boss) {
+            // Bosses spawn closer to the player but still in the city zone
+            const a = Math.random() * Math.PI * 2;
+            x = player.x + Math.cos(a) * 14;
+            z = Math.max(CURSE_ZONE.minZ + 4, player.z + Math.sin(a) * 14);
+        } else {
+            x = (Math.random() - 0.5) * 180;
+            z = CURSE_ZONE.minZ + Math.random() * (CURSE_ZONE.maxZ - CURSE_ZONE.minZ);
+        }
+        tries++;
+        if (tries > 12) return;            // give up this tick
+    } while (
+        Math.hypot(x - TOWN.x, z - TOWN.z) < TOWN.r ||
+        inAnyObstacle(x, z)
+    );
     const mesh = buildCurseMesh(boss);
     mesh.position.set(x, terrainHeight(x, z), z);
     scene.add(mesh);
@@ -891,7 +1008,7 @@ function startGame(loaded) {
     save = loaded;
     document.getElementById('signin-screen').classList.remove('active');
     document.getElementById('hud').style.display = 'block';
-    player = { x: TOWN.x, z: TOWN.z + 6, vy: 0, iframes: 0, hp: undefined, stamina: undefined, blocking: false, comboLockUntil: 0 };
+    player = { x: TOWN.x, z: TOWN.z + 6, y: 0, vy: 0, iframes: 0, hp: undefined, stamina: undefined, blocking: false, comboLockUntil: 0 };
     deriveStats();
     player.damage += (save.flags.dmgBonus || 0);
     player.hp = player.maxHp;
@@ -931,6 +1048,7 @@ function initInput() {
         else if (e.code === 'KeyE' && state === 'playing') tryInteract();
         else if (e.code === 'KeyQ' && state === 'playing') doDash();
         else if (e.code === 'KeyG' && state === 'playing') doGrab();
+        else if (e.code === 'Space' && state === 'playing') doJump();
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
     const cv = document.getElementById('game-canvas');
@@ -952,6 +1070,16 @@ function initInput() {
     addEventListener('beforeunload', persist);
 }
 
+// Movement: jump + gravity. Peak height ~2 m, total airtime ~0.8 s.
+const GRAVITY = 25;
+const JUMP_VY = 10;
+function doJump() {
+    if (player.y > 0.01) return;        // only from ground
+    if (player.blocking) return;
+    player.vy = JUMP_VY;
+    player.y = 0.05;                    // nudge above ground so gravity engages
+}
+
 let lastDash = 0;
 const DASH_CD = 1500;
 const DASH_STAMINA = 20;
@@ -963,7 +1091,13 @@ function doDash() {
     lastDash = now;
     player.stamina -= DASH_STAMINA;
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-    player.x += fx * 5; player.z += fz * 5;
+    // Step the dash in two halves so AABB push-out still applies
+    let nx = player.x + fx * 5, nz = player.z + fz * 5;
+    nx = pushOutObstacles(nx, nz, 'x', player.x);
+    nz = pushOutObstacles(nx, nz, 'z', player.z);
+    nx = Math.max(-WORLD + 4, Math.min(WORLD - 4, nx));
+    nz = Math.max(-WORLD + 4, Math.min(WORLD - 4, nz));
+    player.x = nx; player.z = nz;
     player.iframes = 0.45;
 }
 
@@ -1009,6 +1143,34 @@ function tryInteract() {
     else if (nearInteract === contact) openContact();
 }
 
+// ─── COLLISION ──────────────────────────────────────────────
+// True if (x, z) lies inside (or within `pad` of) any obstacle.
+function inAnyObstacle(x, z, pad = 0.5) {
+    for (const o of obstacles) {
+        if (x > o.minX - pad && x < o.maxX + pad &&
+            z > o.minZ - pad && z < o.maxZ + pad) return true;
+    }
+    return false;
+}
+
+// Resolve AABB obstacle collisions one axis at a time. `axis` = 'x'
+// or 'z'; `prev` is the player's pre-move coordinate on that axis,
+// used to decide which side to push back to.
+function pushOutObstacles(nx, nz, axis, prev) {
+    const padX = 0.4, padZ = 0.4;  // player radius
+    for (const o of obstacles) {
+        if (nx + padX <= o.minX || nx - padX >= o.maxX) continue;
+        if (nz + padZ <= o.minZ || nz - padZ >= o.maxZ) continue;
+        // Overlap — push out on the axis we're resolving
+        if (axis === 'x') {
+            nx = (prev < o.minX) ? o.minX - padX : o.maxX + padX;
+        } else {
+            nz = (prev < o.minZ) ? o.minZ - padZ : o.maxZ + padZ;
+        }
+    }
+    return axis === 'x' ? nx : nz;
+}
+
 // ─── UPDATE ─────────────────────────────────────────────────
 function update(dt) {
     if (state !== 'playing') return;
@@ -1043,20 +1205,25 @@ function update(dt) {
     const moving = mx || mz;
     if (moving) {
         const l = Math.hypot(mx, mz); mx /= l; mz /= l;
-        const sp = player.speed * (keys['ShiftLeft'] || keys['ShiftRight'] ? 1.7 : 1) * dt;
+        const airMul = (player.y > 0) ? 0.45 : 1.0;   // air control reduced
+        const sp = player.speed * airMul * (keys['ShiftLeft'] || keys['ShiftRight'] ? 1.7 : 1) * dt;
         let nx = player.x + mx * sp, nz = player.z + mz * sp;
-        // house collision — push out of footprint
-        for (const h of houses) {
-            const d = Math.hypot(nx - h.x, nz - h.z);
-            if (d < h.r) { nx = h.x + (nx - h.x) / d * h.r; nz = h.z + (nz - h.z) / d * h.r; }
-        }
+        nx = pushOutObstacles(nx, nz, 'x', player.x);
+        nz = pushOutObstacles(nx, nz, 'z', player.z);
         nx = Math.max(-WORLD + 4, Math.min(WORLD - 4, nx));
         nz = Math.max(-WORLD + 4, Math.min(WORLD - 4, nz));
         player.x = nx; player.z = nz;
     }
 
+    // Gravity + vertical integration
+    if (player.y > 0 || player.vy > 0) {
+        player.vy -= GRAVITY * dt;
+        player.y += player.vy * dt;
+        if (player.y <= 0) { player.y = 0; player.vy = 0; }
+    }
+
     const gy = terrainHeight(player.x, player.z);
-    playerModel.position.set(player.x, gy, player.z);
+    playerModel.position.set(player.x, gy + player.y, player.z);
     playerModel.rotation.y = yaw + Math.PI;
     // Player rig — cocky idle (loose asymmetric guard, hip cock, chin
     // up, breathing sway) vs walk stride. Punches are straight-arm
@@ -1188,13 +1355,13 @@ function update(dt) {
     ud.pelvisPivot.position.z = lungeAmount * 0.28;
     ud.upperTorsoPivot.rotation.x += lungeAmount * 0.28;
 
-    // Third-person camera
+    // Third-person camera — tracks the player's vertical position (jumps)
     const camDist = 7, camHt = 3.4;
     const cx = player.x + Math.sin(yaw) * camDist * Math.cos(pitch);
     const cz = player.z + Math.cos(yaw) * camDist * Math.cos(pitch);
-    const cy = gy + camHt - Math.sin(pitch) * 5;
+    const cy = gy + player.y + camHt - Math.sin(pitch) * 5;
     camera.position.set(cx, Math.max(terrainHeight(cx, cz) + 1.2, cy), cz);
-    camera.lookAt(player.x, gy + 1.7, player.z);
+    camera.lookAt(player.x, gy + player.y + 1.7, player.z);
 
     // Curses
     updateCurseDirector(dt);
@@ -1320,7 +1487,9 @@ function init() {
     sun.position.set(40, 80, 20); scene.add(sun);
 
     buildTerrain();
-    buildTown();
+    buildSchool();
+    buildCity();
+    buildPlaza();
     playerModel = buildPlayerModel();
     scene.add(playerModel);
 

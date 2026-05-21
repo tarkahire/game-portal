@@ -72,7 +72,32 @@ Already wired in: a card on the root `index.html` links here; Vercel
 auto-deploys on push (static, no build). The portal uses an emoji
 placeholder thumbnail (no image file needed).
 
-## Combat (current — Kaizen-style action shell, Update 1 of 5)
+## World (Kaizen-shaped map, Update 2)
+
+Flat 240×240 m plaza, divided north/south:
+
+- **North half** (z < -10): **Jujutsu High** — 30×14×18 m school
+  block with window strips, perimeter walls, gate with stone pillars
+  and a torii-style arch beam, two training dummy posts in the
+  courtyard. Lighter courtyard tile distinguishes it from the road.
+- **Centre** (|z| < 10): **Plaza** safe zone, `TOWN.r = 22 m`. Neon
+  purple ring border, brighter pavement. Mission Board / Cursed Tool
+  Smith / Jujutsu High Contact NPCs live here. Slow HP regen while
+  inside; curses never spawn here.
+- **South half** (z > 10): **Tokyo streets** — 7 boxy skyscrapers
+  (20-36 m tall) of two concrete shades with sparse emissive purple
+  window grids and randomised neon billboards (pink / blue / green /
+  yellow / orange) plus a point light per neon. Three asphalt road
+  strips with yellow lane dashes down the central N-S artery, and
+  six streetlamps at intersections. Curses only spawn in this half
+  (`CURSE_ZONE.minZ = 12`).
+
+All buildings/walls/pillars/dummies are AABB obstacles in a single
+`obstacles[]` list (`{minX, maxX, minZ, maxZ}`); the player can't
+walk through them. Collision is resolved per-axis (`pushOutObstacles`)
+so you slide along walls rather than sticking.
+
+## Combat (current — Kaizen-style action shell, Updates 1–2 of 5)
 
 Modelled on Roblox **Kaizen**'s combat rhythm:
 
@@ -80,26 +105,26 @@ Modelled on Roblox **Kaizen**'s combat rhythm:
   between hits, chain resets if you pause >700 ms. After the heavy
   there's a **1.5 s combo lockout** (Kaizen's "downtime") before any
   M1 fires again — forced breathing room.
-- **Q** — dash (was Space). 1.5 s cooldown, 20 stamina, 0.45 s i-frames.
+- **Space** — jump. `vy = 10`, `GRAVITY = 25`, peak ≈ 2 m, airtime
+  ≈ 0.8 s. Ground-only (no double-jump), blocked while blocking.
+  Air control is 0.45× ground movement.
+- **Q** — dash. 1.5 s cooldown, 20 stamina, 0.45 s i-frames. Works
+  in the air. AABB-aware (won't phase through buildings).
 - **F** — hold to block. 30 stamina/s drain. Reduces incoming damage
-  by 70%. Can't move, M1, dash, or grab while blocking. Animation:
-  arms tight across the face, knees bent, chin tucked.
+  by 70%. Can't move, M1, dash, jump, or grab while blocking.
 - **G** — grab/lunge. 25 stamina, 3 s cooldown. 3 m reach, 1.4×
-  base damage + strong knockback. Right-arm clutching motion. Plays
-  `assets/punch.m4a`. Future use: breaks blocks (when PvP / boss
-  block kits ship).
+  base damage + strong knockback. Plays `assets/punch.m4a`.
 - **Shift** — sprint (1.7× speed).
 - **Stamina** bar (yellow, below HP): regens 18/s when not blocking.
   Caps at `90 + level*8`.
 - **HUD cooldown pips** for Q / G / M1-lockout next to the stat bars.
 
 Future updates (planned):
-2. Cursed energy bar + cursed-technique hotkeys (Z/X/C/V) with
-   per-ability cooldowns. Roster TBD — leaning Gojo / Sukuna /
-   Megumi / Yuji.
-3. Awakening / Domain Expansion burst mode on R (drains CE, halves
+3. Cursed energy bar + cursed-technique hotkeys (Z/X/C/V) with
+   per-ability cooldowns. Roster: leaning Gojo / Sukuna / Megumi / Yuji.
+4. Awakening / Domain Expansion burst mode on R (drains CE, halves
    cooldowns, +damage).
-4. Stat-point allocation on level-up (3 pts/level into Melee /
+5. Stat-point allocation on level-up (3 pts/level into Melee /
    Stamina / Defense / Cursed Energy / Weapon).
-5. Fighting-style swap (Karate / Boxing / etc) chosen at sign-in,
+6. Fighting-style swap (Karate / Boxing / etc) chosen at sign-in,
    modifying the M1 moveset.
