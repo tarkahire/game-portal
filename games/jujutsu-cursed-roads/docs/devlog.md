@@ -4,6 +4,19 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Custom punch sound (assets/punch.mp3)
+
+Player can drop a recording at `games/jujutsu-cursed-roads/assets/
+punch.mp3` and it'll play on every melee strike. Loaded once on
+first audio init (the existing canvas-click handshake), cached as
+an `AudioBuffer`, then triggered via a fresh `BufferSource` per
+punch so rapid hits don't choke each other. Silently no-ops if the
+file is missing — the synthesized `sfx('hit')` blip still plays on
+contact regardless. Gain set to 0.7 so it sits above the blips but
+doesn't clip.
+
+---
+
 ## 2026-05-21 — Chunkier arms + over-emphasized punch visuals
 
 Punches were hard to read — too thin, too fast, too restrained. This

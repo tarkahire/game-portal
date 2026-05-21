@@ -512,11 +512,38 @@ function updateCurseDirector(dt) {
     }
 }
 
-// ─── AUDIO (tiny WebAudio SFX — no asset files) ─────────────
+// ─── AUDIO ──────────────────────────────────────────────────
+// Tiny WebAudio blips (oscillator-based, no assets) for hit/death/UI,
+// plus an optional sampled `punch.mp3` for the melee swing — fetched
+// on first audio init, silently skipped if absent.
 let actx = null;
+let punchBuffer = null;
 function audioInit() {
     if (actx) return;
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+    if (actx) loadPunchSample();
+}
+async function loadPunchSample() {
+    // Resolve relative to the game's index.html. Drop a recording at
+    // games/jujutsu-cursed-roads/assets/punch.mp3 to enable it.
+    try {
+        const res = await fetch('assets/punch.mp3');
+        if (!res.ok) { console.log('[audio] no punch.mp3 found — using synthesized hit only'); return; }
+        const buf = await res.arrayBuffer();
+        punchBuffer = await actx.decodeAudioData(buf);
+        console.log('[audio] punch.mp3 loaded');
+    } catch (e) {
+        console.warn('[audio] failed to load punch.mp3', e);
+    }
+}
+function playPunchSample() {
+    if (!actx || !punchBuffer) return;
+    const src = actx.createBufferSource();
+    src.buffer = punchBuffer;
+    const g = actx.createGain();
+    g.gain.value = 0.7;
+    src.connect(g).connect(actx.destination);
+    src.start(0);
 }
 function blip(freq, dur, type, vol, slideTo) {
     if (!actx) return;
@@ -596,6 +623,7 @@ function meleeStrike() {
     // full commit on the heavy. Reads as "punch with the whole body".
     lungeAmount = hit.heavy ? 1.0 : 0.4;
     if (hit.heavy) torsoTwist *= 2.2;
+    playPunchSample();
 
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     // Punch trail — sparkles along the extension line so the strike's
