@@ -249,12 +249,14 @@ function buildHumanoid(opts = {}) {
     // ── Arms: shoulder → elbow → wrist ──
     function buildArm(side) {
         const shoulder = new THREE.Group();
-        shoulder.position.set(side * 0.34 * S, 0.12 * S, 0);
+        // Shoulder pushed slightly outward so the chunkier deltoid ball
+        // doesn't clip into the chest.
+        shoulder.position.set(side * 0.37 * S, 0.12 * S, 0);
         upperTorsoPivot.add(shoulder);
         shoulder.add(new THREE.Mesh(
-            new THREE.SphereGeometry(0.1 * S, 10, 10), matCoat));
+            new THREE.SphereGeometry(0.13 * S, 10, 10), matCoat));
         const upper = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.075 * S, 0.07 * S, 0.34 * S, 8), matCoat);
+            new THREE.CylinderGeometry(0.105 * S, 0.095 * S, 0.34 * S, 10), matCoat);
         upper.position.y = -0.19 * S;
         shoulder.add(upper);
 
@@ -262,22 +264,23 @@ function buildHumanoid(opts = {}) {
         elbow.position.y = -0.36 * S;
         shoulder.add(elbow);
         elbow.add(new THREE.Mesh(
-            new THREE.SphereGeometry(0.075 * S, 8, 8), matCoat));
+            new THREE.SphereGeometry(0.105 * S, 10, 10), matCoat));
         const forearm = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.065 * S, 0.058 * S, 0.32 * S, 8), matCoat);
+            new THREE.CylinderGeometry(0.092 * S, 0.084 * S, 0.32 * S, 10), matCoat);
         forearm.position.y = -0.17 * S;
         elbow.add(forearm);
 
         const wrist = new THREE.Group();
         wrist.position.y = -0.34 * S;
         elbow.add(wrist);
+        // Beefy fist — clearly visible at the end of every punch
         const hand = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1 * S, 0.12 * S, 0.06 * S), matSkin);
-        hand.position.y = -0.06 * S;
+            new THREE.BoxGeometry(0.14 * S, 0.15 * S, 0.10 * S), matSkin);
+        hand.position.y = -0.07 * S;
         wrist.add(hand);
         const thumb = new THREE.Mesh(
-            new THREE.BoxGeometry(0.04 * S, 0.06 * S, 0.05 * S), matSkin);
-        thumb.position.set(side * 0.06 * S, -0.04 * S, 0);
+            new THREE.BoxGeometry(0.06 * S, 0.08 * S, 0.07 * S), matSkin);
+        thumb.position.set(side * 0.08 * S, -0.05 * S, 0);
         wrist.add(thumb);
         return { shoulder, elbow, wrist };
     }
@@ -574,7 +577,7 @@ const COMBO = [
     { hand: 'R', reach: 2.9, dmgMul: 0.60, knock: 0.0, heavy: false },  // cross
     { hand: 'R', reach: 3.8, dmgMul: 1.50, knock: 1.8, heavy: true  },  // HEAVY 3rd
 ];
-const COMBO_HIT_CD = 200;        // ms between hits inside the chain
+const COMBO_HIT_CD = 270;        // ms between hits — slowed so each punch lingers visibly
 const COMBO_RESET_MS = 700;      // chain resets if you pause longer than this
 let lastM1 = 0;
 let comboIdx = 0;
@@ -587,14 +590,21 @@ function meleeStrike() {
     comboIdx = (comboIdx + 1) % COMBO.length;
 
     // Arm extension on the punching hand + body torque the opposite way
-    if (hit.hand === 'L') { lArmSwing = 1; torsoTwist =  0.15; }
-    else                  { rArmSwing = 1; torsoTwist = -0.15; }
-    if (hit.heavy) {
-        lungeAmount = 1;          // body lunges forward into the strike
-        torsoTwist *= 2.2;        // commits much harder
-    }
+    if (hit.hand === 'L') { lArmSwing = 1; torsoTwist =  0.18; }
+    else                  { rArmSwing = 1; torsoTwist = -0.18; }
+    // Body weight forward on every punch — small commit on jab/cross,
+    // full commit on the heavy. Reads as "punch with the whole body".
+    lungeAmount = hit.heavy ? 1.0 : 0.4;
+    if (hit.heavy) torsoTwist *= 2.2;
 
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    // Punch trail — sparkles along the extension line so the strike's
+    // path is unambiguous even if the camera misses the arm motion.
+    const trailColor = hit.heavy ? '#ffcf66' : '#cbb6ff';
+    for (let i = 1; i <= 3; i++) {
+        const d = hit.reach * (i / 3) * 0.85;
+        burst(player.x + fx * d, 1.4, player.z + fz * d, trailColor, 3);
+    }
     let hitAny = false;
     for (const c of curses) {
         const dx = c.x - player.x, dz = c.z - player.z;
@@ -607,7 +617,7 @@ function meleeStrike() {
     }
     if (hitAny) {
         burst(player.x + fx * 2, 1.3, player.z + fz * 2,
-            hit.heavy ? '#ffcf66' : '#cbb6ff', hit.heavy ? 18 : 6);
+            trailColor, hit.heavy ? 22 : 10);
         sfx('hit');
         if (hit.heavy) sfx('boss');
     }
@@ -955,11 +965,12 @@ function update(dt) {
     const tw = tNow * 0.009;
     const sw = moving ? Math.sin(tw * 1.6) : 0;
     const stride = moving ? Math.abs(Math.sin(tw * 3.2)) * 0.04 : 0;
-    // Decay punch / torque / lunge state
-    lArmSwing = Math.max(0, lArmSwing - dt * 7);
-    rArmSwing = Math.max(0, rArmSwing - dt * 7);
-    torsoTwist *= Math.max(0, 1 - dt * 8);
-    lungeAmount = Math.max(0, lungeAmount - dt * 3.2);  // slower than arm swing — body lingers in the lunge
+    // Decay punch / torque / lunge state. Arm decay slowed (was 7/s)
+    // so each punch hangs visibly extended for ~250 ms.
+    lArmSwing = Math.max(0, lArmSwing - dt * 4.5);
+    rArmSwing = Math.max(0, rArmSwing - dt * 4.5);
+    torsoTwist *= Math.max(0, 1 - dt * 5);
+    lungeAmount = Math.max(0, lungeAmount - dt * 3.2);  // body lingers in the lunge
 
     // Idle wobble — three slow oscillators so nothing snaps to a frozen
     // pose between punches. `sway` is the dominant slow side-to-side
@@ -1033,6 +1044,10 @@ function update(dt) {
     ud.rShoulder.rotation.z = lerp(GR_SHZ,              E_SHZ_R, rArmSwing);
     ud.rShoulder.rotation.y = 0;
     ud.rElbow.rotation.x    = lerp(GR_EBX,              E_EBX,   rArmSwing);
+
+    // Fist "POW" — wrist scales up as the punch peaks, sells the impact
+    ud.lWrist.scale.setScalar(1 + lArmSwing * 0.35);
+    ud.rWrist.scale.setScalar(1 + rArmSwing * 0.35);
 
     // Punch torso twist (overrides the idle upperTorso.y channel)
     ud.upperTorsoPivot.rotation.y = torsoTwist;

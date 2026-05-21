@@ -4,6 +4,35 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Chunkier arms + over-emphasized punch visuals
+
+Punches were hard to read — too thin, too fast, too restrained. This
+pass makes them undeniably visible.
+
+- **Chunkier arms** in `buildHumanoid`: deltoid 0.10 → 0.13, upper arm
+  0.075/0.07 → 0.105/0.095, elbow 0.075 → 0.105, forearm 0.065/0.058
+  → 0.092/0.084, hand box 0.10×0.12×0.06 → 0.14×0.15×0.10, thumb
+  bumped to match. Shoulder offset pushed 0.34 → 0.37 outward so the
+  bigger deltoid doesn't clip the chest. Both the player and the
+  three town NPCs get the new dimensions (they share the rig).
+- **Slower arm decay**: 7/s → 4.5/s, so each punch holds visibly
+  extended for ~250 ms instead of snapping back instantly. Torso
+  twist decay 8/s → 5/s to match.
+- **Combo cooldown** 200 → 270 ms so successive punches don't
+  overlap each other's hang-time.
+- **Lunge on every punch** (was heavy-only): jab/cross now
+  `lungeAmount = 0.4`, heavy stays `1.0`. Whole-body commit reads on
+  every strike.
+- **Fist scale-up**: wrist group scales 1 → 1.35× with the active
+  arm's swing — the chunky fist visibly grows as the punch peaks.
+- **Punch trail sparkles**: every punch spawns three small `burst`
+  particles along the extension line (33%/66%/100% of `reach`) in
+  the punch's tint colour (cyan for jab/cross, gold for heavy), so
+  the path is unambiguous even if the camera misses the arm motion.
+- Hit-burst counts bumped: regular 6 → 10, heavy 18 → 22.
+
+---
+
 ## 2026-05-21 — Heavy 3rd punch (Ryu-style committed straight)
 
 Combo trimmed from 4 hits to 3, with the third becoming a committed
