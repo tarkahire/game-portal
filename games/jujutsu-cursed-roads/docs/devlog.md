@@ -4,6 +4,71 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Tokyo procedural city + forward-leap jump
+
+Massive city expansion + jump retune.
+
+### Jump → low forward leap
+
+- `JUMP_VY` 10 → **5.5** (peak ~0.6 m, airtime ~0.55 s).
+- New `JUMP_FORWARD = 16` m/s burst applied to `player.airVx` /
+  `airVz` in the look direction on jump. Decays at `LEAP_DECAY = 1.8`
+  per second (∴ you cover ~6-8 m before friction kicks in).
+- Vertical integrator extended to push the player along
+  `airVx`/`airVz` each frame and resolve AABB collisions, so leaps
+  can't phase through buildings.
+- Resets `airVx`/`airVz` to 0 on ground contact.
+- `player` init in `startGame` gained `airVx`/`airVz` fields.
+
+### World scale + fog
+
+- `WORLD` 120 → **280** half-extent (560 m wide map).
+- `CURSE_ZONE.maxZ` 100 → **260** — curses spawn across the whole
+  new city.
+- Curse despawn distance 70 → **120** so they don't pop in your
+  face on the bigger map.
+- Fog density 0.006 → **0.0028** for the longer view distance, with
+  the moody dark blue tint kept.
+
+### Procedural Tokyo (replaces hand-placed 7 buildings)
+
+`buildCity()` is now a procedural generator:
+
+- **Road grid**: 9×6 intersections forming an 8-column / 5-row grid
+  of 50 m city blocks. East-west + north-south asphalt roads with
+  yellow centerline dashes throughout.
+- **Crosswalks + traffic lights** at every intersection (5 white
+  zebra stripes on each approach + a tri-light pole with red/
+  amber/green dots).
+- **Per-block content** rolled randomly:
+  - **TOWER** (55%) — single 22-58 m skyscraper with sparse
+    emissive window grid (warm + cool tints), random neon
+    billboard (each with its own point light), rooftop AC unit,
+    optional antenna, optional water tank, ground-level door.
+  - **ROW** (25%) — 2-3 mid-rise shops or office mid-rises in a
+    line. Shops get awnings + neon signs over the door.
+  - **PARK** (13%) — grass slab + 4-9 trees + a bench + trash can.
+  - **PARKING LOT** (7%) — asphalt slab with white lane stripes
+    + 3-6 parked cars with separate body / cabin / windshields /
+    wheels / head- and tail-lights.
+- **Per-block sidewalk decoration**: 8 furniture slots per block
+  (4 along the N edge, 4 along the S edge), rolling between
+  streetlamp / tree / bench / trash-can / vending-machine. Lamps
+  add point lights; vending machines add an illuminated display.
+- **Curbs**: thin raised strips around every block separating
+  sidewalk from road.
+- **Distant skyline**: 40 dark non-collidable boxes scattered
+  south of the city to suggest depth into the haze.
+- **Window optimisation**: skyscraper windows are placed on the
+  N + S faces only (sparser sampling, ~45% drop rate per cell),
+  capped at 8 cols × 14 rows per face — keeps the total mesh
+  count manageable while still reading as a busy city.
+
+`src/main.js` 1411 → 1768 lines. Mesh count rough estimate:
+~2000-3000 active scene objects.
+
+---
+
 ## 2026-05-21 — Kaizen Update 2: Jujutsu High + Tokyo plaza map, jump movement
 
 Second of the Kaizen-shaped updates. Whole world rebuilt; movement
