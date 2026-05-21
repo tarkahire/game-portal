@@ -565,15 +565,14 @@ function toast(msg) {
 }
 
 // ─── COMBAT ─────────────────────────────────────────────────
-// 4-hit alternating jab/cross/jab/cross combo from a boxer guard.
-// Punches are straight arm-extensions (elbow snaps from tight-bent to
-// straight), not haymaker swings — so individual damage is modest. The
-// 4th hit is a slightly stronger right cross with light knockback.
+// 3-hit combo: lead jab → rear cross → committed heavy straight.
+// Punches 1 & 2 are quick straight-arm extensions from the guard. The
+// 3rd is a Ryu-style heavy: full body weight thrown forward, arm fully
+// extended, slight overextension at the elbow, much more reach + dmg.
 const COMBO = [
-    { hand: 'L', reach: 2.4, dmgMul: 0.50, knock: 0.0 },  // lead jab
-    { hand: 'R', reach: 2.5, dmgMul: 0.55, knock: 0.0 },  // rear cross
-    { hand: 'L', reach: 2.4, dmgMul: 0.55, knock: 0.0 },  // jab
-    { hand: 'R', reach: 2.7, dmgMul: 0.90, knock: 0.9 },  // hard cross
+    { hand: 'L', reach: 2.8, dmgMul: 0.55, knock: 0.0, heavy: false },  // jab
+    { hand: 'R', reach: 2.9, dmgMul: 0.60, knock: 0.0, heavy: false },  // cross
+    { hand: 'R', reach: 3.8, dmgMul: 1.50, knock: 1.8, heavy: true  },  // HEAVY 3rd
 ];
 const COMBO_HIT_CD = 200;        // ms between hits inside the chain
 const COMBO_RESET_MS = 700;      // chain resets if you pause longer than this
@@ -584,13 +583,16 @@ function meleeStrike() {
     if (now - lastM1 < COMBO_HIT_CD) return;
     if (now - lastM1 > COMBO_RESET_MS) comboIdx = 0;
     const hit = COMBO[comboIdx];
-    const heavy = comboIdx === COMBO.length - 1;
     lastM1 = now;
-    comboIdx = heavy ? 0 : comboIdx + 1;
+    comboIdx = (comboIdx + 1) % COMBO.length;
 
-    // Arm extension on the punching hand + a small body torque the other way
+    // Arm extension on the punching hand + body torque the opposite way
     if (hit.hand === 'L') { lArmSwing = 1; torsoTwist =  0.15; }
     else                  { rArmSwing = 1; torsoTwist = -0.15; }
+    if (hit.heavy) {
+        lungeAmount = 1;          // body lunges forward into the strike
+        torsoTwist *= 2.2;        // commits much harder
+    }
 
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     let hitAny = false;
@@ -605,9 +607,9 @@ function meleeStrike() {
     }
     if (hitAny) {
         burst(player.x + fx * 2, 1.3, player.z + fz * 2,
-            heavy ? '#ffcf66' : '#cbb6ff', heavy ? 12 : 6);
+            hit.heavy ? '#ffcf66' : '#cbb6ff', hit.heavy ? 18 : 6);
         sfx('hit');
-        if (heavy) sfx('boss');
+        if (hit.heavy) sfx('boss');
     }
 }
 // ═══ (cursed techniques removed) — was: TECHNIQUES dispatcher + Sukuna/Todo/Megumi kits + technique-only VFX helpers + updateProjectiles ═══
@@ -826,9 +828,12 @@ async function refreshSlots() {
 // ─── ANIMATION HELPERS ──────────────────────────────────────
 // Per-hand punch extension (0 = guard, 1 = arm fully extended) +
 // signed torso torque (left punch twists the body one way, right
-// punch the other). Both decay each frame in update().
+// punch the other) + lungeAmount for the heavy 3rd punch (body
+// throws weight forward, chest pitches in, arm overextends). All
+// decay each frame in update().
 let lArmSwing = 0, rArmSwing = 0;
 let torsoTwist = 0;
+let lungeAmount = 0;
 
 // ─── GAME FLOW ──────────────────────────────────────────────
 function startGame(loaded) {
@@ -950,10 +955,11 @@ function update(dt) {
     const tw = tNow * 0.009;
     const sw = moving ? Math.sin(tw * 1.6) : 0;
     const stride = moving ? Math.abs(Math.sin(tw * 3.2)) * 0.04 : 0;
-    // Decay punch / torque state
+    // Decay punch / torque / lunge state
     lArmSwing = Math.max(0, lArmSwing - dt * 7);
     rArmSwing = Math.max(0, rArmSwing - dt * 7);
     torsoTwist *= Math.max(0, 1 - dt * 8);
+    lungeAmount = Math.max(0, lungeAmount - dt * 3.2);  // slower than arm swing — body lingers in the lunge
 
     // Idle wobble — three slow oscillators so nothing snaps to a frozen
     // pose between punches. `sway` is the dominant slow side-to-side
@@ -1008,8 +1014,12 @@ function update(dt) {
     const GL_SHX = -0.60, GL_SHZ =  0.30, GL_EBX = -1.55;
     // Rear (right) hand — low and tucked, casual "I'm not even trying"
     const GR_SHX = -0.18, GR_SHZ = -0.60, GR_EBX = -1.85;
-    // Fully-extended straight punch (both arms target the same shape)
-    const E_SHX = -1.40, E_SHZ_L =  0.05, E_SHZ_R = -0.05, E_EBX = -0.05;
+    // Fully-extended straight punch (both arms target the same shape).
+    // Heavy 3rd punch pushes shoulder + elbow further (lungeAmount > 0).
+    const heavy = lungeAmount;
+    const E_SHX = -1.52 - heavy * 0.15;   // upper arm horizontal → slightly past on heavy
+    const E_SHZ_L =  0.04, E_SHZ_R = -0.04;
+    const E_EBX  =  0.00 + heavy * 0.22;  // elbow straight → slight overextension on heavy
     // Layer a tiny idle wobble on the lead arm so it doesn't freeze
     const leadBreath = !moving ? breath * 0.04 : 0;
     const leadSway   = !moving ? sway   * 0.04 : 0;
@@ -1026,6 +1036,12 @@ function update(dt) {
 
     // Punch torso twist (overrides the idle upperTorso.y channel)
     ud.upperTorsoPivot.rotation.y = torsoTwist;
+
+    // Heavy-3rd body lunge: pelvis throws forward in model space, chest
+    // pitches in over the strike. Layered on top of whatever the
+    // idle/walk branch already set so it works in either state.
+    ud.pelvisPivot.position.z = lungeAmount * 0.28;
+    ud.upperTorsoPivot.rotation.x += lungeAmount * 0.28;
 
     // Third-person camera
     const camDist = 7, camHt = 3.4;

@@ -4,6 +4,34 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Heavy 3rd punch (Ryu-style committed straight)
+
+Combo trimmed from 4 hits to 3, with the third becoming a committed
+heavy straight that lunges the body forward into the strike.
+
+- `COMBO` now: **jab (L)** → **cross (R)** → **HEAVY straight (R)**.
+- Punch reach pushed up on all hits (2.4/2.5 → 2.8/2.9, heavy 2.7 →
+  3.8). Heavy damage 0.9× → 1.5×; knockback 0.9 → 1.8 m.
+- Extended-arm pose pushed further on every punch: shoulder.x -1.40
+  → -1.52, elbow.x -0.05 → 0.00. So jabs/crosses already extend
+  noticeably more than before.
+- `lungeAmount` (0–1, decay 3.2/s — slower than the 7/s arm decay so
+  the body lingers in the lunge) re-introduced. On the heavy hit:
+  - shoulder.x extended target slides further to -1.67, elbow to
+    +0.22 (slight overextension look).
+  - Pelvis throws forward by 0.28 m in model space
+    (`pelvisPivot.position.z`); player.x/z does not actually move,
+    so the bigger reach is purely the heavy hit's larger `reach`
+    field, not a teleport.
+  - Upper torso pitches forward by +0.28 rad over whatever the idle
+    or walk branch set.
+  - Torso Y-twist multiplied 2.2× for a bigger commit.
+- Burst particle count on the heavy 18 (was 12); colour stays
+  yellow vs. the regular purple; `boss` sfx still layered on top of
+  `hit`.
+
+---
+
 ## 2026-05-21 — Cocky idle (asymmetric guard, hip cock, breathing sway)
 
 Previous idle was symmetric and frozen. Re-posed it as a smug
