@@ -565,16 +565,17 @@ function toast(msg) {
 }
 
 // ─── COMBAT ─────────────────────────────────────────────────
-// 4-hit alternating punch combo: jab → cross → hook → finisher.
-// Each hit picks an arm and a torso-twist direction. The 4th hit is the
-// finisher — wider reach, 2× damage, knockback, heavier sfx.
+// 4-hit alternating jab/cross/jab/cross combo from a boxer guard.
+// Punches are straight arm-extensions (elbow snaps from tight-bent to
+// straight), not haymaker swings — so individual damage is modest. The
+// 4th hit is a slightly stronger right cross with light knockback.
 const COMBO = [
-    { hand: 'L', reach: 2.8, dmgMul: 1.0, knock: 0.0, swing: 1.0 },  // jab
-    { hand: 'R', reach: 3.0, dmgMul: 1.0, knock: 0.0, swing: 1.0 },  // cross
-    { hand: 'L', reach: 2.9, dmgMul: 1.1, knock: 0.0, swing: 1.1 },  // hook
-    { hand: 'R', reach: 3.6, dmgMul: 2.0, knock: 2.2, swing: 1.5 },  // finisher
+    { hand: 'L', reach: 2.4, dmgMul: 0.50, knock: 0.0 },  // lead jab
+    { hand: 'R', reach: 2.5, dmgMul: 0.55, knock: 0.0 },  // rear cross
+    { hand: 'L', reach: 2.4, dmgMul: 0.55, knock: 0.0 },  // jab
+    { hand: 'R', reach: 2.7, dmgMul: 0.90, knock: 0.9 },  // hard cross
 ];
-const COMBO_HIT_CD = 220;        // ms between hits inside the chain
+const COMBO_HIT_CD = 200;        // ms between hits inside the chain
 const COMBO_RESET_MS = 700;      // chain resets if you pause longer than this
 let lastM1 = 0;
 let comboIdx = 0;
@@ -583,14 +584,13 @@ function meleeStrike() {
     if (now - lastM1 < COMBO_HIT_CD) return;
     if (now - lastM1 > COMBO_RESET_MS) comboIdx = 0;
     const hit = COMBO[comboIdx];
-    const finisher = comboIdx === COMBO.length - 1;
+    const heavy = comboIdx === COMBO.length - 1;
     lastM1 = now;
-    comboIdx = finisher ? 0 : comboIdx + 1;
+    comboIdx = heavy ? 0 : comboIdx + 1;
 
-    // Animation: arm-snap on the swinging hand + body torque opposite side
-    if (hit.hand === 'L') { lArmSwing = hit.swing; torsoTwist = 0.4; }
-    else                  { rArmSwing = hit.swing; torsoTwist = -0.4; }
-    if (finisher) lungeAmount = 0.18;
+    // Arm extension on the punching hand + a small body torque the other way
+    if (hit.hand === 'L') { lArmSwing = 1; torsoTwist =  0.15; }
+    else                  { rArmSwing = 1; torsoTwist = -0.15; }
 
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     let hitAny = false;
@@ -605,9 +605,9 @@ function meleeStrike() {
     }
     if (hitAny) {
         burst(player.x + fx * 2, 1.3, player.z + fz * 2,
-            finisher ? '#ffcf66' : '#cbb6ff', finisher ? 18 : 8);
+            heavy ? '#ffcf66' : '#cbb6ff', heavy ? 12 : 6);
         sfx('hit');
-        if (finisher) sfx('boss');
+        if (heavy) sfx('boss');
     }
 }
 // ═══ (cursed techniques removed) — was: TECHNIQUES dispatcher + Sukuna/Todo/Megumi kits + technique-only VFX helpers + updateProjectiles ═══
@@ -824,12 +824,11 @@ async function refreshSlots() {
 }
 
 // ─── ANIMATION HELPERS ──────────────────────────────────────
-// Per-hand punch swing + signed torso torque (signed because left punch
-// twists the body one way, right punch the other) + a brief forward
-// lunge for the combo finisher. All decay each frame in update().
+// Per-hand punch extension (0 = guard, 1 = arm fully extended) +
+// signed torso torque (left punch twists the body one way, right
+// punch the other). Both decay each frame in update().
 let lArmSwing = 0, rArmSwing = 0;
 let torsoTwist = 0;
-let lungeAmount = 0;
 
 // ─── GAME FLOW ──────────────────────────────────────────────
 function startGame(loaded) {
@@ -943,33 +942,65 @@ function update(dt) {
     const gy = terrainHeight(player.x, player.z);
     playerModel.position.set(player.x, gy, player.z);
     playerModel.rotation.y = yaw + Math.PI;
-    // Constructed-humanoid walk + idle + punch combo
+    // Boxer-stance humanoid: legs in orthodox stance when idle (lead
+    // foot forward, rear foot back, both knees slightly bent); arms
+    // always in guard (fists by face, elbows tucked). Punches are
+    // straight-arm extensions — the elbow snaps from tight-bent to
+    // straight, the shoulder pivots forward, no haymaker windup.
     const ud = playerModel.userData;
     const tNow = performance.now();
     const tw = tNow * 0.009;
     const sw = moving ? Math.sin(tw * 1.6) : 0;
     const stride = moving ? Math.abs(Math.sin(tw * 3.2)) * 0.04 : 0;
-    const idleBob = !moving ? Math.sin(tNow * 0.002) * 0.015 : 0;
-    // Decay combo state
-    lArmSwing = Math.max(0, lArmSwing - dt * 6);
-    rArmSwing = Math.max(0, rArmSwing - dt * 6);
-    torsoTwist *= Math.max(0, 1 - dt * 7);
-    lungeAmount = Math.max(0, lungeAmount - dt * 4);
-    // Pelvic bob (walk) + finisher lunge dip
-    ud.pelvisPivot.position.y = (1.06 * ud.S) + idleBob + stride - lungeAmount * 0.5;
-    // Legs: opposite-phase hips with knees bending on the backswing
-    ud.lHip.rotation.x = sw * 0.75;
-    ud.rHip.rotation.x = -sw * 0.75;
-    ud.lKnee.rotation.x = Math.max(0, -sw) * 0.8;
-    ud.rKnee.rotation.x = Math.max(0, sw) * 0.8;
-    // Arms: walk counter-swing + per-hand punch swing
-    ud.lShoulder.rotation.x = -sw * 0.55 - lArmSwing * 2.3;
-    ud.rShoulder.rotation.x =  sw * 0.55 - rArmSwing * 2.3;
-    ud.lElbow.rotation.x = Math.max(0, sw) * 0.45 + lArmSwing * 1.6;
-    ud.rElbow.rotation.x = Math.max(0, -sw) * 0.45 + rArmSwing * 1.6;
-    // Torso twist: stride sway + punch torque + finisher lean-in
-    ud.upperTorsoPivot.rotation.y = sw * 0.08 + torsoTwist;
-    ud.upperTorsoPivot.rotation.x = lungeAmount;
+    const idleBob = !moving ? Math.sin(tNow * 0.002) * 0.012 : 0;
+    // Decay punch / torque state
+    lArmSwing = Math.max(0, lArmSwing - dt * 7);
+    rArmSwing = Math.max(0, rArmSwing - dt * 7);
+    torsoTwist *= Math.max(0, 1 - dt * 8);
+    ud.pelvisPivot.position.y = (1.06 * ud.S) + idleBob + stride;
+
+    // ── Legs ──
+    if (moving) {
+        // Walk: opposite-phase hips with knees bending on backswing
+        ud.lHip.rotation.x = sw * 0.65;
+        ud.rHip.rotation.x = -sw * 0.65;
+        ud.lKnee.rotation.x = Math.max(0, -sw) * 0.75;
+        ud.rKnee.rotation.x = Math.max(0, sw) * 0.75;
+        ud.lHip.rotation.z = 0;
+        ud.rHip.rotation.z = 0;
+    } else {
+        // Idle stance: lead (left) foot forward, rear (right) foot back,
+        // both knees softened, hips bladed slightly.
+        ud.lHip.rotation.x = -0.20;
+        ud.rHip.rotation.x =  0.18;
+        ud.lHip.rotation.z = -0.05;
+        ud.rHip.rotation.z =  0.05;
+        ud.lKnee.rotation.x = 0.20;
+        ud.rKnee.rotation.x = 0.30;
+    }
+
+    // ── Arms in guard, lerping toward extension per active punch ──
+    const lerp = (a, b, t) => a + (b - a) * t;
+    // Guard pose constants
+    const G_SHX = -0.55;  // shoulder.x: upper arm raised forward ~30°
+    const G_SHZ =  0.55;  // shoulder.z: rotated inward toward centerline (left arm; mirror for right)
+    const G_EBX = -2.00;  // elbow.x: forearm folded up tight to the face
+    // Fully-extended (straight punch)
+    const E_SHX = -1.40;  // upper arm horizontal, pointing forward
+    const E_SHZ =  0.05;  // shoulder almost aligned with body axis
+    const E_EBX = -0.05;  // elbow nearly straight
+    ud.lShoulder.rotation.x = lerp(G_SHX, E_SHX, lArmSwing);
+    ud.lShoulder.rotation.z = lerp( G_SHZ,  E_SHZ, lArmSwing);
+    ud.lShoulder.rotation.y = 0;
+    ud.lElbow.rotation.x    = lerp(G_EBX, E_EBX, lArmSwing);
+    ud.rShoulder.rotation.x = lerp(G_SHX, E_SHX, rArmSwing);
+    ud.rShoulder.rotation.z = lerp(-G_SHZ, -E_SHZ, rArmSwing);
+    ud.rShoulder.rotation.y = 0;
+    ud.rElbow.rotation.x    = lerp(G_EBX, E_EBX, rArmSwing);
+
+    // Subtle torso twist with punches
+    ud.upperTorsoPivot.rotation.y = torsoTwist;
+    ud.upperTorsoPivot.rotation.x = 0;
 
     // Third-person camera
     const camDist = 7, camHt = 3.4;

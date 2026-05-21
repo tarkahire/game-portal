@@ -4,6 +4,32 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-21 — Boxer stance + straight-punch animation, weaker damage
+
+Retuned the combo to feel like a boxer's jab chain rather than a
+wind-up flurry.
+
+- **Idle stance**: orthodox boxer guard. Lead (left) leg forward, rear
+  (right) leg back, both knees slightly bent, hips bladed a little.
+  Both arms in guard pose — upper arms raised forward ~30°, shoulders
+  rotated inward, elbows folded tight so the fists sit by the face.
+  Driven only when `!moving` (walking still uses the stride anim).
+- **Punch motion**: each hit lerps the active arm from guard to a
+  straight extension — shoulder pitches from -0.55 → -1.40 rad
+  (forward), shoulder.z from ±0.55 → ±0.05 (rotates out to align), and
+  elbow.x from -2.00 → -0.05 (snaps the forearm straight). It reads
+  as the arm *straightening* into a jab/cross rather than swinging
+  from the shoulder. Decay rate bumped to 7/s for snappier retracts.
+- **Damage**: roughly halved. jab/cross/jab now 0.50–0.55× base; the
+  4th hard cross is 0.90× (down from 2.0×) with a 0.9 m knockback
+  (down from 2.2 m). `boss` sfx still layered on the 4th. The
+  finisher lunge (pelvis dip + chest pitch-forward) is gone — these
+  are straight punches, not lurches.
+- Per-hit cooldown tightened 220 → 200 ms; reset window unchanged
+  at 700 ms.
+
+---
+
 ## 2026-05-21 — 4-hit punch combo (jab → cross → hook → finisher)
 
 LMB melee is no longer a single strike — it's a chain that alternates
