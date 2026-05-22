@@ -19,11 +19,13 @@ Jump into a wall and you grab onto it.
 - While airborne, leaping into a qualifying wall (with velocity *into*
   it) sets `player.onWall` + stores the wall normal; gravity and air
   drift stop.
-- On the wall: **W** climbs up, **S** climbs down (reaching the ground
-  releases you), **Space** leaps off along the wall normal + upward.
-  Horizontal WASD, dash, grab, block, abilities and M1 are all locked
-  out while clinging. New climb pose hugs the wall — the player faces
-  into it, arms reaching overhead alternating with the climb cycle.
+- On the wall: **W** climbs up, **S** climbs down, **Space** leaps off
+  along the wall normal + upward. You stay attached to the wall until
+  you choose to jump off — climbing down to the ground does **not**
+  detach you. Horizontal WASD, dash, grab, block, abilities and M1 are
+  all locked out while clinging. New climb pose hugs the wall — the
+  player faces into it, arms reaching overhead alternating with the
+  climb cycle.
 - An on-screen prompt shows the climb controls while attached.
 
 ### Air-slam ground-pound

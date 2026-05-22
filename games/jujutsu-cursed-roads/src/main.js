@@ -2647,12 +2647,13 @@ function update(dt) {
     // Gravity + vertical integration. Forward leap velocity is applied
     // each frame and decays so the player covers distance, not height.
     if (player.onWall) {
-        // Clinging to a wall — W climbs up, S climbs down (reaching the
-        // ground releases you), Space (handled in doJump) leaps off.
+        // Clinging to a wall — W climbs up, S climbs down. You stay
+        // attached until you choose to jump off (Space, via doJump);
+        // climbing down to the ground does NOT release you.
         // No gravity while held.
         if (keys['KeyW']) player.y += CLIMB_SPEED * dt;
         if (keys['KeyS']) player.y -= CLIMB_SPEED * dt;
-        if (player.y <= 0) { player.y = 0; player.onWall = false; }
+        if (player.y < 0) player.y = 0;     // can't climb below the ground
         player.vy = 0; player.airVx = 0; player.airVz = 0;
     } else if (player.y > 0 || player.vy > 0) {
         player.vy -= GRAVITY * dt;
