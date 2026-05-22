@@ -4,6 +4,57 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-22 — Wall-climbing + air-slam ground-pound
+
+Two new traversal/combat moves.
+
+### Wall climbing
+
+Jump into a wall and you grab onto it.
+
+- New `wallContact(x, z)` scans the AABB obstacle list and returns the
+  outward normal of any wall face the player is flush against. Only
+  obstacles with a face longer than 6 m count — so you grab buildings
+  and perimeter walls, not cars / vending machines / training dummies.
+- While airborne, leaping into a qualifying wall (with velocity *into*
+  it) sets `player.onWall` + stores the wall normal; gravity and air
+  drift stop.
+- On the wall: **W** climbs up, **S** climbs down (reaching the ground
+  releases you), **Space** leaps off along the wall normal + upward.
+  Horizontal WASD, dash, grab, block, abilities and M1 are all locked
+  out while clinging. New climb pose hugs the wall — the player faces
+  into it, arms reaching overhead alternating with the climb cycle.
+- An on-screen prompt shows the climb controls while attached.
+
+### Air-slam ground-pound
+
+An M1 while airborne (`player.y > 0.2`) is no longer the ground combo
+— it's a downward ground-pound (`doAirSlam`).
+
+- The player rockets straight down (`vy = -24`, forward drift cut).
+- Curses within ~4.5 m in front are punched for ~1.8× damage and
+  **slammed** — a new `slamUntil` state that immobilises a curse and
+  squashes its mesh flat against the floor. (No ice shell — that's
+  Naoya's freeze; the slam is a separate squash.)
+- On landing, `airSlamImpact` detonates: dust shockrings, camera
+  shake, hitstop, and everything within 7 m takes ~1.2× damage + a
+  slam.
+- One slam per airborne period (`airSlamUsed`, reset on landing/grab).
+
+### Plumbing
+
+- Curses gained `slamUntil`; the curse loop treats `frozen || slammed`
+  as "disabled" (no chase/attack) and squashes slammed curses flat.
+- Curses can no longer hit the player while they are high up — a
+  `player.y < 2.5` gate on the contact-damage check — so climbing a
+  wall genuinely escapes ground curses.
+- New player state: `onWall`, `wallNX/wallNZ`, `airSlamUsed`,
+  `slamming`. All reset on death/respawn.
+
+`src/main.js` 3146 → 3295 lines.
+
+---
+
 ## 2026-05-22 — Naoya freeze kit, black/red Black Flash, M1 spark cleanup
 
 Three combat-feel changes.

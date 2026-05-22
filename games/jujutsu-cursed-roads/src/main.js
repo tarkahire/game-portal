@@ -974,7 +974,8 @@ function spawnCurse(boss) {
         maxHp: baseHp * gradeMul * levelMul,
         dmg: baseDmg * gradeMul * levelMul,
         speed: boss ? 4.4 : 3.6,
-        lastHit: 0, bob: Math.random() * 6, alive: true, frozenUntil: 0, iceShell: null,
+        lastHit: 0, bob: Math.random() * 6, alive: true,
+        frozenUntil: 0, iceShell: null, slamUntil: 0,
         xp:   boss ? 0 : Math.round(22 * (1 + save.level * 0.05)),
         gold: boss ? 0 : Math.round(6  * (1 + save.level * 0.04)),
     });
@@ -1344,6 +1345,7 @@ function castAbility(slot) {
     if (now < abilityReady[slot]) return;       // on cooldown
     if (player.ce < ab.cost) { toast('Not enough cursed energy'); return; }
     if (player.blocking) return;
+    if (player.onWall) return;
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     abilityReady[slot] = now + ab.cd * 1000;
     player.ce -= ab.cost;
@@ -1919,6 +1921,8 @@ const COMBO_DOWNTIME_MS = 1500;  // Kaizen-style forced breathing room after the
 let lastM1 = 0;
 let comboIdx = 0;
 function meleeStrike() {
+    if (player.onWall) return;                        // both hands hold the wall
+    if (player.y > 0.2) { doAirSlam(); return; }       // airborne M1 = ground-pound
     const now = performance.now();
     if (now < player.comboLockUntil) return;  // post-heavy downtime
     if (now - lastM1 < COMBO_HIT_CD) return;
@@ -1954,6 +1958,55 @@ function meleeStrike() {
     }
     // M1 feedback is the punch sample + the curse's white hit-flash +
     // knockback — no spark particles (removed at the user's request).
+}
+
+// ─── AIR SLAM (ground-pound) ────────────────────────────────
+// An M1 in the air rockets the player straight down. Curses in front
+// get spiked into the floor; landing detonates a ground-pound shock.
+function slamCurse(c, ms) {
+    if (!c || !c.alive) return;
+    c.slamUntil = Math.max(c.slamUntil || 0, performance.now() + ms);
+    burst(c.x, 0.4, c.z, '#7a6a4a', 10);
+    shockRing(c.x, c.z, '#caa86a', 2.8, 340, 0.4);
+}
+function doAirSlam() {
+    if (player.airSlamUsed) return;                 // one slam per jump
+    player.airSlamUsed = true;
+    player.slamming = true;
+    player.vy = -24;                                // rocket straight down
+    player.airVx *= 0.25; player.airVz *= 0.25;     // kill most forward drift
+    rArmSwing = 1; torsoTwist = -0.3; lungeAmount = 1.0;
+    playPunchSample();
+    sfx('boss');
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    let hitAny = false;
+    for (const c of curses.slice()) {
+        const dx = c.x - player.x, dz = c.z - player.z;
+        const d = Math.hypot(dx, dz);
+        if (d > 4.5) continue;
+        if (d > 0.6 && (dx / d) * fx + (dz / d) * fz < -0.35) continue;  // skip behind
+        let dmg = player.damage * 1.8 * (admin.oneShot ? 9999 : 1);
+        dmg = tryBlackFlash(c, dmg);
+        damageCurse(c, dmg);
+        slamCurse(c, 1500);
+        hitAny = true;
+    }
+    if (hitAny) { camShake(0.1, 0.18); hitstop(0.04); }
+}
+function airSlamImpact() {
+    // Fired when a slam dive hits the ground — the ground-pound shock.
+    const x = player.x, z = player.z;
+    shockRing(x, z, '#caa86a', 9, 540, 0.8);
+    shockRing(x, z, '#ffffff', 5, 360, 0.4);
+    burst(x, 0.3, z, '#7a6a4a', 24);
+    camShake(0.18, 0.3);
+    hitstop(0.05);
+    sfx('boss');
+    for (const c of curses.slice()) {
+        if (Math.hypot(c.x - x, c.z - z) > 7) continue;
+        damageCurse(c, player.damage * 1.2);
+        slamCurse(c, 1100);
+    }
 }
 // ═══ (cursed techniques removed) — was: TECHNIQUES dispatcher + Sukuna/Todo/Megumi kits + technique-only VFX helpers + updateProjectiles ═══
 
@@ -2077,6 +2130,8 @@ function damagePlayer(dmg) {
         player.hp = player.maxHp;
         player.stamina = player.maxStamina;
         player.blocking = false;
+        player.onWall = false; player.slamming = false; player.airSlamUsed = false;
+        player.y = 0; player.vy = 0; player.airVx = 0; player.airVz = 0;
         player.x = TOWN.x; player.z = TOWN.z + 6;
         for (const c of curses.slice()) { scene.remove(c.mesh); }
         curses.length = 0;
@@ -2283,6 +2338,7 @@ function startGame(loaded) {
         iframes: 0, hp: undefined, stamina: undefined, ce: undefined,
         blocking: false, comboLockUntil: 0,
         bfDoubleNext: false, bfWindowUntil: 0, tempGodUntil: 0,
+        onWall: false, wallNX: 0, wallNZ: 0, airSlamUsed: false, slamming: false,
     };
     deriveStats();
     player.damage += (save.flags.dmgBonus || 0);
@@ -2372,7 +2428,17 @@ const GRAVITY = 25;
 const JUMP_VY = 5.5;          // low arc
 const JUMP_FORWARD = 16;      // m/s forward burst on jump
 const LEAP_DECAY = 1.8;       // /s — how fast the forward burst bleeds off
+const CLIMB_SPEED = 3.6;      // m/s — wall-climb rate
 function doJump() {
+    if (player.onWall) {
+        // Leap off the wall — away along the wall normal + upward
+        player.onWall = false;
+        player.vy = JUMP_VY * 1.15;
+        player.airVx = player.wallNX * JUMP_FORWARD * 0.95;
+        player.airVz = player.wallNZ * JUMP_FORWARD * 0.95;
+        sfx('ui');
+        return;
+    }
     if (player.y > 0.01) return;        // only from ground
     if (player.blocking) return;
     player.vy = JUMP_VY;
@@ -2391,6 +2457,7 @@ function doDash() {
     if (now - lastDash < DASH_CD) return;
     if (player.stamina < DASH_STAMINA) { toast('Out of stamina'); return; }
     if (player.blocking) return;
+    if (player.onWall) return;
     lastDash = now;
     player.stamina -= DASH_STAMINA;
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
@@ -2415,6 +2482,7 @@ function doGrab() {
     if (now - lastGrab < GRAB_CD) return;
     if (player.stamina < GRAB_STAMINA) { toast('Out of stamina'); return; }
     if (player.blocking) return;
+    if (player.onWall) return;
     lastGrab = now;
     player.stamina -= GRAB_STAMINA;
     // Trigger right-arm extension animation + a small lunge body commit
@@ -2485,6 +2553,28 @@ function pushOutObstacles(nx, nz, axis, prev) {
     return axis === 'x' ? nx : nz;
 }
 
+// If the player is flush against a climbable wall face, return its
+// outward normal {nx, nz}; else null. Only big obstacles count as
+// "walls" (a face longer than 6 m) — so buildings + perimeter walls
+// are climbable, but cars / vending machines / dummies are not.
+function wallContact(x, z) {
+    const pad = 0.4, eps = 0.55;
+    for (const o of obstacles) {
+        if ((o.maxX - o.minX) <= 6 && (o.maxZ - o.minZ) <= 6) continue;
+        const spanZ = z > o.minZ - 0.6 && z < o.maxZ + 0.6;
+        const spanX = x > o.minX - 0.6 && x < o.maxX + 0.6;
+        if (spanZ) {
+            if (x <= o.minX && x > o.minX - pad - eps) return { nx: -1, nz: 0 };
+            if (x >= o.maxX && x < o.maxX + pad + eps) return { nx:  1, nz: 0 };
+        }
+        if (spanX) {
+            if (z <= o.minZ && z > o.minZ - pad - eps) return { nx: 0, nz: -1 };
+            if (z >= o.maxZ && z < o.maxZ + pad + eps) return { nx: 0, nz:  1 };
+        }
+    }
+    return null;
+}
+
 // ─── UPDATE ─────────────────────────────────────────────────
 function update(dt) {
     if (state !== 'playing') return;
@@ -2499,7 +2589,7 @@ function update(dt) {
     // Block — hold F. Drains 30 stamina/s while held. Auto-drops when
     // empty. Can't M1, dash, grab, or move while blocking.
     const wantBlock = !!keys['KeyF'];
-    if (wantBlock && player.stamina > 0) {
+    if (wantBlock && player.stamina > 0 && !player.onWall) {
         player.blocking = true;
         if (!admin.infStam) player.stamina = Math.max(0, player.stamina - dt * 30);
     } else {
@@ -2556,7 +2646,15 @@ function update(dt) {
 
     // Gravity + vertical integration. Forward leap velocity is applied
     // each frame and decays so the player covers distance, not height.
-    if (player.y > 0 || player.vy > 0) {
+    if (player.onWall) {
+        // Clinging to a wall — W climbs up, S climbs down (reaching the
+        // ground releases you), Space (handled in doJump) leaps off.
+        // No gravity while held.
+        if (keys['KeyW']) player.y += CLIMB_SPEED * dt;
+        if (keys['KeyS']) player.y -= CLIMB_SPEED * dt;
+        if (player.y <= 0) { player.y = 0; player.onWall = false; }
+        player.vy = 0; player.airVx = 0; player.airVz = 0;
+    } else if (player.y > 0 || player.vy > 0) {
         player.vy -= GRAVITY * dt;
         player.y += player.vy * dt;
         if (player.airVx || player.airVz) {
@@ -2575,6 +2673,21 @@ function update(dt) {
         if (player.y <= 0) {
             player.y = 0; player.vy = 0;
             player.airVx = 0; player.airVz = 0;
+            player.airSlamUsed = false;
+            if (player.slamming) { player.slamming = false; airSlamImpact(); }
+        } else if (!admin.noclip && player.y > 0.1 && !player.slamming) {
+            // Jumped into a wall? Grab on.
+            const wc = wallContact(player.x, player.z);
+            if (wc) {
+                const into = player.airVx * (-wc.nx) + player.airVz * (-wc.nz);
+                if (into > 1.0) {
+                    player.onWall = true;
+                    player.wallNX = wc.nx; player.wallNZ = wc.nz;
+                    player.vy = 0; player.airVx = 0; player.airVz = 0;
+                    player.airSlamUsed = false;
+                    sfx('hit');
+                }
+            }
         }
     }
 
@@ -2711,6 +2824,28 @@ function update(dt) {
     ud.pelvisPivot.position.z = lungeAmount * 0.28;
     ud.upperTorsoPivot.rotation.x += lungeAmount * 0.28;
 
+    // ── Wall-cling pose — overrides idle/walk/block while attached ──
+    if (player.onWall) {
+        playerModel.rotation.y = Math.atan2(-player.wallNX, -player.wallNZ);
+        const climbing = !!keys['KeyW'] || !!keys['KeyS'];
+        const cl = climbing ? Math.sin(tNow * 0.012) : Math.sin(tNow * 0.002) * 0.25;
+        ud.lShoulder.rotation.set(-2.55 + cl * 0.55, 0,  0.18);
+        ud.rShoulder.rotation.set(-2.55 - cl * 0.55, 0, -0.18);
+        ud.lElbow.rotation.x = -0.45 - Math.max(0, -cl) * 0.6;
+        ud.rElbow.rotation.x = -0.45 - Math.max(0,  cl) * 0.6;
+        ud.lWrist.scale.setScalar(1);
+        ud.rWrist.scale.setScalar(1);
+        ud.lHip.rotation.set(-0.35 - cl * 0.5, 0,  0.14);
+        ud.rHip.rotation.set(-0.35 + cl * 0.5, 0, -0.14);
+        ud.lKnee.rotation.x = 0.85 + Math.max(0,  cl) * 0.5;
+        ud.rKnee.rotation.x = 0.85 + Math.max(0, -cl) * 0.5;
+        ud.pelvisPivot.position.set(0, 1.06 * ud.S, 0);
+        ud.pelvisPivot.rotation.z = 0;
+        ud.lowerTorsoPivot.rotation.z = 0;
+        ud.upperTorsoPivot.rotation.set(0.18, 0, 0);
+        ud.headPivot.rotation.set(0.22, 0, 0);
+    }
+
     // Overhead quest arrow — points at the nearest unlocked giver with
     // an available (or retake-able) quest. Hidden when none eligible or
     // when the player is already next to one (or the giver hasn't been
@@ -2765,22 +2900,32 @@ function update(dt) {
     // Curses
     updateCurseDirector(dt);
     for (const c of curses) {
-        const frozen = (c.frozenUntil || 0) > performance.now();
-        if (!frozen) {
+        const now = performance.now();
+        const frozen = (c.frozenUntil || 0) > now;
+        const slammed = (c.slamUntil || 0) > now;
+        const disabled = frozen || slammed;
+        if (!disabled) {
             const dx = player.x - c.x, dz = player.z - c.z;
             const d = Math.hypot(dx, dz) || 1;
             if (d < 30 && d > 1.6) {
                 c.x += (dx / d) * c.speed * curseSpeedMul * dt;
                 c.z += (dz / d) * c.speed * curseSpeedMul * dt;
-            } else if (d <= 1.8 && performance.now() - c.lastHit > 900) {
-                c.lastHit = performance.now();
+            } else if (d <= 1.8 && player.y < 2.5 && now - c.lastHit > 900) {
+                c.lastHit = now;
                 damagePlayer(c.dmg);
             }
             c.bob += dt * 4;
         }
-        // Frozen curses hold position + bob; everyone re-grounds here
-        c.mesh.position.set(c.x, terrainHeight(c.x, c.z) + Math.sin(c.bob) * 0.15, c.z);
-        if (!frozen) c.mesh.lookAt(player.x, c.mesh.position.y, player.z);
+        // Slammed curses are squashed flat into the ground; frozen ones
+        // just hold position. Everyone re-grounds here.
+        if (slammed) {
+            c.mesh.position.set(c.x, terrainHeight(c.x, c.z), c.z);
+            c.mesh.scale.set(1.5, 0.34, 1.5);
+        } else {
+            c.mesh.position.set(c.x, terrainHeight(c.x, c.z) + Math.sin(c.bob) * 0.15, c.z);
+            if (c.mesh.scale.y !== 1) c.mesh.scale.set(1, 1, 1);
+        }
+        if (!disabled) c.mesh.lookAt(player.x, c.mesh.position.y, player.z);
         // Ice shell — translucent crystal wrap that tracks the freeze
         if (frozen && !c.iceShell) {
             const s = c.boss ? 2.6 : 1;
@@ -2828,6 +2973,10 @@ function update(dt) {
     const pr = document.getElementById('prompt');
     if (nearInteract) { pr.style.display = 'block'; pr.innerHTML = `Press <b>E</b> — ${nearInteract.userData.label}`; }
     else pr.style.display = 'none';
+    if (player.onWall) {
+        pr.style.display = 'block';
+        pr.innerHTML = '<b>W</b> climb &nbsp;·&nbsp; <b>S</b> down &nbsp;·&nbsp; <b>Space</b> jump off';
+    }
 
     // Town slow heal
     if (Math.hypot(player.x - TOWN.x, player.z - TOWN.z) < TOWN.r) {
