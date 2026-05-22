@@ -4,6 +4,55 @@ Reverse-chronological record of notable changes. Newest first.
 
 ---
 
+## 2026-05-22 — Naoya freeze kit, black/red Black Flash, M1 spark cleanup
+
+Three combat-feel changes.
+
+### Naoya — Projection Sorcery now FREEZES enemies
+
+Naoya's whole kit was retooled around stopping the enemy in time.
+
+- **New shared freeze system.** Curses gained a `frozenUntil`
+  timestamp. While frozen a curse stops chasing + attacking, its bob
+  halts, it stops turning to face the player (a real "time stop"
+  look), and a translucent pale-cyan **ice shell** icosahedron wraps
+  its body (added/removed + slowly spun in the curse loop).
+- `freezeCurse(c, ms)` helper extends the freeze and pops a
+  `frostBurst` (icy cyan cone shards + a frost ring).
+- **Z — 1/24 Burst**: anyone caught in the dash tube is frozen 1.4 s.
+  8 after-images (was 5), cyan/yellow lightning crackling off the
+  path, a frost ring at the landing.
+- **X — Frame Lock Step**: the main target is frozen **3 s**, nearby
+  curses 1.6 s. 6 sky bolts (was 4) + 8 jagged ground-lightning
+  streaks + a second time-ripple ring.
+- **C — 24-Frame Barrage**: every strike re-pins its target's freeze;
+  jagged lightning on alternating ticks; a **finale** detonates every
+  pinned curse (2.2 s freeze + `explode`).
+- **R — Domain: Time-Slip**: no longer *slows* curses — it now
+  **freezes every curse inside the 20 m radius solid**, refreshed each
+  frame so curses wandering in are caught too. Player still blitzes at
+  1.5×. Dome gained 26 suspended ice motes + frost shockrings on cast.
+  (`curseSpeedMul` is no longer set by anything; left at a constant 1.)
+
+### Black Flash — black & red lightning
+
+`blackFlashVfx` recoloured + reshaped: a black distortion core with a
+red-hot inner flash, black + red shockrings, a red flash light, and
+~18 jagged **black-and-red lightning bolts** crackling outward (new
+shared `lightningStreak` helper — a cheap segmented, jittered
+`THREE.Line`). The old white core + yellow straight-box sparks are gone.
+
+### M1 — no more spark particles
+
+The melee combo no longer spawns `burst` spark particles — neither the
+3-point trail along the swing nor the on-hit pop. M1 feedback is now
+the punch sample, the curse's white hit-flash, and knockback. Black
+Flash procs still detonate fully.
+
+`src/main.js` 3009 → 3146 lines.
+
+---
+
 ## 2026-05-21 — Black Flash mechanic + Naoya Projection Sorcery
 
 ### Black Flash (universal M1 proc)

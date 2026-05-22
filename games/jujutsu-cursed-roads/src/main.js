@@ -974,7 +974,7 @@ function spawnCurse(boss) {
         maxHp: baseHp * gradeMul * levelMul,
         dmg: baseDmg * gradeMul * levelMul,
         speed: boss ? 4.4 : 3.6,
-        lastHit: 0, bob: Math.random() * 6, alive: true,
+        lastHit: 0, bob: Math.random() * 6, alive: true, frozenUntil: 0, iceShell: null,
         xp:   boss ? 0 : Math.round(22 * (1 + save.level * 0.05)),
         gold: boss ? 0 : Math.round(6  * (1 + save.level * 0.04)),
     });
@@ -1196,46 +1196,44 @@ function tryBlackFlash(c, baseDmg) {
     return baseDmg * BF.hitMul;
 }
 function blackFlashVfx(x, y, z) {
-    // Layered detonation: white core flash + dark ring + yellow sparks
-    const core = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12),
-        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95 }));
+    // Black Flash — a black spatial-distortion crack with a red-hot
+    // core, crackling black & red lightning bolts radiating outward.
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.75, 16, 12),
+        new THREE.MeshBasicMaterial({ color: '#0a0008', transparent: true, opacity: 0.95 }));
     core.position.set(x, y, z); scene.add(core);
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.4, 14, 10),
+        new THREE.MeshBasicMaterial({ color: '#ff2030', transparent: true, opacity: 0.95 }));
+    inner.position.set(x, y, z); scene.add(inner);
     const dark = new THREE.Mesh(new THREE.RingGeometry(0.4, 1.0, 28),
-        new THREE.MeshBasicMaterial({ color: '#0a0a14', transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
+        new THREE.MeshBasicMaterial({ color: '#050505', transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
     dark.rotation.x = -Math.PI / 2; dark.position.set(x, 0.15, z); scene.add(dark);
-    flashLight(x, y, z, '#ffe066', 8, 380);
-    shockRing(x, z, '#ffe066', 7, 460, 0.6);
-    shockRing(x, z, '#0a0a14', 5, 380, 0.5);
-    // Electric crackle sparks — yellow streaks shooting outward
-    for (let i = 0; i < 14; i++) {
-        const a = Math.random() * Math.PI * 2, len = 1.6 + Math.random() * 1.4;
-        const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, len),
-            new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.95 }));
-        m.position.set(x, y + (Math.random() - 0.5) * 1.0, z);
-        m.rotation.y = a;
-        m.translateZ(len / 2);
-        scene.add(m);
-        const t0 = performance.now();
-        const tk = () => {
-            const t = (performance.now() - t0) / 360;
-            if (t >= 1) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); return; }
-            m.material.opacity = 0.95 * (1 - t);
-            m.scale.z = 1 + t * 2;
-            requestAnimationFrame(tk);
-        };
-        requestAnimationFrame(tk);
+    flashLight(x, y, z, '#ff1a2a', 9, 420);
+    shockRing(x, z, '#ff2030', 7, 460, 0.6);
+    shockRing(x, z, '#050505', 5, 380, 0.6);
+    // Crackling lightning — jagged bolts radiating outward, alternating
+    // pitch-black and hot red, with a fainter offset layer for density.
+    for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + Math.random() * 0.4;
+        lightningStreak(x, y, z, a, 2.2 + Math.random() * 1.8, i % 2 ? '#ff2030' : '#0a0a0a', 380);
+    }
+    for (let i = 0; i < 6; i++) {
+        lightningStreak(x, y + (Math.random() - 0.5), z, Math.random() * Math.PI * 2,
+            1.6 + Math.random() * 1.4, i % 2 ? '#ff5060' : '#1a1a1a', 300);
     }
     const t0 = performance.now();
     const tk = () => {
         const t = (performance.now() - t0) / 420;
         if (t >= 1) {
-            scene.remove(core); scene.remove(dark);
+            scene.remove(core); scene.remove(inner); scene.remove(dark);
             core.geometry.dispose(); core.material.dispose();
+            inner.geometry.dispose(); inner.material.dispose();
             dark.geometry.dispose(); dark.material.dispose();
             return;
         }
         core.scale.setScalar(1 + t * 4);
         core.material.opacity = 0.95 * (1 - t);
+        inner.scale.setScalar(1 + t * 2.4);
+        inner.material.opacity = 0.95 * Math.max(0, 1 - t * 1.3);
         dark.scale.setScalar(1 + t * 6);
         dark.material.opacity = 0.9 * (1 - t * 0.7);
         requestAnimationFrame(tk);
@@ -1260,6 +1258,71 @@ function risingHalo(centerObj, color, dur) {
         requestAnimationFrame(tk);
     };
     requestAnimationFrame(tk);
+}
+
+// ─── ICE / LIGHTNING FX ─────────────────────────────────────
+// Shared by Naoya's freeze kit and the Black Flash mechanic.
+
+// Jagged lightning bolt radiating outward from (x, y, z) toward
+// `angle` (x-z plane). One cheap segmented, perpendicular-jittered
+// THREE.Line that fades over `life` ms.
+function lightningStreak(x, y, z, angle, length, color, life) {
+    const segs = 6;
+    const px = -Math.sin(angle), pz = Math.cos(angle);
+    const pts = [];
+    for (let i = 0; i <= segs; i++) {
+        const t = i / segs, r = t * length;
+        const jit = (i === 0 || i === segs) ? 0 : (Math.random() - 0.5) * length * 0.34;
+        pts.push(new THREE.Vector3(
+            x + Math.cos(angle) * r + px * jit,
+            y + (Math.random() - 0.5) * 0.5,
+            z + Math.sin(angle) * r + pz * jit));
+    }
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 });
+    const line = new THREE.Line(geo, mat);
+    scene.add(line);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / (life || 320);
+        if (t >= 1) { scene.remove(line); geo.dispose(); mat.dispose(); return; }
+        mat.opacity = 0.95 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+// Icy shard burst — pale-cyan cone spikes popping outward + a frost
+// ring. Fired wherever a curse gets frozen.
+function frostBurst(x, y, z) {
+    for (let i = 0; i < 7; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const m = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.5, 5),
+            new THREE.MeshBasicMaterial({ color: i % 2 ? '#bdf0ff' : '#7cd8ff',
+                transparent: true, opacity: 0.95 }));
+        m.position.set(x, y, z);
+        m.rotation.z = Math.PI / 2; m.rotation.y = a;
+        scene.add(m);
+        const sp = 2 + Math.random() * 3;
+        const t0 = performance.now();
+        const tk = () => {
+            const t = (performance.now() - t0) / 480;
+            if (t >= 1) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); return; }
+            m.position.set(x + Math.cos(a) * sp * t, y + 1.5 * t - 2 * t * t, z + Math.sin(a) * sp * t);
+            m.material.opacity = 0.95 * (1 - t);
+            requestAnimationFrame(tk);
+        };
+        requestAnimationFrame(tk);
+    }
+    shockRing(x, z, '#9be4ff', 3.2, 420, 0.4);
+}
+
+// Freeze a curse in place for `ms` — it stops chasing/attacking, its
+// bob halts, and an ice shell wraps it (rendered in the curse loop).
+function freezeCurse(c, ms) {
+    if (!c || !c.alive) return;
+    c.frozenUntil = Math.max(c.frozenUntil || 0, performance.now() + ms);
+    frostBurst(c.x, 1.5, c.z);
 }
 
 // ─── CURSED TECHNIQUES ─────────────────────────────────────
@@ -1549,8 +1612,8 @@ function naoyaBurst(fx, fz) {
     const dist = 8;
     let endX = player.x + fx * dist, endZ = player.z + fz * dist;
     // Spawn after-images along the path
-    for (let i = 0; i < 5; i++) {
-        setTimeout(() => naoyaAfterImage(0.45), i * 35);
+    for (let i = 0; i < 8; i++) {
+        setTimeout(() => naoyaAfterImage(0.5), i * 30);
     }
     // Snap the player forward (AABB-aware in two steps)
     endX = pushOutObstacles(endX, endZ, 'x', player.x);
@@ -1559,15 +1622,15 @@ function naoyaBurst(fx, fz) {
     endZ = Math.max(-WORLD + 4, Math.min(WORLD - 4, endZ));
     player.x = endX; player.z = endZ;
     player.iframes = 0.30;
-    // Damage anyone in a tight tube along the path
+    // Damage anyone in a tight tube along the path — and freeze them
     for (const c of curses.slice()) {
         const ox = c.x - startX, oz = c.z - startZ;
         const along = ox * fx + oz * fz;
         if (along < 0 || along > dist + 1.5) continue;
         const perp = Math.abs(ox * -fz + oz * fx);
-        if (perp > 1.4) continue;
+        if (perp > 1.6) continue;
         damageCurse(c, player.damage * 1.5);
-        burst(c.x, 1.5, c.z, '#5af0ff', 6);
+        freezeCurse(c, 1400);
     }
     // Cyan streak between start and end
     const mid = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, dist, 8),
@@ -1586,9 +1649,18 @@ function naoyaBurst(fx, fz) {
         requestAnimationFrame(tk);
     };
     requestAnimationFrame(tk);
-    naoyaSpeedLines(endX, endZ, '#ffe066', 10);
-    flashLight(endX, 1.6, endZ, '#5af0ff', 5, 320);
-    camShake(0.06, 0.16); sfx('tech');
+    // Cyan/yellow lightning crackling off the dash path
+    for (let i = 0; i < 8; i++) {
+        const f = Math.random();
+        const lx = startX + (endX - startX) * f;
+        const lz = startZ + (endZ - startZ) * f;
+        lightningStreak(lx, 1.5, lz, Math.random() * Math.PI * 2,
+            1.4 + Math.random() * 1.5, i % 2 ? '#5af0ff' : '#ffe066', 300);
+    }
+    naoyaSpeedLines(endX, endZ, '#ffe066', 12);
+    shockRing(endX, endZ, '#9be4ff', 4.5, 440, 0.45);
+    flashLight(endX, 1.6, endZ, '#5af0ff', 6, 360);
+    camShake(0.08, 0.18); sfx('tech');
 }
 
 function naoyaFrameLock(fx, fz) {
@@ -1614,14 +1686,14 @@ function naoyaFrameLock(fx, fz) {
     tz = pushOutObstacles(tx, tz, 'z', player.z);
     player.x = tx; player.z = tz;
     player.iframes = 0.25;
-    // Lightning bolts (4 yellow streaks) shooting from sky
-    for (let i = 0; i < 4; i++) {
-        const ang = (i / 4) * Math.PI * 2;
-        const bx = tx + Math.cos(ang) * 0.4;
-        const bz = tz + Math.sin(ang) * 0.4;
-        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.04, 10, 6),
+    // Lightning bolts (6 yellow streaks) crashing down from the sky
+    for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2;
+        const bx = tx + Math.cos(ang) * 0.5;
+        const bz = tz + Math.sin(ang) * 0.5;
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.05, 12, 6),
             new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.95 }));
-        b.position.set(bx, 5.5, bz); scene.add(b);
+        b.position.set(bx, 6.0, bz); scene.add(b);
         const t0 = performance.now();
         const tk = () => {
             const t = (performance.now() - t0) / 260;
@@ -1631,24 +1703,39 @@ function naoyaFrameLock(fx, fz) {
         };
         requestAnimationFrame(tk);
     }
-    flashLight(tx, 2, tz, '#ffe066', 9, 360);
-    naoyaSpeedLines(tx, tz, '#5af0ff', 14);
+    // Jagged ground lightning bursting out from the landing point
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + Math.random() * 0.5;
+        lightningStreak(tx, 1.4, tz, a, 2.4 + Math.random() * 1.8,
+            i % 2 ? '#5af0ff' : '#ffe066', 360);
+    }
+    flashLight(tx, 2, tz, '#ffe066', 10, 400);
+    naoyaSpeedLines(tx, tz, '#5af0ff', 16);
     shockRing(tx, tz, '#5af0ff', 5, 360, 0.5);
-    camShake(0.10, 0.18);
+    shockRing(tx, tz, '#ffe066', 8.5, 560, 0.4);
+    camShake(0.12, 0.22);
     sfx('boss');
-    // Damage: target gets 3×, others within 3m get 1.4×
-    if (tgt) { damageCurse(tgt, player.damage * 3.0); explode(tgt.x, 1.6, tgt.z, '#ffe066', 3); }
+    // Damage: the target gets 3× + a long freeze; others within 3.5 m
+    // get 1.4× and a shorter freeze.
+    if (tgt) {
+        damageCurse(tgt, player.damage * 3.0);
+        explode(tgt.x, 1.6, tgt.z, '#ffe066', 3);
+        freezeCurse(tgt, 3000);
+    }
     for (const c of curses.slice()) {
         const d = Math.hypot(c.x - tx, c.z - tz);
-        if (d < 3 && c !== tgt) damageCurse(c, player.damage * 1.4);
+        if (d < 3.5 && c !== tgt) { damageCurse(c, player.damage * 1.4); freezeCurse(c, 1600); }
     }
 }
 
 function naoyaBarrage(fx, fz) {
-    // 24-Frame Barrage — 24 rapid strikes in 1.5 s, cone-targeted curses
+    // 24-Frame Barrage — 24 rapid strikes in 1.5 s, cone-targeted
+    // curses. Every hit re-pins its target with a freeze, so the cone
+    // becomes a field of frozen curses; a finale then detonates them.
     camShake(0.05, 0.30);
     sfx('tech');
     const startX = player.x, startZ = player.z;
+    const struck = new Set();
     for (let i = 0; i < 24; i++) {
         setTimeout(() => {
             if (state !== 'playing') return;
@@ -1687,37 +1774,68 @@ function naoyaBarrage(fx, fz) {
                 requestAnimationFrame(tk);
             };
             requestAnimationFrame(tk);
-            burst(tgt.x, 1.6, tgt.z, i % 2 ? '#5af0ff' : '#ffe066', 3);
+            if (i % 2 === 0) {
+                lightningStreak(tgt.x, 1.5, tgt.z, Math.random() * Math.PI * 2,
+                    1.8, i % 4 ? '#5af0ff' : '#ffe066', 260);
+            }
             damageCurse(tgt, player.damage * 0.35);
+            // Pin the target — refresh the freeze on every strike
+            if (tgt.alive) {
+                tgt.frozenUntil = Math.max(tgt.frozenUntil || 0, performance.now() + 900);
+                struck.add(tgt);
+            }
         }, i * 60);
     }
+    // Finale — once the barrage ends, detonate every curse it pinned
+    setTimeout(() => {
+        if (state !== 'playing') return;
+        for (const c of struck) {
+            if (!c.alive) continue;
+            freezeCurse(c, 2200);
+            explode(c.x, 1.6, c.z, '#5af0ff', 2);
+        }
+    }, 24 * 60 + 90);
 }
 
 function naoyaDomain() {
-    // Domain: Time-Slip — cyan sphere slows curses to 0.25, player to 1.5,
-    // lasts 7 s. No position-lock (Gojo's domain already does that — we
-    // want Naoya's to feel different: enemies sluggish but still mobile).
+    // Domain: Time-Slip — a cyan dome that FREEZES every curse inside
+    // it solid (Naoya's whole kit is about stopping the enemy in time).
+    // The player still blitzes at 1.5× speed.
     const r = 20, dur = 7000;
     const grp = new THREE.Group();
     const inner = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 24),
-        new THREE.MeshBasicMaterial({ color: '#5af0ff', transparent: true, opacity: 0.18, side: THREE.BackSide }));
+        new THREE.MeshBasicMaterial({ color: '#5af0ff', transparent: true, opacity: 0.16, side: THREE.BackSide }));
     const outer = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 24),
-        new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.08, side: THREE.BackSide }));
+        new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.07, side: THREE.BackSide }));
     grp.add(inner); grp.add(outer);
+    // Suspended ice motes — "time fragments" frozen mid-air in the dome
+    const motes = [];
+    for (let i = 0; i < 26; i++) {
+        const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0),
+            new THREE.MeshBasicMaterial({ color: i % 2 ? '#bdf0ff' : '#ffffff', transparent: true, opacity: 0.9 }));
+        const a = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1);
+        const rad = r * 0.8 * Math.random();
+        m.position.set(Math.sin(p) * Math.cos(a) * rad, Math.cos(p) * rad + 1, Math.sin(p) * Math.sin(a) * rad);
+        grp.add(m); motes.push(m);
+    }
     grp.position.set(player.x, 0, player.z);
     scene.add(grp);
-    grp.add(new THREE.PointLight('#5af0ff', 2.5, r, 2));
+    grp.add(new THREE.PointLight('#5af0ff', 2.8, r, 2));
 
     screenFlash('rgba(90,240,255,0.4)', 480);
     camShake(0.25, 0.4);
     sfx('boss');
-    curseSpeedMul = 0.25;
+    // Frost shockrings bloom outward on cast
+    shockRing(player.x, player.z, '#9be4ff', r * 0.9, 700, 0.7);
+    shockRing(player.x, player.z, '#ffffff', r * 0.6, 520, 0.5);
     playerSpeedMul = 1.5;
     domainActive = {
         color: '#5af0ff', until: performance.now() + dur,
         dmgEvery: 700, lastDmg: 0, mesh: grp,
-        frozen: null,             // no position lock — Naoya only slows
-        onCleanup: () => { curseSpeedMul = 1; playerSpeedMul = 1; },
+        frozen: null,              // no snapshot lock — uses freezeRadius
+        freezeRadius: r,           // every curse inside is frozen each frame
+        motes,
+        onCleanup: () => { playerSpeedMul = 1; },
     };
 
     // Expand the sphere
@@ -1750,13 +1868,25 @@ function updateDomain(dt) {
         domainActive = null;
         return;
     }
-    // Lock curses (only if this domain uses a freeze map — Gojo's does,
-    // Naoya's doesn't because it slows via curseSpeedMul instead)
+    // Lock curses (only if this domain uses a freeze map — Gojo's does)
     if (domainActive.frozen) {
         for (const [c, pos] of domainActive.frozen) {
             if (!c.alive) { domainActive.frozen.delete(c); continue; }
             c.x = pos.x; c.z = pos.z;
         }
+    }
+    // Naoya's domain freezes every curse inside its radius. Refreshed
+    // each frame so curses that wander in are caught too.
+    if (domainActive.freezeRadius) {
+        for (const c of curses) {
+            if (Math.hypot(c.x - player.x, c.z - player.z) < domainActive.freezeRadius) {
+                c.frozenUntil = Math.max(c.frozenUntil || 0, now + 280);
+            }
+        }
+    }
+    // Spin the suspended ice motes (Naoya's Time-Slip)
+    if (domainActive.motes) {
+        for (const m of domainActive.motes) m.rotation.y += dt * 0.5;
     }
     // Domain follows the player
     domainActive.mesh.position.set(player.x, 0, player.z);
@@ -1767,7 +1897,7 @@ function updateDomain(dt) {
             const d = Math.hypot(c.x - player.x, c.z - player.z);
             if (d < 22) {
                 damageCurse(c, player.damage * 1.5);
-                burst(c.x, 1.6, c.z, '#a06bff', 4);
+                burst(c.x, 1.6, c.z, domainActive.color, 4);
             }
         }
     }
@@ -1808,17 +1938,9 @@ function meleeStrike() {
     playPunchSample();
 
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-    // Punch trail — sparkles along the extension line so the strike's
-    // path is unambiguous even if the camera misses the arm motion.
-    const trailColor = hit.heavy ? '#ffcf66' : '#cbb6ff';
-    for (let i = 1; i <= 3; i++) {
-        const d = hit.reach * (i / 3) * 0.85;
-        burst(player.x + fx * d, 1.4, player.z + fz * d, trailColor, 3);
-    }
     // Spend the post-Black-Flash 2× buff on the *next* M1 only
     const bfBuffActive = !!player.bfDoubleNext;
     if (bfBuffActive) player.bfDoubleNext = false;
-    let hitAny = false;
     for (const c of curses) {
         const dx = c.x - player.x, dz = c.z - player.z;
         const d = Math.hypot(dx, dz);
@@ -1829,15 +1951,9 @@ function meleeStrike() {
         dmg = tryBlackFlash(c, dmg);                    // 10% per hit
         damageCurse(c, dmg);
         if (hit.knock) { c.x += (dx / d) * hit.knock; c.z += (dz / d) * hit.knock; }
-        hitAny = true;
     }
-    if (hitAny) {
-        burst(player.x + fx * 2, 1.3, player.z + fz * 2,
-            trailColor, hit.heavy ? 22 : 10);
-        // Synth `hit`/`boss` blips intentionally absent — the recorded
-        // assets/punch.m4a (fired in playPunchSample above) is the
-        // only punch noise we want.
-    }
+    // M1 feedback is the punch sample + the curse's white hit-flash +
+    // knockback — no spark particles (removed at the user's request).
 }
 // ═══ (cursed techniques removed) — was: TECHNIQUES dispatcher + Sukuna/Todo/Megumi kits + technique-only VFX helpers + updateProjectiles ═══
 
@@ -2649,18 +2765,39 @@ function update(dt) {
     // Curses
     updateCurseDirector(dt);
     for (const c of curses) {
-        const dx = player.x - c.x, dz = player.z - c.z;
-        const d = Math.hypot(dx, dz) || 1;
-        if (d < 30 && d > 1.6) {
-            c.x += (dx / d) * c.speed * curseSpeedMul * dt;
-            c.z += (dz / d) * c.speed * curseSpeedMul * dt;
-        } else if (d <= 1.8 && performance.now() - c.lastHit > 900) {
-            c.lastHit = performance.now();
-            damagePlayer(c.dmg);
+        const frozen = (c.frozenUntil || 0) > performance.now();
+        if (!frozen) {
+            const dx = player.x - c.x, dz = player.z - c.z;
+            const d = Math.hypot(dx, dz) || 1;
+            if (d < 30 && d > 1.6) {
+                c.x += (dx / d) * c.speed * curseSpeedMul * dt;
+                c.z += (dz / d) * c.speed * curseSpeedMul * dt;
+            } else if (d <= 1.8 && performance.now() - c.lastHit > 900) {
+                c.lastHit = performance.now();
+                damagePlayer(c.dmg);
+            }
+            c.bob += dt * 4;
         }
-        c.bob += dt * 4;
+        // Frozen curses hold position + bob; everyone re-grounds here
         c.mesh.position.set(c.x, terrainHeight(c.x, c.z) + Math.sin(c.bob) * 0.15, c.z);
-        c.mesh.lookAt(player.x, c.mesh.position.y, player.z);
+        if (!frozen) c.mesh.lookAt(player.x, c.mesh.position.y, player.z);
+        // Ice shell — translucent crystal wrap that tracks the freeze
+        if (frozen && !c.iceShell) {
+            const s = c.boss ? 2.6 : 1;
+            const shell = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(0.95 * s, 0),
+                new THREE.MeshBasicMaterial({ color: '#9be4ff', transparent: true,
+                    opacity: 0.34, side: THREE.DoubleSide }));
+            shell.position.y = 1.0 * s;
+            c.mesh.add(shell);
+            c.iceShell = shell;
+        } else if (!frozen && c.iceShell) {
+            c.mesh.remove(c.iceShell);
+            c.iceShell.geometry.dispose();
+            c.iceShell.material.dispose();
+            c.iceShell = null;
+        }
+        if (c.iceShell) c.iceShell.rotation.y += dt * 0.6;
     }
 
     // NPC idle life — breathing bob, spinning marker, pulsing ring,
