@@ -2736,7 +2736,7 @@ function mpTick(dt) {
     // Broadcast my position at ~30Hz
     if (now - mpLastPosSend > 33) {
         mpLastPosSend = now;
-        sendMyPos(player.x, player.z, player.y, yaw);
+        sendMyPos(player.x, player.z, player.y, yaw, player.scale || 1, !!player.flying);
     }
     // Host: broadcast the live curse list at ~10Hz so clients can lerp.
     if (NET.isHost) {
@@ -2770,6 +2770,9 @@ function mpTick(dt) {
         while (dyaw >  Math.PI) dyaw -= Math.PI * 2;
         while (dyaw < -Math.PI) dyaw += Math.PI * 2;
         m.rotation.y += dyaw * k;
+        // Mirror scale + flight aura from the network state
+        const sc = rp.scale || 1;
+        if (m.scale.x !== sc) m.scale.setScalar(sc);
         while (rp.pendingActions.length) playRemoteAction(rec, rp.pendingActions.shift());
     }
     // Debug overlay — refresh ~5 Hz
@@ -2850,6 +2853,7 @@ function startGame(loaded) {
         blocking: false, comboLockUntil: 0,
         bfDoubleNext: false, bfWindowUntil: 0, tempGodUntil: 0,
         onWall: false, wallNX: 0, wallNZ: 0, airSlamUsed: false, slamming: false,
+        scale: 1, flying: false,
     };
     deriveStats();
     player.damage += (save.flags.dmgBonus || 0);
@@ -2943,6 +2947,7 @@ const JUMP_FORWARD = 16;      // m/s forward burst on jump
 const LEAP_DECAY = 1.8;       // /s — how fast the forward burst bleeds off
 const CLIMB_SPEED = 3.6;      // m/s — wall-climb rate
 function doJump() {
+    if (player.flying) return;          // Space is fly-up, not jump
     if (player.onWall) {
         // Leap off the wall — away along the wall normal + upward
         player.onWall = false;
@@ -3160,8 +3165,11 @@ function update(dt) {
     const moving = mx || mz;
     if (moving) {
         const l = Math.hypot(mx, mz); mx /= l; mz /= l;
-        const airMul = (player.y > 0) ? 0.45 : 1.0;   // air control reduced
-        const sp = player.speed * playerSpeedMul * airMul * (keys['ShiftLeft'] || keys['ShiftRight'] ? 1.7 : 1) * dt;
+        // Air-control is normally reduced, but full speed while flying
+        // (since flight is supposed to be free movement).
+        const airMul = (player.y > 0 && !player.flying) ? 0.45 : 1.0;
+        const sprintK = (keys['ShiftLeft'] || keys['ShiftRight']) && !player.flying ? 1.7 : 1;
+        const sp = player.speed * playerSpeedMul * airMul * sprintK * dt;
         let nx = player.x + mx * sp, nz = player.z + mz * sp;
         if (!admin.noclip) {
             nx = pushOutObstacles(nx, nz, 'x', player.x);
@@ -3174,7 +3182,16 @@ function update(dt) {
 
     // Gravity + vertical integration. Forward leap velocity is applied
     // each frame and decays so the player covers distance, not height.
-    if (player.onWall) {
+    if (player.flying) {
+        // Flight mode — no gravity, Space=up, Shift=down. WASD already
+        // moved us horizontally above.
+        const FLY_SPEED = 9;
+        if (keys['Space']) player.y += FLY_SPEED * dt;
+        if (keys['ShiftLeft'] || keys['ShiftRight']) player.y -= FLY_SPEED * dt;
+        if (player.y < 0.05) player.y = 0.05;
+        player.vy = 0; player.airVx = 0; player.airVz = 0;
+        player.onWall = false;
+    } else if (player.onWall) {
         // Clinging to a wall — W climbs up, S climbs down. You stay
         // attached until you choose to jump off (Space, via doJump);
         // climbing down to the ground does NOT release you.
@@ -3228,6 +3245,7 @@ function update(dt) {
     const gy = terrainHeight(player.x, player.z);
     playerModel.position.set(player.x, gy + player.y, player.z);
     playerModel.rotation.y = yaw + Math.PI;
+    if (player.scale && playerModel.scale.x !== player.scale) playerModel.scale.setScalar(player.scale);
     // Player rig — cocky idle (loose asymmetric guard, hip cock, chin
     // up, breathing sway) vs walk stride. Punches are straight-arm
     // extensions layered on top of whichever idle pose is active.
@@ -3773,6 +3791,10 @@ const ADMIN_CMDS = [
     { l: '◆ Smite player',    targeted: true, kind: 'smite',     danger: true },
     { l: '◆ Give God 5 s',    targeted: true, kind: 'god5' },
     { l: '◆ TP player to me', targeted: true, kind: 'tpToMe' },
+    { l: '◆ Embiggen (×1.5)', targeted: true, kind: 'sizeUp' },
+    { l: '◆ Shrink (×0.66)',  targeted: true, kind: 'sizeDown' },
+    { l: '◆ Reset size',      targeted: true, kind: 'sizeReset' },
+    { l: '◆ Toggle FLY',      targeted: true, kind: 'flyToggle' },
 ];
 
 let adminOpen = false;
@@ -3890,7 +3912,6 @@ function applyAdminCmd(kind, payload, fromIdx) {
         return;
     }
     if (kind === 'tpToMe') {
-        // Teleport ME to the admin's current position.
         const rp = NET.remotePlayers[fromIdx];
         if (!rp) { toast('Admin position unknown'); return; }
         player.x = rp.x; player.z = rp.z; player.y = 0;
@@ -3898,6 +3919,36 @@ function applyAdminCmd(kind, payload, fromIdx) {
         player.onWall = false;
         toast(`◆ ADMIN ${fromName} TP'd you`);
         burst(player.x, 1.6, player.z, '#a06bff', 18);
+        return;
+    }
+    if (kind === 'sizeUp') {
+        player.scale = Math.min(8, (player.scale || 1) * 1.5);
+        toast(`◆ ADMIN ${fromName} embiggened you (×${player.scale.toFixed(2)})`);
+        burst(player.x, 1.6, player.z, '#ffe066', 10);
+        return;
+    }
+    if (kind === 'sizeDown') {
+        player.scale = Math.max(0.2, (player.scale || 1) * 0.66);
+        toast(`◆ ADMIN ${fromName} shrank you (×${player.scale.toFixed(2)})`);
+        burst(player.x, 1.6, player.z, '#5af0ff', 10);
+        return;
+    }
+    if (kind === 'sizeReset') {
+        player.scale = 1;
+        toast(`◆ ADMIN ${fromName} reset your size`);
+        return;
+    }
+    if (kind === 'flyToggle') {
+        player.flying = !player.flying;
+        if (player.flying) {
+            player.onWall = false;
+            player.vy = 0;
+            if (player.y < 0.5) player.y = 0.5;
+            risingHalo(playerModel, '#3adf8a', 600);
+            toast(`◆ ADMIN ${fromName} → FLY ON  ·  Space=up · Shift=down`);
+        } else {
+            toast(`◆ ADMIN ${fromName} → FLY OFF`);
+        }
         return;
     }
 }

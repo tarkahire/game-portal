@@ -122,15 +122,15 @@ export function createRoom(myName, onStatus, onLobby) {
             if (data.type === 'pos') {
                 const rp = NET.remotePlayers[pIdx];
                 if (!rp) {
-                    // Joiner hasn't sent 'hello' yet — create the slot
-                    // on the fly so the first frame of movement isn't dropped.
-                    NET.remotePlayers[pIdx] = { name: 'Sorcerer', x: data.x, z: data.z, y: data.y, yaw: data.yaw, pendingActions: [], lastSeen: performance.now() };
+                    NET.remotePlayers[pIdx] = { name: 'Sorcerer', x: data.x, z: data.z, y: data.y, yaw: data.yaw, scale: data.scale || 1, fly: !!data.fly, pendingActions: [], lastSeen: performance.now() };
                 } else {
                     rp.x = data.x; rp.z = data.z; rp.y = data.y; rp.yaw = data.yaw;
+                    if (data.scale != null) rp.scale = data.scale;
+                    if (data.fly   != null) rp.fly   = !!data.fly;
                     rp.lastSeen = performance.now();
                 }
                 NET._rxPos++; NET._lastRxPos = performance.now();
-                relayFrom(conn, { type: 'pos', from: pIdx, x: data.x, z: data.z, y: data.y, yaw: data.yaw });
+                relayFrom(conn, { type: 'pos', from: pIdx, x: data.x, z: data.z, y: data.y, yaw: data.yaw, scale: data.scale, fly: data.fly });
             }
             if (data.type === 'action') {
                 const rp = NET.remotePlayers[pIdx];
@@ -188,9 +188,9 @@ function relayFrom(srcConn, msg) {
 }
 
 // Host broadcasts its OWN position to everyone (playerIndex 0).
-export function hostBroadcastPos(x, z, y, yaw) {
+export function hostBroadcastPos(x, z, y, yaw, scale, fly) {
     if (!NET.isHost) return;
-    const msg = { type: 'pos', from: 0, x, z, y, yaw };
+    const msg = { type: 'pos', from: 0, x, z, y, yaw, scale, fly };
     for (const c of NET.connections) if (c.open) c.send(msg);
     NET._txPos++; NET._lastTxPos = performance.now();
 }
@@ -280,11 +280,11 @@ export function joinRoom(code, myName, onStatus, onLobby) {
             if (data.type === 'pos') {
                 let rp = NET.remotePlayers[data.from];
                 if (!rp) {
-                    // Auto-create a slot so the first frames from a peer
-                    // aren't dropped (happens when 'pos' beats 'lobby').
-                    rp = NET.remotePlayers[data.from] = { name: 'Sorcerer', x: data.x, z: data.z, y: data.y, yaw: data.yaw, pendingActions: [], lastSeen: performance.now() };
+                    rp = NET.remotePlayers[data.from] = { name: 'Sorcerer', x: data.x, z: data.z, y: data.y, yaw: data.yaw, scale: data.scale || 1, fly: !!data.fly, pendingActions: [], lastSeen: performance.now() };
                 } else {
                     rp.x = data.x; rp.z = data.z; rp.y = data.y; rp.yaw = data.yaw;
+                    if (data.scale != null) rp.scale = data.scale;
+                    if (data.fly   != null) rp.fly   = !!data.fly;
                     rp.lastSeen = performance.now();
                 }
                 NET._rxPos++; NET._lastRxPos = performance.now();
@@ -321,10 +321,10 @@ export function joinRoom(code, myName, onStatus, onLobby) {
 }
 
 // Client: broadcast my own position/action UP to the host (who relays).
-export function clientSendPos(x, z, y, yaw) {
+export function clientSendPos(x, z, y, yaw, scale, fly) {
     if (NET.isHost || !NET.isOnline || !NET.connections[0]) return;
     if (NET.connections[0].open) {
-        NET.connections[0].send({ type: 'pos', x, z, y, yaw });
+        NET.connections[0].send({ type: 'pos', x, z, y, yaw, scale, fly });
         NET._txPos++; NET._lastTxPos = performance.now();
     }
 }
@@ -359,9 +359,9 @@ export function sendAdminCmd(targetIdx, kind, payload) {
 }
 
 // Convenience: send my position regardless of role.
-export function sendMyPos(x, z, y, yaw) {
-    if (NET.isHost) hostBroadcastPos(x, z, y, yaw);
-    else clientSendPos(x, z, y, yaw);
+export function sendMyPos(x, z, y, yaw, scale, fly) {
+    if (NET.isHost) hostBroadcastPos(x, z, y, yaw, scale, fly);
+    else clientSendPos(x, z, y, yaw, scale, fly);
 }
 export function sendMyAction(kind, slot) {
     if (NET.isHost) hostBroadcastAction(kind, slot);
