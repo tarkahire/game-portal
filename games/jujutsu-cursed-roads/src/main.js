@@ -1351,6 +1351,118 @@ function freezeCurse(c, ms) {
     frostBurst(c.x, 1.5, c.z);
 }
 
+// ─── SLASH VFX ──────────────────────────────────────────────
+// A proper 3D katana arc — two tubes (outer color + bright white core)
+// traced along a curved path that sweeps from upper-back through the
+// forward space down to lower-forward. Looks like the trail left by a
+// blade in mid-swing, not a glowing carpet on the ground.
+// angleOffset (rad) tilts the arc around the forward axis — 0 = pure
+// downward chop, +PI/4 = down-right diagonal, -PI/4 = down-left.
+function spawnSlashArc(ox, oz, dx, dz, reach, color, angleOffset, life) {
+    const pts = [];
+    for (let i = 0; i <= 14; i++) {
+        const t = i / 14;
+        const yLocal = 2.6 - t * 2.2;
+        const zLocal = -0.5 + t * (reach + 0.5);
+        // Roll the (X=0, Y=yLocal) point around the forward Z axis by
+        // angleOffset so the arc plane tilts for diagonal slashes.
+        const ca = Math.cos(angleOffset), sa = Math.sin(angleOffset);
+        const xR = -yLocal * sa;
+        const yR =  yLocal * ca;
+        pts.push(new THREE.Vector3(xR, yR, zLocal));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const tubeGeom = new THREE.TubeGeometry(curve, 32, 0.14, 6, false);
+    const tubeMat  = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 });
+    const coreGeom = new THREE.TubeGeometry(curve, 32, 0.05, 6, false);
+    const coreMat  = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.98 });
+    const tube = new THREE.Mesh(tubeGeom, tubeMat);
+    const core = new THREE.Mesh(coreGeom, coreMat);
+    const grp = new THREE.Group();
+    grp.add(tube); grp.add(core);
+    grp.position.set(ox, 0, oz);
+    grp.rotation.y = Math.atan2(dx, dz);
+    scene.add(grp);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / life;
+        if (t >= 1) {
+            scene.remove(grp);
+            tubeGeom.dispose(); tubeMat.dispose();
+            coreGeom.dispose(); coreMat.dispose();
+            return;
+        }
+        tubeMat.opacity = 0.95 * (1 - t);
+        coreMat.opacity = 0.98 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+// Bright cut-line through a curse + perpendicular bursts so it reads
+// as "they got sliced". Fires on every slash hit, lethal or not.
+function cutCurseFx(c, slashDirX, slashDirZ, color) {
+    const x = c.x, y = 1.4, z = c.z;
+    const perpX = -slashDirZ, perpZ = slashDirX;
+    const cutGeom = new THREE.PlaneGeometry(2.8, 0.1);
+    const cutMat  = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.98, side: THREE.DoubleSide });
+    const cut = new THREE.Mesh(cutGeom, cutMat);
+    cut.position.set(x, y, z);
+    cut.rotation.x = -Math.PI / 2;             // horizontal plane (cut through the body)
+    cut.rotation.z = Math.atan2(slashDirX, slashDirZ);   // align along slash direction
+    scene.add(cut);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 240;
+        if (t >= 1) { scene.remove(cut); cutGeom.dispose(); cutMat.dispose(); return; }
+        cutMat.opacity = 0.98 * (1 - t);
+        cut.scale.x = 1 + t * 0.8;
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    burst(x + perpX * 0.7, y + 0.3, z + perpZ * 0.7, color, 8);
+    burst(x - perpX * 0.7, y + 0.3, z - perpZ * 0.7, color, 8);
+    burst(x, y + 0.2, z, '#ffffff', 4);
+}
+
+// Two flesh chunks fly apart with gravity — only on lethal slash hits.
+function splitCurseChunks(x, z, slashDirX, slashDirZ, boss) {
+    const perpX = -slashDirZ, perpZ = slashDirX;
+    const sz = boss ? 0.95 : 0.55;
+    for (let side = -1; side <= 1; side += 2) {
+        const chunk = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(sz, 0),
+            new THREE.MeshStandardMaterial({ color: '#7a1020', emissive: '#3a0008', roughness: 0.6, transparent: true })
+        );
+        chunk.position.set(x, 1.4, z);
+        scene.add(chunk);
+        const vx = perpX * side * 4 + (Math.random() - 0.5) * 1.5;
+        const vz = perpZ * side * 4 + (Math.random() - 0.5) * 1.5;
+        const vy = 3.5 + Math.random() * 2;
+        const spin = (Math.random() - 0.5) * 0.4;
+        const t0 = performance.now();
+        const dur = 800;
+        const tk = () => {
+            const t = (performance.now() - t0) / dur;
+            if (t >= 1) {
+                scene.remove(chunk);
+                chunk.geometry.dispose(); chunk.material.dispose();
+                return;
+            }
+            const tt = t * dur / 1000;
+            chunk.position.x = x + vx * tt;
+            chunk.position.z = z + vz * tt;
+            chunk.position.y = 1.4 + vy * tt - 9.8 * tt * tt * 0.5;
+            if (chunk.position.y < 0.15) chunk.position.y = 0.15;
+            chunk.rotation.x += spin;
+            chunk.rotation.y += spin * 0.7;
+            chunk.material.opacity = 1 - t * t;
+            requestAnimationFrame(tk);
+        };
+        requestAnimationFrame(tk);
+    }
+}
+
 // ─── CURSED TECHNIQUES ─────────────────────────────────────
 // `TECHNIQUE_KITS[id]` maps an equipped technique to its 4 abilities
 // (Z / X / C / R-domain). Each entry: { name, cost, cd, run(fx, fz) }.
@@ -2033,12 +2145,17 @@ function itadoriShrine() {
 }
 
 function itadoriSukunaCleave(fx, fz) {
-    // Wide red horizontal slash — 8 m forward, 2 m wide. Cuts through
-    // every curse in the line, knockback + BF roll on each hit.
+    // Wide diagonal sword arc — 8 m forward, 2 m wide strike band.
+    // Cuts every curse in the line, knockback + BF roll on each hit.
     const REACH = 8, WIDTH = 2;
     rArmSwing = 1; torsoTwist = -0.30; lungeAmount = 0.5;
     const startX = player.x, startZ = player.z;
+    // Two arcs — diagonal main slash + a finer follow-up — for a
+    // "twin-edge crescent" cleave feel.
+    spawnSlashArc(startX, startZ, fx, fz, REACH, '#ff2030',  Math.PI / 6, 420);
+    spawnSlashArc(startX, startZ, fx, fz, REACH, '#ffffff', -Math.PI / 6, 380);
     for (const c of curses.slice()) {
+        if (!c.alive) continue;
         const ox = c.x - startX, oz = c.z - startZ;
         const along = ox * fx + oz * fz;
         if (along < 0 || along > REACH) continue;
@@ -2046,49 +2163,20 @@ function itadoriSukunaCleave(fx, fz) {
         if (perp > WIDTH) continue;
         let dmg = player.damage * 1.7;
         dmg = tryBlackFlash(c, dmg);
+        const hx = c.x, hz = c.z, hb = c.boss;
+        const wasAlive = c.alive;
         damageCurse(c, dmg);
         c.x += fx * 0.6; c.z += fz * 0.6;
-        burst(c.x, 1.4, c.z, '#ff2030', 12);
+        cutCurseFx({ x: hx, z: hz }, fx, fz, '#ff2030');
+        if (wasAlive && !c.alive) splitCurseChunks(hx, hz, fx, fz, hb);
     }
-    // Crescent plane VFX sweeping forward at ground level
-    const grp = new THREE.Group();
-    const slash = new THREE.Mesh(
-        new THREE.PlaneGeometry(REACH, WIDTH * 1.4),
-        new THREE.MeshBasicMaterial({ color: '#ff2030', transparent: true, opacity: 0.92, side: THREE.DoubleSide }));
-    slash.rotation.x = -Math.PI / 2;
-    slash.position.set(REACH / 2, 0.10, 0);
-    grp.add(slash);
-    const core = new THREE.Mesh(
-        new THREE.PlaneGeometry(REACH, WIDTH * 0.5),
-        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.96, side: THREE.DoubleSide }));
-    core.rotation.x = -Math.PI / 2;
-    core.position.set(REACH / 2, 0.12, 0);
-    grp.add(core);
-    grp.position.set(startX, 0, startZ);
-    grp.rotation.y = Math.atan2(fx, fz);
-    scene.add(grp);
-    const t0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - t0) / 380;
-        if (t >= 1) {
-            scene.remove(grp);
-            slash.geometry.dispose(); slash.material.dispose();
-            core.geometry.dispose();  core.material.dispose();
-            return;
-        }
-        slash.material.opacity = 0.92 * (1 - t);
-        core.material.opacity  = 0.96 * (1 - t);
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
-    for (let i = 0; i < 8; i++) {
-        const f = i / 7;
+    for (let i = 0; i < 6; i++) {
+        const f = i / 5;
         const lx = startX + fx * REACH * f;
         const lz = startZ + fz * REACH * f;
         lightningStreak(lx, 1.5, lz, Math.random() * Math.PI * 2,
-            1.6 + Math.random() * 1.4, i % 2 ? '#ff2030' : '#ffffff', 320);
+            1.6 + Math.random() * 1.4, i % 2 ? '#ff2030' : '#ffffff', 280);
     }
-    shockRing(startX + fx * REACH * 0.5, startZ + fz * REACH * 0.5, '#ff2030', 5, 480, 0.6);
     flashLight(startX + fx * REACH * 0.6, 1.6, startZ + fz * REACH * 0.6, '#ff2030', 8, 360);
     camShake(0.18, 0.30); sfx('boss'); playPunchSample();
 }
@@ -2132,43 +2220,31 @@ TECHNIQUE_KITS.blackFlash = {
 // Z hits many, X focuses one, C ranges, T burns, R levels everything.
 
 function sukunaDismantle(fx, fz) {
-    // Three rapid horizontal slashes in a forward cone (4.5 m, 1.3× dmg
-    // each). Reads as a Dismantle volley — many targets in one beat.
+    // Three rapid sword-arcs in a forward cone (4.5 m reach, ×1.3 dmg
+    // each), tilted differently so it reads as a Dismantle volley.
     const REACH = 4.5;
     rArmSwing = 1; torsoTwist = -0.25;
     const startX = player.x, startZ = player.z;
+    const tilts = [-Math.PI / 4, Math.PI / 4, 0];   // down-left, down-right, straight down
     for (let i = 0; i < 3; i++) {
         setTimeout(() => {
             if (state !== 'playing') return;
+            // 3D vertical arc through the air
+            spawnSlashArc(startX, startZ, fx, fz, REACH, i === 1 ? '#ffffff' : '#ff2030', tilts[i], 280);
             for (const c of curses.slice()) {
+                if (!c.alive) continue;
                 const dx = c.x - startX, dz = c.z - startZ;
                 const d = Math.hypot(dx, dz) || 1;
                 if (d > REACH) continue;
                 if ((dx / d) * fx + (dz / d) * fz < 0.25) continue;
                 let dmg = player.damage * 1.3;
                 dmg = tryBlackFlash(c, dmg);
+                const wasAlive = c.alive;
+                const hx = c.x, hz = c.z, hb = c.boss;
                 damageCurse(c, dmg);
-                burst(c.x, 1.4, c.z, i === 1 ? '#ffffff' : '#ff2030', 6);
+                cutCurseFx({ x: hx, z: hz }, fx, fz, '#ff2030');
+                if (wasAlive && !c.alive) splitCurseChunks(hx, hz, fx, fz, hb);
             }
-            // Visual slash plane that arcs forward
-            const grp = new THREE.Group();
-            const slash = new THREE.Mesh(
-                new THREE.PlaneGeometry(REACH, 0.9),
-                new THREE.MeshBasicMaterial({ color: i === 1 ? '#ffffff' : '#ff2030', transparent: true, opacity: 0.92, side: THREE.DoubleSide }));
-            slash.rotation.x = -Math.PI / 2;
-            slash.position.set(REACH / 2, 0.18 + i * 0.02, (i - 1) * 0.5);
-            grp.add(slash);
-            grp.position.set(startX, 0, startZ);
-            grp.rotation.y = Math.atan2(fx, fz);
-            scene.add(grp);
-            const t0 = performance.now();
-            const tk = () => {
-                const t = (performance.now() - t0) / 260;
-                if (t >= 1) { scene.remove(grp); slash.geometry.dispose(); slash.material.dispose(); return; }
-                slash.material.opacity = 0.92 * (1 - t);
-                requestAnimationFrame(tk);
-            };
-            requestAnimationFrame(tk);
             flashLight(startX + fx * 2.4, 1.6, startZ + fz * 2.4, '#ff2030', 5, 220);
         }, i * 80);
     }
@@ -2177,7 +2253,7 @@ function sukunaDismantle(fx, fz) {
 
 function sukunaCleave(fx, fz) {
     // Single-target focus — locks onto the nearest curse in a 9 m
-    // forward cone and detonates it for ×3.5 dmg with a splash.
+    // forward cone and bisects it for ×3.5 dmg with a 3 m splash.
     let tgt = null, best = 9;
     for (const c of curses) {
         const dx = c.x - player.x, dz = c.z - player.z, d = Math.hypot(dx, dz) || 1;
@@ -2187,43 +2263,33 @@ function sukunaCleave(fx, fz) {
     }
     rArmSwing = 1; lungeAmount = 1.0; torsoTwist = -0.35;
     if (!tgt) {
-        // Whiff — still slash the air for cosmetic feedback
-        const px = player.x + fx * 5, pz = player.z + fz * 5;
-        shockRing(px, pz, '#ff2030', 4, 320, 0.4);
+        // Whiff — still slash the air so the player sees a swing happened
+        spawnSlashArc(player.x, player.z, fx, fz, 6, '#ff2030', 0, 320);
         sfx('ui'); return;
     }
+    // Sword arc reaches all the way to the target — one big committed chop
+    const dxL = tgt.x - player.x, dzL = tgt.z - player.z;
+    const lenL = Math.max(2, Math.hypot(dxL, dzL));
+    spawnSlashArc(player.x, player.z, dxL / lenL, dzL / lenL, lenL + 0.3, '#ff2030', 0, 380);
+    // Apply the focus damage
     const dmg = tryBlackFlash(tgt, player.damage * 3.5);
+    const fhx = tgt.x, fhz = tgt.z, fhb = tgt.boss;
+    const focusAlive = tgt.alive;
     damageCurse(tgt, dmg);
-    explode(tgt.x, 1.6, tgt.z, '#ff2030', 4);
-    // Splash to anyone within 3 m of the focus target
+    cutCurseFx({ x: fhx, z: fhz }, dxL / lenL, dzL / lenL, '#ff2030');
+    explode(fhx, 1.6, fhz, '#ff2030', 4);
+    if (focusAlive && !tgt.alive) splitCurseChunks(fhx, fhz, dxL / lenL, dzL / lenL, fhb);
+    // Splash to anyone within 3 m of the focus
     for (const c of curses.slice()) {
         if (c === tgt || !c.alive) continue;
-        const d = Math.hypot(c.x - tgt.x, c.z - tgt.z);
+        const d = Math.hypot(c.x - fhx, c.z - fhz);
         if (d > 3) continue;
+        const sx = c.x, sz = c.z, sb = c.boss;
+        const wasAlive = c.alive;
         damageCurse(c, player.damage * 1.4);
-        burst(c.x, 1.4, c.z, '#ff2030', 6);
+        cutCurseFx({ x: sx, z: sz }, dxL / lenL, dzL / lenL, '#ff2030');
+        if (wasAlive && !c.alive) splitCurseChunks(sx, sz, dxL / lenL, dzL / lenL, sb);
     }
-    // Big slash plane from player to target
-    const dxL = tgt.x - player.x, dzL = tgt.z - player.z;
-    const lenL = Math.hypot(dxL, dzL);
-    const grp = new THREE.Group();
-    const slash = new THREE.Mesh(
-        new THREE.PlaneGeometry(lenL, 1.3),
-        new THREE.MeshBasicMaterial({ color: '#ff2030', transparent: true, opacity: 0.95, side: THREE.DoubleSide }));
-    slash.rotation.x = -Math.PI / 2;
-    slash.position.set(lenL / 2, 0.20, 0);
-    grp.add(slash);
-    grp.position.set(player.x, 0, player.z);
-    grp.rotation.y = Math.atan2(dxL, dzL);
-    scene.add(grp);
-    const t0 = performance.now();
-    const tk = () => {
-        const t = (performance.now() - t0) / 380;
-        if (t >= 1) { scene.remove(grp); slash.geometry.dispose(); slash.material.dispose(); return; }
-        slash.material.opacity = 0.95 * (1 - t);
-        requestAnimationFrame(tk);
-    };
-    requestAnimationFrame(tk);
     camShake(0.20, 0.32); hitstop(0.05); sfx('boss');
 }
 
