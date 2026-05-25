@@ -690,11 +690,9 @@ function openSwordShop(npc) {
     const goldUI = `<span style="color:#ffe066">${save.gold} g</span>`;
     const rows = SWORD_CATALOG.map(s => {
         const owned = (save.ownedSwords || []).includes(s.id);
-        const equipped = save.equippedSword === s.id;
         const canAfford = save.gold >= s.gold;
         let btn;
-        if (equipped)       btn = `<button class="btn sec act" data-sword-unequip="${s.id}" style="border-color:#3aff8a;color:#3aff8a">Equipped</button>`;
-        else if (owned)     btn = `<button class="btn sec act" data-sword-equip="${s.id}">Equip</button>`;
+        if (owned)          btn = `<button class="btn sec act" disabled style="opacity:0.5;cursor:default;border-color:#3aff8a;color:#3aff8a">Owned</button>`;
         else if (canAfford) btn = `<button class="btn sec act" data-sword-buy="${s.id}">Buy</button>`;
         else                btn = `<button class="btn sec act" disabled style="opacity:0.4;cursor:not-allowed">Buy</button>`;
         return `<div class="shop-row">
@@ -706,7 +704,7 @@ function openSwordShop(npc) {
     }).join('');
     showOverlay(`<h2 style="color:#c0c4cc">${name}</h2>
         <p>${goldUI}</p>
-        <p style="margin:0.4rem 0 0.8rem;color:#7a8a9a">"Pick your steel, sorcerer."</p>
+        <p style="margin:0.4rem 0 0.8rem;color:#7a8a9a">"Pick your steel, sorcerer. Press <b>1</b> in the world to equip from your inventory."</p>
         <div class="shop-list">${rows}</div>
         <button class="btn sec act" data-close="1" style="margin-top:1rem">Close</button>`);
 }
@@ -719,29 +717,8 @@ function buySword(id) {
     if (save.gold < s.gold) { toast('Not enough gold'); return; }
     save.gold -= s.gold;
     save.ownedSwords.push(id);
-    if (!save.equippedSword) { save.equippedSword = id; refreshSwordModel(); }
-    toast(`Bought: ${s.name}`);
+    toast(`Bought: ${s.name} — press 1 to equip`);
     sfx('level');
-    persist();
-    // Re-open the same shop view (we don't know which NPC, so synth one)
-    const fakeNpc = { userData: { label: 'BLADESMITH' } };
-    openSwordShop(fakeNpc);
-}
-function equipSword(id) {
-    if (!save.ownedSwords || !save.ownedSwords.includes(id)) return;
-    save.equippedSword = id;
-    refreshSwordModel();
-    toast(`Equipped: ${SWORD_CATALOG.find(s => s.id === id).name}`);
-    sfx('ui');
-    persist();
-    openSwordShop({ userData: { label: 'BLADESMITH' } });
-}
-function unequipSword(id) {
-    if (save.equippedSword !== id) return;
-    save.equippedSword = null;
-    refreshSwordModel();
-    toast('Sheathed.');
-    sfx('ui');
     persist();
     openSwordShop({ userData: { label: 'BLADESMITH' } });
 }
@@ -750,6 +727,144 @@ function unequipSword(id) {
 function refreshSwordModel() {
     if (!playerModel || !playerModel.userData.sword) return;
     playerModel.userData.sword.visible = !!save.equippedSword;
+}
+
+// ─── INVENTORY ──────────────────────────────────────────────
+// Press 1 to open. Click a sword to equip / unequip. Press 2 anywhere
+// in the world for an instant sheath. While a sword is equipped, the
+// player can only use the sword's moves (M1 swings + R air-slash).
+function openInventory() {
+    audioInit(); sfx('ui');
+    const owned = save.ownedSwords || [];
+    let body;
+    if (!owned.length) {
+        body = '<p style="color:#7a8a9a">Empty. Visit a Bladesmith to buy a sword.</p>';
+    } else {
+        const rows = owned.map(id => {
+            const s = SWORD_CATALOG.find(x => x.id === id);
+            if (!s) return '';
+            const eq = save.equippedSword === id;
+            return `<button class="inv-slot${eq ? ' eq' : ''}" data-inv-toggle="${id}">
+                <span class="inv-icon">⚔</span>
+                <span class="inv-body"><b>${s.name}</b><br><small style="color:#7a8a9a">${s.desc}</small></span>
+                <span class="inv-status">${eq ? 'EQUIPPED' : 'click to equip'}</span>
+            </button>`;
+        }).join('');
+        body = `<div class="inv-grid">${rows}</div>`;
+    }
+    showOverlay(`<h2 style="color:#cfeeff">Inventory</h2>
+        <p style="color:#7a8a9a"><b>1</b> open · <b>2</b> instant unequip · click an item to toggle</p>
+        ${body}
+        <button class="btn sec act" data-close="1" style="margin-top:1rem">Close</button>`);
+}
+
+function toggleInvSlot(id) {
+    if (save.equippedSword === id) {
+        save.equippedSword = null;
+        toast('Sheathed');
+    } else {
+        save.equippedSword = id;
+        toast('Equipped: ' + SWORD_CATALOG.find(s => s.id === id).name);
+    }
+    refreshSwordModel();
+    sfx('ui');
+    persist();
+    openInventory();
+}
+
+function quickUnequipSword() {
+    if (!save.equippedSword) { toast('No sword equipped'); return; }
+    save.equippedSword = null;
+    refreshSwordModel();
+    toast('Sword sheathed');
+    sfx('ui');
+    persist();
+}
+
+// ─── SWORD MOVES ────────────────────────────────────────────
+// Per-slot ready timestamps for sword-only abilities. Only R is wired
+// for now: a wide-arc air-slash projectile.
+const swordReady = { r: 0 };
+const SWORD_AIR_SLASH_CD = 1500;       // ms
+
+function swordAirSlash(fx, fz) {
+    const now = performance.now();
+    if (now < swordReady.r) return;
+    swordReady.r = now + SWORD_AIR_SLASH_CD;
+    // Animation — both arms slung across the body, big torque + lunge
+    rArmSwing = 1; lArmSwing = 1;
+    torsoTwist = -0.45;
+    lungeAmount = 0.6;
+    sfx('boss'); playPunchSample();
+    camShake(0.16, 0.28);
+
+    // Air-slash projectile — a vertical crescent ring that travels
+    // forward at chest height, cutting through anything in its path.
+    const SPEED = 28, MAX_DIST = 30, RADIUS = 2.6;
+    const grp = new THREE.Group();
+    // Vertical crescent — RingGeometry placed in YZ plane, tilted so
+    // the arc reads as a horizontal slash from the side.
+    const ringOuter = new THREE.Mesh(
+        new THREE.RingGeometry(2.0, 2.55, 28, 1, -Math.PI / 3, Math.PI * 2 / 3),
+        new THREE.MeshBasicMaterial({ color: '#cfeeff', transparent: true, opacity: 0.92, side: THREE.DoubleSide })
+    );
+    const ringInner = new THREE.Mesh(
+        new THREE.RingGeometry(2.15, 2.40, 28, 1, -Math.PI / 3, Math.PI * 2 / 3),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.96, side: THREE.DoubleSide })
+    );
+    // Default ring lies in XY (normal +Z). Rotate to XZ (normal +Y) so
+    // it reads as a horizontal arc, then group-rotate around Y to face
+    // the slash direction.
+    ringOuter.rotation.x = -Math.PI / 2;
+    ringInner.rotation.x = -Math.PI / 2;
+    grp.add(ringOuter); grp.add(ringInner);
+    grp.add(new THREE.PointLight('#9bf0ff', 3.2, 7, 2));
+    grp.position.set(player.x + fx * 1.5, 1.5, player.z + fz * 1.5);
+    grp.rotation.y = Math.atan2(fx, fz) + Math.PI / 2;   // arc opening forward
+    scene.add(grp);
+
+    let traveled = 0;
+    let last = performance.now();
+    const hitSet = new Set();
+    const tk = () => {
+        const tNow = performance.now();
+        const dt2 = Math.min(0.04, (tNow - last) / 1000);
+        last = tNow;
+        const step = SPEED * dt2;
+        grp.position.x += fx * step;
+        grp.position.z += fz * step;
+        traveled += step;
+        // Hit detection — anything within RADIUS of the arc's centre
+        for (const c of curses.slice()) {
+            if (!c.alive || hitSet.has(c.id)) continue;
+            const d = Math.hypot(c.x - grp.position.x, c.z - grp.position.z);
+            if (d > RADIUS) continue;
+            hitSet.add(c.id);
+            let dmg = player.damage * 1.5;
+            dmg = tryBlackFlash(c, dmg);
+            const hx = c.x, hz = c.z, hb = c.boss;
+            const wasAlive = c.alive;
+            damageCurse(c, dmg);
+            cutCurseFx({ x: hx, z: hz }, fx, fz, '#cfeeff');
+            if (wasAlive && !c.alive) splitCurseChunks(hx, hz, fx, fz, hb);
+        }
+        if (Math.random() < 0.55) burst(grp.position.x, grp.position.y - 0.3, grp.position.z, '#cfeeff', 2);
+        if (traveled >= MAX_DIST) {
+            scene.remove(grp);
+            ringOuter.geometry.dispose(); ringOuter.material.dispose();
+            ringInner.geometry.dispose(); ringInner.material.dispose();
+            return;
+        }
+        // Subtle fade-in at start, fade-out near end of life
+        const lifeRatio = traveled / MAX_DIST;
+        const o = lifeRatio < 0.1 ? lifeRatio * 10 : (1 - Math.max(0, (lifeRatio - 0.7) / 0.3));
+        ringOuter.material.opacity = 0.92 * o;
+        ringInner.material.opacity = 0.96 * o;
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    // Tell the network this counts as an ability cast so other players see something
+    if (NET.isOnline) sendMyAction('ability', 'r');
 }
 
 // 4 additional quest-giver NPCs scattered around the Tokyo district.
@@ -1677,6 +1792,16 @@ const abilityReady = { z: 0, x: 0, c: 0, r: 0, t: 0, v: 0 };
 const ABILITY_SLOTS = ['z', 'x', 'c', 'r', 't', 'v'];
 
 function castAbility(slot) {
+    if (player.blocking) return;
+    if (player.onWall) return;
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    // SWORD MODE — the blade has its own moveset. Cursed techniques are
+    // locked out; R becomes the air-slash; the rest just toast.
+    if (save && save.equippedSword) {
+        if (slot === 'r') { swordAirSlash(fx, fz); return; }
+        toast('Sheath the blade (2) to use cursed techniques');
+        return;
+    }
     if (!save.equipped) { toast('No technique equipped — buy one from the Vendor'); return; }
     const kit = TECHNIQUE_KITS[save.equipped];
     if (!kit) { toast('Coming soon (placeholder technique)'); return; }
@@ -1685,9 +1810,6 @@ function castAbility(slot) {
     const now = performance.now();
     if (now < abilityReady[slot]) return;       // on cooldown
     if (player.ce < ab.cost) { toast('Not enough cursed energy'); return; }
-    if (player.blocking) return;
-    if (player.onWall) return;
-    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     abilityReady[slot] = now + ab.cd * 1000;
     player.ce -= ab.cost;
     ab.run(fx, fz);
@@ -3121,9 +3243,8 @@ document.getElementById('overlay').addEventListener('click', (e) => {
     if (!t.dataset) return;
     if (t.dataset.shopBuy)   { sfx('ui'); buyTechnique(t.dataset.shopBuy); return; }
     if (t.dataset.shopEquip) { equipTechnique(t.dataset.shopEquip); return; }
-    if (t.dataset.swordBuy)     { sfx('ui'); buySword(t.dataset.swordBuy);   return; }
-    if (t.dataset.swordEquip)   { equipSword(t.dataset.swordEquip);          return; }
-    if (t.dataset.swordUnequip) { unequipSword(t.dataset.swordUnequip);      return; }
+    if (t.dataset.swordBuy)    { sfx('ui'); buySword(t.dataset.swordBuy); return; }
+    if (t.dataset.invToggle)   { toggleInvSlot(t.dataset.invToggle);      return; }
     if (!t.dataset.close && !t.dataset.resume && !t.dataset.accept &&
         !t.dataset.quit && !t.dataset.buy) return;
     sfx('ui');
@@ -3675,6 +3796,8 @@ function initInput() {
         else if (e.code === 'KeyR' && state === 'playing') castAbility('r');
         else if (e.code === 'KeyT' && state === 'playing') castAbility('t');
         else if (e.code === 'KeyV' && state === 'playing') castAbility('v');
+        else if (e.code === 'Digit1' && state === 'playing' && !adminOpen) openInventory();
+        else if (e.code === 'Digit2' && state === 'playing' && !adminOpen) quickUnequipSword();
         else if (e.code === 'F4') { mpDebugOn = !mpDebugOn; const el = document.getElementById('mp-debug'); if (el) el.style.display = mpDebugOn ? 'block' : 'none'; }
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -3755,6 +3878,7 @@ const GRAB_CD = 3000;
 const GRAB_STAMINA = 25;
 const GRAB_REACH = 3.0;
 function doGrab() {
+    if (save && save.equippedSword) { toast('Sheath the blade (2) to grab'); return; }
     const now = performance.now();
     if (now - lastGrab < GRAB_CD) return;
     if (player.stamina < GRAB_STAMINA) { toast('Out of stamina'); return; }

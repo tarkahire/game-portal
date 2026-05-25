@@ -140,6 +140,23 @@ input[type="password"].name { letter-spacing: 0.4em; font-size: 1rem; }
 .shop-body b { color: #cbb6ff; }
 .shop-cost { text-align: right; font-size: 0.8rem; }
 .shop-row .btn { min-width: 0; padding: 0.4rem 0.7rem; font-size: 0.8rem; pointer-events: auto; }
+
+/* Inventory */
+.inv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;
+    margin-top: 0.6rem; }
+.inv-slot { display: grid; grid-template-columns: 38px 1fr 100px;
+    gap: 0.55rem; align-items: center; padding: 0.55rem 0.8rem;
+    background: rgba(8,12,22,0.7); border: 1px solid #1f2a40;
+    color: inherit; font-family: inherit; font-size: 0.85rem;
+    cursor: pointer; pointer-events: auto; text-align: left; }
+.inv-slot:hover { border-color: #4a6ab0; background: rgba(20,30,50,0.85); }
+.inv-slot.eq { border-color: #3aff8a; background: rgba(10,30,18,0.7); }
+.inv-slot .inv-icon { font-size: 1.5rem; color: #cfeeff; text-shadow: 0 0 8px rgba(207,238,255,0.6); }
+.inv-slot .inv-body b { color: #e0e6f0; }
+.inv-slot .inv-status { text-align: right; font-size: 0.72rem;
+    letter-spacing: 0.12em; color: #7a8a9a; }
+.inv-slot.eq .inv-status { color: #3aff8a; }
+
 .card { max-width: 620px; }
 
 /* Admin (only visible when signed in as `dbag`) */
