@@ -568,6 +568,30 @@ function buildPlaza() {
     questGivers.push(board);
 }
 
+// Sword vendors — scattered around the map. Inventory is empty for the
+// MVP (user wants placeholder NPCs only; swords come later once the
+// reference art lands). Each one is a `makeNpc(..., 'swordsmith')`.
+const swordVendors = [];
+function buildSwordVendors() {
+    const list = [
+        { name: 'TETSU THE BLADESMITH', color: '#c0c4cc', x:  14, z:    8 },  // near plaza
+        { name: 'MISTRESS KAJI',        color: '#9bb0c4', x: -30, z:   95 },  // mid-city
+        { name: 'OLD MAN RENJI',        color: '#a89880', x:  40, z:  220 },  // deep south
+    ];
+    for (const v of list) {
+        const npc = makeNpc(v.color, v.x, v.z, v.name, 'swordsmith');
+        swordVendors.push(npc);
+    }
+}
+
+function openSwordShop(npc) {
+    const name = npc.userData.label;
+    showOverlay(`<h2 style="color:#c0c4cc">${name}</h2>
+        <p style="color:#7a8a9a">A weathered swordsmith looks you up and down.</p>
+        <p>"No blades on the rack yet, sorcerer. Come back another day — I'll have steel worth your cursed energy."</p>
+        <button class="btn sec act" data-close="1">Close</button>`);
+}
+
 // 4 additional quest-giver NPCs scattered around the Tokyo district.
 // Each is gated by player level — the overhead arrow points at the
 // closest unlocked one with an available (or retake-able) quest.
@@ -787,6 +811,8 @@ function makeNpc(color, x, z, label, role) {
     let coat = '#384258';
     if (role === 'smith') coat = '#5a3a26';
     else if (role === 'contact') coat = '#0c1020';
+    else if (role === 'swordsmith') coat = '#3a4b62';     // steel-blue gi
+
     const g = buildHumanoid({
         coat,
         pants: '#0a0c14',
@@ -844,6 +870,14 @@ function makeNpc(color, x, z, label, role) {
         ham.position.set(0, -0.32, 0);
         ham.rotation.z = 0.25;
         ud.rWrist.add(ham);
+    } else if (role === 'swordsmith') {
+        // Placeholder pose — relaxed stance, hands resting at the hips.
+        // No sword props for now; the user is providing a reference
+        // image and we'll re-mesh the visual to match.
+        ud.lShoulder.rotation.set(-0.30, 0,  0.20);
+        ud.rShoulder.rotation.set(-0.30, 0, -0.20);
+        ud.lElbow.rotation.x = -0.55;
+        ud.rElbow.rotation.x = -0.55;
     } else { // contact — arms crossed
         ud.lShoulder.rotation.set(-0.55, 0, 0.85);
         ud.rShoulder.rotation.set(-0.55, 0, -0.85);
@@ -3560,6 +3594,7 @@ function tryInteract() {
     if (nearInteract === smith) { openSmith(); return; }
     if (nearInteract === contact) { openContact(); return; }
     if (nearInteract === vendor) { openTechniqueShop(); return; }
+    if (swordVendors.includes(nearInteract)) { openSwordShop(nearInteract); return; }
     // Quest giver: check level gate, then open this giver's single-quest panel
     const ud = nearInteract.userData;
     if (ud._questId) {
@@ -4049,7 +4084,7 @@ function update(dt) {
     // NPC idle life — breathing bob, spinning marker, pulsing ring,
     // and they turn to face you when you're close. Covers every
     // interactable NPC (plaza + city quest givers + vendor).
-    const allNpcs = [board, smith, contact, vendor, ...questGivers.slice(1)];
+    const allNpcs = [board, smith, contact, vendor, ...questGivers.slice(1), ...swordVendors];
     for (const o of allNpcs) {
         const ud = o.userData;
         ud._t += dt;
@@ -4157,7 +4192,7 @@ function drawMinimap() {
     g.fillStyle = 'rgba(160,107,255,0.25)';
     g.beginPath(); g.arc(cx + TOWN.x * sc, cy + TOWN.z * sc, TOWN.r * sc, 0, 7); g.fill();
     // interactables (plaza + city quest givers + vendor)
-    const allNpcs = [board, smith, contact, vendor, ...questGivers.slice(1)];
+    const allNpcs = [board, smith, contact, vendor, ...questGivers.slice(1), ...swordVendors];
     for (const o of allNpcs) {
         g.fillStyle = o.userData.color;
         g.fillRect(cx + o.userData.x * sc - 2, cy + o.userData.z * sc - 2, 4, 4);
@@ -4195,6 +4230,7 @@ function init() {
     buildCity();
     buildPlaza();
     buildCityQuestGivers();
+    buildSwordVendors();
     playerModel = buildPlayerModel();
     scene.add(playerModel);
 
