@@ -97,6 +97,11 @@ input[type="password"].name { letter-spacing: 0.4em; font-size: 1rem; }
     color: #3adf8a; font-size: 0.85rem; letter-spacing: 0.16em; font-weight: 700;
     text-shadow: 0 0 6px rgba(58,223,138,0.6); display: none; }
 
+#mp-debug { position: absolute; top: 12px; left: 12px;
+    padding: 8px 12px; background: rgba(4,8,16,0.86); border: 1px solid #3adf8a;
+    color: #cfeede; font-family: monospace; font-size: 0.75rem; line-height: 1.45;
+    max-width: 360px; display: none; white-space: pre; pointer-events: none; }
+
 #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
     color: rgba(200,180,255,0.55); font-size: 1.4rem; font-family: monospace; }
 #minimap { position: absolute; bottom: 12px; right: 12px; border: 1px solid #2a3245;

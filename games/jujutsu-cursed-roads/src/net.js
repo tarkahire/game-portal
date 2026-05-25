@@ -15,7 +15,42 @@ export const NET = {
     lobbyPlayers: [],    // [{ id, name, ready }]
     // remotePlayers[idx] = { x, z, y, yaw, name, lastPos, pendingActions[] }
     remotePlayers: {},
+    // ── World-sync hooks (wired up by main.js at game start) ──
+    onCurseSpawn: null,        // CLIENT: (data) => void — apply a remote spawn
+    onCurseState: null,        // CLIENT: (list)  => void — apply state tick
+    onCurseDeath: null,        // CLIENT: (id, killerIdx) => void — death event
+    onCurseSnapshotApply: null,// CLIENT: (list)  => void — apply join snapshot
+    onCurseSnapshotBuild: null,// HOST:   () => list — build snapshot for new joiner
+    onCurseDmg: null,          // HOST:   (id, amount, fromIdx) => void — apply client dmg
+    // Stats (visible via getNetStats() for debug overlay)
+    _rxPos: 0, _txPos: 0, _rxAct: 0, _txAct: 0,
+    _lastRxPos: 0, _lastTxPos: 0,
 };
+
+export function getNetStats() {
+    const remote = {};
+    for (const k of Object.keys(NET.remotePlayers)) {
+        const r = NET.remotePlayers[k];
+        remote[k] = {
+            name: r.name,
+            x: Math.round(r.x * 10) / 10,
+            z: Math.round(r.z * 10) / 10,
+            sinceMs: r.lastSeen ? Math.round(performance.now() - r.lastSeen) : -1,
+        };
+    }
+    return {
+        role: NET.isHost ? 'host' : (NET.isOnline ? 'client' : 'offline'),
+        code: NET.roomCode,
+        myIdx: NET.playerIndex,
+        conns: NET.connections.length,
+        openConns: NET.connections.filter(c => c.open).length,
+        remote,
+        rxPos: NET._rxPos, txPos: NET._txPos,
+        rxAct: NET._rxAct, txAct: NET._txAct,
+        msSinceLastTx: NET._lastTxPos ? Math.round(performance.now() - NET._lastTxPos) : -1,
+        msSinceLastRx: NET._lastRxPos ? Math.round(performance.now() - NET._lastRxPos) : -1,
+    };
+}
 
 const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -76,20 +111,34 @@ export function createRoom(myName, onStatus, onLobby) {
                 NET.remotePlayers[pIdx] = { name: data.name || 'Sorcerer', x: 0, z: 0, y: 0, yaw: 0, pendingActions: [], lastSeen: performance.now() };
                 broadcastLobby();
                 onLobby(NET.lobbyPlayers);
+                // Send the joiner a snapshot of every live curse so they
+                // see the world in progress instead of an empty city.
+                if (NET.onCurseSnapshotBuild) {
+                    const list = NET.onCurseSnapshotBuild();
+                    if (list && conn.open) conn.send({ type: 'curseSnapshot', list });
+                }
             }
             if (data.type === 'pos') {
                 const rp = NET.remotePlayers[pIdx];
-                if (rp) {
+                if (!rp) {
+                    // Joiner hasn't sent 'hello' yet — create the slot
+                    // on the fly so the first frame of movement isn't dropped.
+                    NET.remotePlayers[pIdx] = { name: 'Sorcerer', x: data.x, z: data.z, y: data.y, yaw: data.yaw, pendingActions: [], lastSeen: performance.now() };
+                } else {
                     rp.x = data.x; rp.z = data.z; rp.y = data.y; rp.yaw = data.yaw;
                     rp.lastSeen = performance.now();
                 }
-                // Relay to other clients
+                NET._rxPos++; NET._lastRxPos = performance.now();
                 relayFrom(conn, { type: 'pos', from: pIdx, x: data.x, z: data.z, y: data.y, yaw: data.yaw });
             }
             if (data.type === 'action') {
                 const rp = NET.remotePlayers[pIdx];
                 if (rp) rp.pendingActions.push(data);
+                NET._rxAct++;
                 relayFrom(conn, { type: 'action', from: pIdx, kind: data.kind, slot: data.slot });
+            }
+            if (data.type === 'curseDmg') {
+                if (NET.onCurseDmg) NET.onCurseDmg(data.id, data.amount, pIdx);
             }
         });
 
@@ -130,10 +179,27 @@ export function hostBroadcastPos(x, z, y, yaw) {
     if (!NET.isHost) return;
     const msg = { type: 'pos', from: 0, x, z, y, yaw };
     for (const c of NET.connections) if (c.open) c.send(msg);
+    NET._txPos++; NET._lastTxPos = performance.now();
 }
 export function hostBroadcastAction(kind, slot) {
     if (!NET.isHost) return;
     const msg = { type: 'action', from: 0, kind, slot };
+    for (const c of NET.connections) if (c.open) c.send(msg);
+    NET._txAct++;
+}
+export function hostBroadcastCurseSpawn(data) {
+    if (!NET.isHost) return;
+    const msg = { type: 'curseSpawn', ...data };
+    for (const c of NET.connections) if (c.open) c.send(msg);
+}
+export function hostBroadcastCurseState(list) {
+    if (!NET.isHost) return;
+    const msg = { type: 'curseState', list };
+    for (const c of NET.connections) if (c.open) c.send(msg);
+}
+export function hostBroadcastCurseDeath(id, killerIdx) {
+    if (!NET.isHost) return;
+    const msg = { type: 'curseDeath', id, killerIdx };
     for (const c of NET.connections) if (c.open) c.send(msg);
 }
 
@@ -199,16 +265,26 @@ export function joinRoom(code, myName, onStatus, onLobby) {
                 onLobby(data.players);
             }
             if (data.type === 'pos') {
-                const rp = NET.remotePlayers[data.from];
-                if (rp) {
+                let rp = NET.remotePlayers[data.from];
+                if (!rp) {
+                    // Auto-create a slot so the first frames from a peer
+                    // aren't dropped (happens when 'pos' beats 'lobby').
+                    rp = NET.remotePlayers[data.from] = { name: 'Sorcerer', x: data.x, z: data.z, y: data.y, yaw: data.yaw, pendingActions: [], lastSeen: performance.now() };
+                } else {
                     rp.x = data.x; rp.z = data.z; rp.y = data.y; rp.yaw = data.yaw;
                     rp.lastSeen = performance.now();
                 }
+                NET._rxPos++; NET._lastRxPos = performance.now();
             }
             if (data.type === 'action') {
                 const rp = NET.remotePlayers[data.from];
                 if (rp) rp.pendingActions.push(data);
+                NET._rxAct++;
             }
+            if (data.type === 'curseSpawn')    { if (NET.onCurseSpawn)    NET.onCurseSpawn(data); }
+            if (data.type === 'curseState')    { if (NET.onCurseState)    NET.onCurseState(data.list); }
+            if (data.type === 'curseDeath')    { if (NET.onCurseDeath)    NET.onCurseDeath(data.id, data.killerIdx); }
+            if (data.type === 'curseSnapshot') { if (NET.onCurseSnapshotApply) NET.onCurseSnapshotApply(data.list); }
         });
 
         conn.on('close', () => {
@@ -233,11 +309,21 @@ export function joinRoom(code, myName, onStatus, onLobby) {
 // Client: broadcast my own position/action UP to the host (who relays).
 export function clientSendPos(x, z, y, yaw) {
     if (NET.isHost || !NET.isOnline || !NET.connections[0]) return;
-    if (NET.connections[0].open) NET.connections[0].send({ type: 'pos', x, z, y, yaw });
+    if (NET.connections[0].open) {
+        NET.connections[0].send({ type: 'pos', x, z, y, yaw });
+        NET._txPos++; NET._lastTxPos = performance.now();
+    }
 }
 export function clientSendAction(kind, slot) {
     if (NET.isHost || !NET.isOnline || !NET.connections[0]) return;
-    if (NET.connections[0].open) NET.connections[0].send({ type: 'action', kind, slot });
+    if (NET.connections[0].open) {
+        NET.connections[0].send({ type: 'action', kind, slot });
+        NET._txAct++;
+    }
+}
+export function clientSendCurseDmg(id, amount) {
+    if (NET.isHost || !NET.isOnline || !NET.connections[0]) return;
+    if (NET.connections[0].open) NET.connections[0].send({ type: 'curseDmg', id, amount });
 }
 
 // Convenience: send my position regardless of role.

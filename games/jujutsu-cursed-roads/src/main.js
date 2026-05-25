@@ -8,7 +8,12 @@
 import * as THREE from 'three';
 import { LocalStorageAdapter } from './save/localStorageAdapter.js';
 import { newSave } from './save/saveAdapter.js';
-import { NET, createRoom, joinRoom, sendMyPos, sendMyAction, cleanupNet } from './net.js';
+import {
+    NET, createRoom, joinRoom, sendMyPos, sendMyAction, cleanupNet,
+    getNetStats,
+    hostBroadcastCurseSpawn, hostBroadcastCurseState, hostBroadcastCurseDeath,
+    clientSendCurseDmg,
+} from './net.js';
 
 // ─── GLOBALS ────────────────────────────────────────────────
 let scene, camera, renderer, clock;
@@ -939,7 +944,17 @@ function buildCurseMesh(boss) {
     return g;
 }
 
+// Auto-incrementing ID assigned by whichever instance is authoritative
+// (host in MP, the lone player in single-player). Used to keep every
+// player's view of the same curse in sync.
+let curseIdCounter = 1;
+let curseStateAccum = 0;            // host's 10Hz broadcast timer
+
 function spawnCurse(boss) {
+    // Clients NEVER spawn locally — they only render curses they receive
+    // from the host via curseSpawn / curseSnapshot messages.
+    if (NET.isOnline && !NET.isHost) return;
+
     // Pick a spawn point in the city district (south half). Reject if
     // it lands inside an obstacle or the plaza safe zone.
     let x, z, tries = 0;
@@ -969,21 +984,30 @@ function spawnCurse(boss) {
     const levelMul = 1 + save.level * 0.04;
     const baseHp  = boss ? 380 : 40;
     const baseDmg = boss ? 28  : 14;
+    const id = curseIdCounter++;
+    const hpVal  = baseHp  * gradeMul * levelMul;
+    const dmgVal = baseDmg * gradeMul * levelMul;
     curses.push({
-        mesh, x, z, boss: !!boss,
-        hp:  baseHp  * gradeMul * levelMul,
-        maxHp: baseHp * gradeMul * levelMul,
-        dmg: baseDmg * gradeMul * levelMul,
+        id, mesh, x, z, boss: !!boss,
+        hp: hpVal, maxHp: hpVal, dmg: dmgVal,
         speed: boss ? 4.4 : 3.6,
         lastHit: 0, bob: Math.random() * 6, alive: true,
         frozenUntil: 0, iceShell: null, slamUntil: 0,
+        targetX: x, targetZ: z,    // client lerp targets (unused on host)
         xp:   boss ? 0 : Math.round(22 * (1 + save.level * 0.05)),
         gold: boss ? 0 : Math.round(6  * (1 + save.level * 0.04)),
     });
+    // Host: tell every client to spawn the matching visual-only curse.
+    if (NET.isHost) {
+        hostBroadcastCurseSpawn({ id, x, z, boss: !!boss, hp: hpVal, maxHp: hpVal });
+    }
 }
 
 let curseTimer = 0;
 function updateCurseDirector(dt) {
+    // Director only runs on the authoritative instance (host in MP,
+    // lone player in single-player). Clients receive spawn broadcasts.
+    if (NET.isOnline && !NET.isHost) return;
     curseTimer -= dt;
     const inTown = Math.hypot(player.x - TOWN.x, player.z - TOWN.z) < TOWN.r;
     // More curses at higher grades — Special Grade gets a busier district
@@ -2170,32 +2194,46 @@ function airSlamImpact() {
 
 function damageCurse(c, dmg) {
     if (!c.alive) return;
-    c.hp -= dmg;
+    // Visual hit-flash runs everywhere (snappy local feedback).
     c.mesh.userData.bodyMat.emissive.set('#ffffff');
     setTimeout(() => { if (c.mesh) c.mesh.userData.bodyMat.emissive.set('#0a0010'); }, 70);
+    // CLIENT: forward damage to the host; the host will reflect the new
+    // HP back to us via curseState (and broadcast curseDeath if it dies).
+    if (NET.isOnline && !NET.isHost) {
+        clientSendCurseDmg(c.id, dmg);
+        return;
+    }
+    // HOST or single-player: apply damage authoritatively.
+    c.hp -= dmg;
     if (c.hp <= 0) {
-        c.alive = false;
-        scene.remove(c.mesh);
-        const idx = curses.indexOf(c);
-        if (idx >= 0) curses.splice(idx, 1);
-        burst(c.x, 1.4, c.z, c.boss ? '#ff3a3a' : '#aa1840', c.boss ? 40 : 16);
-        sfx('death');
-        // Cursed-spirit shard drop. Bosses always give 5; normal curses
-        // roll 67% for +1.
-        let shardDrop = 0;
-        if (c.boss) shardDrop = 5;
-        else if (Math.random() < 0.67) shardDrop = 1;
-        if (shardDrop > 0) {
-            save.shards = (save.shards || 0) + shardDrop;
-            // Cyan-ish glint particle to read as "loot"
-            burst(c.x, 1.6, c.z, '#a06bff', 6);
-        }
-        if (c.boss) onBossKilled();
-        else {
-            gainXp(c.xp);
-            save.gold += c.gold;
-            questProgress();
-        }
+        applyCurseDeath(c, NET.playerIndex);
+        if (NET.isHost) hostBroadcastCurseDeath(c.id, NET.playerIndex);
+    }
+}
+
+// Local death effects + rewards. `killerIdx` is the player who scored
+// the kill — only that player banks XP / gold / quest progress.
+function applyCurseDeath(c, killerIdx) {
+    if (!c.alive) return;
+    c.alive = false;
+    scene.remove(c.mesh);
+    const idx = curses.indexOf(c);
+    if (idx >= 0) curses.splice(idx, 1);
+    burst(c.x, 1.4, c.z, c.boss ? '#ff3a3a' : '#aa1840', c.boss ? 40 : 16);
+    sfx('death');
+    if (killerIdx !== NET.playerIndex) return;     // rewards only for the killer
+    let shardDrop = 0;
+    if (c.boss) shardDrop = 5;
+    else if (Math.random() < 0.67) shardDrop = 1;
+    if (shardDrop > 0) {
+        save.shards = (save.shards || 0) + shardDrop;
+        burst(c.x, 1.6, c.z, '#a06bff', 6);
+    }
+    if (c.boss) onBossKilled();
+    else {
+        gainXp(c.xp);
+        save.gold += c.gold;
+        questProgress();
     }
 }
 
@@ -2480,6 +2518,8 @@ const REMOTE_COLORS = ['#3adf8a', '#a06bff', '#ff5a8a', '#ffe066', '#3a8aff', '#
 const remoteModels = {};      // idx → { model, targetX, targetZ, targetY, targetYaw, color }
 let mpLastPosSend = 0;
 let pendingMpSave = null;
+let mpDebugOn = false;
+let mpDebugAccum = 0;
 
 function mpSetStatus(msg)    { const el = document.getElementById('mp-status');      if (el) el.textContent = msg; }
 function mpSetJoinStatus(m)  { const el = document.getElementById('mp-join-status'); if (el) el.textContent = m; }
@@ -2569,12 +2609,81 @@ function mpCancelActive() {
 function mpEnterWorld() {
     sfx('ui');
     if (!pendingMpSave) return;
+    wireCurseHooks();
     document.getElementById('mp-screen').classList.remove('active');
     startGame(pendingMpSave);
     const chip = document.getElementById('mp-chip');
     chip.style.display = 'block';
     chip.textContent = `ROOM ${NET.roomCode} · P${NET.playerIndex + 1}`;
     pendingMpSave = null;
+}
+
+// Wire net.js hooks for curse sync. Called once when entering MP world.
+function wireCurseHooks() {
+    // CLIENT — apply a single spawn broadcast from the host.
+    NET.onCurseSpawn = (data) => {
+        if (curses.find(c => c.id === data.id)) return;   // dedupe
+        const mesh = buildCurseMesh(!!data.boss);
+        mesh.position.set(data.x, terrainHeight(data.x, data.z), data.z);
+        scene.add(mesh);
+        curses.push({
+            id: data.id, mesh, x: data.x, z: data.z, boss: !!data.boss,
+            hp: data.hp, maxHp: data.maxHp, dmg: 0,
+            speed: 0, lastHit: 0, bob: Math.random() * 6, alive: true,
+            frozenUntil: 0, iceShell: null, slamUntil: 0,
+            targetX: data.x, targetZ: data.z,
+            xp: 0, gold: 0,
+        });
+    };
+    // CLIENT — apply a 10Hz state tick from the host.
+    NET.onCurseState = (list) => {
+        const now = performance.now();
+        const seen = new Set();
+        for (const s of list) {
+            seen.add(s.id);
+            const c = curses.find(cc => cc.id === s.id);
+            if (!c) continue;       // spawn message will create it
+            c.targetX = s.x; c.targetZ = s.z;
+            c.hp = s.hp;
+            c.frozenUntil = s.frozen ? now + 200 : 0;
+            c.slamUntil   = s.slam   ? now + 200 : 0;
+        }
+        // Any local curse not in the tick has died/despawned — clean it.
+        for (const c of curses.slice()) {
+            if (!seen.has(c.id)) {
+                scene.remove(c.mesh);
+                const idx = curses.indexOf(c);
+                if (idx >= 0) curses.splice(idx, 1);
+            }
+        }
+    };
+    // CLIENT — death event from host (rewards already attributed by host).
+    NET.onCurseDeath = (id, killerIdx) => {
+        const c = curses.find(cc => cc.id === id);
+        if (!c) return;
+        applyCurseDeath(c, killerIdx);
+    };
+    // CLIENT — snapshot of the full live curse list, sent on join.
+    NET.onCurseSnapshotApply = (list) => {
+        // Drop any local stale curses first.
+        for (const c of curses.slice()) { scene.remove(c.mesh); }
+        curses.length = 0;
+        for (const s of list) NET.onCurseSpawn(s);
+    };
+    // HOST — build snapshot for a newly-connected client.
+    NET.onCurseSnapshotBuild = () => curses.map(c => ({
+        id: c.id, x: c.x, z: c.z, boss: c.boss, hp: c.hp, maxHp: c.maxHp,
+    }));
+    // HOST — apply incoming damage event from a client.
+    NET.onCurseDmg = (id, amount, fromIdx) => {
+        const c = curses.find(cc => cc.id === id);
+        if (!c || !c.alive) return;
+        c.hp -= amount;
+        if (c.hp <= 0) {
+            applyCurseDeath(c, fromIdx);
+            hostBroadcastCurseDeath(c.id, fromIdx);
+        }
+    };
 }
 
 function ensureRemoteModel(idx, name) {
@@ -2594,6 +2703,16 @@ function ensureRemoteModel(idx, name) {
     lbl.scale.set(2.4, 0.6, 1);
     lbl.position.y = 2.4;
     model.add(lbl);
+    // Bright aura light so remote players are visible even at distance.
+    model.add(new THREE.PointLight(color, 3.2, 8, 2));
+    // Ground halo so you can spot a remote player at any angle.
+    const halo = new THREE.Mesh(
+        new THREE.RingGeometry(0.5, 0.9, 24),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+    );
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = 0.02;
+    model.add(halo);
     const rec = { model, color, targetX: 0, targetZ: 0, targetY: 0, targetYaw: 0, nameTag: lbl };
     remoteModels[idx] = rec;
     return rec;
@@ -2617,6 +2736,19 @@ function mpTick(dt) {
         mpLastPosSend = now;
         sendMyPos(player.x, player.z, player.y, yaw);
     }
+    // Host: broadcast the live curse list at ~10Hz so clients can lerp.
+    if (NET.isHost) {
+        curseStateAccum += dt;
+        if (curseStateAccum > 0.1) {
+            curseStateAccum = 0;
+            const list = curses.map(c => ({
+                id: c.id, x: c.x, z: c.z, hp: c.hp,
+                frozen: (c.frozenUntil || 0) > now ? 1 : 0,
+                slam:   (c.slamUntil   || 0) > now ? 1 : 0,
+            }));
+            hostBroadcastCurseState(list);
+        }
+    }
     // Reap models for players that left
     for (const idxStr of Object.keys(remoteModels)) {
         if (!(idxStr in NET.remotePlayers)) disposeRemoteModel(+idxStr);
@@ -2638,6 +2770,31 @@ function mpTick(dt) {
         m.rotation.y += dyaw * k;
         while (rp.pendingActions.length) playRemoteAction(rec, rp.pendingActions.shift());
     }
+    // Debug overlay — refresh ~5 Hz
+    mpDebugAccum += dt;
+    if (mpDebugOn && mpDebugAccum > 0.2) {
+        mpDebugAccum = 0;
+        renderMpDebug();
+    }
+}
+
+function renderMpDebug() {
+    const el = document.getElementById('mp-debug');
+    if (!el) return;
+    const s = getNetStats();
+    let txt = `[NET] ${s.role.toUpperCase()}  code:${s.code || '----'}  me:P${s.myIdx + 1}\n`;
+    txt += `conns:${s.openConns}/${s.conns}  tx pos:${s.txPos} act:${s.txAct}  rx pos:${s.rxPos} act:${s.rxAct}\n`;
+    txt += `last tx ${s.msSinceLastTx}ms  last rx ${s.msSinceLastRx}ms\n`;
+    txt += `--- remote players ---\n`;
+    const keys = Object.keys(s.remote);
+    if (!keys.length) txt += '(none)\n';
+    for (const k of keys) {
+        const r = s.remote[k];
+        txt += `P${(+k) + 1} ${r.name.padEnd(10)} (${r.x},${r.z})  ${r.sinceMs}ms ago\n`;
+    }
+    txt += `--- world ---\n`;
+    txt += `curses local:${curses.length}\n`;
+    el.textContent = txt;
 }
 
 function playRemoteAction(rec, act) {
@@ -2753,6 +2910,7 @@ function initInput() {
         else if (e.code === 'KeyX' && state === 'playing') castAbility('x');
         else if (e.code === 'KeyC' && state === 'playing') castAbility('c');
         else if (e.code === 'KeyR' && state === 'playing') castAbility('r');
+        else if (e.code === 'F4') { mpDebugOn = !mpDebugOn; const el = document.getElementById('mp-debug'); if (el) el.style.display = mpDebugOn ? 'block' : 'none'; }
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
     const cv = document.getElementById('game-canvas');
@@ -3273,12 +3431,19 @@ function update(dt) {
 
     // Curses
     updateCurseDirector(dt);
+    const isCurseClient = NET.isOnline && !NET.isHost;
     for (const c of curses) {
         const now = performance.now();
         const frozen = (c.frozenUntil || 0) > now;
         const slammed = (c.slamUntil || 0) > now;
         const disabled = frozen || slammed;
-        if (!disabled) {
+        if (isCurseClient) {
+            // Client: don't run AI. Lerp toward host-broadcast targets.
+            const lerpK = 1 - Math.exp(-dt * 14);     // ~70 ms
+            c.x += (c.targetX - c.x) * lerpK;
+            c.z += (c.targetZ - c.z) * lerpK;
+            if (!disabled) c.bob += dt * 4;
+        } else if (!disabled) {
             const dx = player.x - c.x, dz = player.z - c.z;
             const d = Math.hypot(dx, dz) || 1;
             if (d < 30 && d > 1.6) {
