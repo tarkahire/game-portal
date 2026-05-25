@@ -13,6 +13,7 @@
   }
 }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
@@ -27,8 +28,40 @@
     <div id="signin-error" class="error"></div>
     <button id="btn-enter" class="btn">Enter the Roads</button>
     <button id="btn-register" class="btn sec">Register account</button>
+    <button id="btn-mp" class="btn sec" style="border-color:#3adf8a;color:#3adf8a">Multiplayer</button>
     <div id="slot-list" class="slots"></div>
     <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+</div>
+
+<!-- Multiplayer lobby -->
+<div id="mp-screen" class="screen">
+    <h1>MULTIPLAYER</h1>
+    <div class="sub" id="mp-name">—</div>
+    <p class="tag">Each player roams the same world. Movements + attacks replicate; curses are local.</p>
+    <div id="mp-error" class="error"></div>
+
+    <div id="mp-host-block" style="margin-top:1rem">
+        <button id="btn-create" class="btn">Create Server</button>
+        <button id="btn-join-show" class="btn sec">Join Server</button>
+    </div>
+
+    <div id="mp-host-active" style="display:none;margin-top:1rem">
+        <p class="tag">Room code (share with friends):</p>
+        <div id="mp-code" style="font-size:2.2rem;letter-spacing:0.6rem;color:#3adf8a;font-weight:700;margin:0.4rem 0">----</div>
+        <p id="mp-status" class="tag" style="color:#a06bff">Waiting...</p>
+        <div id="mp-players" class="slots"></div>
+        <button id="btn-start" class="btn">Enter World</button>
+        <button id="btn-mp-cancel" class="btn sec">Cancel</button>
+    </div>
+
+    <div id="mp-join-block" style="display:none;margin-top:1rem">
+        <input id="mp-code-input" class="name" type="text" maxlength="4" placeholder="ROOM CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:0.4rem;text-align:center">
+        <button id="btn-join" class="btn">Join</button>
+        <button id="btn-mp-cancel-join" class="btn sec">Back</button>
+        <p id="mp-join-status" class="tag" style="color:#a06bff;margin-top:0.6rem"></p>
+    </div>
+
+    <button id="btn-mp-back" class="btn sec" style="margin-top:1rem">Back to Sign-in</button>
 </div>
 
 <!-- HUD -->
@@ -59,6 +92,7 @@
     </div>
     <div id="prompt"></div>
     <div id="bf-chip"></div>
+    <div id="mp-chip"></div>
     <div id="crosshair">+</div>
     <canvas id="minimap" width="150" height="150"></canvas>
     <div id="hint">WASD · LMB combo (air = slam) · Space jump (into walls = climb) · Q dash · F block · G grab · Z/X/C techniques · R Domain · Shift sprint · E interact · ESC pause</div>

@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { LocalStorageAdapter } from './save/localStorageAdapter.js';
 import { newSave } from './save/saveAdapter.js';
+import { NET, createRoom, joinRoom, sendMyPos, sendMyAction, cleanupNet } from './net.js';
 
 // ─── GLOBALS ────────────────────────────────────────────────
 let scene, camera, renderer, clock;
@@ -1350,6 +1351,7 @@ function castAbility(slot) {
     abilityReady[slot] = now + ab.cd * 1000;
     player.ce -= ab.cost;
     ab.run(fx, fz);
+    if (NET.isOnline) sendMyAction('ability', slot);
 }
 
 function refreshAbilityHud() {
@@ -1858,6 +1860,161 @@ TECHNIQUE_KITS.projection = {
     r: { name: 'Time-Slip',         cost: 90, cd: 60, run: naoyaDomain },
 };
 
+// ─── ITADORI (BLACK FLASH) ──────────────────────────────────
+// Pure-melee bruiser. No fancy projection — every move is a fist.
+// Built around the universal Black Flash mechanic: Surge guarantees a
+// proc on the next M1; Shrine is Sukuna leaking through as the domain.
+
+function itadoriDivergentFist(fx, fz) {
+    // First strike — heavy straight in a 3 m forward cone, 1.8× dmg.
+    // A delayed shockwave (~400 ms) detonates at the impact point for
+    // 1.2× dmg in a 3.5 m radius — Yuji's signature "second hit".
+    const REACH = 3.0;
+    rArmSwing = 1; lungeAmount = 0.7; torsoTwist = -0.22;
+    playPunchSample();
+    const startX = player.x, startZ = player.z;
+    for (const c of curses) {
+        const dx = c.x - startX, dz = c.z - startZ;
+        const d = Math.hypot(dx, dz) || 1;
+        if (d > REACH) continue;
+        if ((dx / d) * fx + (dz / d) * fz < 0.30) continue;
+        let dmg = player.damage * 1.8;
+        dmg = tryBlackFlash(c, dmg);
+        damageCurse(c, dmg);
+        c.x += (dx / d) * 1.2; c.z += (dz / d) * 1.2;
+        burst(c.x, 1.4, c.z, '#ffe066', 10);
+    }
+    flashLight(startX + fx * 1.5, 1.6, startZ + fz * 1.5, '#ffe066', 6, 280);
+    camShake(0.12, 0.22); sfx('hit');
+    // Divergent — the second impact lands a beat later.
+    setTimeout(() => {
+        if (state !== 'playing') return;
+        const tx = startX + fx * REACH;
+        const tz = startZ + fz * REACH;
+        const SR = 3.5;
+        for (const c of curses.slice()) {
+            const d = Math.hypot(c.x - tx, c.z - tz);
+            if (d > SR) continue;
+            const dmg = tryBlackFlash(c, player.damage * 1.2);
+            damageCurse(c, dmg);
+            burst(c.x, 1.4, c.z, '#ffffff', 6);
+        }
+        shockRing(tx, tz, '#ffe066', SR * 1.8, 380, 0.5);
+        shockRing(tx, tz, '#ffffff', SR * 1.2, 280, 0.3);
+        flashLight(tx, 1.6, tz, '#ffe066', 5, 240);
+        camShake(0.08, 0.18); sfx('hit');
+    }, 400);
+}
+
+function itadoriSurge(fx, fz) {
+    // Guarantees the Black Flash buff: next M1 within 8 s lands ×2 base
+    // (and still rolls for the chain-into-god-mode if a real BF procs
+    // inside the window). No damage on cast — pure setup.
+    const now = performance.now();
+    player.bfWindowUntil = now + 8000;
+    player.bfDoubleNext = true;
+    toast('★ BLACK FLASH SURGE — next M1 ×2 (8s)');
+    sfx('boss');
+    screenFlash('rgba(255,224,102,0.35)', 380);
+    camShake(0.10, 0.24);
+    risingHalo(playerModel, '#ffe066', 600);
+    burst(player.x, 1.8, player.z, '#ffe066', 18);
+    shockRing(player.x, player.z, '#ffe066', 4, 480, 0.5);
+}
+
+function itadoriManjiKick(fx, fz) {
+    // Leap-slam — instant 7 m forward translation with a visible arc
+    // trail, then a 5 m radius AOE at the landing point for 2× dmg
+    // with knockback. 0.4 s i-frames during the leap.
+    const startX = player.x, startZ = player.z;
+    let endX = startX + fx * 7, endZ = startZ + fz * 7;
+    endX = pushOutObstacles(endX, endZ, 'x', player.x);
+    endZ = pushOutObstacles(endX, endZ, 'z', player.z);
+    endX = Math.max(-WORLD + 4, Math.min(WORLD - 4, endX));
+    endZ = Math.max(-WORLD + 4, Math.min(WORLD - 4, endZ));
+    player.x = endX; player.z = endZ;
+    player.iframes = 0.4;
+    rArmSwing = 1; lungeAmount = 0.9;
+    // Arc trail — orange bursts following the leap path
+    for (let i = 0; i < 8; i++) {
+        const t = i / 7;
+        const ax = startX + (endX - startX) * t;
+        const az = startZ + (endZ - startZ) * t;
+        const ay = 0.5 + Math.sin(t * Math.PI) * 2.6;
+        setTimeout(() => burst(ax, ay, az, '#ff6a3a', 4), i * 18);
+    }
+    // Impact AOE
+    const AOE_R = 5;
+    for (const c of curses.slice()) {
+        const d = Math.hypot(c.x - endX, c.z - endZ);
+        if (d > AOE_R) continue;
+        const dmg = tryBlackFlash(c, player.damage * 2.0);
+        damageCurse(c, dmg);
+        const kx = (c.x - endX) / (d || 1);
+        const kz = (c.z - endZ) / (d || 1);
+        c.x += kx * 2.2; c.z += kz * 2.2;
+        burst(c.x, 1.4, c.z, '#ff6a3a', 8);
+    }
+    shockRing(endX, endZ, '#ff6a3a', AOE_R * 1.8, 540, 0.7);
+    shockRing(endX, endZ, '#ffffff', AOE_R * 1.2, 380, 0.4);
+    flashLight(endX, 1.6, endZ, '#ff6a3a', 8, 420);
+    camShake(0.20, 0.35); sfx('hit'); playPunchSample();
+}
+
+function itadoriShrine() {
+    // Sukuna leaks through — Malevolent Shrine, a red/black dome that
+    // cleaves every curse inside it on the standard domain tick.
+    const r = 20, dur = 6000;
+    const grp = new THREE.Group();
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 24),
+        new THREE.MeshBasicMaterial({ color: '#ff2030', transparent: true, opacity: 0.20, side: THREE.BackSide }));
+    const outer = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 24),
+        new THREE.MeshBasicMaterial({ color: '#0a0008', transparent: true, opacity: 0.12, side: THREE.BackSide }));
+    grp.add(inner); grp.add(outer);
+    // Floating slash fragments — cleave shrapnel suspended in the dome
+    const motes = [];
+    for (let i = 0; i < 32; i++) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.04, 0.04),
+            new THREE.MeshBasicMaterial({ color: i % 3 === 0 ? '#ffffff' : '#ff2030', transparent: true, opacity: 0.9 }));
+        const a = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1);
+        const rad = r * 0.85 * Math.random();
+        m.position.set(Math.sin(p) * Math.cos(a) * rad, Math.cos(p) * rad + 1, Math.sin(p) * Math.sin(a) * rad);
+        m.rotation.z = Math.random() * Math.PI;
+        m.rotation.y = Math.random() * Math.PI;
+        grp.add(m); motes.push(m);
+    }
+    grp.position.set(player.x, 0, player.z);
+    scene.add(grp);
+    grp.add(new THREE.PointLight('#ff2030', 3.6, r, 2));
+    screenFlash('rgba(255,30,40,0.5)', 540);
+    camShake(0.32, 0.45);
+    sfx('boss');
+    shockRing(player.x, player.z, '#ff2030', r * 0.9, 720, 0.8);
+    shockRing(player.x, player.z, '#050505', r * 0.6, 540, 0.6);
+    domainActive = {
+        color: '#ff2030', until: performance.now() + dur,
+        dmgEvery: 600, lastDmg: 0, mesh: grp,
+        frozen: null,
+        freezeRadius: 0,   // shrine doesn't freeze — pure cleave damage
+        motes,
+    };
+    const t0 = performance.now(); const expand = 380;
+    const tk = () => {
+        const t = Math.min(1, (performance.now() - t0) / expand);
+        inner.scale.setScalar(0.4 + t * (r - 0.4));
+        outer.scale.setScalar(0.4 + t * (r * 1.15 - 0.4));
+        if (t < 1) requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+TECHNIQUE_KITS.blackFlash = {
+    z: { name: 'Divergent Fist',      cost: 25, cd: 4,  run: itadoriDivergentFist },
+    x: { name: 'Black Flash Surge',   cost: 35, cd: 10, run: itadoriSurge },
+    c: { name: 'Manji Kick',          cost: 40, cd: 7,  run: itadoriManjiKick },
+    r: { name: 'Malevolent Shrine',   cost: 90, cd: 60, run: itadoriShrine },
+};
+
 // Tick the active domain in update() — keeps curses frozen + ticks dmg.
 function updateDomain(dt) {
     if (!domainActive) return;
@@ -1931,6 +2088,7 @@ function meleeStrike() {
     lastM1 = now;
     comboIdx = (comboIdx + 1) % COMBO.length;
     if (hit.heavy) player.comboLockUntil = now + COMBO_DOWNTIME_MS;
+    if (NET.isOnline) sendMyAction('m1');
 
     // Arm extension on the punching hand + body torque the opposite way
     if (hit.hand === 'L') { lArmSwing = 1; torsoTwist =  0.18; }
@@ -2209,7 +2367,7 @@ const TECHNIQUE_CATALOG = [
     { id: 'limitless',   name: 'Limitless (Gojo)',           desc: 'Blue (gravity well), Red (repulsion blast), Hollow Purple (piercing beam), Domain: Unlimited Void.', icon: '◌', gold: 6000, shards: 80, ready: true },
     { id: 'dismantle',   name: 'Dismantle (Sukuna)',         desc: 'Innate slashing technique. Auto-targets nearby curses.',           icon: '⌁', gold: 4500, shards: 60 },
     { id: 'tenShadows',  name: 'Ten Shadows (Megumi)',       desc: 'Summon shikigami — Divine Dogs, Nue, Mahoraga.',                   icon: '▲', gold: 5200, shards: 70 },
-    { id: 'blackFlash',  name: 'Black Flash (Itadori)',      desc: 'Cursed-energy detonation on each strike. Pure damage.',            icon: '⚡', gold: 3800, shards: 50 },
+    { id: 'blackFlash',  name: 'Black Flash (Itadori)',      desc: 'Divergent Fist · Black Flash Surge · Manji Kick · Domain: Malevolent Shrine.', icon: '⚡', gold: 3800, shards: 50, ready: true },
     { id: 'copy',        name: 'Copy (Yuta)',                desc: 'Mimics any technique you\'ve seen.',                               icon: '☯', gold: 7000, shards: 90 },
     { id: 'strawDoll',   name: 'Straw Doll (Nobara)',        desc: 'Hammer + nail combo. Resonance through hits.',                     icon: '⨂', gold: 3000, shards: 40 },
     { id: 'cursedSpeech',name: 'Cursed Speech (Inumaki)',    desc: 'Commands curses to do as told. CE-intensive.',                     icon: '◐', gold: 4200, shards: 55 },
@@ -2315,6 +2473,200 @@ async function refreshSlots() {
         : '';
 }
 
+// ─── MULTIPLAYER ────────────────────────────────────────────
+// Sync scope: movement + visible attacks. Curses, HP, quests are
+// LOCAL per player — combat is each-instance authoritative.
+const REMOTE_COLORS = ['#3adf8a', '#a06bff', '#ff5a8a', '#ffe066', '#3a8aff', '#ff6a3a'];
+const remoteModels = {};      // idx → { model, targetX, targetZ, targetY, targetYaw, color }
+let mpLastPosSend = 0;
+let pendingMpSave = null;
+
+function mpSetStatus(msg)    { const el = document.getElementById('mp-status');      if (el) el.textContent = msg; }
+function mpSetJoinStatus(m)  { const el = document.getElementById('mp-join-status'); if (el) el.textContent = m; }
+
+function mpRenderLobby(players) {
+    const el = document.getElementById('mp-players');
+    if (!el) return;
+    el.innerHTML = 'Players: ' + players.map(p =>
+        `<span class="slot">${p.name}${p.id === 'host' ? ' (host)' : ''}</span>`
+    ).join(' · ');
+}
+
+async function openMpScreen() {
+    audioInit(); sfx('ui');
+    const v = readSigninFields(); if (!v) return;
+    let s = await adapter.load(v.name);
+    if (s) {
+        if (s.pwHash && s.pwHash !== hashPw(v.pw)) { signinError('Incorrect password'); return; }
+    } else {
+        // No account yet — auto-create one for multiplayer convenience.
+        s = newSave(v.name);
+        s.pwHash = hashPw(v.pw);
+        await adapter.save(s);
+    }
+    pendingMpSave = s;
+    document.getElementById('mp-name').textContent = `Signed in: ${v.name}`;
+    document.getElementById('signin-screen').classList.remove('active');
+    document.getElementById('mp-screen').classList.add('active');
+    document.getElementById('mp-host-block').style.display = '';
+    document.getElementById('mp-host-active').style.display = 'none';
+    document.getElementById('mp-join-block').style.display = 'none';
+    document.getElementById('mp-error').textContent = '';
+}
+
+function mpBackToSignin() {
+    sfx('ui'); cleanupNet();
+    document.getElementById('mp-screen').classList.remove('active');
+    document.getElementById('signin-screen').classList.add('active');
+    pendingMpSave = null;
+}
+
+function mpDoCreate() {
+    sfx('ui');
+    const name = pendingMpSave ? pendingMpSave.name : 'Sorcerer';
+    const code = createRoom(name, mpSetStatus, mpRenderLobby);
+    document.getElementById('mp-host-block').style.display = 'none';
+    document.getElementById('mp-host-active').style.display = '';
+    document.getElementById('mp-code').textContent = code;
+    mpSetStatus('Setting up room...');
+    mpRenderLobby([{ id: 'host', name, ready: true }]);
+}
+
+function mpShowJoin() {
+    sfx('ui');
+    document.getElementById('mp-host-block').style.display = 'none';
+    document.getElementById('mp-join-block').style.display = '';
+    mpSetJoinStatus('');
+}
+
+function mpHideJoin() {
+    sfx('ui');
+    document.getElementById('mp-join-block').style.display = 'none';
+    document.getElementById('mp-host-block').style.display = '';
+}
+
+function mpDoJoin() {
+    sfx('ui');
+    const codeIn = document.getElementById('mp-code-input');
+    const code = (codeIn.value || '').trim().toUpperCase();
+    if (code.length !== 4) { mpSetJoinStatus('Enter a 4-letter code'); return; }
+    const name = pendingMpSave ? pendingMpSave.name : 'Sorcerer';
+    joinRoom(code, name, mpSetJoinStatus, mpRenderLobby);
+    // Swap to the active-server view so they see the code + Enter World btn
+    document.getElementById('mp-join-block').style.display = 'none';
+    document.getElementById('mp-host-block').style.display = 'none';
+    document.getElementById('mp-host-active').style.display = '';
+    document.getElementById('mp-code').textContent = code;
+    mpSetStatus('Joining...');
+}
+
+function mpCancelActive() {
+    sfx('ui'); cleanupNet();
+    document.getElementById('mp-host-active').style.display = 'none';
+    document.getElementById('mp-host-block').style.display = '';
+}
+
+function mpEnterWorld() {
+    sfx('ui');
+    if (!pendingMpSave) return;
+    document.getElementById('mp-screen').classList.remove('active');
+    startGame(pendingMpSave);
+    const chip = document.getElementById('mp-chip');
+    chip.style.display = 'block';
+    chip.textContent = `ROOM ${NET.roomCode} · P${NET.playerIndex + 1}`;
+    pendingMpSave = null;
+}
+
+function ensureRemoteModel(idx, name) {
+    if (remoteModels[idx]) return remoteModels[idx];
+    const color = REMOTE_COLORS[idx % REMOTE_COLORS.length];
+    const model = buildHumanoid({ coat: color, accent: '#ffffff' });
+    scene.add(model);
+    // Name tag — canvas-texture sprite floating above the head
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, 256, 64);
+    ctx.fillStyle = color; ctx.font = 'bold 38px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText((name || 'Player').slice(0, 14), 128, 32);
+    const tex = new THREE.CanvasTexture(cv);
+    const lbl = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    lbl.scale.set(2.4, 0.6, 1);
+    lbl.position.y = 2.4;
+    model.add(lbl);
+    const rec = { model, color, targetX: 0, targetZ: 0, targetY: 0, targetYaw: 0, nameTag: lbl };
+    remoteModels[idx] = rec;
+    return rec;
+}
+
+function disposeRemoteModel(idx) {
+    const rec = remoteModels[idx]; if (!rec) return;
+    scene.remove(rec.model);
+    rec.model.traverse(o => {
+        if (o.isSprite) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); return; }
+        if (o.isMesh) { o.geometry.dispose(); if (o.material) o.material.dispose(); }
+    });
+    delete remoteModels[idx];
+}
+
+function mpTick(dt) {
+    if (!NET.isOnline) return;
+    const now = performance.now();
+    // Broadcast my position at ~30Hz
+    if (now - mpLastPosSend > 33) {
+        mpLastPosSend = now;
+        sendMyPos(player.x, player.z, player.y, yaw);
+    }
+    // Reap models for players that left
+    for (const idxStr of Object.keys(remoteModels)) {
+        if (!(idxStr in NET.remotePlayers)) disposeRemoteModel(+idxStr);
+    }
+    // Update / lerp / replay actions for each remote player
+    const k = 1 - Math.exp(-dt * 18);   // ~55 ms time constant
+    for (const idxStr of Object.keys(NET.remotePlayers)) {
+        const idx = +idxStr;
+        const rp = NET.remotePlayers[idx];
+        const rec = ensureRemoteModel(idx, rp.name);
+        rec.targetX = rp.x; rec.targetZ = rp.z; rec.targetY = rp.y; rec.targetYaw = rp.yaw;
+        const m = rec.model;
+        m.position.x += (rec.targetX - m.position.x) * k;
+        m.position.z += (rec.targetZ - m.position.z) * k;
+        m.position.y += (rec.targetY - m.position.y) * k;
+        let dyaw = rec.targetYaw - m.rotation.y;
+        while (dyaw >  Math.PI) dyaw -= Math.PI * 2;
+        while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+        m.rotation.y += dyaw * k;
+        while (rp.pendingActions.length) playRemoteAction(rec, rp.pendingActions.shift());
+    }
+}
+
+function playRemoteAction(rec, act) {
+    const ud = rec.model.userData;
+    if (act.kind === 'm1') {
+        // Quick right-arm punch — extend then snap back
+        ud.rShoulder.rotation.x = -1.7;
+        ud.rElbow.rotation.x = -0.15;
+        setTimeout(() => {
+            if (!rec.model.parent) return;
+            ud.rShoulder.rotation.x = 0;
+            ud.rElbow.rotation.x = 0;
+        }, 220);
+        const fx = -Math.sin(rec.model.rotation.y);
+        const fz = -Math.cos(rec.model.rotation.y);
+        burst(rec.model.position.x + fx * 1.5, 1.4, rec.model.position.z + fz * 1.5, '#ffffff', 6);
+    } else if (act.kind === 'ability') {
+        burst(rec.model.position.x, 2.0, rec.model.position.z, rec.color, 14);
+        shockRing(rec.model.position.x, rec.model.position.z, rec.color, 3, 380, 0.45);
+        flashLight(rec.model.position.x, 1.8, rec.model.position.z, rec.color, 4, 280);
+    }
+}
+
+function mpDisposeAll() {
+    for (const idxStr of Object.keys(remoteModels)) disposeRemoteModel(+idxStr);
+    cleanupNet();
+    const chip = document.getElementById('mp-chip'); if (chip) chip.style.display = 'none';
+}
+
 // ─── ANIMATION HELPERS ──────────────────────────────────────
 // Per-hand punch extension (0 = guard, 1 = arm fully extended) +
 // signed torso torque (left punch twists the body one way, right
@@ -2359,6 +2711,7 @@ function toSignin() {
     document.getElementById('signin-screen').classList.add('active');
     for (const c of curses.slice()) scene.remove(c.mesh);
     curses.length = 0;
+    mpDisposeAll();
     refreshSlots();
 }
 
@@ -3009,6 +3362,7 @@ function update(dt) {
     if (autosaveAccum > 20) { autosaveAccum = 0; persist(); }
     if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) document.getElementById('toast').style.opacity = '0'; }
 
+    mpTick(dt);
     updateHud();
 }
 
@@ -3124,6 +3478,15 @@ function init() {
     const pwIn = document.getElementById('pw-input');
     document.getElementById('btn-enter').onclick = enterPressed;
     document.getElementById('btn-register').onclick = registerPressed;
+    document.getElementById('btn-mp').onclick = openMpScreen;
+    // Multiplayer lobby buttons
+    document.getElementById('btn-mp-back').onclick      = mpBackToSignin;
+    document.getElementById('btn-create').onclick       = mpDoCreate;
+    document.getElementById('btn-join-show').onclick    = mpShowJoin;
+    document.getElementById('btn-mp-cancel-join').onclick = mpHideJoin;
+    document.getElementById('btn-join').onclick         = mpDoJoin;
+    document.getElementById('btn-mp-cancel').onclick    = mpCancelActive;
+    document.getElementById('btn-start').onclick        = mpEnterWorld;
     // Enter key inside any field → login. Use Register button for new accounts.
     nameIn.addEventListener('keydown', (e) => { if (e.code === 'Enter') pwIn.focus(); });
     pwIn.addEventListener('keydown', (e) => { if (e.code === 'Enter') enterPressed(); });
