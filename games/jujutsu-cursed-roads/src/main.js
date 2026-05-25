@@ -568,9 +568,110 @@ function buildPlaza() {
     questGivers.push(board);
 }
 
-// Sword vendors — scattered around the map. Inventory is empty for the
-// MVP (user wants placeholder NPCs only; swords come later once the
-// reference art lands). Each one is a `makeNpc(..., 'swordsmith')`.
+// ─── SWORDS ─────────────────────────────────────────────────
+// Catalog of buyable blades. Each swordsmith sells the same catalog
+// (cost gates progression). For now there's only one entry — the basic
+// steel blade. dmgBonus left at 0 until the user dials in numbers.
+const SWORD_CATALOG = [
+    { id: 'basic', name: 'Basic Steel Blade', desc: 'A reliable two-handed steel longsword. No cursed energy infused.', gold: 100, dmgBonus: 0 },
+];
+
+// Anduril-style longsword — silver tapered blade, dark wrapped grip,
+// steel crossguard with flared cap ends, chunky pommel, gold inlay
+// triangles on the guard caps + pommel. Grip is centred at origin so
+// it sits in the right hand; blade extends along +Y by default (the
+// attachment code rotates it to point out of the fingertip).
+function buildBasicSword(scale = 1) {
+    const grp = new THREE.Group();
+    const matBlade  = new THREE.MeshStandardMaterial({ color: '#d8dde6', metalness: 0.88, roughness: 0.22 });
+    const matSteel  = new THREE.MeshStandardMaterial({ color: '#3a3d44', metalness: 0.7,  roughness: 0.4  });
+    const matGrip   = new THREE.MeshStandardMaterial({ color: '#1a1614', roughness: 0.85 });
+    const matAccent = new THREE.MeshStandardMaterial({ color: '#c9b676', metalness: 0.55, roughness: 0.42 });
+
+    // Blade — long tapered cylinder, then squashed on Z so it reads
+    // as a flat blade instead of a rod.
+    const blade = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.030 * scale, 0.013 * scale, 0.90 * scale, 4),
+        matBlade
+    );
+    blade.position.y = 0.55 * scale;
+    blade.rotation.y = Math.PI / 4;      // rotate the 4-sided cross-section so an edge faces forward
+    blade.scale.z = 0.30;                // flatten — flat blade, not a baton
+    grp.add(blade);
+    // Tip cap (small point so the tapered cylinder doesn't look open)
+    const tip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.013 * scale, 0.05 * scale, 4),
+        matBlade
+    );
+    tip.position.y = 1.02 * scale;
+    tip.rotation.y = Math.PI / 4;
+    tip.scale.z = 0.30;
+    grp.add(tip);
+
+    // Crossguard — horizontal short bar with flared cone caps
+    const guard = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22 * scale, 0.05 * scale, 0.06 * scale),
+        matSteel
+    );
+    guard.position.y = 0.11 * scale;
+    grp.add(guard);
+    for (const s of [-1, 1]) {
+        const cap = new THREE.Mesh(
+            new THREE.ConeGeometry(0.045 * scale, 0.07 * scale, 4),
+            matSteel
+        );
+        cap.position.set(s * 0.13 * scale, 0.11 * scale, 0);
+        cap.rotation.z = s * Math.PI / 2;
+        grp.add(cap);
+        // Gold triangle inlay on each cap face
+        const accent = new THREE.Mesh(
+            new THREE.ConeGeometry(0.018 * scale, 0.025 * scale, 3),
+            matAccent
+        );
+        accent.position.set(s * 0.16 * scale, 0.11 * scale, 0.022 * scale);
+        accent.rotation.z = s * Math.PI / 2;
+        grp.add(accent);
+    }
+
+    // Grip — wrapped leather (subtle ridges via a slim cylinder + 4
+    // even slimmer ring details to suggest the wrap).
+    const grip = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.024 * scale, 0.024 * scale, 0.17 * scale, 10),
+        matGrip
+    );
+    grip.position.y = 0.0 * scale;
+    grp.add(grip);
+    for (let i = 0; i < 4; i++) {
+        const wrap = new THREE.Mesh(
+            new THREE.TorusGeometry(0.026 * scale, 0.004 * scale, 4, 12),
+            matGrip
+        );
+        wrap.position.y = (-0.07 + i * 0.045) * scale;
+        wrap.rotation.x = Math.PI / 2;
+        grp.add(wrap);
+    }
+
+    // Pommel — chunky bulbous cap with a gold inset on each face
+    const pommel = new THREE.Mesh(
+        new THREE.SphereGeometry(0.038 * scale, 10, 6),
+        matSteel
+    );
+    pommel.position.y = -0.10 * scale;
+    pommel.scale.set(1, 1.3, 1);
+    grp.add(pommel);
+    for (const s of [-1, 1]) {
+        const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(0.012 * scale, 6, 5),
+            matAccent
+        );
+        dot.position.set(0, -0.10 * scale, s * 0.030 * scale);
+        grp.add(dot);
+    }
+
+    return grp;
+}
+
+// Sword vendors — scattered around the map. Each one sells SWORD_CATALOG.
 const swordVendors = [];
 function buildSwordVendors() {
     const list = [
@@ -586,10 +687,69 @@ function buildSwordVendors() {
 
 function openSwordShop(npc) {
     const name = npc.userData.label;
+    const goldUI = `<span style="color:#ffe066">${save.gold} g</span>`;
+    const rows = SWORD_CATALOG.map(s => {
+        const owned = (save.ownedSwords || []).includes(s.id);
+        const equipped = save.equippedSword === s.id;
+        const canAfford = save.gold >= s.gold;
+        let btn;
+        if (equipped)       btn = `<button class="btn sec act" data-sword-unequip="${s.id}" style="border-color:#3aff8a;color:#3aff8a">Equipped</button>`;
+        else if (owned)     btn = `<button class="btn sec act" data-sword-equip="${s.id}">Equip</button>`;
+        else if (canAfford) btn = `<button class="btn sec act" data-sword-buy="${s.id}">Buy</button>`;
+        else                btn = `<button class="btn sec act" disabled style="opacity:0.4;cursor:not-allowed">Buy</button>`;
+        return `<div class="shop-row">
+            <span class="shop-icon">⚔</span>
+            <span class="shop-body"><b>${s.name}</b><br><small style="color:#7a8a9a">${s.desc}</small></span>
+            <span class="shop-cost"><span style="color:#ffe066">${s.gold} g</span></span>
+            ${btn}
+        </div>`;
+    }).join('');
     showOverlay(`<h2 style="color:#c0c4cc">${name}</h2>
-        <p style="color:#7a8a9a">A weathered swordsmith looks you up and down.</p>
-        <p>"No blades on the rack yet, sorcerer. Come back another day — I'll have steel worth your cursed energy."</p>
-        <button class="btn sec act" data-close="1">Close</button>`);
+        <p>${goldUI}</p>
+        <p style="margin:0.4rem 0 0.8rem;color:#7a8a9a">"Pick your steel, sorcerer."</p>
+        <div class="shop-list">${rows}</div>
+        <button class="btn sec act" data-close="1" style="margin-top:1rem">Close</button>`);
+}
+
+function buySword(id) {
+    const s = SWORD_CATALOG.find(x => x.id === id);
+    if (!s) return;
+    if (!Array.isArray(save.ownedSwords)) save.ownedSwords = [];
+    if (save.ownedSwords.includes(id)) return;
+    if (save.gold < s.gold) { toast('Not enough gold'); return; }
+    save.gold -= s.gold;
+    save.ownedSwords.push(id);
+    if (!save.equippedSword) { save.equippedSword = id; refreshSwordModel(); }
+    toast(`Bought: ${s.name}`);
+    sfx('level');
+    persist();
+    // Re-open the same shop view (we don't know which NPC, so synth one)
+    const fakeNpc = { userData: { label: 'BLADESMITH' } };
+    openSwordShop(fakeNpc);
+}
+function equipSword(id) {
+    if (!save.ownedSwords || !save.ownedSwords.includes(id)) return;
+    save.equippedSword = id;
+    refreshSwordModel();
+    toast(`Equipped: ${SWORD_CATALOG.find(s => s.id === id).name}`);
+    sfx('ui');
+    persist();
+    openSwordShop({ userData: { label: 'BLADESMITH' } });
+}
+function unequipSword(id) {
+    if (save.equippedSword !== id) return;
+    save.equippedSword = null;
+    refreshSwordModel();
+    toast('Sheathed.');
+    sfx('ui');
+    persist();
+    openSwordShop({ userData: { label: 'BLADESMITH' } });
+}
+
+// Toggle the local player's sword mesh visibility based on save state.
+function refreshSwordModel() {
+    if (!playerModel || !playerModel.userData.sword) return;
+    playerModel.userData.sword.visible = !!save.equippedSword;
 }
 
 // 4 additional quest-giver NPCs scattered around the Tokyo district.
@@ -934,6 +1094,16 @@ function buildPlayerModel() {
     arrow.add(shaft);
     g.add(arrow);
     g.userData.arrow = arrow;
+
+    // Attach a basic-sword mesh to the right wrist — hidden by default,
+    // toggled visible when save.equippedSword is set. The blade points
+    // out of the fingertip after the local-axis rotation below.
+    const sword = buildBasicSword(playerScale);
+    sword.rotation.x = Math.PI;          // flip so blade extends -Y from wrist (= "out the hand")
+    sword.position.set(0, -0.06 * playerScale, 0);
+    sword.visible = false;
+    g.userData.rWrist.add(sword);
+    g.userData.sword = sword;
 
     return g;
 }
@@ -2951,6 +3121,9 @@ document.getElementById('overlay').addEventListener('click', (e) => {
     if (!t.dataset) return;
     if (t.dataset.shopBuy)   { sfx('ui'); buyTechnique(t.dataset.shopBuy); return; }
     if (t.dataset.shopEquip) { equipTechnique(t.dataset.shopEquip); return; }
+    if (t.dataset.swordBuy)     { sfx('ui'); buySword(t.dataset.swordBuy);   return; }
+    if (t.dataset.swordEquip)   { equipSword(t.dataset.swordEquip);          return; }
+    if (t.dataset.swordUnequip) { unequipSword(t.dataset.swordUnequip);      return; }
     if (!t.dataset.close && !t.dataset.resume && !t.dataset.accept &&
         !t.dataset.quit && !t.dataset.buy) return;
     sfx('ui');
@@ -3182,13 +3355,23 @@ function ensureRemoteModel(idx, name) {
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.02;
     model.add(halo);
+    // Sword mesh attached to right wrist — hidden unless the network
+    // says this remote player has a sword equipped.
+    const sword = buildBasicSword(1);
+    sword.rotation.x = Math.PI;
+    sword.position.set(0, -0.06, 0);
+    sword.visible = false;
+    model.userData.rWrist.add(sword);
+    model.userData.sword = sword;
+
     const rec = {
         model, color,
         targetX: 0, targetZ: 0, targetY: 0, targetYaw: 0,
-        prevX: 0, prevZ: 0, moveSpeed: 0,        // for walk-anim detection
-        rArmExt: 0, lArmExt: 0,                  // 0..1 decaying punch extensions
-        actionFxUntil: 0,                        // suppresses idle-pose during big ability cast
+        prevX: 0, prevZ: 0, moveSpeed: 0,
+        rArmExt: 0, lArmExt: 0,
+        actionFxUntil: 0,
         nameTag: lbl,
+        sword,                                   // direct handle for visibility toggle
     };
     remoteModels[idx] = rec;
     return rec;
@@ -3210,7 +3393,7 @@ function mpTick(dt) {
     // Broadcast my position at ~30Hz
     if (now - mpLastPosSend > 33) {
         mpLastPosSend = now;
-        sendMyPos(player.x, player.z, player.y, yaw, player.scale || 1, !!player.flying);
+        sendMyPos(player.x, player.z, player.y, yaw, player.scale || 1, !!player.flying, save && save.equippedSword ? save.equippedSword : null);
     }
     // Host: broadcast the live curse list at ~10Hz so clients can lerp.
     if (NET.isHost) {
@@ -3246,14 +3429,16 @@ function mpTick(dt) {
         m.rotation.y += dyaw * k;
         const sc = rp.scale || 1;
         if (m.scale.x !== sc) m.scale.setScalar(sc);
+        // Mirror the equipped-sword visibility from the network state
+        if (rec.sword) rec.sword.visible = !!rp.swrd;
         // Motion detection — derived from how much the model just moved
         // this frame (smoothed). Drives the walk anim toggle.
         const dxm = m.position.x - rec.prevX;
         const dzm = m.position.z - rec.prevZ;
         const speed = Math.hypot(dxm, dzm) / Math.max(dt, 0.0001);
-        rec.moveSpeed += (speed - rec.moveSpeed) * 0.35;     // smooth
+        rec.moveSpeed += (speed - rec.moveSpeed) * 0.35;
         rec.prevX = m.position.x; rec.prevZ = m.position.z;
-        animateRemoteRig(rec, dt);
+        animateRemoteRig(rec, dt, !!rp.swrd);
         while (rp.pendingActions.length) playRemoteAction(rec, rp.pendingActions.shift());
     }
     // Debug overlay — refresh ~5 Hz
@@ -3305,7 +3490,7 @@ function playRemoteAction(rec, act) {
 // Per-frame skeleton animation for a remote player rig — walk stride +
 // arm swing when moving, gentle idle bob when stationary, with the
 // decaying punch extension layered on top.
-function animateRemoteRig(rec, dt) {
+function animateRemoteRig(rec, dt, hasSword = false) {
     const ud = rec.model.userData;
     const moving = rec.moveSpeed > 0.6;          // m/s threshold
     const tNow = performance.now();
@@ -3349,11 +3534,18 @@ function animateRemoteRig(rec, dt) {
     }
 
     // Arm base pose — walk-swing when moving (opposite arm to lead leg)
-    // or "lazy guard" otherwise. Punch extension is layered on top via
-    // lerp toward the fully-extended pose, weighted by lArmExt/rArmExt.
+    // or "lazy guard" otherwise. Two-handed sword grip overrides both
+    // when the player has a blade equipped. Punch extension is layered
+    // on top via lerp toward the fully-extended pose, weighted by
+    // lArmExt/rArmExt.
     let lShX, lShZ, lShY = 0, lEbX;
     let rShX, rShZ, rShY = 0, rEbX;
-    if (moving) {
+    if (hasSword) {
+        // Same constants as the local two-handed grip — both hands
+        // forward on the hilt, blade up-and-out over the right shoulder.
+        lShX = -1.05; lShZ =  0.36; lEbX = -1.40;
+        rShX = -1.20; rShZ = -0.20; rEbX = -1.30;
+    } else if (moving) {
         // Counter-swing the arms against the legs
         lShX = -sw * 0.55; lShZ =  0.18; lEbX = -0.55;
         rShX =  sw * 0.55; rShZ = -0.18; rEbX = -0.55;
@@ -3406,6 +3598,8 @@ function startGame(loaded) {
     if (save.shards == null) save.shards = 0;            // backfill
     if (!Array.isArray(save.ownedTechniques)) save.ownedTechniques = [];
     if (save.equipped === undefined) save.equipped = null;
+    if (!Array.isArray(save.ownedSwords)) save.ownedSwords = [];
+    if (save.equippedSword === undefined) save.equippedSword = null;
     document.getElementById('signin-screen').classList.remove('active');
     document.getElementById('hud').style.display = 'block';
     player = {
@@ -3425,6 +3619,7 @@ function startGame(loaded) {
     refreshMissionHud();
     refreshAdminButton();
     refreshAbilityHud();
+    refreshSwordModel();
     state = 'playing';
     toast('Welcome, ' + save.name + ' — ' + GRADE_NAME[save.grade]);
 }
@@ -3888,9 +4083,16 @@ function update(dt) {
 
     // ── Arms: asymmetric "lazy guard" with a punch layered on top ──
     // Lead (left) hand — floating forward as a loose half-guard
-    const GL_SHX = -0.60, GL_SHZ =  0.30, GL_EBX = -1.55;
+    let GL_SHX = -0.60, GL_SHZ =  0.30, GL_EBX = -1.55;
     // Rear (right) hand — low and tucked, casual "I'm not even trying"
-    const GR_SHX = -0.18, GR_SHZ = -0.60, GR_EBX = -1.85;
+    let GR_SHX = -0.18, GR_SHZ = -0.60, GR_EBX = -1.85;
+    // Two-handed sword grip — both arms forward, right hand high on the
+    // hilt, left hand below it. Punch extension still layers on top via
+    // lArmSwing / rArmSwing so swings read naturally with the blade.
+    if (save && save.equippedSword) {
+        GL_SHX = -1.05; GL_SHZ =  0.36; GL_EBX = -1.40;
+        GR_SHX = -1.20; GR_SHZ = -0.20; GR_EBX = -1.30;
+    }
     // Fully-extended straight punch (both arms target the same shape).
     // Heavy 3rd punch pushes shoulder + elbow further (lungeAmount > 0).
     const heavy = lungeAmount;
