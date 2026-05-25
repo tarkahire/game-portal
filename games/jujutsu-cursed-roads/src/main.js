@@ -2543,11 +2543,23 @@ function pushOutObstacles(nx, nz, axis, prev) {
     for (const o of obstacles) {
         if (nx + padX <= o.minX || nx - padX >= o.maxX) continue;
         if (nz + padZ <= o.minZ || nz - padZ >= o.maxZ) continue;
-        // Overlap — push out on the axis we're resolving
+        // Overlap — push out on the axis we're resolving. If `prev`
+        // was already inside the box on this axis (slight embed from
+        // a wall-cling, corner glitch, etc.) the old code always shoved
+        // the player to maxX/maxZ, teleporting them across the building.
+        // Pick the NEARER face instead.
         if (axis === 'x') {
-            nx = (prev < o.minX) ? o.minX - padX : o.maxX + padX;
+            if (prev > o.minX && prev < o.maxX) {
+                nx = (prev - o.minX <= o.maxX - prev) ? o.minX - padX : o.maxX + padX;
+            } else {
+                nx = (prev <= o.minX) ? o.minX - padX : o.maxX + padX;
+            }
         } else {
-            nz = (prev < o.minZ) ? o.minZ - padZ : o.maxZ + padZ;
+            if (prev > o.minZ && prev < o.maxZ) {
+                nz = (prev - o.minZ <= o.maxZ - prev) ? o.minZ - padZ : o.maxZ + padZ;
+            } else {
+                nz = (prev <= o.minZ) ? o.minZ - padZ : o.maxZ + padZ;
+            }
         }
     }
     return axis === 'x' ? nx : nz;
@@ -2564,12 +2576,12 @@ function wallContact(x, z) {
         const spanZ = z > o.minZ - 0.6 && z < o.maxZ + 0.6;
         const spanX = x > o.minX - 0.6 && x < o.maxX + 0.6;
         if (spanZ) {
-            if (x <= o.minX && x > o.minX - pad - eps) return { nx: -1, nz: 0 };
-            if (x >= o.maxX && x < o.maxX + pad + eps) return { nx:  1, nz: 0 };
+            if (x <= o.minX && x > o.minX - pad - eps) return { nx: -1, nz: 0, snapX: o.minX - pad };
+            if (x >= o.maxX && x < o.maxX + pad + eps) return { nx:  1, nz: 0, snapX: o.maxX + pad };
         }
         if (spanX) {
-            if (z <= o.minZ && z > o.minZ - pad - eps) return { nx: 0, nz: -1 };
-            if (z >= o.maxZ && z < o.maxZ + pad + eps) return { nx: 0, nz:  1 };
+            if (z <= o.minZ && z > o.minZ - pad - eps) return { nx: 0, nz: -1, snapZ: o.minZ - pad };
+            if (z >= o.maxZ && z < o.maxZ + pad + eps) return { nx: 0, nz:  1, snapZ: o.maxZ + pad };
         }
     }
     return null;
@@ -2623,7 +2635,10 @@ function update(dt) {
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     const rx = Math.cos(yaw), rz = -Math.sin(yaw);
     let mx = 0, mz = 0;
-    if (!player.blocking) {
+    // While clinging to a wall, WASD does NOT drive ground movement —
+    // W/S are reserved for climbing (handled below). This stops the
+    // player drifting off the wall every time they press a key.
+    if (!player.blocking && !player.onWall) {
         if (keys['KeyW']) { mx += fx; mz += fz; }
         if (keys['KeyS']) { mx -= fx; mz -= fz; }
         if (keys['KeyA']) { mx -= rx; mz -= rz; }
@@ -2684,6 +2699,11 @@ function update(dt) {
                 if (into > 1.0) {
                     player.onWall = true;
                     player.wallNX = wc.nx; player.wallNZ = wc.nz;
+                    // Snap flush to the wall face so the player is never
+                    // slightly embedded — embedding causes pushOutObstacles
+                    // to teleport across the building on the next move.
+                    if (wc.snapX !== undefined) player.x = wc.snapX;
+                    if (wc.snapZ !== undefined) player.z = wc.snapZ;
                     player.vy = 0; player.airVx = 0; player.airVz = 0;
                     player.airSlamUsed = false;
                     sfx('hit');
