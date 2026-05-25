@@ -2715,7 +2715,14 @@ function ensureRemoteModel(idx, name) {
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.02;
     model.add(halo);
-    const rec = { model, color, targetX: 0, targetZ: 0, targetY: 0, targetYaw: 0, nameTag: lbl };
+    const rec = {
+        model, color,
+        targetX: 0, targetZ: 0, targetY: 0, targetYaw: 0,
+        prevX: 0, prevZ: 0, moveSpeed: 0,        // for walk-anim detection
+        rArmExt: 0, lArmExt: 0,                  // 0..1 decaying punch extensions
+        actionFxUntil: 0,                        // suppresses idle-pose during big ability cast
+        nameTag: lbl,
+    };
     remoteModels[idx] = rec;
     return rec;
 }
@@ -2770,9 +2777,16 @@ function mpTick(dt) {
         while (dyaw >  Math.PI) dyaw -= Math.PI * 2;
         while (dyaw < -Math.PI) dyaw += Math.PI * 2;
         m.rotation.y += dyaw * k;
-        // Mirror scale + flight aura from the network state
         const sc = rp.scale || 1;
         if (m.scale.x !== sc) m.scale.setScalar(sc);
+        // Motion detection — derived from how much the model just moved
+        // this frame (smoothed). Drives the walk anim toggle.
+        const dxm = m.position.x - rec.prevX;
+        const dzm = m.position.z - rec.prevZ;
+        const speed = Math.hypot(dxm, dzm) / Math.max(dt, 0.0001);
+        rec.moveSpeed += (speed - rec.moveSpeed) * 0.35;     // smooth
+        rec.prevX = m.position.x; rec.prevZ = m.position.z;
+        animateRemoteRig(rec, dt);
         while (rp.pendingActions.length) playRemoteAction(rec, rp.pendingActions.shift());
     }
     // Debug overlay — refresh ~5 Hz
@@ -2803,24 +2817,104 @@ function renderMpDebug() {
 }
 
 function playRemoteAction(rec, act) {
-    const ud = rec.model.userData;
     if (act.kind === 'm1') {
-        // Quick right-arm punch — extend then snap back
-        ud.rShoulder.rotation.x = -1.7;
-        ud.rElbow.rotation.x = -0.15;
-        setTimeout(() => {
-            if (!rec.model.parent) return;
-            ud.rShoulder.rotation.x = 0;
-            ud.rElbow.rotation.x = 0;
-        }, 220);
+        // Alternate L/R per strike so successive punches read as a combo.
+        if (rec._lastM1Hand === 'R') { rec.lArmExt = 1; rec._lastM1Hand = 'L'; }
+        else                         { rec.rArmExt = 1; rec._lastM1Hand = 'R'; }
         const fx = -Math.sin(rec.model.rotation.y);
         const fz = -Math.cos(rec.model.rotation.y);
         burst(rec.model.position.x + fx * 1.5, 1.4, rec.model.position.z + fz * 1.5, '#ffffff', 6);
     } else if (act.kind === 'ability') {
+        // Both arms extend for the cast frame; long-enough that the
+        // big VFX has time to read as "they did something dramatic".
+        rec.lArmExt = 1; rec.rArmExt = 1;
+        rec.actionFxUntil = performance.now() + 240;
         burst(rec.model.position.x, 2.0, rec.model.position.z, rec.color, 14);
         shockRing(rec.model.position.x, rec.model.position.z, rec.color, 3, 380, 0.45);
         flashLight(rec.model.position.x, 1.8, rec.model.position.z, rec.color, 4, 280);
     }
+}
+
+// Per-frame skeleton animation for a remote player rig — walk stride +
+// arm swing when moving, gentle idle bob when stationary, with the
+// decaying punch extension layered on top.
+function animateRemoteRig(rec, dt) {
+    const ud = rec.model.userData;
+    const moving = rec.moveSpeed > 0.6;          // m/s threshold
+    const tNow = performance.now();
+    const tw = tNow * 0.009;
+    const sw = moving ? Math.sin(tw * 1.6) : 0;
+    const stride = moving ? Math.abs(Math.sin(tw * 3.2)) * 0.04 : 0;
+    const idleT = tNow * 0.0014;
+    const sway   = !moving ? Math.sin(idleT)       : 0;
+    const breath = !moving ? Math.sin(idleT * 1.6) : 0;
+    const bounce = !moving ? Math.sin(idleT * 2.7) : 0;
+
+    // Pelvis bob
+    ud.pelvisPivot.position.y = (1.06 * ud.S) + stride + (!moving ? bounce * 0.015 : 0);
+
+    // Legs
+    if (moving) {
+        ud.lHip.rotation.x =  sw * 0.65;
+        ud.rHip.rotation.x = -sw * 0.65;
+        ud.lKnee.rotation.x = Math.max(0, -sw) * 0.75;
+        ud.rKnee.rotation.x = Math.max(0,  sw) * 0.75;
+        ud.lHip.rotation.z = 0; ud.rHip.rotation.z = 0;
+        ud.pelvisPivot.rotation.z = 0;
+        ud.lowerTorsoPivot.rotation.z = 0;
+        ud.upperTorsoPivot.rotation.x = 0;
+        ud.upperTorsoPivot.rotation.z = 0;
+        ud.headPivot.rotation.x = 0;
+        ud.headPivot.rotation.z = 0;
+    } else {
+        ud.lHip.rotation.x = -0.22 + sway * 0.04;
+        ud.rHip.rotation.x =  0.08;
+        ud.lHip.rotation.z = -0.10;
+        ud.rHip.rotation.z =  0.04;
+        ud.lKnee.rotation.x = 0.32 - sway * 0.05;
+        ud.rKnee.rotation.x = 0.10;
+        ud.pelvisPivot.rotation.z = 0.06 + sway * 0.02;
+        ud.lowerTorsoPivot.rotation.z = -0.04;
+        ud.upperTorsoPivot.rotation.x = 0.05 + breath * 0.025;
+        ud.upperTorsoPivot.rotation.z = -0.02 + sway * 0.015;
+        ud.headPivot.rotation.x = -0.13;
+        ud.headPivot.rotation.z =  0.10 + sway * 0.05;
+    }
+
+    // Arm base pose — walk-swing when moving (opposite arm to lead leg)
+    // or "lazy guard" otherwise. Punch extension is layered on top via
+    // lerp toward the fully-extended pose, weighted by lArmExt/rArmExt.
+    let lShX, lShZ, lShY = 0, lEbX;
+    let rShX, rShZ, rShY = 0, rEbX;
+    if (moving) {
+        // Counter-swing the arms against the legs
+        lShX = -sw * 0.55; lShZ =  0.18; lEbX = -0.55;
+        rShX =  sw * 0.55; rShZ = -0.18; rEbX = -0.55;
+    } else {
+        lShX = -0.60 + breath * 0.04; lShZ =  0.30; lEbX = -1.55;
+        rShX = -0.18;                  rShZ = -0.60; rEbX = -1.85;
+    }
+    // Fully-extended punch pose (matches the local rig's straight punch)
+    const E_SHX = -1.52, E_EBX = 0.0;
+    const E_LSHZ =  0.04, E_RSHZ = -0.04;
+    // Decay extensions
+    rec.lArmExt = Math.max(0, rec.lArmExt - dt * 4.5);
+    rec.rArmExt = Math.max(0, rec.rArmExt - dt * 4.5);
+    const le = rec.lArmExt, re = rec.rArmExt;
+
+    ud.lShoulder.rotation.x = lShX * (1 - le) + E_SHX  * le;
+    ud.lShoulder.rotation.z = lShZ * (1 - le) + E_LSHZ * le;
+    ud.lShoulder.rotation.y = lShY;
+    ud.lElbow.rotation.x    = lEbX * (1 - le) + E_EBX  * le;
+
+    ud.rShoulder.rotation.x = rShX * (1 - re) + E_SHX  * re;
+    ud.rShoulder.rotation.z = rShZ * (1 - re) + E_RSHZ * re;
+    ud.rShoulder.rotation.y = rShY;
+    ud.rElbow.rotation.x    = rEbX * (1 - re) + E_EBX  * re;
+
+    // Fist "pow" scale on full extension — same as local player
+    ud.lWrist.scale.setScalar(1 + le * 0.6);
+    ud.rWrist.scale.setScalar(1 + re * 0.6);
 }
 
 function mpDisposeAll() {
