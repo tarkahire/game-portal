@@ -2127,6 +2127,282 @@ TECHNIQUE_KITS.blackFlash = {
     v: { name: 'Devil Trigger',       cost: 35, cd: 18, run: itadoriDevilTrigger },
 };
 
+// ─── SUKUNA (DISMANTLE) ─────────────────────────────────────
+// Pure slashing technique — every move is a cursed-energy blade.
+// Z hits many, X focuses one, C ranges, T burns, R levels everything.
+
+function sukunaDismantle(fx, fz) {
+    // Three rapid horizontal slashes in a forward cone (4.5 m, 1.3× dmg
+    // each). Reads as a Dismantle volley — many targets in one beat.
+    const REACH = 4.5;
+    rArmSwing = 1; torsoTwist = -0.25;
+    const startX = player.x, startZ = player.z;
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            if (state !== 'playing') return;
+            for (const c of curses.slice()) {
+                const dx = c.x - startX, dz = c.z - startZ;
+                const d = Math.hypot(dx, dz) || 1;
+                if (d > REACH) continue;
+                if ((dx / d) * fx + (dz / d) * fz < 0.25) continue;
+                let dmg = player.damage * 1.3;
+                dmg = tryBlackFlash(c, dmg);
+                damageCurse(c, dmg);
+                burst(c.x, 1.4, c.z, i === 1 ? '#ffffff' : '#ff2030', 6);
+            }
+            // Visual slash plane that arcs forward
+            const grp = new THREE.Group();
+            const slash = new THREE.Mesh(
+                new THREE.PlaneGeometry(REACH, 0.9),
+                new THREE.MeshBasicMaterial({ color: i === 1 ? '#ffffff' : '#ff2030', transparent: true, opacity: 0.92, side: THREE.DoubleSide }));
+            slash.rotation.x = -Math.PI / 2;
+            slash.position.set(REACH / 2, 0.18 + i * 0.02, (i - 1) * 0.5);
+            grp.add(slash);
+            grp.position.set(startX, 0, startZ);
+            grp.rotation.y = Math.atan2(fx, fz);
+            scene.add(grp);
+            const t0 = performance.now();
+            const tk = () => {
+                const t = (performance.now() - t0) / 260;
+                if (t >= 1) { scene.remove(grp); slash.geometry.dispose(); slash.material.dispose(); return; }
+                slash.material.opacity = 0.92 * (1 - t);
+                requestAnimationFrame(tk);
+            };
+            requestAnimationFrame(tk);
+            flashLight(startX + fx * 2.4, 1.6, startZ + fz * 2.4, '#ff2030', 5, 220);
+        }, i * 80);
+    }
+    camShake(0.14, 0.28); sfx('tech');
+}
+
+function sukunaCleave(fx, fz) {
+    // Single-target focus — locks onto the nearest curse in a 9 m
+    // forward cone and detonates it for ×3.5 dmg with a splash.
+    let tgt = null, best = 9;
+    for (const c of curses) {
+        const dx = c.x - player.x, dz = c.z - player.z, d = Math.hypot(dx, dz) || 1;
+        if (d > best) continue;
+        if ((dx / d) * fx + (dz / d) * fz < 0.0) continue;
+        best = d; tgt = c;
+    }
+    rArmSwing = 1; lungeAmount = 1.0; torsoTwist = -0.35;
+    if (!tgt) {
+        // Whiff — still slash the air for cosmetic feedback
+        const px = player.x + fx * 5, pz = player.z + fz * 5;
+        shockRing(px, pz, '#ff2030', 4, 320, 0.4);
+        sfx('ui'); return;
+    }
+    const dmg = tryBlackFlash(tgt, player.damage * 3.5);
+    damageCurse(tgt, dmg);
+    explode(tgt.x, 1.6, tgt.z, '#ff2030', 4);
+    // Splash to anyone within 3 m of the focus target
+    for (const c of curses.slice()) {
+        if (c === tgt || !c.alive) continue;
+        const d = Math.hypot(c.x - tgt.x, c.z - tgt.z);
+        if (d > 3) continue;
+        damageCurse(c, player.damage * 1.4);
+        burst(c.x, 1.4, c.z, '#ff2030', 6);
+    }
+    // Big slash plane from player to target
+    const dxL = tgt.x - player.x, dzL = tgt.z - player.z;
+    const lenL = Math.hypot(dxL, dzL);
+    const grp = new THREE.Group();
+    const slash = new THREE.Mesh(
+        new THREE.PlaneGeometry(lenL, 1.3),
+        new THREE.MeshBasicMaterial({ color: '#ff2030', transparent: true, opacity: 0.95, side: THREE.DoubleSide }));
+    slash.rotation.x = -Math.PI / 2;
+    slash.position.set(lenL / 2, 0.20, 0);
+    grp.add(slash);
+    grp.position.set(player.x, 0, player.z);
+    grp.rotation.y = Math.atan2(dxL, dzL);
+    scene.add(grp);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 380;
+        if (t >= 1) { scene.remove(grp); slash.geometry.dispose(); slash.material.dispose(); return; }
+        slash.material.opacity = 0.95 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    camShake(0.20, 0.32); hitstop(0.05); sfx('boss');
+}
+
+function sukunaFireArrow(fx, fz) {
+    // Ranged fire projectile — travels up to 30 m, explodes on first
+    // curse hit OR at max distance for ×3 dmg in 4.5 m radius.
+    const SPEED = 32, MAX_DIST = 30, RADIUS = 4.5;
+    rArmSwing = 1;
+    const startX = player.x, startZ = player.z;
+    const arrow = new THREE.Group();
+    const core = new THREE.Mesh(
+        new THREE.SphereGeometry(0.45, 12, 10),
+        new THREE.MeshBasicMaterial({ color: '#ffaa30', transparent: true, opacity: 0.95 }));
+    const inner = new THREE.Mesh(
+        new THREE.SphereGeometry(0.28, 10, 8),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95 }));
+    arrow.add(core); arrow.add(inner);
+    arrow.add(new THREE.PointLight('#ff5a30', 4.5, 8, 2));
+    arrow.position.set(startX + fx * 0.8, 1.5, startZ + fz * 0.8);
+    scene.add(arrow);
+    let traveled = 0;
+    const t0 = performance.now();
+    let last = t0;
+    const tk = () => {
+        const now = performance.now();
+        const dt = Math.min(0.04, (now - last) / 1000);
+        last = now;
+        const step = SPEED * dt;
+        arrow.position.x += fx * step;
+        arrow.position.z += fz * step;
+        traveled += step;
+        // Trail spark
+        if (Math.random() < 0.6) burst(arrow.position.x, arrow.position.y, arrow.position.z, '#ff8a30', 2);
+        let hit = false;
+        for (const c of curses) {
+            if (!c.alive) continue;
+            if (Math.hypot(c.x - arrow.position.x, c.z - arrow.position.z) < 1.2) { hit = true; break; }
+        }
+        if (hit || traveled >= MAX_DIST) {
+            const ix = arrow.position.x, iz = arrow.position.z;
+            scene.remove(arrow);
+            core.geometry.dispose(); core.material.dispose();
+            inner.geometry.dispose(); inner.material.dispose();
+            for (const c of curses.slice()) {
+                if (Math.hypot(c.x - ix, c.z - iz) > RADIUS) continue;
+                const dmg = tryBlackFlash(c, player.damage * 3.0);
+                damageCurse(c, dmg);
+                burst(c.x, 1.4, c.z, '#ff5a30', 10);
+            }
+            explode(ix, 1.4, iz, '#ff5a30', 4);
+            shockRing(ix, iz, '#ffaa30', RADIUS * 1.6, 540, 0.6);
+            camShake(0.18, 0.32);
+            return;
+        }
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    sfx('tech');
+}
+
+function sukunaWorldCut(fx, fz) {
+    // R — World Cutting Slash. 360° red crescent ring expands out to
+    // 16 m, hitting everything for ×3.5 dmg + knockback away from
+    // player. Sukuna's no-domain ultimate.
+    const R = 16;
+    rArmSwing = 1; lArmSwing = 1; lungeAmount = 0.8;
+    screenFlash('rgba(255,30,40,0.45)', 480);
+    camShake(0.32, 0.45);
+    sfx('boss');
+    for (const c of curses.slice()) {
+        const dx = c.x - player.x, dz = c.z - player.z;
+        const d = Math.hypot(dx, dz);
+        if (d > R) continue;
+        let dmg = player.damage * 3.5;
+        dmg = tryBlackFlash(c, dmg);
+        damageCurse(c, dmg);
+        // Knockback away from player
+        const nx = (dx / (d || 1)), nz = (dz / (d || 1));
+        c.x += nx * 4.5; c.z += nz * 4.5;
+        burst(c.x, 1.4, c.z, '#ff2030', 12);
+    }
+    // Two expanding crescent rings + a white inner flash
+    shockRing(player.x, player.z, '#ff2030', R * 1.05, 760, 0.9);
+    shockRing(player.x, player.z, '#ffffff', R * 0.7,  560, 0.6);
+    shockRing(player.x, player.z, '#0a0008', R * 0.45, 380, 0.5);
+    flashLight(player.x, 1.8, player.z, '#ff2030', 12, 580);
+    // Radial lightning streaks around the player
+    for (let i = 0; i < 18; i++) {
+        const a = (i / 18) * Math.PI * 2 + Math.random() * 0.2;
+        lightningStreak(player.x, 1.6, player.z, a, 5 + Math.random() * 3, i % 2 ? '#ff2030' : '#ffffff', 540);
+    }
+    hitstop(0.10);
+}
+
+function sukunaFurnace(fx, fz) {
+    // T — Furnace. Pillar of fire at player's position. 6 m radius,
+    // ticks ×1.5 dmg every 300 ms for 2.4 s. Player takes no damage.
+    const R = 6, dur = 2400, tickEvery = 300;
+    const cx = player.x, cz = player.z;
+    rArmSwing = 1;
+    // Big pillar mesh — cylinder of swirling orange flame
+    const grp = new THREE.Group();
+    const pillar = new THREE.Mesh(
+        new THREE.CylinderGeometry(R, R * 0.7, 8, 22, 1, true),
+        new THREE.MeshBasicMaterial({ color: '#ff6a20', transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
+    pillar.position.y = 4;
+    grp.add(pillar);
+    const inner = new THREE.Mesh(
+        new THREE.CylinderGeometry(R * 0.5, R * 0.3, 7, 18, 1, true),
+        new THREE.MeshBasicMaterial({ color: '#ffaa30', transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
+    inner.position.y = 3.5;
+    grp.add(inner);
+    const ringMesh = new THREE.Mesh(
+        new THREE.RingGeometry(R * 0.95, R * 1.05, 32),
+        new THREE.MeshBasicMaterial({ color: '#ff2020', transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+    ringMesh.rotation.x = -Math.PI / 2;
+    ringMesh.position.y = 0.05;
+    grp.add(ringMesh);
+    grp.add(new THREE.PointLight('#ff5020', 5, R * 2.5, 2));
+    grp.position.set(cx, 0, cz);
+    scene.add(grp);
+    sfx('boss');
+    camShake(0.18, 0.30);
+    shockRing(cx, cz, '#ff5020', R * 1.3, 540, 0.6);
+    const start = performance.now();
+    let lastTick = start;
+    const tk = () => {
+        const now = performance.now();
+        const t = (now - start) / dur;
+        if (t >= 1) {
+            scene.remove(grp);
+            grp.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+            return;
+        }
+        // Pillar churn
+        pillar.rotation.y += 0.06;
+        inner.rotation.y -= 0.10;
+        pillar.material.opacity = 0.45 * (1 - t * 0.4);
+        inner.material.opacity  = 0.55 * (1 - t * 0.4);
+        ringMesh.material.opacity = 0.85 * (1 - t * 0.6);
+        // Damage tick
+        if (now - lastTick > tickEvery) {
+            lastTick = now;
+            for (const c of curses.slice()) {
+                if (Math.hypot(c.x - cx, c.z - cz) > R) continue;
+                damageCurse(c, player.damage * 1.5);
+                burst(c.x, 1.4, c.z, '#ff6a20', 4);
+            }
+        }
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+}
+
+function sukunaBindingVow(fx, fz) {
+    // V — Binding Vow. The next M1 within 6 s hits for ×3 base + a
+    // guaranteed Black Flash proc (sets bfDoubleNext via the surge
+    // path) + a small radial detonation on the target.
+    const now = performance.now();
+    player.bfWindowUntil = now + 6000;
+    player.bfDoubleNext = true;
+    toast('☩ BINDING VOW — next M1 ×3 + ★ BF (6s)');
+    sfx('boss');
+    screenFlash('rgba(255,30,40,0.30)', 380);
+    camShake(0.12, 0.24);
+    risingHalo(playerModel, '#ff2030', 600);
+    burst(player.x, 1.8, player.z, '#ff2030', 18);
+    shockRing(player.x, player.z, '#ff2030', 4, 480, 0.5);
+}
+
+TECHNIQUE_KITS.dismantle = {
+    z: { name: 'Dismantle',           cost: 25, cd: 4,  run: sukunaDismantle },
+    x: { name: 'Cleave',              cost: 40, cd: 6,  run: sukunaCleave },
+    c: { name: 'Fire Arrow',          cost: 50, cd: 9,  run: sukunaFireArrow },
+    r: { name: 'World Cutting Slash', cost: 80, cd: 45, run: sukunaWorldCut },
+    t: { name: 'Furnace',             cost: 50, cd: 12, run: sukunaFurnace },
+    v: { name: 'Binding Vow',         cost: 30, cd: 15, run: sukunaBindingVow },
+};
+
 // Tick the active domain in update() — keeps curses frozen + ticks dmg.
 function updateDomain(dt) {
     if (!domainActive) return;
@@ -2494,7 +2770,7 @@ function openSmith() {
 // can be bought + equipped but their hotkeys just toast a stub.
 const TECHNIQUE_CATALOG = [
     { id: 'limitless',   name: 'Limitless (Gojo)',           desc: 'Blue (gravity well), Red (repulsion blast), Hollow Purple (piercing beam), Domain: Unlimited Void.', icon: '◌', gold: 6000, shards: 80, ready: true },
-    { id: 'dismantle',   name: 'Dismantle (Sukuna)',         desc: 'Innate slashing technique. Auto-targets nearby curses.',           icon: '⌁', gold: 4500, shards: 60 },
+    { id: 'dismantle',   name: 'Dismantle (Sukuna)',         desc: 'Dismantle volley · Cleave focus-strike · Fire Arrow · World Cutting Slash · Furnace · Binding Vow.', icon: '⌁', gold: 4500, shards: 60, ready: true },
     { id: 'tenShadows',  name: 'Ten Shadows (Megumi)',       desc: 'Summon shikigami — Divine Dogs, Nue, Mahoraga.',                   icon: '▲', gold: 5200, shards: 70 },
     { id: 'blackFlash',  name: 'Black Flash (Itadori)',      desc: 'Divergent Fist · Black Flash Surge · Manji Kick · Domain: Malevolent Shrine.', icon: '⚡', gold: 3800, shards: 50, ready: true },
     { id: 'copy',        name: 'Copy (Yuta)',                desc: 'Mimics any technique you\'ve seen.',                               icon: '☯', gold: 7000, shards: 90 },
