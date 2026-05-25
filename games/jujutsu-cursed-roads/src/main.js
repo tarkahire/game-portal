@@ -12,7 +12,7 @@ import {
     NET, createRoom, joinRoom, sendMyPos, sendMyAction, cleanupNet,
     getNetStats,
     hostBroadcastCurseSpawn, hostBroadcastCurseState, hostBroadcastCurseDeath,
-    clientSendCurseDmg,
+    clientSendCurseDmg, sendAdminCmd,
 } from './net.js';
 
 // ─── GLOBALS ────────────────────────────────────────────────
@@ -2684,6 +2684,8 @@ function wireCurseHooks() {
             hostBroadcastCurseDeath(c.id, fromIdx);
         }
     };
+    // ANY — somebody fired an admin power on me.
+    NET.onAdminCmd = (kind, payload, fromIdx) => applyAdminCmd(kind, payload, fromIdx);
 }
 
 function ensureRemoteModel(idx, name) {
@@ -3766,6 +3768,11 @@ const ADMIN_CMDS = [
             adapter.remove(save.name).then(() => location.reload());
         }
     }, danger: true },
+    // ── Targeted powers ─ click → picks a player → fires on them ──
+    { l: '◆ Heal player',     targeted: true, kind: 'heal' },
+    { l: '◆ Smite player',    targeted: true, kind: 'smite',     danger: true },
+    { l: '◆ Give God 5 s',    targeted: true, kind: 'god5' },
+    { l: '◆ TP player to me', targeted: true, kind: 'tpToMe' },
 ];
 
 let adminOpen = false;
@@ -3790,10 +3797,109 @@ function renderAdminPanel() {
 function runAdminCmd(i) {
     const cmd = ADMIN_CMDS[i];
     if (!cmd) return;
+    if (cmd.targeted) {
+        openAdminTargetPicker(cmd);
+        sfx('ui');
+        return;
+    }
     cmd.f();
     if (adminOpen) renderAdminPanel();
     persist();
     sfx('ui');
+}
+
+// Build a list of every player in the server (self + remotes) and let
+// the admin pick one to fire the cmd on.
+function openAdminTargetPicker(cmd) {
+    const myIdx = NET.playerIndex;
+    const entries = [];
+    // Self
+    entries.push({ idx: myIdx, name: (save && save.name) || 'me', isMe: true });
+    // Remote players (host's NET.remotePlayers + lobby fallback)
+    const seen = new Set([myIdx]);
+    for (const k of Object.keys(NET.remotePlayers || {})) {
+        const idx = +k;
+        if (seen.has(idx)) continue;
+        seen.add(idx);
+        const rp = NET.remotePlayers[idx];
+        entries.push({ idx, name: rp.name || `Player ${idx + 1}` });
+    }
+    // Walk lobby to fill any gaps (e.g. a peer in the lobby that hasn't
+    // pinged us with a position yet)
+    for (let i = 0; i < (NET.lobbyPlayers || []).length; i++) {
+        if (seen.has(i)) continue;
+        seen.add(i);
+        entries.push({ idx: i, name: (NET.lobbyPlayers[i] && NET.lobbyPlayers[i].name) || `Player ${i + 1}` });
+    }
+    const rows = entries.map(e =>
+        `<button class="admin-tile ${cmd.danger ? 'danger' : ''}" data-admin-target="${e.idx}">
+            <span class="admin-num">P${e.idx + 1}</span>
+            <span class="admin-lbl">${e.name}${e.isMe ? '  (you)' : ''}</span>
+        </button>`
+    ).join('');
+    showOverlay(`<h2 style="color:#ff5a6a">${cmd.l}</h2>
+        <p style="color:#7a8a9a;font-size:0.78rem">Pick a target.</p>
+        <div class="admin-grid">${rows || '<p>No other players in the server.</p>'}</div>
+        <button class="btn sec act" data-close="1" style="margin-top:1rem">Cancel</button>`);
+    adminPickerActiveKind = cmd.kind;
+}
+
+let adminPickerActiveKind = null;
+
+function fireAdminAt(targetIdx) {
+    const kind = adminPickerActiveKind;
+    if (!kind) return;
+    adminPickerActiveKind = null;
+    // Apply locally if it's me; else send via net.
+    if (targetIdx === NET.playerIndex || !NET.isOnline) {
+        applyAdminCmd(kind, null, NET.playerIndex);
+    } else {
+        sendAdminCmd(targetIdx, kind, null);
+    }
+    sfx('ui');
+    if (adminOpen) renderAdminPanel();
+    else hideOverlay();
+}
+
+// Local handler — applies a power to ME (the player who received it).
+function applyAdminCmd(kind, payload, fromIdx) {
+    const fromName = (fromIdx === NET.playerIndex)
+        ? 'self'
+        : ((NET.remotePlayers[fromIdx] && NET.remotePlayers[fromIdx].name) || `P${fromIdx + 1}`);
+    if (kind === 'heal') {
+        player.hp = player.maxHp;
+        player.stamina = player.maxStamina;
+        player.ce = player.maxCe;
+        toast(`◆ ADMIN ${fromName} healed you`);
+        risingHalo(playerModel, '#3adf8a', 600);
+        return;
+    }
+    if (kind === 'smite') {
+        // Smite via the existing damage path so god mode / iframes
+        // are honored (admins can't smite each other if god is on).
+        damagePlayer(99999);
+        explode(player.x, 1.4, player.z, '#ff2030', 4);
+        toast(`◆ ADMIN ${fromName} SMOTE you`);
+        return;
+    }
+    if (kind === 'god5') {
+        player.tempGodUntil = performance.now() + 5000;
+        toast(`◆ ADMIN ${fromName} gave you GOD 5s`);
+        risingHalo(playerModel, '#ffd05a', 800);
+        screenFlash('rgba(255,210,80,0.3)', 320);
+        return;
+    }
+    if (kind === 'tpToMe') {
+        // Teleport ME to the admin's current position.
+        const rp = NET.remotePlayers[fromIdx];
+        if (!rp) { toast('Admin position unknown'); return; }
+        player.x = rp.x; player.z = rp.z; player.y = 0;
+        player.vy = 0; player.airVx = 0; player.airVz = 0;
+        player.onWall = false;
+        toast(`◆ ADMIN ${fromName} TP'd you`);
+        burst(player.x, 1.6, player.z, '#a06bff', 18);
+        return;
+    }
 }
 function toggleAdminPanel() {
     if (!isAdmin()) return;
@@ -3826,12 +3932,17 @@ addEventListener('keydown', (e) => {
 });
 document.getElementById('admin-btn').addEventListener('click', toggleAdminPanel);
 document.getElementById('overlay').addEventListener('click', (e) => {
+    const tgt = e.target.closest('[data-admin-target]');
+    if (tgt) {
+        fireAdminAt(parseInt(tgt.dataset.adminTarget, 10));
+        return;
+    }
     const t = e.target.closest('[data-admin]');
     if (t) {
         const i = parseInt(t.dataset.admin, 10);
         runAdminCmd(i);
     }
-    if (e.target.dataset && e.target.dataset.close) adminOpen = false;
+    if (e.target.dataset && e.target.dataset.close) { adminOpen = false; adminPickerActiveKind = null; }
 });
 
 function loop() {

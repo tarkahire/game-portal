@@ -22,6 +22,7 @@ export const NET = {
     onCurseSnapshotApply: null,// CLIENT: (list)  => void — apply join snapshot
     onCurseSnapshotBuild: null,// HOST:   () => list — build snapshot for new joiner
     onCurseDmg: null,          // HOST:   (id, amount, fromIdx) => void — apply client dmg
+    onAdminCmd: null,          // ANY:    (kind, payload, fromIdx) => void — admin power was used on me
     // Stats (visible via getNetStats() for debug overlay)
     _rxPos: 0, _txPos: 0, _rxAct: 0, _txAct: 0,
     _lastRxPos: 0, _lastTxPos: 0,
@@ -139,6 +140,18 @@ export function createRoom(myName, onStatus, onLobby) {
             }
             if (data.type === 'curseDmg') {
                 if (NET.onCurseDmg) NET.onCurseDmg(data.id, data.amount, pIdx);
+            }
+            if (data.type === 'adminCmd') {
+                // The admin (this client) is firing a power on `targetIdx`.
+                // If the target is the host, apply locally. Otherwise relay
+                // to the target's connection.
+                const tgt = data.targetIdx | 0;
+                if (tgt === 0) {
+                    if (NET.onAdminCmd) NET.onAdminCmd(data.kind, data.payload, pIdx);
+                } else {
+                    const tConn = NET.connections.find(c => c._playerIndex === tgt);
+                    if (tConn && tConn.open) tConn.send({ type: 'adminCmd', kind: data.kind, payload: data.payload, fromIdx: pIdx });
+                }
             }
         });
 
@@ -285,6 +298,7 @@ export function joinRoom(code, myName, onStatus, onLobby) {
             if (data.type === 'curseState')    { if (NET.onCurseState)    NET.onCurseState(data.list); }
             if (data.type === 'curseDeath')    { if (NET.onCurseDeath)    NET.onCurseDeath(data.id, data.killerIdx); }
             if (data.type === 'curseSnapshot') { if (NET.onCurseSnapshotApply) NET.onCurseSnapshotApply(data.list); }
+            if (data.type === 'adminCmd')      { if (NET.onAdminCmd) NET.onAdminCmd(data.kind, data.payload, data.fromIdx); }
         });
 
         conn.on('close', () => {
@@ -324,6 +338,24 @@ export function clientSendAction(kind, slot) {
 export function clientSendCurseDmg(id, amount) {
     if (NET.isHost || !NET.isOnline || !NET.connections[0]) return;
     if (NET.connections[0].open) NET.connections[0].send({ type: 'curseDmg', id, amount });
+}
+
+// Fire an admin power at a specific player.
+// - target = self  → caller applies locally (no network round-trip)
+// - host firing on a remote → direct send to that connection
+// - client firing on anyone → send to host with targetIdx; host relays
+export function sendAdminCmd(targetIdx, kind, payload) {
+    const myIdx = NET.playerIndex;
+    if (targetIdx === myIdx) {
+        if (NET.onAdminCmd) NET.onAdminCmd(kind, payload, myIdx);
+        return;
+    }
+    if (NET.isHost) {
+        const tConn = NET.connections.find(c => c._playerIndex === targetIdx);
+        if (tConn && tConn.open) tConn.send({ type: 'adminCmd', kind, payload, fromIdx: myIdx });
+    } else if (NET.connections[0] && NET.connections[0].open) {
+        NET.connections[0].send({ type: 'adminCmd', kind, payload, targetIdx });
+    }
 }
 
 // Convenience: send my position regardless of role.
