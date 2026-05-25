@@ -1357,8 +1357,8 @@ function freezeCurse(c, ms) {
 // Gojo's Limitless is the flagship — everything else stubs to a toast.
 const TECHNIQUE_KITS = {};   // populated below after the ability fns
 // Per-ability cooldown timestamps (`abilityReady.<slot> = nextReadyMs`)
-const abilityReady = { z: 0, x: 0, c: 0, r: 0 };
-const ABILITY_SLOTS = ['z', 'x', 'c', 'r'];
+const abilityReady = { z: 0, x: 0, c: 0, r: 0, t: 0, v: 0 };
+const ABILITY_SLOTS = ['z', 'x', 'c', 'r', 't', 'v'];
 
 function castAbility(slot) {
     if (!save.equipped) { toast('No technique equipped — buy one from the Vendor'); return; }
@@ -2032,11 +2032,99 @@ function itadoriShrine() {
     requestAnimationFrame(tk);
 }
 
+function itadoriSukunaCleave(fx, fz) {
+    // Wide red horizontal slash — 8 m forward, 2 m wide. Cuts through
+    // every curse in the line, knockback + BF roll on each hit.
+    const REACH = 8, WIDTH = 2;
+    rArmSwing = 1; torsoTwist = -0.30; lungeAmount = 0.5;
+    const startX = player.x, startZ = player.z;
+    for (const c of curses.slice()) {
+        const ox = c.x - startX, oz = c.z - startZ;
+        const along = ox * fx + oz * fz;
+        if (along < 0 || along > REACH) continue;
+        const perp = Math.abs(ox * -fz + oz * fx);
+        if (perp > WIDTH) continue;
+        let dmg = player.damage * 1.7;
+        dmg = tryBlackFlash(c, dmg);
+        damageCurse(c, dmg);
+        c.x += fx * 0.6; c.z += fz * 0.6;
+        burst(c.x, 1.4, c.z, '#ff2030', 12);
+    }
+    // Crescent plane VFX sweeping forward at ground level
+    const grp = new THREE.Group();
+    const slash = new THREE.Mesh(
+        new THREE.PlaneGeometry(REACH, WIDTH * 1.4),
+        new THREE.MeshBasicMaterial({ color: '#ff2030', transparent: true, opacity: 0.92, side: THREE.DoubleSide }));
+    slash.rotation.x = -Math.PI / 2;
+    slash.position.set(REACH / 2, 0.10, 0);
+    grp.add(slash);
+    const core = new THREE.Mesh(
+        new THREE.PlaneGeometry(REACH, WIDTH * 0.5),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.96, side: THREE.DoubleSide }));
+    core.rotation.x = -Math.PI / 2;
+    core.position.set(REACH / 2, 0.12, 0);
+    grp.add(core);
+    grp.position.set(startX, 0, startZ);
+    grp.rotation.y = Math.atan2(fx, fz);
+    scene.add(grp);
+    const t0 = performance.now();
+    const tk = () => {
+        const t = (performance.now() - t0) / 380;
+        if (t >= 1) {
+            scene.remove(grp);
+            slash.geometry.dispose(); slash.material.dispose();
+            core.geometry.dispose();  core.material.dispose();
+            return;
+        }
+        slash.material.opacity = 0.92 * (1 - t);
+        core.material.opacity  = 0.96 * (1 - t);
+        requestAnimationFrame(tk);
+    };
+    requestAnimationFrame(tk);
+    for (let i = 0; i < 8; i++) {
+        const f = i / 7;
+        const lx = startX + fx * REACH * f;
+        const lz = startZ + fz * REACH * f;
+        lightningStreak(lx, 1.5, lz, Math.random() * Math.PI * 2,
+            1.6 + Math.random() * 1.4, i % 2 ? '#ff2030' : '#ffffff', 320);
+    }
+    shockRing(startX + fx * REACH * 0.5, startZ + fz * REACH * 0.5, '#ff2030', 5, 480, 0.6);
+    flashLight(startX + fx * REACH * 0.6, 1.6, startZ + fz * REACH * 0.6, '#ff2030', 8, 360);
+    camShake(0.18, 0.30); sfx('boss'); playPunchSample();
+}
+
+let devilAuraGrp = null;
+function itadoriDevilTrigger(fx, fz) {
+    // 5 s rage buff — ×2 damage on every source + ×1.5 speed. Visible
+    // red aura wraps the player so other players can see it too.
+    const dur = 5000;
+    player.devilUntil = performance.now() + dur;
+    player.dmgMul = 2;
+    playerSpeedMul = 1.5;
+    toast('☠ DEVIL TRIGGER — ×2 dmg · ×1.5 speed (5s)');
+    sfx('boss');
+    screenFlash('rgba(255,30,40,0.40)', 480);
+    camShake(0.20, 0.35);
+    risingHalo(playerModel, '#ff2030', 600);
+    if (devilAuraGrp) scene.remove(devilAuraGrp);
+    devilAuraGrp = new THREE.Group();
+    const aura = new THREE.Mesh(
+        new THREE.SphereGeometry(1.0, 16, 10),
+        new THREE.MeshBasicMaterial({ color: '#ff2030', transparent: true, opacity: 0.18, side: THREE.BackSide }));
+    aura.position.y = 1.2;
+    devilAuraGrp.add(aura);
+    devilAuraGrp.add(new THREE.PointLight('#ff2030', 4, 8, 2));
+    devilAuraGrp.position.set(player.x, 0, player.z);
+    scene.add(devilAuraGrp);
+}
+
 TECHNIQUE_KITS.blackFlash = {
     z: { name: 'Divergent Fist',      cost: 25, cd: 4,  run: itadoriDivergentFist },
     x: { name: 'Black Flash Surge',   cost: 35, cd: 10, run: itadoriSurge },
     c: { name: 'Manji Kick',          cost: 40, cd: 7,  run: itadoriManjiKick },
     r: { name: 'Malevolent Shrine',   cost: 90, cd: 60, run: itadoriShrine },
+    t: { name: 'Sukuna Cleave',       cost: 40, cd: 8,  run: itadoriSukunaCleave },
+    v: { name: 'Devil Trigger',       cost: 35, cd: 18, run: itadoriDevilTrigger },
 };
 
 // Tick the active domain in update() — keeps curses frozen + ticks dmg.
@@ -2194,6 +2282,9 @@ function airSlamImpact() {
 
 function damageCurse(c, dmg) {
     if (!c.alive) return;
+    // Apply any global damage multiplier (Devil Trigger etc) before
+    // shipping the value either locally or upstream to the host.
+    dmg *= (player.dmgMul || 1);
     // Visual hit-flash runs everywhere (snappy local feedback).
     c.mesh.userData.bodyMat.emissive.set('#ffffff');
     setTimeout(() => { if (c.mesh) c.mesh.userData.bodyMat.emissive.set('#0a0010'); }, 70);
@@ -2948,6 +3039,7 @@ function startGame(loaded) {
         bfDoubleNext: false, bfWindowUntil: 0, tempGodUntil: 0,
         onWall: false, wallNX: 0, wallNZ: 0, airSlamUsed: false, slamming: false,
         scale: 1, flying: false,
+        dmgMul: 1, devilUntil: 0,
     };
     deriveStats();
     player.damage += (save.flags.dmgBonus || 0);
@@ -3010,6 +3102,8 @@ function initInput() {
         else if (e.code === 'KeyX' && state === 'playing') castAbility('x');
         else if (e.code === 'KeyC' && state === 'playing') castAbility('c');
         else if (e.code === 'KeyR' && state === 'playing') castAbility('r');
+        else if (e.code === 'KeyT' && state === 'playing') castAbility('t');
+        else if (e.code === 'KeyV' && state === 'playing') castAbility('v');
         else if (e.code === 'F4') { mpDebugOn = !mpDebugOn; const el = document.getElementById('mp-debug'); if (el) el.style.display = mpDebugOn ? 'block' : 'none'; }
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -3234,6 +3328,18 @@ function update(dt) {
         player.bfWindowUntil = 0;
         player.bfDoubleNext = false;
     }
+    // Devil Trigger — buff expiry + aura follow
+    if (player.devilUntil && performance.now() > player.devilUntil) {
+        player.devilUntil = 0;
+        player.dmgMul = 1;
+        playerSpeedMul = 1;
+        if (devilAuraGrp) {
+            scene.remove(devilAuraGrp);
+            devilAuraGrp.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+            devilAuraGrp = null;
+        }
+    }
+    if (devilAuraGrp) devilAuraGrp.position.set(player.x, 0, player.z);
     // Active Domain Expansion tick
     updateDomain(dt);
     // Curse rain — spawn ~4 curses/sec for the duration
