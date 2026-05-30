@@ -24,6 +24,7 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 | `games/dungeon-crawler-3d/` | 3D First-person dungeon crawler (Three.js + PeerJS) |
 | `games/anime-battle-royale/` | 3D third-person Battle Royale (Three.js, reuses dungeon-crawler-3d roster) |
 | `games/jujutsu-cursed-roads/` | JJK open-world action RPG (Three.js) — name sign-in + localStorage save, quests, grade climb |
+| `roblox-game/` | Standalone Roblox 1v1 duel game (Luau + Rojo) — NOT part of the portal |
 | `vercel.json` | Vercel deployment config |
 
 ## Games
@@ -125,6 +126,23 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
   - `src/network/network.js` — PeerJS multiplayer with retry logic and detailed console logging
   - `docs/` — full doc framework: architecture.md, online.md, characters.md, enemies.md, controls.md
   - `todo.md` — next session priorities (online combat sync, perf, polish)
+
+### Duel Arena (Roblox)
+- **Path**: `roblox-game/` (NOT under `games/` — this is a standalone Roblox project that lives in this repo for git/auto-push convenience)
+- **Tech**: Luau, Roblox Studio, [Rojo](https://rojo.space) for file sync. No build step.
+- **Concept**: 1v1 anime-ability duel. Lobby with QUEUE button, 2 queued players get teleported to arena, fight with Q/E/R/F abilities, winner returns to lobby.
+- **Status**: MVP scaffold (2026-05-30). One character (Sorcerer) with 4 abilities: Q Blue (pull), E Red (shockwave), R Hollow Purple (beam), F Blink (teleport). Server-authoritative damage + cooldowns.
+- **Controls**: WASD move, Space jump, Q/E/R/F abilities, click QUEUE button in HUD.
+- **File structure**:
+  - `default.project.json` — Rojo project descriptor
+  - `src/ReplicatedStorage/Shared/Characters.lua` — character + ability stats (shared)
+  - `src/ReplicatedStorage/Shared/Remotes.lua` — RemoteEvent registry (lazy)
+  - `src/ServerScriptService/Arena.server.lua` — builds lobby + arena geometry
+  - `src/ServerScriptService/MatchManager.server.lua` — 1v1 queue, teleport, win detection
+  - `src/ServerScriptService/AbilityHandler.server.lua` — validates + applies ability casts
+  - `src/StarterPlayer/StarterPlayerScripts/Client.client.lua` — HUD, input, queue UI, VFX
+  - `docs/` — README, setup, architecture, abilities, todo, devlog, bugs
+- **Run locally**: `cd roblox-game && .\rojo.exe serve`, then in Studio: New Baseplate → Rojo plugin → Connect → Play. For 1v1 testing: Test → Local Server → 2 players.
 
 ## Adding a New Game
 
