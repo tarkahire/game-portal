@@ -24,6 +24,7 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 | `games/dungeon-crawler-3d/` | 3D First-person dungeon crawler (Three.js + PeerJS) |
 | `games/anime-battle-royale/` | 3D third-person Battle Royale (Three.js, reuses dungeon-crawler-3d roster) |
 | `games/jujutsu-cursed-roads/` | JJK open-world action RPG (Three.js) — name sign-in + localStorage save, quests, grade climb |
+| `games/city-smash/` | Anime 3D city brawler (Three.js) — combo punches that launch NPCs, escalating Titan bosses |
 | `roblox-game/` | Standalone Roblox 1v1 duel game (Luau + Rojo) — NOT part of the portal |
 | `vercel.json` | Vercel deployment config |
 
@@ -62,6 +63,14 @@ A static game portal website designed for deployment on Vercel. Hosts multiple b
 - **Concept**: JJK-inspired open-world action RPG. Name sign-in + `localStorage` autosave (behind a swappable `SaveAdapter` so a Supabase/Resend backend can drop in later). Hilly heightmap world, one town with **non-enterable houses** + three walk-up **human NPCs** (mission board / cursed-tool smith / Jujutsu High contact), grade-scaled curse spawn director, **M1 melee + dash** combat (no cursed techniques — stripped 2026-05-21), quests (exorcism + reusable Grade Exam), XP/levels, **full grade climb Grade 4 → Special Grade**, gold smith upgrades, WebAudio SFX, HUD + minimap.
 - **Combat**: melee-only. LMB strike (~380 ms cd, ~3 m reach, front-cone), Space dash (1.5 s cd, brief i-frames). No Z/X techniques, no CE bar.
 - **Status**: Playable — MVP + Updates 1–3 (2026-05-19); cursed techniques removed 2026-05-21. Built clean (the original "fork anime-battle-royale" plan was dropped). Monolithic `src/main.js` + `src/save/`. Full design + doc framework in `games/jujutsu-cursed-roads/docs/` (`design.md`/`devlog.md` first); roadmap in `docs/todo.md`.
+
+### City Smash
+- **Path**: `games/city-smash/`
+- **Tech**: Three.js v0.162.0 (CDN importmap), vanilla JS ES modules — no build step. Single-file `src/main.js`.
+- **Concept**: Third-person anime city brawler. Punch crowds of wandering NPCs across a bounded ~180m procedural neon city; hand-rolled ragdoll knockback launches them through the air. 4-hit combo where the **4th punch is a LAUNCHER** (wider cone, huge impulse) that sends crowds flying. Endless escalating waves, each spawning one giant scaling **Titan** boss that stalks + telegraph-slams the player.
+- **Controls**: WASD/Arrows move (camera-relative), Mouse look (pointer-lock), LMB punch/combo, Space dash (i-frames), Shift sprint, F ground slam.
+- **Systems**: `buildHumanoid()` figure reused for player/peds/Titans; enemy state machine `walk→launched→down→removed`; spawn director with wave scaling; juice (hitstop, cam shake, screen flash, impact rings, shockwaves, sparks, combo counter, banners); HUD with health/kills/wave/score/boss-bar/slam-cd.
+- **Status**: Playable MVP (2026-06-21). One character, 8 cosmetic Titan names, no audio yet. Docs in `games/city-smash/docs/` (`design.md`, `devlog.md`, `todo.md`) + per-game `CLAUDE.md`.
 
 ### Anime Battle Royale
 - **Path**: `games/anime-battle-royale/`

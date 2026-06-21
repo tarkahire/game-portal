@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Smash — Anime Brawler</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <a href="../../index.html" class="back-link">&#8592; Back to Portal</a>
+
+    <!-- Title screen -->
+    <div id="title" class="screen">
+        <div class="title-box">
+            <h1>CITY&nbsp;SMASH</h1>
+            <p class="tagline">Punch them into orbit. Chain combos. Survive the Titans.</p>
+            <div class="controls-card">
+                <div class="ctrl"><b>WASD</b> Move</div>
+                <div class="ctrl"><b>Mouse</b> Look</div>
+                <div class="ctrl"><b>Left Click</b> Punch / Combo</div>
+                <div class="ctrl"><b>Space</b> Dash</div>
+                <div class="ctrl"><b>Shift</b> Sprint</div>
+                <div class="ctrl"><b>F</b> Ground Slam</div>
+            </div>
+            <button id="startBtn">START SMASHING</button>
+            <p class="hint">Land the 4th punch of a combo for a <span class="launch">LAUNCHER</span> that sends crowds flying. Every wave a bigger <span class="titan">TITAN</span> spawns.</p>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <div id="health-wrap"><div id="health-bar"></div><span id="health-label">100</span></div>
+        <div id="stats">
+            <div class="stat"><span class="stat-num" id="kills">0</span><span class="stat-cap">SMASHED</span></div>
+            <div class="stat"><span class="stat-num" id="wave">1</span><span class="stat-cap">WAVE</span></div>
+            <div class="stat"><span class="stat-num" id="score">0</span><span class="stat-cap">SCORE</span></div>
+        </div>
+        <div id="combo"><span id="combo-num">0</span><span id="combo-x">HIT COMBO</span></div>
+        <div id="boss-bar" class="hidden"><span id="boss-name">TITAN</span><div id="boss-health-track"><div id="boss-health"></div></div></div>
+        <div id="banner"></div>
+        <div id="slam-cd" class="hidden">SLAM</div>
+    </div>
+
+    <!-- Game over -->
+    <div id="gameover" class="screen hidden">
+        <div class="title-box">
+            <h1 class="dead">YOU FELL</h1>
+            <p id="go-summary" class="tagline"></p>
+            <button id="retryBtn">SMASH AGAIN</button>
+        </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
