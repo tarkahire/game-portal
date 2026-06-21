@@ -27,10 +27,11 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0e22);
-scene.fog = new THREE.Fog(0x0a0e22, 60, 190);
+scene.background = new THREE.Color(0x141a38);
+scene.fog = new THREE.Fog(0x141a38, 90, 260);
 
-const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 600);
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 600);
+scene.add(camera); // so the first-person fist viewmodel (a child of camera) renders
 
 addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
@@ -41,8 +42,8 @@ addEventListener('resize', () => {
 // ----------------------------------------------------------------------------
 // Lights & sky
 // ----------------------------------------------------------------------------
-scene.add(new THREE.HemisphereLight(0x6a78c0, 0x161024, 0.7));
-const moon = new THREE.DirectionalLight(0xbfcaff, 1.5);
+scene.add(new THREE.HemisphereLight(0x8a96d8, 0x20183a, 1.15));
+const moon = new THREE.DirectionalLight(0xdfe6ff, 1.9);
 moon.position.set(50, 90, 30);
 moon.castShadow = true;
 moon.shadow.mapSize.set(2048, 2048);
@@ -213,15 +214,34 @@ const player = {
     alive: true,
 };
 player.mesh.position.copy(player.pos);
+player.mesh.visible = false; // first-person: body hidden, fists shown via viewmodel
 scene.add(player.mesh);
 
-// glow ring under player
-{
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.85, 24),
-        new THREE.MeshBasicMaterial({ color: 0xff5e7e, transparent: true, opacity: 0.5, side: THREE.DoubleSide }));
-    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03;
-    player.mesh.add(ring);
+const EYE_HEIGHT = 2.55;
+
+// ---- First-person fist viewmodel (children of the camera) ----
+function buildFist(side) {
+    const g = new THREE.Group();
+    const sleeveMat = new THREE.MeshStandardMaterial({ color: 0xff3b5c, roughness: 0.5 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd9b3, roughness: 0.7 });
+    const forearm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.7), sleeveMat);
+    forearm.position.z = 0.32; // extends back toward camera
+    const fist = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.32), skinMat);
+    fist.position.z = -0.05;
+    const knuckle = new THREE.Mesh(new THREE.BoxGeometry(0.31, 0.09, 0.31), new THREE.MeshStandardMaterial({ color: 0xf3c39a }));
+    knuckle.position.set(0, 0.13, -0.05);
+    g.add(forearm); g.add(fist); g.add(knuckle);
+    g.position.set(side * 0.34, -0.42, -0.85);
+    g.rotation.set(-0.15, side * 0.18, side * -0.05);
+    return g;
 }
+const fistR = buildFist(1);
+const fistL = buildFist(-1);
+camera.add(fistR); camera.add(fistL);
+// per-fist animation state
+fistR.userData.base = fistR.position.clone();
+fistL.userData.base = fistL.position.clone();
+const viewFists = { armR: fistR, armL: fistL };
 
 // ----------------------------------------------------------------------------
 // Enemies (NPCs) — wandering pedestrians that get launched
@@ -352,7 +372,7 @@ document.addEventListener('pointerlockchange', () => { pointerLocked = document.
 addEventListener('mousemove', e => {
     if (!pointerLocked) return;
     camYaw -= e.movementX * 0.0025;
-    camPitch = THREE.MathUtils.clamp(camPitch - e.movementY * 0.0022, -0.2, 1.0);
+    camPitch = THREE.MathUtils.clamp(camPitch - e.movementY * 0.0022, -1.1, 1.1);
 });
 addEventListener('mousedown', e => { if (e.button === 0 && pointerLocked && running) tryPunch(); });
 
@@ -462,10 +482,9 @@ function updatePlayer(dt) {
     if (tmpDir.lengthSq() > 0) {
         tmpDir.normalize();
         player.pos.addScaledVector(tmpDir, speed * dt);
-        // face move direction unless mid-punch (then face camera)
-        if (player.punchTimer <= 0) player.yaw = Math.atan2(tmpDir.x, tmpDir.z);
     }
-    if (player.punchTimer > 0) player.yaw = camYaw;
+    // first-person: you always face where you look
+    player.yaw = camYaw;
 
     // dash
     if ((keys['Space']) && player.dashCd <= 0) {
@@ -763,21 +782,46 @@ function setOpacity(group, op) {
 // ----------------------------------------------------------------------------
 // Camera follow
 // ----------------------------------------------------------------------------
-const camTarget = new THREE.Vector3();
+let bobPhase = 0;
+const lookDir = new THREE.Vector3();
+const lookAt = new THREE.Vector3();
 function updateCamera(dt) {
-    const dist = 9 + camPitch * 2;
-    const height = 3 + camPitch * 7;
-    const ox = Math.sin(camYaw) * -dist;
-    const oz = Math.cos(camYaw) * -dist;
-    camTarget.set(player.pos.x + ox, player.pos.y + height, player.pos.z + oz);
-    camera.position.lerp(camTarget, 1 - Math.pow(0.0015, dt));
-    const look = player.pos.clone(); look.y += 2;
-    camera.lookAt(look);
+    // head bob while moving
+    const moving = (keys['KeyW'] || keys['KeyA'] || keys['KeyS'] || keys['KeyD'] ||
+        keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight']);
+    bobPhase += dt * (keys['ShiftLeft'] || keys['ShiftRight'] ? 16 : 11);
+    const bob = moving && player.alive ? Math.sin(bobPhase) * 0.06 : 0;
+
+    camera.position.set(player.pos.x, player.pos.y + EYE_HEIGHT + bob, player.pos.z);
     if (camShake > 0) {
-        camera.position.x += (Math.random() - 0.5) * camShake;
-        camera.position.y += (Math.random() - 0.5) * camShake;
-        camera.position.z += (Math.random() - 0.5) * camShake;
+        camera.position.x += (Math.random() - 0.5) * camShake * 0.5;
+        camera.position.y += (Math.random() - 0.5) * camShake * 0.5;
+        camera.position.z += (Math.random() - 0.5) * camShake * 0.5;
         camShake = Math.max(0, camShake - dt * 4);
+    }
+    // look direction from yaw/pitch
+    const cp = Math.cos(camPitch);
+    lookDir.set(Math.sin(camYaw) * cp, Math.sin(camPitch), Math.cos(camYaw) * cp);
+    lookAt.copy(camera.position).add(lookDir);
+    camera.lookAt(lookAt);
+
+    updateViewmodel(dt, moving);
+}
+
+// animate the first-person fists: idle sway + punch thrust
+function updateViewmodel(dt, moving) {
+    for (const key of ['armR', 'armL']) {
+        const f = viewFists[key];
+        const base = f.userData.base;
+        let thrust = 0, ty = 0;
+        if (player.punchTimer > 0 && player.punchArm === key) {
+            const k = 1 - (player.punchTimer / 0.26);       // 0 -> 1
+            thrust = Math.sin(Math.min(1, k * 1.15) * Math.PI) * 0.95; // punch forward then back
+            ty = Math.sin(k * Math.PI) * 0.12;
+        }
+        const sway = moving ? Math.sin(bobPhase + (key === 'armL' ? Math.PI : 0)) * 0.025 : 0;
+        f.position.set(base.x, base.y + sway + ty, base.z - thrust);
+        f.rotation.x = -0.15 - thrust * 0.3;
     }
 }
 
